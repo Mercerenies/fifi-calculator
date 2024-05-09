@@ -1,7 +1,7 @@
 
 /// FIFO stack. Implemented internally as a vector whose "top" is at
 /// the end, allowing for constant-time pushes and pops.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Stack<T> {
   elements: Vec<T>,
 }

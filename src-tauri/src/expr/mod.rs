@@ -1,2 +1,8 @@
 
-pub type Expr = i64; // Currently just a number :)
+pub mod number;
+pub mod atom;
+
+#[derive(Debug, Clone)]
+pub enum Expr {
+  Atom(atom::Atom),
+}
