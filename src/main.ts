@@ -1,6 +1,72 @@
 
 const { invoke } = (window as any).__TAURI__.tauri;
 
+const NUMBERS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
+
+const ElementIds = {
+  INPUT_BOX: 'input-box',
+  INPUT_TEXTBOX: 'input-textbox',
+};
+
+function getElement(id: string): HTMLElement {
+  const element = document.getElementById(id);
+  if (element === null) {
+    throw `No element with ID $id`;
+  } else {
+    return element;
+  }
+}
+
+function showInputBox(): void {
+  const inputBox = getElement(ElementIds.INPUT_BOX);
+  inputBox.style.display = "block";
+  window.setTimeout(() => getElement(ElementIds.INPUT_TEXTBOX).focus(), 1);
+}
+
+function hideInputBox(): void {
+  const inputBox = getElement(ElementIds.INPUT_BOX);
+  const inputTextBox = getElement(ElementIds.INPUT_TEXTBOX) as HTMLInputElement;
+  inputBox.style.display = "none";
+  inputTextBox.value = "";
+}
+
+function dispatchOnKeyInputField(event: KeyboardEvent): void {
+  // Remove focus if the key is ESCAPE
+  if (event.key === "Escape") {
+    hideInputBox();
+    event.preventDefault();
+  }
+
+  // Submit if key is ENTER
+  if (event.key === "Enter") {
+    const inputTextBox = getElement(ElementIds.INPUT_TEXTBOX) as HTMLInputElement;
+    const text = inputTextBox.value;
+    invoke('submit_integer', { value: +text });
+    hideInputBox();
+    event.preventDefault();
+  }
+}
+
+function dispatchOnKeyGeneral(event: KeyboardEvent): void {
+  if (NUMBERS.includes(event.key)) {
+    const inputTextBox = getElement(ElementIds.INPUT_TEXTBOX) as HTMLInputElement;
+    showInputBox();
+    inputTextBox.value = event.key;
+    event.preventDefault();
+  }
+}
+
+function dispatchOnKey(event: KeyboardEvent): void {
+  if (document.activeElement === getElement(ElementIds.INPUT_TEXTBOX)) {
+    dispatchOnKeyInputField(event);
+  } else {
+    dispatchOnKeyGeneral(event);
+  }
+}
+
 window.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("input-box").innerHTML = "<b>A</b>";
+  const inputTextbox = getElement(ElementIds.INPUT_TEXTBOX);
+
+  document.body.addEventListener("keydown", dispatchOnKey);
+  inputTextbox.addEventListener("focusout", () => hideInputBox());
 });
