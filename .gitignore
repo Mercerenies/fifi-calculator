@@ -23,3 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 *~
+
+# Compiled JS
+src/*.js

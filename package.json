@@ -1,0 +1,8 @@
+{
+  "name": "fifi",
+  "author": "Silvio Mayolo",
+  "version": "0.1.0",
+  "dependencies": {
+    "typescript": "3.9.7"
+  }
+}
