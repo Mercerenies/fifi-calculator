@@ -2,7 +2,8 @@
   "build": {
     "devPath": "../src",
     "distDir": "../src",
-    "withGlobalTauri": true
+    "withGlobalTauri": true,
+    "beforeDevCommand": { "script": "npx tsc -w", "wait": false }
   },
   "package": {
     "productName": "fifi",
