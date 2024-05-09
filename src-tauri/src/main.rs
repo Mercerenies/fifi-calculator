@@ -2,10 +2,14 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use fifi::state::WrappedApplicationState;
+use fifi::expr::Expr;
 
 #[tauri::command]
-fn submit_integer(_state: tauri::State<WrappedApplicationState>, value: i64) {
+fn submit_integer(state: tauri::State<WrappedApplicationState>, value: i64) {
+  let mut state = state.lock().expect("poisoned mutex");
+  state.main_stack.push(Expr::Atom(value.into()));
   println!("integer: {}", value);
+  println!("{:?}", state.main_stack);
 }
 
 fn main() {
