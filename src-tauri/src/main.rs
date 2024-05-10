@@ -10,7 +10,7 @@ fn submit_integer(
   state: tauri::State<WrappedApplicationState>,
   app_handle: tauri::AppHandle,
   value: i64,
-) -> Result<(), Error> {
+) -> Result<(), tauri::Error> {
   let mut state = state.lock().expect("poisoned mutex");
   state.main_stack.push(Expr::Atom(value.into()));
   state.send_refresh_stack_event(&app_handle)?;
@@ -22,7 +22,7 @@ fn math_command(
   state: tauri::State<WrappedApplicationState>,
   app_handle: tauri::AppHandle,
   command_name: &str,
-) -> Result<(), Error> {
+) -> Result<(), tauri::Error> {
   let mut state = state.lock().expect("poisoned mutex");
   state.send_refresh_stack_event(&app_handle)?;
   Ok(())
