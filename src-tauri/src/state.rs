@@ -3,6 +3,7 @@
 
 use crate::stack::Stack;
 use crate::expr::Expr;
+use crate::display::DisplaySettings;
 
 use std::sync::{Mutex, LockResult, TryLockResult, MutexGuard};
 
@@ -14,6 +15,7 @@ pub struct WrappedApplicationState {
 #[derive(Default)]
 pub struct ApplicationState {
   pub main_stack: Stack<Expr>,
+  pub display_settings: DisplaySettings,
 }
 
 impl WrappedApplicationState {

@@ -1,5 +1,5 @@
 
-const { invoke } = (window as any).__TAURI__.tauri;
+const { invoke } = window.__TAURI__.tauri;
 
 const NUMBERS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
 
