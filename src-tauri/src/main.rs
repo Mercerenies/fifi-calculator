@@ -5,11 +5,17 @@ use fifi::state::WrappedApplicationState;
 use fifi::expr::Expr;
 
 #[tauri::command]
-fn submit_integer(state: tauri::State<WrappedApplicationState>, value: i64) {
+fn submit_integer(
+  state: tauri::State<WrappedApplicationState>,
+  app_handle: tauri::AppHandle,
+  value: i64,
+) -> tauri::Result<()> {
   let mut state = state.lock().expect("poisoned mutex");
   state.main_stack.push(Expr::Atom(value.into()));
+  state.send_refresh_stack_event(&app_handle)?;
   println!("integer: {}", value);
   println!("{:?}", state.main_stack);
+  Ok(())
 }
 
 fn main() {

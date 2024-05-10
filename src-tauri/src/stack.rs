@@ -41,6 +41,21 @@ impl<T> Stack<T> {
     self.elements.get_mut(index)
   }
 
+  /// Iterates from the top of the stack.
+  pub fn iter(&self) -> impl DoubleEndedIterator<Item = &T> {
+    self.elements.iter().rev()
+  }
+
+  /// Iterates (with mutable references) from the top of the stack.
+  pub fn iter_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut T> {
+    self.elements.iter_mut().rev()
+  }
+
+  /// Iterates (by value) from the top of the stack.
+  pub fn into_iter(self) -> impl DoubleEndedIterator<Item = T> {
+    self.elements.into_iter().rev()
+  }
+
 }
 
 impl<T> Default for Stack<T> {

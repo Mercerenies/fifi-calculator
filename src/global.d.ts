@@ -15,5 +15,24 @@ interface TauriInvoke {
 }
 
 interface EventFunctions {
+  listen: EventListen;
+}
 
+interface EventListen {
+  (event: 'refresh-stack', callback: EventCallback<RefreshStackPayload>): Promise<UnlistenFunction>;
+}
+
+type EventCallback<T> = (event: EventBody<T>) => void;
+
+interface EventBody<T> {
+  event: string;
+  id: number;
+  payload: T;
+  windowLabel: string;
+}
+
+type UnlistenFunction = () => void;
+
+interface RefreshStackPayload {
+  stack: string[];
 }

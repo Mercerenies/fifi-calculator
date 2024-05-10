@@ -3,7 +3,10 @@
 
 use crate::stack::Stack;
 use crate::expr::Expr;
+use crate::events::RefreshStackPayload;
 use crate::display::DisplaySettings;
+
+use tauri::Manager;
 
 use std::sync::{Mutex, LockResult, TryLockResult, MutexGuard};
 
@@ -38,6 +41,13 @@ impl ApplicationState {
 
   pub fn new() -> Self {
     Self::default()
+  }
+
+  pub fn send_refresh_stack_event(&self, app_handle: &tauri::AppHandle) -> tauri::Result<()> {
+    let displayed_stack: Vec<String> =
+      self.main_stack.iter().map(|expr| self.display_settings.to_html(expr)).collect();
+    let payload = RefreshStackPayload { stack: displayed_stack };
+    app_handle.emit_all(RefreshStackPayload::EVENT_NAME, payload)
   }
 
 }
