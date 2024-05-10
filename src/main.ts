@@ -4,6 +4,13 @@ const { listen } = window.__TAURI__.event;
 
 const NUMBERS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
 
+const SIMPLE_DISPATCH_KEYS: Record<string, string> = {
+  "+": "+",
+  "-": "-",
+  "*": "*",
+  "/": "/",
+};
+
 const ElementIds = {
   INPUT_BOX: 'input-box',
   INPUT_TEXTBOX: 'input-textbox',
@@ -32,20 +39,26 @@ function hideInputBox(): void {
   inputTextBox.value = "";
 }
 
-async function dispatchOnKeyInputField(event: KeyboardEvent): Promise<void> {
-  // Remove focus if the key is ESCAPE
-  if (event.key === "Escape") {
-    hideInputBox();
-    event.preventDefault();
-  }
+async function submitInteger() {
+  const inputTextBox = getElement(ElementIds.INPUT_TEXTBOX) as HTMLInputElement;
+  const text = inputTextBox.value;
+  await invoke('submit_integer', { value: +text });
+  hideInputBox();
+}
 
-  // Submit if key is ENTER
-  if (event.key === "Enter") {
-    const inputTextBox = getElement(ElementIds.INPUT_TEXTBOX) as HTMLInputElement;
-    const text = inputTextBox.value;
-    await invoke('submit_integer', { value: +text });
+async function dispatchOnKeyInputField(event: KeyboardEvent): Promise<void> {
+  if (event.key === "Escape") {
+    // Remove focus and cancel, if the key is ESCAPE
     hideInputBox();
     event.preventDefault();
+  } else if (event.key === "Enter") {
+    // Submit if key is ENTER
+    await submitInteger();
+    event.preventDefault();
+  } else if (event.key in SIMPLE_DISPATCH_KEYS) {
+    // If the key is a dispatch key, submit and then dispatch.
+    await submitInteger();
+    dispatchOnKeyGeneral(event);
   }
 }
 
@@ -54,6 +67,9 @@ async function dispatchOnKeyGeneral(event: KeyboardEvent): Promise<void> {
     const inputTextBox = getElement(ElementIds.INPUT_TEXTBOX) as HTMLInputElement;
     showInputBox();
     inputTextBox.value = event.key;
+    event.preventDefault();
+  } else if (event.key in SIMPLE_DISPATCH_KEYS) {
+    invoke('math_command', { commandName: SIMPLE_DISPATCH_KEYS[event.key] });
     event.preventDefault();
   }
 }

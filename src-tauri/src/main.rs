@@ -24,8 +24,27 @@ fn math_command(
   command_name: &str,
 ) -> Result<(), tauri::Error> {
   let mut state = state.lock().expect("poisoned mutex");
+  handle_non_tauri_errors(
+    state.dispatch_and_run_command(command_name)
+  )?;
   state.send_refresh_stack_event(&app_handle)?;
   Ok(())
+}
+
+fn handle_non_tauri_errors(err: Result<(), Error>) -> Result<(), tauri::Error> {
+  // This is a temporary solution that simply prints out any non-Tauri
+  // error to stderr. In the future, we'll show those errors in the
+  // UI. Note that Tauri errors should always be reported back to the
+  // Tauri runtime, so we very specifically don't handle those here.
+  match err {
+    Ok(()) => Ok(()),
+    Err(Error::TauriError(e)) => Err(e),
+    Err(other) => {
+      // TODO Show in UI instead.
+      eprintln!("Error: {}", other);
+      Ok(())
+    }
+  }
 }
 
 fn main() {

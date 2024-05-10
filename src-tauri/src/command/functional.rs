@@ -1,0 +1,69 @@
+
+//! Commands that push functions onto the stack, using zero or more
+//! arguments from the existing stack.
+
+use super::base::Command;
+use crate::state::ApplicationState;
+use crate::stack::shuffle;
+use crate::error::Error;
+use crate::expr::Expr;
+
+#[derive(Clone, Debug)]
+pub struct PushConstantCommand {
+  expr: Expr,
+}
+
+#[derive(Clone, Debug)]
+pub struct UnaryFunctionCommand {
+  function_name: String,
+}
+
+// Note for the future: I'm keeping these separate for now (rather
+// than having a unified FunctionCommand which has an `arity`
+// argument) since binary functions will have special treatment of
+// prefix arguments.
+#[derive(Clone, Debug)]
+pub struct BinaryFunctionCommand {
+  function_name: String,
+}
+
+impl PushConstantCommand {
+  pub fn new(expr: Expr) -> PushConstantCommand {
+    PushConstantCommand { expr }
+  }
+}
+
+impl UnaryFunctionCommand {
+  pub fn new(function_name: impl Into<String>) -> UnaryFunctionCommand {
+    UnaryFunctionCommand { function_name: function_name.into() }
+  }
+}
+
+impl BinaryFunctionCommand {
+  pub fn new(function_name: impl Into<String>) -> BinaryFunctionCommand {
+    BinaryFunctionCommand { function_name: function_name.into() }
+  }
+}
+
+impl Command for PushConstantCommand {
+  fn run_command(&self, state: &mut ApplicationState) -> Result<(), Error> {
+    state.main_stack.push(self.expr.clone());
+    Ok(())
+  }
+}
+
+impl Command for UnaryFunctionCommand {
+  fn run_command(&self, state: &mut ApplicationState) -> Result<(), Error> {
+    let top = shuffle::pop_one(&mut state.main_stack)?;
+    state.main_stack.push(Expr::Call(self.function_name.clone(), vec![top]));
+    Ok(())
+  }
+}
+
+impl Command for BinaryFunctionCommand {
+  fn run_command(&self, state: &mut ApplicationState) -> Result<(), Error> {
+    let (a, b) = shuffle::pop_two(&mut state.main_stack)?;
+    state.main_stack.push(Expr::Call(self.function_name.clone(), vec![a, b]));
+    Ok(())
+  }
+}

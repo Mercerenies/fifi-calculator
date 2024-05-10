@@ -2,8 +2,10 @@
 //! Backend application state manager.
 
 use crate::stack::Stack;
+use crate::error::Error;
 use crate::expr::Expr;
 use crate::events::RefreshStackPayload;
+use crate::command::dispatch::dispatch;
 use crate::display::DisplaySettings;
 
 use tauri::Manager;
@@ -48,6 +50,11 @@ impl ApplicationState {
       self.main_stack.iter().map(|expr| self.display_settings.to_html(expr)).collect();
     let payload = RefreshStackPayload { stack: displayed_stack };
     app_handle.emit_all(RefreshStackPayload::EVENT_NAME, payload)
+  }
+
+  pub fn dispatch_and_run_command(&mut self, command_name: &str) -> Result<(), Error> {
+    let command = dispatch(command_name)?;
+    command.run_command(self)
   }
 
 }
