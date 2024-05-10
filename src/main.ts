@@ -67,16 +67,17 @@ function dispatchOnKey(event: KeyboardEvent): Promise<void> {
 }
 
 function refreshStack(newStack: string[]): void {
-  newStack.reverse(); // Iterate from the bottom up.
-  const ul = document.createElement("ul");
-  for (const elem of newStack) {
+  const ol = document.createElement("ol");
+  for (let i = newStack.length - 1; i >= 0; i--) {
+    const elem = newStack[i];
     const li = document.createElement("li");
+    li.value = i;
     li.innerHTML = elem;
-    ul.appendChild(li);
+    ol.appendChild(li);
   }
   const stack = getElement(ElementIds.VALUE_STACK);
   stack.innerHTML = "";
-  stack.appendChild(ul);
+  stack.appendChild(ol);
 }
 
 window.addEventListener("DOMContentLoaded", async function() {
