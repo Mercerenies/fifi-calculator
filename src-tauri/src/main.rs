@@ -2,16 +2,17 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use fifi::error::Error;
-use fifi::state::WrappedApplicationState;
+use fifi::state::{TauriApplicationState, ApplicationState};
+use fifi::command::dispatch::CommandDispatchTable;
 use fifi::expr::Expr;
 
 #[tauri::command]
 fn submit_integer(
-  state: tauri::State<WrappedApplicationState>,
+  app_state: tauri::State<TauriApplicationState>,
   app_handle: tauri::AppHandle,
   value: i64,
 ) -> Result<(), tauri::Error> {
-  let mut state = state.lock().expect("poisoned mutex");
+  let mut state = app_state.state.lock().expect("poisoned mutex");
   state.main_stack.push(Expr::Atom(value.into()));
   state.send_refresh_stack_event(&app_handle)?;
   Ok(())
@@ -19,16 +20,25 @@ fn submit_integer(
 
 #[tauri::command]
 fn math_command(
-  state: tauri::State<WrappedApplicationState>,
+  app_state: tauri::State<TauriApplicationState>,
   app_handle: tauri::AppHandle,
   command_name: &str,
 ) -> Result<(), tauri::Error> {
-  let mut state = state.lock().expect("poisoned mutex");
+  let mut state = app_state.state.lock().expect("poisoned mutex");
   handle_non_tauri_errors(
-    state.dispatch_and_run_command(command_name)
+    run_math_command(&mut state, &app_state.command_table, command_name),
   )?;
   state.send_refresh_stack_event(&app_handle)?;
   Ok(())
+}
+
+fn run_math_command(
+  state: &mut ApplicationState,
+  table: &CommandDispatchTable,
+  command_name: &str,
+) -> Result<(), Error> {
+  let command = table.get(command_name)?;
+  command.run_command(state)
 }
 
 fn handle_non_tauri_errors(err: Result<(), Error>) -> Result<(), tauri::Error> {
@@ -49,7 +59,7 @@ fn handle_non_tauri_errors(err: Result<(), Error>) -> Result<(), tauri::Error> {
 
 fn main() {
   tauri::Builder::default()
-    .manage(WrappedApplicationState::new())
+    .manage(TauriApplicationState::new())
     .invoke_handler(tauri::generate_handler![submit_integer, math_command])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

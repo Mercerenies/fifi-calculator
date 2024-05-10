@@ -2,19 +2,19 @@
 //! Backend application state manager.
 
 use crate::stack::Stack;
-use crate::error::Error;
 use crate::expr::Expr;
 use crate::events::RefreshStackPayload;
-use crate::command::dispatch::dispatch;
+use crate::command::default_dispatch_table;
+use crate::command::dispatch::CommandDispatchTable;
 use crate::display::DisplaySettings;
 
 use tauri::Manager;
 
-use std::sync::{Mutex, LockResult, TryLockResult, MutexGuard};
+use std::sync::Mutex;
 
-#[derive(Default)]
-pub struct WrappedApplicationState {
-  state: Mutex<ApplicationState>,
+pub struct TauriApplicationState {
+  pub state: Mutex<ApplicationState>,
+  pub command_table: CommandDispatchTable,
 }
 
 #[derive(Default)]
@@ -23,20 +23,10 @@ pub struct ApplicationState {
   pub display_settings: DisplaySettings,
 }
 
-impl WrappedApplicationState {
-
+impl TauriApplicationState {
   pub fn new() -> Self {
     Self::default()
   }
-
-  pub fn lock(&self) -> LockResult<MutexGuard<'_, ApplicationState>> {
-    self.state.lock()
-  }
-
-  pub fn try_lock(&self) -> TryLockResult<MutexGuard<'_, ApplicationState>> {
-    self.state.try_lock()
-  }
-
 }
 
 impl ApplicationState {
@@ -52,9 +42,13 @@ impl ApplicationState {
     app_handle.emit_all(RefreshStackPayload::EVENT_NAME, payload)
   }
 
-  pub fn dispatch_and_run_command(&mut self, command_name: &str) -> Result<(), Error> {
-    let command = dispatch(command_name)?;
-    command.run_command(self)
-  }
+}
 
+impl Default for TauriApplicationState {
+  fn default() -> Self {
+    Self {
+      state: Mutex::default(),
+      command_table: default_dispatch_table(),
+    }
+  }
 }
