@@ -8,6 +8,10 @@ pub struct Stack<T> {
 
 impl<T> Stack<T> {
 
+  pub fn new() -> Self {
+    Self::default()
+  }
+
   pub fn push(&mut self, element: T) {
     self.elements.push(element);
   }
@@ -56,6 +60,14 @@ impl<T> Stack<T> {
     self.elements.into_iter().rev()
   }
 
+}
+
+/// Converts a vector to a stack, where the top of the stack is at the
+/// end.
+impl<T> From<Vec<T>> for Stack<T> {
+  fn from(elements: Vec<T>) -> Self {
+    Self { elements }
+  }
 }
 
 impl<T> Default for Stack<T> {
