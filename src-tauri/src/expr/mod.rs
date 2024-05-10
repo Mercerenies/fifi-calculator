@@ -1,6 +1,7 @@
 
-pub mod number;
 pub mod atom;
+pub mod number;
+pub mod walker;
 
 #[derive(Debug, Clone)]
 pub enum Expr {
