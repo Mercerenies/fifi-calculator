@@ -14,6 +14,15 @@
   -webkit-text-size-adjust: 100%;
 }
 
+.container {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.stack-interface {
+    min-width: 60%;
+}
+
 .grid {
     display: grid;
     grid-template-columns: 0.6fr 0.4fr
