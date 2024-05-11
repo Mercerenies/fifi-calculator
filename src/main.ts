@@ -28,7 +28,7 @@ function getElement(id: string): HTMLElement {
 
 function showInputBox(): void {
   const inputBox = getElement(ElementIds.INPUT_BOX);
-  inputBox.style.display = "block";
+  inputBox.style.display = "flex";
   window.setTimeout(() => getElement(ElementIds.INPUT_TEXTBOX).focus(), 1);
 }
 
