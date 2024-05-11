@@ -22,6 +22,17 @@ enum NumberImpl {
   Float(f64),
 }
 
+/// The different ways a number can be represented. These are ordered
+/// in terms of priority, so if `a <= b`, that implies that the
+/// arithmetic system here will try to use representation `a` before
+/// resorting to representation `b`. For instance, `Integer <= Float`
+/// implies that we will try to use integer arithmetic and only resort
+/// to floating-point values when necessary.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum NumberRepr {
+  Integer, Ratio, Float,
+}
+
 /// Produce a `BigRational`, or fall back to floats if `b == 0`.
 fn rational_div(a: BigRational, b: BigRational) -> Number {
   if b == BigRational::zero() {
@@ -29,6 +40,16 @@ fn rational_div(a: BigRational, b: BigRational) -> Number {
     Number::from(a / 0.0)
   } else {
     Number::from(a / b)
+  }
+}
+
+impl Number {
+  pub fn repr(&self) -> NumberRepr {
+    match &self.inner {
+      NumberImpl::Integer(_) => NumberRepr::Integer,
+      NumberImpl::Ratio(_) => NumberRepr::Ratio,
+      NumberImpl::Float(_) => NumberRepr::Float,
+    }
   }
 }
 

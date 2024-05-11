@@ -5,7 +5,7 @@ use crate::errorlist::ErrorList;
 use super::base::Simplifier;
 use super::error::SimplifierError;
 
-use num::Zero;
+use num::{Zero, One};
 
 /// `FunctionEvaluator` is a [`Simplifier`] that evaluates known
 /// functions when all of the arguments have known numerical values.
@@ -21,6 +21,9 @@ impl Simplifier for FunctionEvaluator {
         };
         match function_name.as_ref() {
           "+" => add(arg_values),
+          "-" => sub(arg_values),
+          "*" => mul(arg_values),
+          "/" => div(arg_values),
           _ => Expr::Call(function_name, args), // Pass through
         }
       }
@@ -39,4 +42,19 @@ fn args_try_into_numbers(args: Vec<Expr>) -> Option<Vec<Number>> {
 fn add(exprs: Vec<Number>) -> Expr {
   let sum = exprs.into_iter().reduce(|a, b| a + b).unwrap_or(Number::zero());
   Expr::from(sum)
+}
+
+fn sub(exprs: Vec<Number>) -> Expr {
+  let difference = exprs.into_iter().reduce(|a, b| a - b).unwrap_or(Number::zero());
+  Expr::from(difference)
+}
+
+fn mul(exprs: Vec<Number>) -> Expr {
+  let product = exprs.into_iter().reduce(|a, b| a * b).unwrap_or(Number::one());
+  Expr::from(product)
+}
+
+fn div(exprs: Vec<Number>) -> Expr {
+  let quotient = exprs.into_iter().reduce(|a, b| a / b).unwrap_or(Number::one());
+  Expr::from(quotient)
 }
