@@ -19,6 +19,11 @@
     flex-wrap: wrap;
 }
 
+.vertical-container {
+    display: flex;
+    flex-direction: column;
+}
+
 .stack-interface {
     min-width: 60%;
 }
@@ -45,6 +50,27 @@
     vertical-align: middle;
     padding-top: 0.5em;
     padding-bottom: 0.5em;
+}
+
+.notification-box-contents {
+    padding: 5px;
+    margin: 5px;
+    border: solid #a00 2px;
+    border-radius: 10px;
+    background-color: #f00;
+    color: #0f0f0f;
+}
+
+.notification-box-close-button {
+    float: right;
+    font-weight: bold;
+    font-size: 1.5em;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.notification-box-close-button:hover {
+    color: #fff;
 }
 
 .input-box input {
@@ -117,5 +143,15 @@ button {
   }
   button:active {
     background-color: #0f0f0f69;
+  }
+
+  .notification-box-contents {
+      border: solid #900 2px;
+      background-color: #800;
+      color: #f6f6f6;
+  }
+
+  .notification-box-close-button:hover {
+      color: #000;
   }
 }
