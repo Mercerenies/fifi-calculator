@@ -1,6 +1,7 @@
 
 pub mod atom;
 pub mod number;
+pub mod simplifier;
 pub mod walker;
 
 #[derive(Debug, Clone)]
