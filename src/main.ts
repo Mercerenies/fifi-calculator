@@ -1,5 +1,6 @@
 
 import { getInputBoxDiv, getInputTextBox, getValueStack } from './page.js';
+import { InputBoxManager, NumericalInputMethod, KeyResponse } from './input_box.js';
 
 const { invoke } = window.__TAURI__.tauri;
 const { listen } = window.__TAURI__.event;
@@ -13,60 +14,42 @@ const SIMPLE_DISPATCH_KEYS: Record<string, string> = {
   "/": "/",
 };
 
-function showInputBox(): void {
-  const inputBox = getInputBoxDiv();
-  inputBox.style.display = "flex";
-  window.setTimeout(() => getInputTextBox().focus(), 1);
-}
+class UiManager {
+  private inputManager: InputBoxManager;
 
-function hideInputBox(): void {
-  const inputBox = getInputBoxDiv();
-  const inputTextBox = getInputTextBox();
-  inputBox.style.display = "none";
-  inputTextBox.value = "";
-}
-
-async function submitInteger() {
-  const inputTextBox = getInputTextBox();
-  const text = inputTextBox.value;
-  await invoke('submit_integer', { value: +text });
-  hideInputBox();
-}
-
-async function dispatchOnKeyInputField(event: KeyboardEvent): Promise<void> {
-  if (event.key === "Escape") {
-    // Remove focus and cancel, if the key is ESCAPE
-    hideInputBox();
-    event.preventDefault();
-  } else if (event.key === "Enter") {
-    // Submit if key is ENTER
-    await submitInteger();
-    event.preventDefault();
-  } else if (event.key in SIMPLE_DISPATCH_KEYS) {
-    // If the key is a dispatch key, submit and then dispatch.
-    await submitInteger();
-    dispatchOnKeyGeneral(event);
+  constructor() {
+    this.inputManager = new InputBoxManager({
+      inputBox: getInputBoxDiv(),
+      inputTextBox: getInputTextBox(),
+    });
   }
-}
 
-async function dispatchOnKeyGeneral(event: KeyboardEvent): Promise<void> {
-  if (NUMBERS.includes(event.key)) {
-    const inputTextBox = getInputTextBox();
-    showInputBox();
-    inputTextBox.value = event.key;
-    event.preventDefault();
-  } else if (event.key in SIMPLE_DISPATCH_KEYS) {
-    invoke('math_command', { commandName: SIMPLE_DISPATCH_KEYS[event.key] });
-    event.preventDefault();
+  initListeners(): void {
+    this.inputManager.initListeners();
+    document.body.addEventListener("keydown", (event) => this.dispatchOnKey(event));
   }
-}
 
-function dispatchOnKey(event: KeyboardEvent): Promise<void> {
-  if (document.activeElement === getInputTextBox()) {
-    return dispatchOnKeyInputField(event);
-  } else {
-    return dispatchOnKeyGeneral(event);
+  private async dispatchOnKey(event: KeyboardEvent): Promise<void> {
+    if (document.activeElement === getInputTextBox()) {
+      const keyResponse = await this.inputManager.onKeyDown(event);
+      if (keyResponse === KeyResponse.BLOCK) {
+        return;
+      }
+    }
+    await this.dispatchOnKeyGeneral(event);
   }
+
+  private async dispatchOnKeyGeneral(event: KeyboardEvent): Promise<void> {
+    if (NUMBERS.includes(event.key)) {
+      event.preventDefault();
+      this.inputManager.show(new NumericalInputMethod());
+      this.inputManager.setTextBoxValue(event.key);
+    } else if (event.key in SIMPLE_DISPATCH_KEYS) {
+      event.preventDefault();
+      await invoke('math_command', { commandName: SIMPLE_DISPATCH_KEYS[event.key] });
+    }
+  }
+
 }
 
 function refreshStack(newStack: string[]): void {
@@ -84,9 +67,7 @@ function refreshStack(newStack: string[]): void {
 }
 
 window.addEventListener("DOMContentLoaded", async function() {
-  const inputTextbox = getInputTextBox();
-
-  document.body.addEventListener("keydown", dispatchOnKey);
-  inputTextbox.addEventListener("focusout", () => hideInputBox());
+  const uiManager = new UiManager();
+  uiManager.initListeners();
   await listen("refresh-stack", (event) => refreshStack(event.payload.stack));
 });
