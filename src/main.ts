@@ -1,5 +1,5 @@
 
-import { getInputBoxDiv, getInputTextBox, getValueStack } from './page.js';
+import { getInputBoxDiv, getInputTextBox, getValueStack, getInputTextBoxLabel } from './page.js';
 import { InputBoxManager, NumericalInputMethod, KeyResponse } from './input_box.js';
 
 const { invoke } = window.__TAURI__.tauri;
@@ -21,6 +21,7 @@ class UiManager {
     this.inputManager = new InputBoxManager({
       inputBox: getInputBoxDiv(),
       inputTextBox: getInputTextBox(),
+      inputLabel: getInputTextBoxLabel(),
     });
   }
 

@@ -7,10 +7,12 @@ export class InputBoxManager {
   private inputMethod: InputMethod = NullaryInputMethod.INSTANCE;
   private inputBox: HTMLDivElement;
   private inputTextBox: HTMLInputElement;
+  private inputLabel: HTMLElement;
 
   constructor(args: InputBoxManagerConstructorArgs) {
     this.inputBox = args.inputBox;
     this.inputTextBox = args.inputTextBox;
+    this.inputLabel = args.inputLabel;
   }
 
   initListeners(): void {
@@ -24,6 +26,7 @@ export class InputBoxManager {
   show(inputMethod: InputMethod): void {
     this.inputMethod = inputMethod;
     this.inputBox.style.display = 'flex';
+    this.inputLabel.innerHTML = inputMethod.getLabelHTML();
     window.setTimeout(() => this.inputTextBox.focus(), 1);
   }
 
@@ -56,8 +59,9 @@ export class InputBoxManager {
 }
 
 export interface InputBoxManagerConstructorArgs {
-  inputBox: HTMLDivElement,
-  inputTextBox: HTMLInputElement,
+  inputBox: HTMLDivElement;
+  inputTextBox: HTMLInputElement;
+  inputLabel: HTMLElement;
 }
 
 export abstract class InputMethod {
@@ -66,12 +70,12 @@ export abstract class InputMethod {
   }
 
   abstract onKeyDown(event: KeyboardEvent, manager: InputBoxManager): Promise<KeyResponse>;
-  abstract getLabelText(): string;
+  abstract getLabelHTML(): string;
 }
 
 // Null Object implementation of InputMethod.
 export class NullaryInputMethod extends InputMethod {
-  getLabelText() { return ""; }
+  getLabelHTML() { return ""; }
 
   async onKeyDown(event: KeyboardEvent, manager: InputBoxManager): Promise<KeyResponse> {
     return KeyResponse.PASS;
@@ -84,11 +88,11 @@ export class NullaryInputMethod extends InputMethod {
 export class NumericalInputMethod extends InputMethod {
   static VALID_INPUT_KEYS = new Set(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]);
 
-  getLabelText() { return "Number:"; }
+  getLabelHTML() { return "#:"; }
 
   private async submit(manager: InputBoxManager): Promise<void> {
     const text = manager.getTextBoxValue();
-    await tauri.invoke('submit_integer', { value: +text });
+    await tauri.invoke('submit_integer', { value: +text }); // TODO Support floats
     manager.hide();
   }
 

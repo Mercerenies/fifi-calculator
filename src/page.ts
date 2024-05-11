@@ -28,3 +28,7 @@ export function getInputTextBox(): HTMLInputElement {
 export function getValueStack(): HTMLElement {
   return getElement(ElementIds.VALUE_STACK);
 }
+
+export function getInputTextBoxLabel(): HTMLElement {
+  return getElement(ElementIds.INPUT_TEXTBOX_LABEL);
+}
