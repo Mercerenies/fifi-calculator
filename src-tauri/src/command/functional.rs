@@ -7,6 +7,8 @@ use crate::state::ApplicationState;
 use crate::stack::shuffle;
 use crate::error::Error;
 use crate::expr::Expr;
+use crate::expr::simplifier::default_simplifier;
+use crate::errorlist::ErrorList;
 
 #[derive(Clone, Debug)]
 pub struct PushConstantCommand {
@@ -47,7 +49,7 @@ impl BinaryFunctionCommand {
 
 impl Command for PushConstantCommand {
   fn run_command(&self, state: &mut ApplicationState) -> Result<(), Error> {
-    state.main_stack.push(self.expr.clone());
+    state.main_stack.push(simplify(self.expr.clone()));
     Ok(())
   }
 }
@@ -55,7 +57,7 @@ impl Command for PushConstantCommand {
 impl Command for UnaryFunctionCommand {
   fn run_command(&self, state: &mut ApplicationState) -> Result<(), Error> {
     let top = shuffle::pop_one(&mut state.main_stack)?;
-    state.main_stack.push(Expr::Call(self.function_name.clone(), vec![top]));
+    state.main_stack.push(simplify(Expr::Call(self.function_name.clone(), vec![top])));
     Ok(())
   }
 }
@@ -63,7 +65,16 @@ impl Command for UnaryFunctionCommand {
 impl Command for BinaryFunctionCommand {
   fn run_command(&self, state: &mut ApplicationState) -> Result<(), Error> {
     let (a, b) = shuffle::pop_two(&mut state.main_stack)?;
-    state.main_stack.push(Expr::Call(self.function_name.clone(), vec![a, b]));
+    state.main_stack.push(simplify(Expr::Call(self.function_name.clone(), vec![a, b])));
     Ok(())
   }
+}
+
+// TODO This is just a small helper function. In reality, we'll want
+// to do a better job of threading these error states through and
+// actually reporting them to the user.
+fn simplify(expr: Expr) -> Expr {
+  let simplifier = default_simplifier();
+  let mut errors = ErrorList::new(); // Ignored right now!
+  simplifier.simplify_expr(expr, &mut errors)
 }

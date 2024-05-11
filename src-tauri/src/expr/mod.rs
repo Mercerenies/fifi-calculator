@@ -10,6 +10,9 @@ pub enum Expr {
   Call(String, Vec<Expr>),
 }
 
+#[derive(Debug, Clone)]
+pub struct TryFromExprError;
+
 impl Expr {
 
   /// Convenience constructor for [Expr::Call].
@@ -22,5 +25,22 @@ impl Expr {
 impl From<atom::Atom> for Expr {
   fn from(a: atom::Atom) -> Expr {
     Expr::Atom(a)
+  }
+}
+
+impl From<number::Number> for Expr {
+  fn from(n: number::Number) -> Expr {
+    Expr::Atom(n.into())
+  }
+}
+
+impl TryFrom<Expr> for number::Number {
+  type Error = TryFromExprError;
+
+  fn try_from(e: Expr) -> Result<Self, Self::Error> {
+    match e {
+      Expr::Atom(atom::Atom::Number(n)) => Ok(n),
+      _ => Err(TryFromExprError),
+    }
   }
 }
