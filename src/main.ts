@@ -1,4 +1,6 @@
 
+import { getInputBoxDiv, getInputTextBox, getValueStack } from './page.js';
+
 const { invoke } = window.__TAURI__.tauri;
 const { listen } = window.__TAURI__.event;
 
@@ -11,36 +13,21 @@ const SIMPLE_DISPATCH_KEYS: Record<string, string> = {
   "/": "/",
 };
 
-const ElementIds = {
-  INPUT_BOX: 'input-box',
-  INPUT_TEXTBOX: 'input-textbox',
-  VALUE_STACK: 'value-stack',
-};
-
-function getElement(id: string): HTMLElement {
-  const element = document.getElementById(id);
-  if (element === null) {
-    throw `No element with ID $id`;
-  } else {
-    return element;
-  }
-}
-
 function showInputBox(): void {
-  const inputBox = getElement(ElementIds.INPUT_BOX);
+  const inputBox = getInputBoxDiv();
   inputBox.style.display = "flex";
-  window.setTimeout(() => getElement(ElementIds.INPUT_TEXTBOX).focus(), 1);
+  window.setTimeout(() => getInputTextBox().focus(), 1);
 }
 
 function hideInputBox(): void {
-  const inputBox = getElement(ElementIds.INPUT_BOX);
-  const inputTextBox = getElement(ElementIds.INPUT_TEXTBOX) as HTMLInputElement;
+  const inputBox = getInputBoxDiv();
+  const inputTextBox = getInputTextBox();
   inputBox.style.display = "none";
   inputTextBox.value = "";
 }
 
 async function submitInteger() {
-  const inputTextBox = getElement(ElementIds.INPUT_TEXTBOX) as HTMLInputElement;
+  const inputTextBox = getInputTextBox();
   const text = inputTextBox.value;
   await invoke('submit_integer', { value: +text });
   hideInputBox();
@@ -64,7 +51,7 @@ async function dispatchOnKeyInputField(event: KeyboardEvent): Promise<void> {
 
 async function dispatchOnKeyGeneral(event: KeyboardEvent): Promise<void> {
   if (NUMBERS.includes(event.key)) {
-    const inputTextBox = getElement(ElementIds.INPUT_TEXTBOX) as HTMLInputElement;
+    const inputTextBox = getInputTextBox();
     showInputBox();
     inputTextBox.value = event.key;
     event.preventDefault();
@@ -75,7 +62,7 @@ async function dispatchOnKeyGeneral(event: KeyboardEvent): Promise<void> {
 }
 
 function dispatchOnKey(event: KeyboardEvent): Promise<void> {
-  if (document.activeElement === getElement(ElementIds.INPUT_TEXTBOX)) {
+  if (document.activeElement === getInputTextBox()) {
     return dispatchOnKeyInputField(event);
   } else {
     return dispatchOnKeyGeneral(event);
@@ -91,13 +78,13 @@ function refreshStack(newStack: string[]): void {
     li.innerHTML = elem;
     ol.appendChild(li);
   }
-  const stack = getElement(ElementIds.VALUE_STACK);
+  const stack = getValueStack();
   stack.innerHTML = "";
   stack.appendChild(ol);
 }
 
 window.addEventListener("DOMContentLoaded", async function() {
-  const inputTextbox = getElement(ElementIds.INPUT_TEXTBOX);
+  const inputTextbox = getInputTextBox();
 
   document.body.addEventListener("keydown", dispatchOnKey);
   inputTextbox.addEventListener("focusout", () => hideInputBox());

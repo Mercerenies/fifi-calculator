@@ -1,0 +1,30 @@
+
+// Helpers to access known elements of the main page.
+
+export const ElementIds = {
+  INPUT_BOX: 'input-box',
+  INPUT_TEXTBOX: 'input-textbox',
+  INPUT_TEXTBOX_LABEL: 'input-textbox-label',
+  VALUE_STACK: 'value-stack',
+};
+
+function getElement(id: string): HTMLElement {
+  const element = document.getElementById(id);
+  if (element === null) {
+    throw `No element with ID $id`;
+  } else {
+    return element;
+  }
+}
+
+export function getInputBoxDiv(): HTMLDivElement {
+  return getElement(ElementIds.INPUT_BOX) as HTMLDivElement;
+}
+
+export function getInputTextBox(): HTMLInputElement {
+  return getElement(ElementIds.INPUT_TEXTBOX) as HTMLInputElement;
+}
+
+export function getValueStack(): HTMLElement {
+  return getElement(ElementIds.VALUE_STACK);
+}
