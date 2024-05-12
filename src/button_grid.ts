@@ -87,9 +87,11 @@ export interface GridCell {
   fire(manager: ButtonGridManager): Promise<void>;
 }
 
-export class MainButtonGrid implements ButtonGrid {
-  // TODO Escape on main button grid should close notification?
+export interface Hideable {
+  hide(): void;
+}
 
+export class MainButtonGrid implements ButtonGrid {
   private static NUMERICAL_INPUT_START_KEYS = new Set([
     "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "e", "_",
   ]);
@@ -106,9 +108,11 @@ export class MainButtonGrid implements ButtonGrid {
   ];
 
   private inputManager: InputBoxManager;
+  private onEscapeDismissable: Hideable;
 
-  constructor(inputManager: InputBoxManager) {
+  constructor(inputManager: InputBoxManager, onEscapeDismissable: Hideable) {
     this.inputManager = inputManager;
+    this.onEscapeDismissable = onEscapeDismissable;
   }
 
   async onUnhandledKey(event: KeyboardEvent): Promise<void> {
@@ -116,6 +120,8 @@ export class MainButtonGrid implements ButtonGrid {
       // Start numerical input
       event.preventDefault();
       this.inputManager.show(new NumericalInputMethod(), this.translateInitialInput(event.key));
+    } else if (event.key === "Escape") {
+      this.onEscapeDismissable.hide();
     }
   }
 

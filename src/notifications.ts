@@ -16,15 +16,17 @@ export class NotificationManager {
 
   initListeners(): void {
     if (this.closeButton !== null) {
-      this.closeButton.addEventListener("click", () => {
-        this.notificationBox.style.display = "none";
-      });
+      this.closeButton.addEventListener("click", () => this.hide());
     }
   }
 
   show(htmlText: string): void {
     this.textNode.innerHTML = htmlText;
     this.notificationBox.style.display = "block";
+  }
+
+  hide(): void {
+    this.notificationBox.style.display = "none";
   }
 }
 
