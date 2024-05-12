@@ -2,7 +2,8 @@
 import * as Page from './page.js';
 import { InputBoxManager, KeyResponse } from './input_box.js';
 import { NotificationManager } from './notifications.js';
-import { ButtonGridManager, MainButtonGrid } from './button_grid.js';
+import { ButtonGridManager } from './button_grid.js';
+import { MainButtonGrid } from './button_grid/main_button_grid.js';
 
 const { invoke } = window.__TAURI__.tauri;
 const { listen } = window.__TAURI__.event;

@@ -5,8 +5,6 @@
 import { InputBoxManager } from './input_box.js';
 import { NumericalInputMethod } from './input_box/numerical_input.js';
 
-const { invoke } = window.__TAURI__.tauri;
-
 // NOTE: This should be kept up to date with the .button-grid class in
 // styles.css. If that value gets updated, update this as well!
 const GRID_CELLS_PER_ROW = 5;
@@ -88,56 +86,6 @@ export interface GridCell {
   fire(manager: ButtonGridManager): Promise<void>;
 }
 
-export interface Hideable {
-  hide(): void;
-}
-
-export class MainButtonGrid implements ButtonGrid {
-  private static NUMERICAL_INPUT_START_KEYS = new Set([
-    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "e", "_",
-  ]);
-
-  readonly rows = [
-    [new DispatchButton("+", "+", "+")],
-    [new DispatchButton("-", "-", "-")],
-    [new DispatchButton("&times;", "*", "*")],
-    [new DispatchButton("&divide;", "/", "/")],
-    [
-      new DispatchButton("p", "pop", "Backspace"), // TODO Better label
-      new DispatchButton("s", "swap", "Tab"), // TODO Better label
-    ],
-  ];
-
-  private inputManager: InputBoxManager;
-  private onEscapeDismissable: Hideable;
-
-  constructor(inputManager: InputBoxManager, onEscapeDismissable: Hideable) {
-    this.inputManager = inputManager;
-    this.onEscapeDismissable = onEscapeDismissable;
-  }
-
-  async onUnhandledKey(event: KeyboardEvent): Promise<void> {
-    if (MainButtonGrid.NUMERICAL_INPUT_START_KEYS.has(event.key)) {
-      // Start numerical input
-      event.preventDefault();
-      this.inputManager.show(new NumericalInputMethod(), this.translateInitialInput(event.key));
-    } else if (event.key === "Escape") {
-      this.onEscapeDismissable.hide();
-    }
-  }
-
-  private translateInitialInput(key: string): string {
-    switch (key) {
-    case "e":
-      return "1e";
-    case "_":
-      return "-";
-    default:
-      return key;
-    }
-  }
-}
-
 // Empty grid cell.
 export class Spacer implements GridCell {
   readonly keyboardShortcut: string | null = null;
@@ -149,37 +97,5 @@ export class Spacer implements GridCell {
   fire(manager: ButtonGridManager): Promise<void> {
     // No action.
     return Promise.resolve();
-  }
-}
-
-export abstract class Button implements GridCell {
-  readonly label: string;
-  readonly keyboardShortcut: string | null;
-
-  constructor(label: string, keyboardShortcut: string | null) {
-    this.label = label;
-    this.keyboardShortcut = keyboardShortcut;
-  }
-
-  getHTML(manager: ButtonGridManager): HTMLElement {
-    const button = document.createElement("button");
-    button.innerHTML = this.label;
-    button.addEventListener("click", () => this.fire(manager));
-    return button;
-  }
-
-  abstract fire(manager: ButtonGridManager): Promise<void>;
-}
-
-export class DispatchButton extends Button {
-  readonly commandName: string;
-
-  constructor(label: string, commandName: string, keyboardShortcut: string | null) {
-    super(label, keyboardShortcut);
-    this.commandName = commandName;
-  }
-
-  fire(manager: ButtonGridManager): Promise<void> {
-    return invoke('math_command', { commandName: this.commandName });
   }
 }
