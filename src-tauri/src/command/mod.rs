@@ -3,9 +3,10 @@ mod base;
 pub mod dispatch;
 pub mod functional;
 pub mod general;
+pub mod options;
 pub mod shuffle;
 
-pub use base::Command;
+pub use base::{Command, CommandContext};
 use functional::BinaryFunctionCommand;
 use dispatch::CommandDispatchTable;
 
@@ -19,5 +20,6 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("/".to_string(), Box::new(BinaryFunctionCommand::new("/")));
   map.insert("pop".to_string(), Box::new(shuffle::PopCommand));
   map.insert("swap".to_string(), Box::new(shuffle::SwapCommand));
+  map.insert("dup".to_string(), Box::new(shuffle::DupCommand));
   CommandDispatchTable::from_hash_map(map)
 }

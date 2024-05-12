@@ -2,7 +2,7 @@
 //! Commands that push functions onto the stack, using zero or more
 //! arguments from the existing stack.
 
-use super::base::Command;
+use super::base::{Command, CommandContext};
 use crate::state::ApplicationState;
 use crate::stack::shuffle;
 use crate::error::Error;
@@ -48,14 +48,18 @@ impl BinaryFunctionCommand {
 }
 
 impl Command for PushConstantCommand {
-  fn run_command(&self, state: &mut ApplicationState) -> Result<(), Error> {
-    state.main_stack.push(simplify(self.expr.clone()));
+  fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<(), Error> {
+    let arg = ctx.opts.argument.unwrap_or(1).min(0);
+    for _ in 0..arg {
+      state.main_stack.push(simplify(self.expr.clone()));
+    }
     Ok(())
   }
 }
 
 impl Command for UnaryFunctionCommand {
-  fn run_command(&self, state: &mut ApplicationState) -> Result<(), Error> {
+  fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<(), Error> {
+    // TODO Use arg
     let top = shuffle::pop_one(&mut state.main_stack)?;
     state.main_stack.push(simplify(Expr::Call(self.function_name.clone(), vec![top])));
     Ok(())
@@ -63,7 +67,8 @@ impl Command for UnaryFunctionCommand {
 }
 
 impl Command for BinaryFunctionCommand {
-  fn run_command(&self, state: &mut ApplicationState) -> Result<(), Error> {
+  fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<(), Error> {
+    // TODO Use arg
     let (a, b) = shuffle::pop_two(&mut state.main_stack)?;
     state.main_stack.push(simplify(Expr::Call(self.function_name.clone(), vec![a, b])));
     Ok(())

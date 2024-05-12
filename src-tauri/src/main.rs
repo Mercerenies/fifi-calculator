@@ -3,6 +3,8 @@
 
 use fifi::error::Error;
 use fifi::state::{TauriApplicationState, ApplicationState};
+use fifi::command::CommandContext;
+use fifi::command::options::CommandOptions;
 use fifi::command::dispatch::CommandDispatchTable;
 use fifi::expr::Expr;
 use fifi::expr::number::Number;
@@ -48,8 +50,10 @@ fn run_math_command(
   table: &CommandDispatchTable,
   command_name: &str,
 ) -> Result<(), Error> {
+  // TODO Actual command context
   let command = table.get(command_name)?;
-  command.run_command(state)
+  let context = CommandContext { opts: CommandOptions::default() };
+  command.run_command(state, &context)
 }
 
 fn handle_non_tauri_errors(app_handle: &tauri::AppHandle, err: Result<(), Error>) -> Result<(), tauri::Error> {

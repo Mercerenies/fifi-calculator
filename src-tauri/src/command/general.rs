@@ -1,5 +1,5 @@
 
-use super::base::Command;
+use super::base::{Command, CommandContext};
 use crate::state::ApplicationState;
 use crate::error::Error;
 
@@ -9,7 +9,7 @@ pub struct GeneralCommand<F> {
   body: F,
 }
 
-impl<F: Fn(&mut ApplicationState) -> Result<(), Error>> GeneralCommand<F> {
+impl<F: Fn(&mut ApplicationState, &CommandContext) -> Result<(), Error>> GeneralCommand<F> {
   pub fn new(body: F) -> GeneralCommand<F> {
     GeneralCommand {
       body
@@ -17,8 +17,8 @@ impl<F: Fn(&mut ApplicationState) -> Result<(), Error>> GeneralCommand<F> {
   }
 }
 
-impl<F: Fn(&mut ApplicationState) -> Result<(), Error>> Command for GeneralCommand<F> {
-  fn run_command(&self, state: &mut ApplicationState) -> Result<(), Error> {
-    (self.body)(state)
+impl<F: Fn(&mut ApplicationState, &CommandContext) -> Result<(), Error>> Command for GeneralCommand<F> {
+  fn run_command(&self, state: &mut ApplicationState, context: &CommandContext) -> Result<(), Error> {
+    (self.body)(state, context)
   }
 }

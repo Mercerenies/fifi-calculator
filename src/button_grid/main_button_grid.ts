@@ -17,6 +17,10 @@ function swapSvg(): HTMLElement {
   return svg('assets/swap.svg', {alt: "swap"});
 }
 
+function dupSvg(): HTMLElement {
+  return svg('assets/duplicate.svg', {alt: "dup"});
+}
+
 export class MainButtonGrid implements ButtonGrid {
   private static NUMERICAL_INPUT_START_KEYS = new Set([
     "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "e", "_",
@@ -30,6 +34,7 @@ export class MainButtonGrid implements ButtonGrid {
     [
       new DispatchButton(discardSvg(), "pop", "Backspace"),
       new DispatchButton(swapSvg(), "swap", "Tab"),
+      new DispatchButton(dupSvg(), "dup", "Enter"),
     ],
   ];
 
