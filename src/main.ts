@@ -13,6 +13,8 @@ const SIMPLE_DISPATCH_KEYS: Record<string, string> = {
   "-": "-",
   "*": "*",
   "/": "/",
+  "Backspace": "pop",
+  "Tab": "swap",
 };
 
 class UiManager {
