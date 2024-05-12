@@ -30,7 +30,7 @@ export class DispatchButton extends Button {
     this.commandName = commandName;
   }
 
-  fire(manager: ButtonGridManager): Promise<void> {
+  fire(): Promise<void> {
     return tauri.invoke('math_command', { commandName: this.commandName });
   }
 }

@@ -1,5 +1,5 @@
 
-import { ButtonGrid, GridCell } from "../button_grid.js";
+import { ButtonGrid } from "../button_grid.js";
 import { DispatchButton } from './button.js';
 import { InputBoxManager } from '../input_box.js';
 import { NumericalInputMethod } from '../input_box/numerical_input.js';
