@@ -62,11 +62,16 @@ impl<T> Stack<T> {
     self.elements.iter_mut().rev()
   }
 
+}
+
+impl<T> IntoIterator for Stack<T> {
+  type Item = T;
+  type IntoIter = std::iter::Rev<std::vec::IntoIter<Self::Item>>;
+
   /// Iterates (by value) from the top of the stack.
-  pub fn into_iter(self) -> impl DoubleEndedIterator<Item = T> {
+  fn into_iter(self) -> Self::IntoIter {
     self.elements.into_iter().rev()
   }
-
 }
 
 /// Converts a vector to a stack, where the top of the stack is at the
