@@ -16,6 +16,12 @@ impl<T> Stack<T> {
     self.elements.push(element);
   }
 
+  /// Push in the order we see them, so that the last element in the
+  /// iterable is at the top of the resulting stack.
+  pub fn push_several(&mut self, elements: impl IntoIterator<Item = T>) {
+    self.elements.extend(elements.into_iter());
+  }
+
   pub fn pop(&mut self) -> Option<T> {
     self.elements.pop()
   }
@@ -30,8 +36,8 @@ impl<T> Stack<T> {
     Some(self.elements.remove(self.len() - index - 1))
   }
 
-  pub fn pop_all(&mut self) {
-    self.elements.clear();
+  pub fn pop_all(&mut self) -> Vec<T> {
+    self.elements.drain(..).collect()
   }
 
   pub fn len(&self) -> usize {
@@ -66,25 +72,25 @@ impl<T> Stack<T> {
     self.elements.get_mut(index)
   }
 
-  /// Iterates from the top of the stack.
+  /// Iterates from the bottom of the stack.
   pub fn iter(&self) -> impl DoubleEndedIterator<Item = &T> {
-    self.elements.iter().rev()
+    self.elements.iter()
   }
 
-  /// Iterates (with mutable references) from the top of the stack.
+  /// Iterates (with mutable references) from the bottom of the stack.
   pub fn iter_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut T> {
-    self.elements.iter_mut().rev()
+    self.elements.iter_mut()
   }
 
 }
 
 impl<T> IntoIterator for Stack<T> {
   type Item = T;
-  type IntoIter = std::iter::Rev<std::vec::IntoIter<Self::Item>>;
+  type IntoIter = std::vec::IntoIter<Self::Item>;
 
-  /// Iterates (by value) from the top of the stack.
+  /// Iterates (by value) from the bottom of the stack.
   fn into_iter(self) -> Self::IntoIter {
-    self.elements.into_iter().rev()
+    self.elements.into_iter()
   }
 }
 
@@ -146,13 +152,13 @@ mod tests {
   fn test_pop_nth() {
     let mut stack = Stack::from(vec![0, 10, 20, 30, 40]);
     assert_eq!(stack.pop_nth(0), Some(40));
-    assert_eq!(stack.clone().into_iter().collect::<Vec<_>>(), vec![30, 20, 10, 0]);
+    assert_eq!(stack.clone().into_iter().collect::<Vec<_>>(), vec![0, 10, 20, 30]);
     assert_eq!(stack.pop_nth(1), Some(20));
-    assert_eq!(stack.clone().into_iter().collect::<Vec<_>>(), vec![30, 10, 0]);
+    assert_eq!(stack.clone().into_iter().collect::<Vec<_>>(), vec![0, 10, 30]);
     assert_eq!(stack.pop_nth(3), None);
     assert_eq!(stack.pop_nth(9), None);
     assert_eq!(stack.pop_nth(99), None);
-    assert_eq!(stack.into_iter().collect::<Vec<_>>(), vec![30, 10, 0]);
+    assert_eq!(stack.into_iter().collect::<Vec<_>>(), vec![0, 10, 30]);
   }
 
   #[test]
@@ -238,6 +244,6 @@ mod tests {
   fn test_into_iter() {
     let stack = Stack::from(vec!['A', 'B', 'C', 'D']);
     let vec = stack.into_iter().collect::<Vec<_>>();
-    assert_eq!(vec, vec!['D', 'C', 'B', 'A']);
+    assert_eq!(vec, vec!['A', 'B', 'C', 'D']);
   }
 }

@@ -37,10 +37,24 @@ impl Command for PopCommand {
 
 impl Command for SwapCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
-    // TODO Use context
-    let (a, b) = shuffle::pop_two(&mut state.main_stack)?;
-    state.main_stack.push(b);
-    state.main_stack.push(a);
+    let arg = ctx.opts.argument.unwrap_or(1);
+    if arg > 0 {
+      // Bury top element N deep.
+      let mut elements = shuffle::pop_several(&mut state.main_stack, arg as usize)?;
+      state.main_stack.push(elements.pop().unwrap()); // unwrap: arg > 0 so elements is non-empty.
+      state.main_stack.push_several(elements);
+    } else if arg < 0 {
+      // Bury top N elements at bottom.
+      let elements_to_bury = shuffle::pop_several(&mut state.main_stack, (- arg - 1) as usize)?;
+      let rest_of_elements = state.main_stack.pop_all();
+      state.main_stack.push_several(rest_of_elements);
+      state.main_stack.push_several(elements_to_bury);
+    } else {
+      // Reverse stack.
+      let mut elements = state.main_stack.pop_all();
+      elements.reverse();
+      state.main_stack.push_several(elements);
+    }
     Ok(CommandOutput::success())
   }
 }
@@ -79,24 +93,130 @@ mod tests {
     state
   }
 
+  /// Tests the operation on the given input stack, expecting a
+  /// success.
+  fn act_on_stack(command: impl Command, arg: Option<i32>, input_stack: Vec<i64>) -> Stack<Expr> {
+    let mut state = example_state(input_stack);
+    let mut context = CommandContext::default();
+    context.opts.argument = arg;
+    let output = command.run_command(&mut state, &context).unwrap();
+    assert!(output.errors.is_empty());
+    state.main_stack
+  }
+
+  /// Tests the operation on the given input stack. Expects a failure.
+  /// Asserts that the stack is unchanged and returns the error.
+  fn act_on_stack_err(command: impl Command, arg: Option<i32>, input_stack: Vec<i64>) -> StackError {
+    let mut state = example_state(input_stack.clone());
+    let mut context = CommandContext::default();
+    context.opts.argument = arg;
+    let err = command.run_command(&mut state, &context).unwrap_err();
+    let Error::StackError(err) = err else {
+      panic!("Expected StackError, got {:?}", err)
+    };
+    assert_eq!(state.main_stack, stack_of(input_stack));
+    err
+  }
+
   #[test]
   fn test_simple_pop() {
-    let mut state = example_state(vec![10, 20, 30]);
-    let output = PopCommand.run_command(&mut state, &CommandContext::default()).unwrap();
-    assert!(output.errors.is_empty());
-    assert_eq!(state.main_stack, stack_of(vec![10, 20]));
+    let output_stack = act_on_stack(PopCommand, None, vec![10, 20, 30]);
+    assert_eq!(output_stack, stack_of(vec![10, 20]));
   }
 
   #[test]
   fn test_simple_pop_on_empty_stack() {
-    let mut state = example_state(vec![]);
-    let err = PopCommand.run_command(&mut state, &CommandContext::default()).unwrap_err();
-    let Error::StackError(err) = err else { panic!("Expected StackError, got {:?}", err) };
+    let err = act_on_stack_err(PopCommand, None, vec![]);
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 1, actual: 0 },
     )
   }
 
-  // TODO (/////) other 'pop' cases
+  #[test]
+  fn test_multiple_pop() {
+    let output_stack = act_on_stack(PopCommand, Some(3), vec![10, 20, 30, 40, 50]);
+    assert_eq!(output_stack, stack_of(vec![10, 20]));
+  }
+
+  #[test]
+  fn test_multiple_pop_all_stack_elements() {
+    let output_stack = act_on_stack(PopCommand, Some(4), vec![10, 20, 30, 40]);
+    assert_eq!(output_stack, stack_of(vec![]));
+  }
+
+  #[test]
+  fn test_multiple_pop_on_empty_stack() {
+    let err = act_on_stack_err(PopCommand, Some(3), vec![]);
+    assert_eq!(
+      err,
+      StackError::NotEnoughElements { expected: 3, actual: 0 },
+    );
+  }
+
+  #[test]
+  fn test_multiple_pop_on_stack_thats_too_small() {
+    let err = act_on_stack_err(PopCommand, Some(4), vec![10, 20, 30]);
+    assert_eq!(
+      err,
+      StackError::NotEnoughElements { expected: 4, actual: 3 },
+    );
+  }
+
+  #[test]
+  fn test_pop_with_argument_zero() {
+    let output_stack = act_on_stack(PopCommand, Some(0), vec![10, 20, 30]);
+    assert_eq!(output_stack, stack_of(vec![]));
+  }
+
+  #[test]
+  fn test_pop_with_argument_zero_on_empty_stack() {
+    let output_stack = act_on_stack(PopCommand, Some(0), vec![]);
+    assert_eq!(output_stack, stack_of(vec![]));
+  }
+
+  #[test]
+  fn test_pop_with_negative_one_argument() {
+    let output_stack = act_on_stack(PopCommand, Some(-1), vec![10, 20, 30, 40]);
+    assert_eq!(output_stack, stack_of(vec![10, 20, 30]));
+  }
+
+  #[test]
+  fn test_pop_with_negative_one_argument_and_empty_stack() {
+    let err = act_on_stack_err(PopCommand, Some(-1), vec![]);
+    assert_eq!(
+      err,
+      StackError::NotEnoughElements { expected: 1, actual: 0 },
+    );
+  }
+
+  #[test]
+  fn test_pop_with_negative_argument() {
+    let output_stack = act_on_stack(PopCommand, Some(-3), vec![10, 20, 30, 40]);
+    assert_eq!(output_stack, stack_of(vec![10, 30, 40]));
+  }
+
+  #[test]
+  fn test_pop_with_negative_argument_and_empty_stack() {
+    let err = act_on_stack_err(PopCommand, Some(-3), vec![]);
+    assert_eq!(
+      err,
+      StackError::NotEnoughElements { expected: 3, actual: 0 },
+    );
+  }
+
+  #[test]
+  fn test_pop_with_negative_argument_and_too_small_stack() {
+    let err = act_on_stack_err(PopCommand, Some(-3), vec![10, 20]);
+    assert_eq!(
+      err,
+      StackError::NotEnoughElements { expected: 3, actual: 2 },
+    );
+  }
+
+  #[test]
+  fn test_pop_with_negative_argument_at_bottom_of_stack() {
+    let output_stack = act_on_stack(PopCommand, Some(-4), vec![10, 20, 30, 40]);
+    assert_eq!(output_stack, stack_of(vec![20, 30, 40]));
+  }
 }
