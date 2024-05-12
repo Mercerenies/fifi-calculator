@@ -1,6 +1,7 @@
 
-import { getInputBoxDiv, getInputTextBox, getValueStack, getInputTextBoxLabel } from './page.js';
+import * as Page from './page.js';
 import { InputBoxManager, NumericalInputMethod, KeyResponse } from './input_box.js';
+import { NotificationManager } from './notifications.js';
 
 const { invoke } = window.__TAURI__.tauri;
 const { listen } = window.__TAURI__.event;
@@ -15,23 +16,26 @@ const SIMPLE_DISPATCH_KEYS: Record<string, string> = {
 };
 
 class UiManager {
-  private inputManager: InputBoxManager;
+  readonly inputManager: InputBoxManager;
+  readonly notificationManager: NotificationManager;
 
   constructor() {
     this.inputManager = new InputBoxManager({
-      inputBox: getInputBoxDiv(),
-      inputTextBox: getInputTextBox(),
-      inputLabel: getInputTextBoxLabel(),
+      inputBox: Page.getInputBoxDiv(),
+      inputTextBox: Page.getInputTextBox(),
+      inputLabel: Page.getInputTextBoxLabel(),
     });
+    this.notificationManager = new NotificationManager(Page.getNotificationBox());
   }
 
   initListeners(): void {
     this.inputManager.initListeners();
+    this.notificationManager.initListeners();
     document.body.addEventListener("keydown", (event) => this.dispatchOnKey(event));
   }
 
   private async dispatchOnKey(event: KeyboardEvent): Promise<void> {
-    if (document.activeElement === getInputTextBox()) {
+    if (document.activeElement === Page.getInputTextBox()) {
       const keyResponse = await this.inputManager.onKeyDown(event);
       if (keyResponse === KeyResponse.BLOCK) {
         return;
@@ -62,7 +66,7 @@ function refreshStack(newStack: string[]): void {
     li.innerHTML = elem;
     ol.appendChild(li);
   }
-  const stack = getValueStack();
+  const stack = Page.getValueStack();
   stack.innerHTML = "";
   stack.appendChild(ol);
 }
@@ -71,4 +75,5 @@ window.addEventListener("DOMContentLoaded", async function() {
   const uiManager = new UiManager();
   uiManager.initListeners();
   await listen("refresh-stack", (event) => refreshStack(event.payload.stack));
+  await listen("show-error", (event) => uiManager.notificationManager.show(event.payload.errorMessage));
 });

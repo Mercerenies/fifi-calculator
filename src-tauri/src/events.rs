@@ -3,6 +3,7 @@
 //! the frontend.
 
 use serde::Serialize;
+use tauri::Manager;
 
 /// Instructs the frontend to re-render the stack elements with the
 /// given values.
@@ -12,6 +13,22 @@ pub struct RefreshStackPayload {
   pub stack: Vec<String>,
 }
 
+/// Instructs the frontend to render an error message to the user.
+#[derive(Serialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ShowErrorPayload {
+  /// The error message to display.
+  pub error_message: String,
+}
+
 impl RefreshStackPayload {
   pub const EVENT_NAME: &'static str = "refresh-stack";
+}
+
+impl ShowErrorPayload {
+  pub const EVENT_NAME: &'static str = "show-error";
+}
+
+pub fn show_error(app_handle: &tauri::AppHandle, error_message: String) -> tauri::Result<()> {
+  app_handle.emit_all(ShowErrorPayload::EVENT_NAME, ShowErrorPayload { error_message })
 }

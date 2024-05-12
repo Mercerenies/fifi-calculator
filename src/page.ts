@@ -6,6 +6,9 @@ export const ElementIds = {
   INPUT_TEXTBOX: 'input-textbox',
   INPUT_TEXTBOX_LABEL: 'input-textbox-label',
   VALUE_STACK: 'value-stack',
+  NOTIFICATION_BOX: 'notification-box',
+  NOTIFICATION_BOX_CLOSE_BUTTON: 'notification-box-close-button',
+  NOTIFICATION_BOX_TEXT: 'notification-box-text',
 };
 
 function getElement(id: string): HTMLElement {
@@ -31,4 +34,16 @@ export function getValueStack(): HTMLElement {
 
 export function getInputTextBoxLabel(): HTMLElement {
   return getElement(ElementIds.INPUT_TEXTBOX_LABEL);
+}
+
+export function getNotificationBoxCloseButton(): HTMLElement {
+  return getElement(ElementIds.NOTIFICATION_BOX_CLOSE_BUTTON);
+}
+
+export function getNotificationBox(): HTMLElement {
+  return getElement(ElementIds.NOTIFICATION_BOX);
+}
+
+export function getNotificationBoxText(): HTMLElement {
+  return getElement(ElementIds.NOTIFICATION_BOX_TEXT);
 }

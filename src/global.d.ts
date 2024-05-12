@@ -21,6 +21,7 @@ interface EventFunctions {
 
 interface EventListen {
   (event: 'refresh-stack', callback: EventCallback<RefreshStackPayload>): Promise<UnlistenFunction>;
+  (event: 'show-error', callback: EventCallback<ShowErrorPayload>): Promise<UnlistenFunction>;
 }
 
 type EventCallback<T> = (event: EventBody<T>) => void;
@@ -36,4 +37,8 @@ type UnlistenFunction = () => void;
 
 interface RefreshStackPayload {
   stack: string[];
+}
+
+interface ShowErrorPayload {
+  errorMessage: string;
 }

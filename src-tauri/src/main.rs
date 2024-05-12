@@ -5,6 +5,7 @@ use fifi::error::Error;
 use fifi::state::{TauriApplicationState, ApplicationState};
 use fifi::command::dispatch::CommandDispatchTable;
 use fifi::expr::Expr;
+use fifi::events::show_error;
 
 #[tauri::command]
 fn submit_integer(
@@ -26,6 +27,7 @@ fn math_command(
 ) -> Result<(), tauri::Error> {
   let mut state = app_state.state.lock().expect("poisoned mutex");
   handle_non_tauri_errors(
+    &app_handle,
     run_math_command(&mut state, &app_state.command_table, command_name),
   )?;
   state.send_refresh_stack_event(&app_handle)?;
@@ -41,17 +43,12 @@ fn run_math_command(
   command.run_command(state)
 }
 
-fn handle_non_tauri_errors(err: Result<(), Error>) -> Result<(), tauri::Error> {
-  // This is a temporary solution that simply prints out any non-Tauri
-  // error to stderr. In the future, we'll show those errors in the
-  // UI. Note that Tauri errors should always be reported back to the
-  // Tauri runtime, so we very specifically don't handle those here.
+fn handle_non_tauri_errors(app_handle: &tauri::AppHandle, err: Result<(), Error>) -> Result<(), tauri::Error> {
   match err {
     Ok(()) => Ok(()),
     Err(Error::TauriError(e)) => Err(e),
     Err(other) => {
-      // TODO Show in UI instead.
-      eprintln!("Error: {}", other);
+      show_error(app_handle, format!("Error: {}", other))?;
       Ok(())
     }
   }
