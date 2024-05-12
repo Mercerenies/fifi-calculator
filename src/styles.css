@@ -76,6 +76,10 @@
     grid-template-columns: repeat(5, 1fr);
 }
 
+.svg-icon {
+    height: 1em;
+}
+
 a {
   font-weight: 500;
   color: #646cff;
@@ -121,10 +125,6 @@ button {
   outline: none;
 }
 
-#greet-input {
-  margin-right: 5px;
-}
-
 @media (prefers-color-scheme: dark) {
   :root {
     color: #f6f6f6;
@@ -152,5 +152,9 @@ button {
 
   .notification-box-close-button:hover {
       color: #000;
+  }
+
+  .svg-icon {
+      filter: invert(1);
   }
 }

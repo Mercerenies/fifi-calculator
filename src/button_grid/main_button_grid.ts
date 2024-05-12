@@ -3,9 +3,14 @@ import { ButtonGrid } from "../button_grid.js";
 import { DispatchButton } from './button.js';
 import { InputBoxManager } from '../input_box.js';
 import { NumericalInputMethod } from '../input_box/numerical_input.js';
+import { svg } from '../util.js';
 
 export interface Hideable {
   hide(): void;
+}
+
+function discardSvg(): HTMLElement {
+  return svg('assets/discard.svg', {alt: "pop"});
 }
 
 export class MainButtonGrid implements ButtonGrid {
@@ -19,7 +24,7 @@ export class MainButtonGrid implements ButtonGrid {
     [new DispatchButton("&times;", "*", "*")],
     [new DispatchButton("&divide;", "/", "/")],
     [
-      new DispatchButton("p", "pop", "Backspace"), // TODO Better label
+      new DispatchButton(discardSvg(), "pop", "Backspace"), // TODO Better label
       new DispatchButton("s", "swap", "Tab"), // TODO Better label
     ],
   ];
