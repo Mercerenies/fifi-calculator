@@ -88,7 +88,7 @@ export class NullaryInputMethod extends InputMethod {
 // Input method that accepts numerical input.
 export class NumericalInputMethod extends InputMethod {
   // TODO Get this from somewhere automated.
-  static AUTO_SUBMIT_KEYS = new Set(["+", "-", "*", "/"]);
+  static AUTO_SUBMIT_KEYS = new Set(["*", "/"]);
 
   getLabelHTML() { return "#:"; }
 
@@ -110,7 +110,7 @@ export class NumericalInputMethod extends InputMethod {
       event.preventDefault();
       await this.submit(manager);
       return KeyResponse.BLOCK;
-    } else if (NumericalInputMethod.AUTO_SUBMIT_KEYS.has(event.key)) {
+    } else if (this.shouldAutoSubmit(event.key, manager)) {
       // Submit and perform a top-level command.
       await this.submit(manager);
       return KeyResponse.PASS;
@@ -118,6 +118,19 @@ export class NumericalInputMethod extends InputMethod {
       // Absorb the input into the textbox.
       return KeyResponse.BLOCK;
     }
+  }
+
+  private shouldAutoSubmit(key: string, manager: InputBoxManager): boolean {
+    if (NumericalInputMethod.AUTO_SUBMIT_KEYS.has(key)) {
+      return true;
+    }
+    // + and - are special cases. They should *usually* auto-submit,
+    // unless we're currently entering a number in scientific notation
+    // (in which case, they're valid inputs in the text box).
+    if ((key == '+') || (key == '-')) {
+      return !manager.getTextBoxValue().endsWith("e");
+    }
+    return false;
   }
 }
 
