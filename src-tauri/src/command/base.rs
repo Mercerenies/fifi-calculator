@@ -2,6 +2,7 @@
 use crate::state::ApplicationState;
 use crate::error::Error;
 use crate::expr::simplifier::Simplifier;
+use crate::expr::simplifier::identity::IdentitySimplifier;
 use super::options::CommandOptions;
 
 pub trait Command {
@@ -25,6 +26,12 @@ pub struct CommandOutput {
   pub errors: Vec<String>,
 }
 
+impl CommandContext {
+  pub fn new() -> Self {
+    Self::default()
+  }
+}
+
 impl CommandOutput {
   pub fn success() -> CommandOutput {
     CommandOutput {
@@ -38,5 +45,35 @@ impl CommandOutput {
     CommandOutput {
       errors: errors.into_iter().map(|e| e.to_string()).collect(),
     }
+  }
+}
+
+/// An appropriate default context, with no special command options
+/// and a simplifier that does nothing. Note carefully that this does
+/// *not* provide a sensible simplifier and instead simply uses a
+/// nullary one that returns its argument unmodified.
+impl Default for CommandContext {
+  fn default() -> CommandContext {
+    CommandContext {
+      opts: CommandOptions::default(),
+      simplifier: Box::new(IdentitySimplifier),
+    }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_command_output_success() {
+    let output = CommandOutput::success();
+    assert!(output.errors.is_empty());
+  }
+
+  #[test]
+  fn test_command_output_errors() {
+    let output = CommandOutput::from_errors(vec!["X", "Y", "Z"]);
+    assert_eq!(output.errors, vec!["X", "Y", "Z"]);
   }
 }

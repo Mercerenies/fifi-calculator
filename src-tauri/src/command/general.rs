@@ -24,3 +24,17 @@ where F: Fn(&mut ApplicationState, &CommandContext) -> Result<CommandOutput, Err
     (self.body)(state, context)
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn command_delegates_to_inner() {
+    let command = GeneralCommand::new(|_, _| {
+      Ok(CommandOutput::from_errors(vec!["A", "B"]))
+    });
+    let result = command.run_command(&mut ApplicationState::new(), &mut CommandContext::default()).unwrap();
+    assert_eq!(result.errors, vec!["A", "B"]);
+  }
+}
