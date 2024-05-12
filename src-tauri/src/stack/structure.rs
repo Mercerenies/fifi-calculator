@@ -20,6 +20,20 @@ impl<T> Stack<T> {
     self.elements.pop()
   }
 
+  /// Pops the nth element (0-indexed and counting from the top) and
+  /// returns it. If out of bounds, returns None. This function does
+  /// NOT support negative indexing.
+  pub fn pop_nth(&mut self, index: usize) -> Option<T> {
+    if index >= self.len() {
+      return None;
+    }
+    Some(self.elements.remove(self.len() - index - 1))
+  }
+
+  pub fn pop_all(&mut self) {
+    self.elements.clear();
+  }
+
   pub fn len(&self) -> usize {
     self.elements.len()
   }
@@ -126,6 +140,19 @@ mod tests {
     assert_eq!(stack.pop(), Some(10));
     assert_eq!(stack.pop(), Some(0));
     assert_eq!(stack.pop(), None);
+  }
+
+  #[test]
+  fn test_pop_nth() {
+    let mut stack = Stack::from(vec![0, 10, 20, 30, 40]);
+    assert_eq!(stack.pop_nth(0), Some(40));
+    assert_eq!(stack.clone().into_iter().collect::<Vec<_>>(), vec![30, 20, 10, 0]);
+    assert_eq!(stack.pop_nth(1), Some(20));
+    assert_eq!(stack.clone().into_iter().collect::<Vec<_>>(), vec![30, 10, 0]);
+    assert_eq!(stack.pop_nth(3), None);
+    assert_eq!(stack.pop_nth(9), None);
+    assert_eq!(stack.pop_nth(99), None);
+    assert_eq!(stack.into_iter().collect::<Vec<_>>(), vec![30, 10, 0]);
   }
 
   #[test]

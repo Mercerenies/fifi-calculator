@@ -4,7 +4,7 @@ pub mod number;
 pub mod simplifier;
 pub mod walker;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
   Atom(atom::Atom),
   Call(String, Vec<Expr>),

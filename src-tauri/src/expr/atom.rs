@@ -1,7 +1,7 @@
 
 use super::number::Number;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Atom {
   Number(Number),
 }

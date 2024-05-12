@@ -35,3 +35,11 @@ pub fn pop_several<T>(stack: &mut Stack<T>, count: usize) -> Result<Vec<T>, Stac
   result.reverse();
   Ok(result)
 }
+
+/// Pops the nth element off the stack. Equivalent to
+/// [`Stack::pop_nth`] but reports a good error in [`StackError`]
+/// rather than returning a simple `None`.
+pub fn pop_nth<T>(stack: &mut Stack<T>, index: usize) -> Result<T, StackError> {
+  stack.pop_nth(index)
+    .ok_or(StackError::NotEnoughElements { expected: index + 1, actual: stack.len() })
+}

@@ -48,7 +48,7 @@ function refreshStack(newStack: string[]): void {
   for (let i = newStack.length - 1; i >= 0; i--) {
     const elem = newStack[i];
     const li = document.createElement("li");
-    li.value = i;
+    li.value = i + 1;
     li.innerHTML = elem;
     ol.appendChild(li);
   }
