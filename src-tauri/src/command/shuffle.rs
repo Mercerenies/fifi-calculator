@@ -1,7 +1,7 @@
 
 //! Commands for shuffling the stack.
 
-use super::base::{Command, CommandContext};
+use super::base::{Command, CommandContext, CommandOutput};
 use crate::state::ApplicationState;
 use crate::error::Error;
 use crate::stack::shuffle;
@@ -19,29 +19,29 @@ pub struct SwapCommand;
 pub struct DupCommand;
 
 impl Command for PopCommand {
-  fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<(), Error> {
+  fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
     // TODO Use context
     let _ = shuffle::pop_one(&mut state.main_stack)?;
-    Ok(())
+    Ok(CommandOutput::success())
   }
 }
 
 impl Command for SwapCommand {
-  fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<(), Error> {
+  fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
     // TODO Use context
     let (a, b) = shuffle::pop_two(&mut state.main_stack)?;
     state.main_stack.push(b);
     state.main_stack.push(a);
-    Ok(())
+    Ok(CommandOutput::success())
   }
 }
 
 impl Command for DupCommand {
-  fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<(), Error> {
+  fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
     // TODO Use context
     let a = shuffle::pop_one(&mut state.main_stack)?;
     state.main_stack.push(a.clone());
     state.main_stack.push(a);
-    Ok(())
+    Ok(CommandOutput::success())
   }
 }

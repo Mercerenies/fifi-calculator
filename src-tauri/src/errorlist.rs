@@ -46,6 +46,15 @@ impl<E> ErrorList<E> {
   }
 }
 
+impl<E> IntoIterator for ErrorList<E> {
+  type Item = E;
+  type IntoIter = ::std::vec::IntoIter<E>;
+
+  fn into_iter(self) -> Self::IntoIter {
+    self.errors.into_iter()
+  }
+}
+
 impl<E> Default for ErrorList<E> {
   fn default() -> Self {
     Self { errors: Vec::new() }

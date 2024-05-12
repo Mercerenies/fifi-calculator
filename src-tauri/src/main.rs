@@ -6,6 +6,7 @@ use fifi::state::{TauriApplicationState, ApplicationState};
 use fifi::command::CommandContext;
 use fifi::command::options::CommandOptions;
 use fifi::command::dispatch::CommandDispatchTable;
+use fifi::expr::simplifier::default_simplifier;
 use fifi::expr::Expr;
 use fifi::expr::number::Number;
 use fifi::events::show_error;
@@ -33,7 +34,7 @@ fn math_command(
   let mut state = app_state.state.lock().expect("poisoned mutex");
   handle_non_tauri_errors(
     &app_handle,
-    run_math_command(&mut state, &app_state.command_table, command_name),
+    run_math_command(&app_handle, &mut state, &app_state.command_table, command_name),
   )?;
   state.send_refresh_stack_event(&app_handle)?;
   Ok(())
@@ -46,14 +47,24 @@ fn parse_and_push_number(state: &mut ApplicationState, string: &str) -> Result<(
 }
 
 fn run_math_command(
+  app_handle: &tauri::AppHandle,
   state: &mut ApplicationState,
   table: &CommandDispatchTable,
   command_name: &str,
 ) -> Result<(), Error> {
   // TODO Actual command context
   let command = table.get(command_name)?;
-  let context = CommandContext { opts: CommandOptions::default() };
-  command.run_command(state, &context)
+  let context = CommandContext {
+    opts: CommandOptions::default(),
+    simplifier: default_simplifier(),
+  };
+  let output = command.run_command(state, &context)?;
+  if !output.errors.is_empty() {
+    // For now, for brevity, just show the first simplifier error and
+    // drop the others. We might revise this later.
+    show_error(app_handle, format!("Error: {}", output.errors[0]))?;
+  }
+  Ok(())
 }
 
 fn handle_non_tauri_errors(app_handle: &tauri::AppHandle, err: Result<(), Error>) -> Result<(), tauri::Error> {
