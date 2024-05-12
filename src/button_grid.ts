@@ -6,16 +6,32 @@ import { InputBoxManager, NumericalInputMethod } from './input_box.js';
 
 const { invoke } = window.__TAURI__.tauri;
 
-export class ButtonGridManager {
-  private activeGrid: ButtonGrid;
-  private buttonsByKey: {[key: string]: Button} = {};
+// NOTE: This should be kept up to date with the .button-grid class in
+// styles.css. If that value gets updated, update this as well!
+const GRID_CELLS_PER_ROW = 5;
 
-  constructor(initialGrid: ButtonGrid) {
+// This one doesn't appear in the CSS; it just determines how many
+// nodes we generate.
+const GRID_ROWS = 6;
+
+export class ButtonGridManager {
+  private domElement: HTMLElement;
+  private activeGrid: ButtonGrid;
+  private buttonsByKey: {[key: string]: GridCell} = {};
+
+  constructor(domElement: HTMLElement, initialGrid: ButtonGrid) {
+    this.domElement = domElement;
     this.activeGrid = initialGrid;
-    this.loadButtons();
+    this.setActiveGrid(initialGrid); // Initialize the grid
   }
 
-  private loadButtons() {
+  setActiveGrid(grid: ButtonGrid): void {
+    this.activeGrid = grid;
+    this.loadButtonShortcuts();
+    this.loadHtml();
+  }
+
+  private loadButtonShortcuts(): void {
     this.buttonsByKey = {};
     for (const row of this.activeGrid.rows) {
       for (const button of row) {
@@ -30,6 +46,20 @@ export class ButtonGridManager {
     }
   }
 
+  private loadHtml(): void {
+    this.domElement.innerHTML = "";
+    const gridDiv = document.createElement("div");
+    gridDiv.classList.add("button-grid");
+    for (let y = 0; y < GRID_ROWS; y++) {
+      const row = this.activeGrid.rows[y] ?? [];
+      for (let x = 0; x < GRID_CELLS_PER_ROW; x++) {
+        const gridCell = row[x] ?? new Spacer();
+        gridDiv.appendChild(gridCell.getHTML(this));
+      }
+    }
+    this.domElement.appendChild(gridDiv);
+  }
+
   async onKeyDown(event: KeyboardEvent): Promise<void> {
     const button = this.buttonsByKey[event.key];
     if (button !== undefined) {
@@ -42,13 +72,15 @@ export class ButtonGridManager {
 }
 
 export interface ButtonGrid {
-  readonly rows: ReadonlyArray<ReadonlyArray<Button>>;
+  readonly rows: ReadonlyArray<ReadonlyArray<GridCell>>;
 
   onUnhandledKey(event: KeyboardEvent): Promise<void>;
 }
 
-export interface Button {
+export interface GridCell {
   readonly keyboardShortcut: string | null;
+
+  getHTML(manager: ButtonGridManager): HTMLElement;
   fire(manager: ButtonGridManager): Promise<void>;
 }
 
@@ -60,12 +92,14 @@ export class MainButtonGrid implements ButtonGrid {
   ]);
 
   readonly rows = [
-    [new DispatchButton("+", "+")],
-    [new DispatchButton("-", "-")],
-    [new DispatchButton("*", "*")],
-    [new DispatchButton("/", "/")],
-    [new DispatchButton("pop", "Backspace")],
-    [new DispatchButton("swap", "Tab")],
+    [new DispatchButton("+", "+", "+")],
+    [new DispatchButton("-", "-", "-")],
+    [new DispatchButton("&times;", "*", "*")],
+    [new DispatchButton("&divide;", "/", "/")],
+    [
+      new DispatchButton("p", "pop", "Backspace"), // TODO Better label
+      new DispatchButton("s", "swap", "Tab"), // TODO Better label
+    ],
   ];
 
   private inputManager: InputBoxManager;
@@ -94,13 +128,45 @@ export class MainButtonGrid implements ButtonGrid {
   }
 }
 
-export class DispatchButton implements Button {
-  readonly commandName: string;
+// Empty grid cell.
+export class Spacer implements GridCell {
+  readonly keyboardShortcut: string | null = null;
+
+  getHTML(manager: ButtonGridManager): HTMLElement {
+    return document.createElement("div");
+  }
+
+  fire(manager: ButtonGridManager): Promise<void> {
+    // No action.
+    return Promise.resolve();
+  }
+}
+
+export abstract class Button implements GridCell {
+  readonly label: string;
   readonly keyboardShortcut: string | null;
 
-  constructor(commandName: string, keyboardShortcut: string | null) {
-    this.commandName = commandName;
+  constructor(label: string, keyboardShortcut: string | null) {
+    this.label = label;
     this.keyboardShortcut = keyboardShortcut;
+  }
+
+  getHTML(manager: ButtonGridManager): HTMLElement {
+    const button = document.createElement("button");
+    button.innerHTML = this.label;
+    button.addEventListener("click", () => this.fire(manager));
+    return button;
+  }
+
+  abstract fire(manager: ButtonGridManager): Promise<void>;
+}
+
+export class DispatchButton extends Button {
+  readonly commandName: string;
+
+  constructor(label: string, commandName: string, keyboardShortcut: string | null) {
+    super(label, keyboardShortcut);
+    this.commandName = commandName;
   }
 
   fire(manager: ButtonGridManager): Promise<void> {

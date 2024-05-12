@@ -9,6 +9,7 @@ export const ElementIds = {
   NOTIFICATION_BOX: 'notification-box',
   NOTIFICATION_BOX_CLOSE_BUTTON: 'notification-box-close-button',
   NOTIFICATION_BOX_TEXT: 'notification-box-text',
+  BUTTON_GRID_CONTAINER: 'button-grid-container',
 };
 
 function getElement(id: string): HTMLElement {
@@ -46,4 +47,8 @@ export function getNotificationBox(): HTMLElement {
 
 export function getNotificationBoxText(): HTMLElement {
   return getElement(ElementIds.NOTIFICATION_BOX_TEXT);
+}
+
+export function getButtonGridContainer(): HTMLElement {
+  return getElement(ElementIds.BUTTON_GRID_CONTAINER);
 }

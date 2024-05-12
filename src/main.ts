@@ -19,7 +19,10 @@ class UiManager {
       inputLabel: Page.getInputTextBoxLabel(),
     });
     this.notificationManager = new NotificationManager(Page.getNotificationBox());
-    this.buttonGridManager = new ButtonGridManager(new MainButtonGrid(this.inputManager));
+    this.buttonGridManager = new ButtonGridManager(
+      Page.getButtonGridContainer(),
+      new MainButtonGrid(this.inputManager),
+    );
   }
 
   initListeners(): void {
