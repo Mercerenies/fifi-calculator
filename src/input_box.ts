@@ -23,10 +23,11 @@ export class InputBoxManager {
     return (this.inputBox.style.display !== 'none');
   }
 
-  show(inputMethod: InputMethod): void {
+  show(inputMethod: InputMethod, initialInput: string = ""): void {
     this.inputMethod = inputMethod;
     this.inputBox.style.display = 'flex';
     this.inputLabel.innerHTML = inputMethod.getLabelHTML();
+    this.setTextBoxValue(initialInput);
     window.setTimeout(() => this.inputTextBox.focus(), 1);
   }
 
@@ -93,7 +94,9 @@ export class NumericalInputMethod extends InputMethod {
 
   private async submit(manager: InputBoxManager): Promise<void> {
     const text = manager.getTextBoxValue();
-    await tauri.invoke('submit_number', { value: text });
+    if (text !== "") {
+      await tauri.invoke('submit_number', { value: text });
+    }
     manager.hide();
   }
 

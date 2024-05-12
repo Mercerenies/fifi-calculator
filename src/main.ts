@@ -2,24 +2,15 @@
 import * as Page from './page.js';
 import { InputBoxManager, NumericalInputMethod, KeyResponse } from './input_box.js';
 import { NotificationManager } from './notifications.js';
+import { ButtonGridManager, MainButtonGrid } from './button_grid.js';
 
 const { invoke } = window.__TAURI__.tauri;
 const { listen } = window.__TAURI__.event;
 
-const NUMBERS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
-
-const SIMPLE_DISPATCH_KEYS: Record<string, string> = {
-  "+": "+",
-  "-": "-",
-  "*": "*",
-  "/": "/",
-  "Backspace": "pop",
-  "Tab": "swap",
-};
-
 class UiManager {
   readonly inputManager: InputBoxManager;
   readonly notificationManager: NotificationManager;
+  readonly buttonGridManager: ButtonGridManager
 
   constructor() {
     this.inputManager = new InputBoxManager({
@@ -28,6 +19,7 @@ class UiManager {
       inputLabel: Page.getInputTextBoxLabel(),
     });
     this.notificationManager = new NotificationManager(Page.getNotificationBox());
+    this.buttonGridManager = new ButtonGridManager(new MainButtonGrid(this.inputManager));
   }
 
   initListeners(): void {
@@ -43,20 +35,8 @@ class UiManager {
         return;
       }
     }
-    await this.dispatchOnKeyGeneral(event);
+    await this.buttonGridManager.onKeyDown(event);
   }
-
-  private async dispatchOnKeyGeneral(event: KeyboardEvent): Promise<void> {
-    if (NUMBERS.includes(event.key)) {
-      event.preventDefault();
-      this.inputManager.show(new NumericalInputMethod());
-      this.inputManager.setTextBoxValue(event.key);
-    } else if (event.key in SIMPLE_DISPATCH_KEYS) {
-      event.preventDefault();
-      await invoke('math_command', { commandName: SIMPLE_DISPATCH_KEYS[event.key] });
-    }
-  }
-
 }
 
 function refreshStack(newStack: string[]): void {
