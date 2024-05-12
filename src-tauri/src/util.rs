@@ -9,3 +9,14 @@ pub fn unwrap_infallible<T>(res: Result<T, Infallible>) -> T {
     Err(_) => unreachable!(),
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn unwrap_infallible_unwraps() {
+    let res = Ok(1);
+    assert_eq!(unwrap_infallible(res), 1);
+  }
+}

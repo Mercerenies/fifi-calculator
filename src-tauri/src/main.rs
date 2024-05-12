@@ -5,16 +5,19 @@ use fifi::error::Error;
 use fifi::state::{TauriApplicationState, ApplicationState};
 use fifi::command::dispatch::CommandDispatchTable;
 use fifi::expr::Expr;
+use fifi::expr::number::Number;
 use fifi::events::show_error;
 
+use std::str::FromStr;
+
 #[tauri::command]
-fn submit_integer(
+fn submit_number(
   app_state: tauri::State<TauriApplicationState>,
   app_handle: tauri::AppHandle,
-  value: i64,
+  value: &str,
 ) -> Result<(), tauri::Error> {
   let mut state = app_state.state.lock().expect("poisoned mutex");
-  state.main_stack.push(Expr::Atom(value.into()));
+  handle_non_tauri_errors(&app_handle, parse_and_push_number(&mut state, value))?;
   state.send_refresh_stack_event(&app_handle)?;
   Ok(())
 }
@@ -31,6 +34,12 @@ fn math_command(
     run_math_command(&mut state, &app_state.command_table, command_name),
   )?;
   state.send_refresh_stack_event(&app_handle)?;
+  Ok(())
+}
+
+fn parse_and_push_number(state: &mut ApplicationState, string: &str) -> Result<(), Error> {
+  let number = Number::from_str(string)?;
+  state.main_stack.push(Expr::from(number));
   Ok(())
 }
 
@@ -57,7 +66,7 @@ fn handle_non_tauri_errors(app_handle: &tauri::AppHandle, err: Result<(), Error>
 fn main() {
   tauri::Builder::default()
     .manage(TauriApplicationState::new())
-    .invoke_handler(tauri::generate_handler![submit_integer, math_command])
+    .invoke_handler(tauri::generate_handler![submit_number, math_command])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }

@@ -84,15 +84,16 @@ export class NullaryInputMethod extends InputMethod {
   static INSTANCE = new NullaryInputMethod();
 };
 
-// Input method that accepts numerical input. (TODO Currently just accepts integers)
+// Input method that accepts numerical input.
 export class NumericalInputMethod extends InputMethod {
-  static VALID_INPUT_KEYS = new Set(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]);
+  // TODO Get this from somewhere automated.
+  static AUTO_SUBMIT_KEYS = new Set(["+", "-", "*", "/"]);
 
   getLabelHTML() { return "#:"; }
 
   private async submit(manager: InputBoxManager): Promise<void> {
     const text = manager.getTextBoxValue();
-    await tauri.invoke('submit_integer', { value: +text }); // TODO Support floats
+    await tauri.invoke('submit_number', { value: text });
     manager.hide();
   }
 
@@ -106,13 +107,13 @@ export class NumericalInputMethod extends InputMethod {
       event.preventDefault();
       await this.submit(manager);
       return KeyResponse.BLOCK;
-    } else if (NumericalInputMethod.VALID_INPUT_KEYS.has(event.key)) {
-      // Allow the input but block propagation.
-      return KeyResponse.BLOCK;
-    } else {
-      // For unrecognized keys, submit and propagate.
+    } else if (NumericalInputMethod.AUTO_SUBMIT_KEYS.has(event.key)) {
+      // Submit and perform a top-level command.
       await this.submit(manager);
       return KeyResponse.PASS;
+    } else {
+      // Absorb the input into the textbox.
+      return KeyResponse.BLOCK;
     }
   }
 }

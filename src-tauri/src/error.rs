@@ -1,6 +1,7 @@
 
 use crate::stack::error::StackError;
 use crate::command::dispatch::NoSuchCommandError;
+use crate::expr::number::ParseNumberError;
 
 use thiserror::Error;
 
@@ -13,4 +14,6 @@ pub enum Error {
   StackError(#[from] StackError),
   #[error("{0}")]
   NoSuchCommandError(#[from] NoSuchCommandError),
+  #[error("{0}")]
+  ParseNumberError(#[from] ParseNumberError),
 }
