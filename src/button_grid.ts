@@ -72,6 +72,9 @@ export class ButtonGridManager {
 }
 
 export interface ButtonGrid {
+  // Should be at most a GRID_ROWS * GRID_CELLS_BY_ROW array. If this
+  // grid is smaller than that size, the missing elements will be
+  // filled in with Spacer objects.
   readonly rows: ReadonlyArray<ReadonlyArray<GridCell>>;
 
   onUnhandledKey(event: KeyboardEvent): Promise<void>;
