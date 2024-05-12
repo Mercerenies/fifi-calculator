@@ -69,6 +69,20 @@ impl Number {
   pub fn ratio(numer: BigInt, denom: BigInt) -> Number {
     Number::from(BigRational::new(numer, denom))
   }
+
+  /// Simplify representation. If the number is stored as a rational
+  /// but is in fact an integer, convert to an integer representation.
+  /// This function will never simplify a floating-point
+  /// representation to an exact representation, even if the
+  /// represented float is current integral in value.
+  fn simplify(self) -> Number {
+    if let NumberImpl::Ratio(r) = &self.inner {
+      if r.denom().is_one() {
+        return Number::from(r.numer().clone());
+      }
+    }
+    self
+  }
 }
 
 impl From<i64> for Number {
@@ -85,7 +99,7 @@ impl From<BigInt> for Number {
 
 impl From<BigRational> for Number {
   fn from(r: BigRational) -> Number {
-    Number { inner: NumberImpl::Ratio(r) }
+    Number { inner: NumberImpl::Ratio(r) }.simplify()
   }
 }
 
