@@ -1,6 +1,6 @@
 
 import * as Page from './page.js';
-import { InputBoxManager, NumericalInputMethod, KeyResponse } from './input_box.js';
+import { InputBoxManager, KeyResponse } from './input_box.js';
 import { NotificationManager } from './notifications.js';
 import { ButtonGridManager, MainButtonGrid } from './button_grid.js';
 

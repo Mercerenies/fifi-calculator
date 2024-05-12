@@ -2,7 +2,8 @@
 // Manager class for the button grid that shows up on-screen and for
 // keyboard shortcuts to said grid.
 
-import { InputBoxManager, NumericalInputMethod } from './input_box.js';
+import { InputBoxManager } from './input_box.js';
+import { NumericalInputMethod } from './input_box/numerical_input.js';
 
 const { invoke } = window.__TAURI__.tauri;
 
