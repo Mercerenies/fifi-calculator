@@ -2,9 +2,6 @@
 // Manager class for the button grid that shows up on-screen and for
 // keyboard shortcuts to said grid.
 
-import { InputBoxManager } from './input_box.js';
-import { NumericalInputMethod } from './input_box/numerical_input.js';
-
 // NOTE: This should be kept up to date with the .button-grid class in
 // styles.css. If that value gets updated, update this as well!
 const GRID_CELLS_PER_ROW = 5;
@@ -16,7 +13,7 @@ const GRID_ROWS = 6;
 export class ButtonGridManager {
   private domElement: HTMLElement;
   private activeGrid: ButtonGrid;
-  private buttonsByKey: {[key: string]: GridCell} = {};
+  private buttonsByKey: Record<string, GridCell> = {};
 
   constructor(domElement: HTMLElement, initialGrid: ButtonGrid) {
     this.domElement = domElement;
@@ -74,7 +71,7 @@ export interface ButtonGrid {
   // Should be at most a GRID_ROWS * GRID_CELLS_BY_ROW array. If this
   // grid is smaller than that size, the missing elements will be
   // filled in with Spacer objects.
-  readonly rows: ReadonlyArray<ReadonlyArray<GridCell>>;
+  readonly rows: readonly (readonly GridCell[])[];
 
   onUnhandledKey(event: KeyboardEvent): Promise<void>;
 }
@@ -90,11 +87,11 @@ export interface GridCell {
 export class Spacer implements GridCell {
   readonly keyboardShortcut: string | null = null;
 
-  getHTML(manager: ButtonGridManager): HTMLElement {
+  getHTML(): HTMLElement {
     return document.createElement("div");
   }
 
-  fire(manager: ButtonGridManager): Promise<void> {
+  fire(): Promise<void> {
     // No action.
     return Promise.resolve();
   }
