@@ -3,6 +3,7 @@ interface Window {
   __TAURI__: {
     tauri: TauriFunctions,
     event: EventFunctions,
+    os: OsFunctions,
   };
 }
 
@@ -13,6 +14,10 @@ interface TauriFunctions {
 interface TauriInvoke {
   (command: 'submit_number', args: { value: string }): Promise<void>;
   (command: 'math_command', args: { commandName: string }): Promise<void>;
+}
+
+interface OsFunctions {
+  type(): Promise<OsType>;
 }
 
 interface EventFunctions {
@@ -42,3 +47,5 @@ interface RefreshStackPayload {
 interface ShowErrorPayload {
   errorMessage: string;
 }
+
+type OsType = "Linux" | "Darwin" | "Windows_NT";

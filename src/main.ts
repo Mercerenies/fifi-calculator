@@ -5,7 +5,6 @@ import { NotificationManager } from './notifications.js';
 import { ButtonGridManager } from './button_grid.js';
 import { MainButtonGrid } from './button_grid/main_button_grid.js';
 
-const { invoke } = window.__TAURI__.tauri;
 const { listen } = window.__TAURI__.event;
 
 class UiManager {
