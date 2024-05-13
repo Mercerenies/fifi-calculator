@@ -76,7 +76,7 @@ export abstract class InputMethod {
 export class NullaryInputMethod extends InputMethod {
   getLabelHTML() { return ""; }
 
-  async onKeyDown(event: KeyboardEvent, manager: InputBoxManager): Promise<KeyResponse> {
+  async onKeyDown(): Promise<KeyResponse> {
     return KeyResponse.PASS;
   }
 
