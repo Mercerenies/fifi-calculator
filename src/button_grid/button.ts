@@ -36,8 +36,9 @@ export class DispatchButton extends Button {
     this.commandName = commandName;
   }
 
-  fire(): Promise<void> {
-    return tauri.invoke('math_command', { commandName: this.commandName });
+  async fire(manager: ButtonGridManager): Promise<void> {
+    await tauri.invoke('math_command', { commandName: this.commandName });
+    manager.resetModifiers();
   }
 }
 
@@ -49,7 +50,8 @@ export class NumericalInputButton extends Button {
     this.inputManager = inputManager;
   }
 
-  async fire(): Promise<void> {
+  async fire(manager: ButtonGridManager): Promise<void> {
     this.inputManager.show(new NumericalInputMethod(), "");
+    manager.resetModifiers();
   }
 }

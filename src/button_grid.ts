@@ -23,6 +23,10 @@ export class ButtonGridManager {
     this.setActiveGrid(initialGrid); // Initialize the grid
   }
 
+  resetModifiers(): void {
+    // Currently does nothing; will soon reset prefix arg.
+  }
+
   setActiveGrid(grid: ButtonGrid): void {
     this.activeGrid = grid;
     this.loadButtonShortcuts();
