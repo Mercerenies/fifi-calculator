@@ -27,14 +27,10 @@ export interface PrefixArgState {
 }
 
 export class PrefixArgStateMachine {
-  private currentState: PrefixArgState;
+  currentState: PrefixArgState;
 
   constructor(initialState: PrefixArgState = DEFAULT_STATE) {
     this.currentState = initialState;
-  }
-
-  getState(): PrefixArgState {
-    return this.currentState;
   }
 
   get prefixArgument(): number | null {

@@ -2,7 +2,8 @@
 // Manager class for the button grid that shows up on-screen and for
 // keyboard shortcuts to said grid.
 
-import { KeyEventInput } from './keyboard.js';
+import { KeyEventInput, KeyResponse } from './keyboard.js';
+import { ModifierDelegate } from './button_grid/modifier_delegate.js';
 
 // NOTE: This should be kept up to date with the .button-grid class in
 // styles.css. If that value gets updated, update this as well!
@@ -16,15 +17,17 @@ export class ButtonGridManager {
   private domElement: HTMLElement;
   private activeGrid: ButtonGrid;
   private buttonsByKey: Record<string, GridCell> = {};
+  private modifierDelegate: ModifierDelegate;
 
-  constructor(domElement: HTMLElement, initialGrid: ButtonGrid) {
+  constructor(domElement: HTMLElement, initialGrid: ButtonGrid, modifierDelegate: ModifierDelegate) {
     this.domElement = domElement;
     this.activeGrid = initialGrid;
+    this.modifierDelegate = modifierDelegate;
     this.setActiveGrid(initialGrid); // Initialize the grid
   }
 
   resetModifiers(): void {
-    // Currently does nothing; will soon reset prefix arg.
+    this.modifierDelegate.resetModifiers();
   }
 
   setActiveGrid(grid: ButtonGrid): void {
@@ -63,6 +66,12 @@ export class ButtonGridManager {
   }
 
   async onKeyDown(input: KeyEventInput): Promise<void> {
+    const responseFromDelegate = await this.modifierDelegate.onKeyDown(input);
+    if (responseFromDelegate == KeyResponse.BLOCK) {
+      // Delegate handled the event, so don't propagate to the
+      // buttons.
+      return;
+    }
     const button = this.buttonsByKey[input.toEmacsSyntax()];
     if (button !== undefined) {
       input.event.preventDefault();

@@ -2,7 +2,6 @@
 import * as Page from './page.js';
 import { InputBoxManager } from './input_box.js';
 import { NotificationManager } from './notifications.js';
-import { ButtonGridManager } from './button_grid.js';
 import { MainButtonGrid } from './button_grid/main_button_grid.js';
 import { KeyInput, KeyResponse } from './keyboard.js';
 import { RightPanelManager } from './right_panel.js';
@@ -24,10 +23,8 @@ class UiManager {
     });
     this.notificationManager = new NotificationManager(Page.getNotificationBox());
     this.rightPanelManager = new RightPanelManager(
-      new ButtonGridManager(
-        Page.getButtonGridContainer(),
-        new MainButtonGrid(this.inputManager, this.notificationManager),
-      ),
+      Page.getButtonGridContainer(),
+      new MainButtonGrid(this.inputManager, this.notificationManager),
     );
     this.osType = osType;
   }
