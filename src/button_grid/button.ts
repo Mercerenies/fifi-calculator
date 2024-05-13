@@ -1,5 +1,7 @@
 
 import { ButtonGridManager, GridCell } from "../button_grid.js";
+import { InputBoxManager } from '../input_box.js';
+import { NumericalInputMethod } from '../input_box/numerical_input.js';
 
 const tauri = window.__TAURI__.tauri;
 
@@ -36,5 +38,18 @@ export class DispatchButton extends Button {
 
   fire(): Promise<void> {
     return tauri.invoke('math_command', { commandName: this.commandName });
+  }
+}
+
+export class NumericalInputButton extends Button {
+  private inputManager: InputBoxManager;
+
+  constructor(inputManager: InputBoxManager) {
+    super("<span class='mathy-text'>#</span>", null);
+    this.inputManager = inputManager;
+  }
+
+  async fire(): Promise<void> {
+    this.inputManager.show(new NumericalInputMethod(), "");
   }
 }

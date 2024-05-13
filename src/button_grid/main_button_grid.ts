@@ -1,6 +1,6 @@
 
-import { ButtonGrid } from "../button_grid.js";
-import { DispatchButton } from './button.js';
+import { ButtonGrid, GridCell } from "../button_grid.js";
+import { NumericalInputButton, DispatchButton } from './button.js';
 import { InputBoxManager } from '../input_box.js';
 import { NumericalInputMethod } from '../input_box/numerical_input.js';
 import { KeyEventInput } from '../keyboard.js';
@@ -27,17 +27,7 @@ export class MainButtonGrid implements ButtonGrid {
     "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "e", "_",
   ]);
 
-  readonly rows = [
-    [new DispatchButton("+", "+", "+")],
-    [new DispatchButton("-", "-", "-")],
-    [new DispatchButton("&times;", "*", "*")],
-    [new DispatchButton("&divide;", "/", "/")],
-    [
-      new DispatchButton(discardSvg(), "pop", "Backspace"),
-      new DispatchButton(swapSvg(), "swap", "Tab"),
-      new DispatchButton(dupSvg(), "dup", "Enter"),
-    ],
-  ];
+  readonly rows: readonly (readonly GridCell[])[];
 
   private inputManager: InputBoxManager;
   private onEscapeDismissable: Hideable;
@@ -45,6 +35,22 @@ export class MainButtonGrid implements ButtonGrid {
   constructor(inputManager: InputBoxManager, onEscapeDismissable: Hideable) {
     this.inputManager = inputManager;
     this.onEscapeDismissable = onEscapeDismissable;
+    this.rows = this.initRows();
+  }
+
+  private initRows(): GridCell[][] {
+    return [
+      [new DispatchButton("+", "+", "+")],
+      [new DispatchButton("-", "-", "-")],
+      [new DispatchButton("&times;", "*", "*")],
+      [new DispatchButton("&divide;", "/", "/")],
+      [
+        new DispatchButton(discardSvg(), "pop", "Backspace"),
+        new DispatchButton(swapSvg(), "swap", "Tab"),
+        new DispatchButton(dupSvg(), "dup", "Enter"),
+        new NumericalInputButton(this.inputManager),
+      ],
+    ];
   }
 
   async onUnhandledKey(input: KeyEventInput): Promise<void> {
