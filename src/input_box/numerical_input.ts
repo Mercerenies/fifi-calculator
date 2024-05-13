@@ -1,6 +1,6 @@
 
-import { KeyResponse, InputMethod, InputBoxManager } from '../input_box.js';
-import { KeyEventInput } from '../keyboard.js';
+import { InputMethod, InputBoxManager } from '../input_box.js';
+import { KeyResponse, KeyEventInput } from '../keyboard.js';
 
 const tauri = window.__TAURI__.tauri;
 

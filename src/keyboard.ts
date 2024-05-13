@@ -93,3 +93,15 @@ export function readModifiers(event: KeyboardEvent, osType: OsType): Modifier {
   }
   return modifiers;
 }
+
+
+// Response to a keydown event.
+export enum KeyResponse {
+  // Pass the key input onto the parent container, outside of the
+  // origin's control. Note that this does NOT imply that the original
+  // responder ignored the input, only that it wishes for the parent
+  // to see it.
+  PASS,
+  // Suppress the input and do not allow parent containers to see it.
+  BLOCK,
+}

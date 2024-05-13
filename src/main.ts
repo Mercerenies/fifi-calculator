@@ -1,10 +1,10 @@
 
 import * as Page from './page.js';
-import { InputBoxManager, KeyResponse } from './input_box.js';
+import { InputBoxManager } from './input_box.js';
 import { NotificationManager } from './notifications.js';
 import { ButtonGridManager } from './button_grid.js';
 import { MainButtonGrid } from './button_grid/main_button_grid.js';
-import { KeyInput } from './keyboard.js';
+import { KeyInput, KeyResponse } from './keyboard.js';
 import { RightPanelManager } from './right_panel.js';
 
 const { listen } = window.__TAURI__.event;
