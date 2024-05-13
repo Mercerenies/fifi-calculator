@@ -1,7 +1,7 @@
 
 #[derive(Default, Clone, Debug, PartialEq, Eq)]
 pub struct CommandOptions {
-  pub argument: Option<i32>,
+  pub argument: Option<i64>,
 }
 
 impl CommandOptions {
@@ -9,7 +9,7 @@ impl CommandOptions {
     Self::default()
   }
 
-  pub fn with_argument(mut self, argument: i32) -> Self {
+  pub fn with_argument(mut self, argument: i64) -> Self {
     self.argument = Some(argument);
     self
   }

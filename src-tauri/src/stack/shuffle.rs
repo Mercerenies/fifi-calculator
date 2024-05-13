@@ -43,3 +43,11 @@ pub fn pop_nth<T>(stack: &mut Stack<T>, index: usize) -> Result<T, StackError> {
   stack.pop_nth(index)
     .ok_or(StackError::NotEnoughElements { expected: index + 1, actual: stack.len() })
 }
+
+/// Equivalent to [`Stack::get`] but reports errors in [`StackError`].
+pub fn get<T>(stack: &Stack<T>, index: i64) -> Result<&T, StackError> {
+  stack.get(index).ok_or_else(|| {
+    let expected = if index >= 0 { index + 1 } else { - index };
+    StackError::NotEnoughElements { expected: expected as usize, actual: stack.len() }
+  })
+}

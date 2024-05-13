@@ -61,10 +61,22 @@ impl Command for SwapCommand {
 
 impl Command for DupCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
-    // TODO Use context
-    let a = shuffle::pop_one(&mut state.main_stack)?;
-    state.main_stack.push(a.clone());
-    state.main_stack.push(a);
+    let arg = ctx.opts.argument.unwrap_or(1);
+    if arg > 0 {
+      // Duplicate top N arguments.
+      let elements = shuffle::pop_several(&mut state.main_stack, arg as usize)?;
+      state.main_stack.push_several(elements.clone());
+      state.main_stack.push_several(elements);
+    } else if arg < 0 {
+      // Duplicate specific element N down.
+      let element = shuffle::get(&mut state.main_stack, - arg - 1)?.clone();
+      state.main_stack.push(element);
+    } else {
+      // Duplicate entire stack.
+      let elements = state.main_stack.pop_all();
+      state.main_stack.push_several(elements.clone());
+      state.main_stack.push_several(elements);
+    }
     Ok(CommandOutput::success())
   }
 }
@@ -76,8 +88,6 @@ mod tests {
   use crate::expr::number::Number;
   use crate::stack::Stack;
   use crate::stack::error::StackError;
-
-  // TODO Dup and swap tests
 
   fn stack_of(number_vec: Vec<i64>) -> Stack<Expr> {
     let expr_vec: Vec<_> = number_vec.into_iter().map(|n| {
@@ -95,7 +105,7 @@ mod tests {
 
   /// Tests the operation on the given input stack, expecting a
   /// success.
-  fn act_on_stack(command: impl Command, arg: Option<i32>, input_stack: Vec<i64>) -> Stack<Expr> {
+  fn act_on_stack(command: impl Command, arg: Option<i64>, input_stack: Vec<i64>) -> Stack<Expr> {
     let mut state = example_state(input_stack);
     let mut context = CommandContext::default();
     context.opts.argument = arg;
@@ -106,7 +116,7 @@ mod tests {
 
   /// Tests the operation on the given input stack. Expects a failure.
   /// Asserts that the stack is unchanged and returns the error.
-  fn act_on_stack_err(command: impl Command, arg: Option<i32>, input_stack: Vec<i64>) -> StackError {
+  fn act_on_stack_err(command: impl Command, arg: Option<i64>, input_stack: Vec<i64>) -> StackError {
     let mut state = example_state(input_stack.clone());
     let mut context = CommandContext::default();
     context.opts.argument = arg;
@@ -320,7 +330,7 @@ mod tests {
   }
 
   #[test]
-  fn test_swap_with_negative_one_arg_on_stack_size_1() {
+  fn test_swap_with_negative_one_arg_on_stack_size_one() {
     let output_stack = act_on_stack(SwapCommand, Some(-1), vec![10]);
     assert_eq!(output_stack, stack_of(vec![10]));
   }
@@ -358,6 +368,135 @@ mod tests {
   #[test]
   fn test_swap_with_negative_arg_and_empty_stack() {
     let err = act_on_stack_err(SwapCommand, Some(-3), vec![]);
+    assert_eq!(
+      err,
+      StackError::NotEnoughElements { expected: 3, actual: 0 },
+    )
+  }
+
+  #[test]
+  fn test_dup() {
+    let output_stack = act_on_stack(DupCommand, None, vec![10, 20, 30, 40, 50]);
+    assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 50]));
+  }
+
+  #[test]
+  fn test_dup_on_stack_size_one() {
+    let output_stack = act_on_stack(DupCommand, None, vec![10]);
+    assert_eq!(output_stack, stack_of(vec![10, 10]));
+  }
+
+  #[test]
+  fn test_dup_on_empty_stack() {
+    let err = act_on_stack_err(DupCommand, None, vec![]);
+    assert_eq!(
+      err,
+      StackError::NotEnoughElements { expected: 1, actual: 0 },
+    );
+  }
+
+  #[test]
+  fn test_dup_positive_arg() {
+    let output_stack = act_on_stack(DupCommand, Some(2), vec![10, 20, 30, 40, 50]);
+    assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 40, 50]));
+  }
+
+  #[test]
+  fn test_dup_positive_arg_equal_to_stack_size() {
+    let output_stack = act_on_stack(DupCommand, Some(3), vec![10, 20, 30]);
+    assert_eq!(output_stack, stack_of(vec![10, 20, 30, 10, 20, 30]));
+  }
+
+  #[test]
+  fn test_dup_with_positive_arg_and_too_small_stack() {
+    let err = act_on_stack_err(DupCommand, Some(3), vec![10, 20]);
+    assert_eq!(
+      err,
+      StackError::NotEnoughElements { expected: 3, actual: 2 },
+    );
+  }
+
+  #[test]
+  fn test_dup_with_positive_arg_on_empty_stack() {
+    let err = act_on_stack_err(DupCommand, Some(2), vec![]);
+    assert_eq!(
+      err,
+      StackError::NotEnoughElements { expected: 2, actual: 0 },
+    );
+  }
+
+  #[test]
+  fn test_dup_with_argument_one() {
+    let output_stack = act_on_stack(DupCommand, Some(1), vec![10, 20, 30, 40, 50]);
+    assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 50]));
+  }
+
+  #[test]
+  fn test_dup_with_argument_one_empty_stack() {
+    let err = act_on_stack_err(DupCommand, Some(1), vec![]);
+    assert_eq!(
+      err,
+      StackError::NotEnoughElements { expected: 1, actual: 0 },
+    );
+  }
+
+  #[test]
+  fn test_dup_with_argument_zero() {
+    let output_stack = act_on_stack(DupCommand, Some(0), vec![10, 20, 30, 40, 50]);
+    assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 10, 20, 30, 40, 50]));
+  }
+
+  #[test]
+  fn test_dup_argument_zero_on_empty_stack() {
+    let output_stack = act_on_stack(DupCommand, Some(0), vec![]);
+    assert_eq!(output_stack, stack_of(vec![]));
+  }
+
+  #[test]
+  fn test_dup_with_negative_one_arg() {
+    let output_stack = act_on_stack(DupCommand, Some(-1), vec![10, 20, 30, 40, 50]);
+    assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 50]));
+  }
+
+  #[test]
+  fn test_dup_with_negative_one_arg_on_stack_size_one() {
+    let output_stack = act_on_stack(DupCommand, Some(-1), vec![10]);
+    assert_eq!(output_stack, stack_of(vec![10, 10]));
+  }
+
+  #[test]
+  fn test_dup_with_negative_one_arg_on_empty_stack() {
+    let err = act_on_stack_err(DupCommand, Some(-1), vec![]);
+    assert_eq!(
+      err,
+      StackError::NotEnoughElements { expected: 1, actual: 0 },
+    );
+  }
+
+  #[test]
+  fn test_dup_with_negative_arg() {
+    let output_stack = act_on_stack(DupCommand, Some(-3), vec![10, 20, 30, 40, 50]);
+    assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 30]));
+  }
+
+  #[test]
+  fn test_dup_with_negative_arg_at_bottom_of_stack() {
+    let output_stack = act_on_stack(DupCommand, Some(-4), vec![10, 20, 30, 40]);
+    assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 10]));
+  }
+
+  #[test]
+  fn test_dup_with_negative_arg_and_too_small_stack() {
+    let err = act_on_stack_err(DupCommand, Some(-3), vec![10, 20]);
+    assert_eq!(
+      err,
+      StackError::NotEnoughElements { expected: 3, actual: 2 },
+    )
+  }
+
+  #[test]
+  fn test_dup_with_negative_arg_and_empty_stack() {
+    let err = act_on_stack_err(DupCommand, Some(-3), vec![]);
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 3, actual: 0 },
