@@ -1,5 +1,6 @@
 
 import { KeyResponse, InputMethod, InputBoxManager } from '../input_box.js';
+import { KeyEventInput } from '../keyboard.js';
 
 const tauri = window.__TAURI__.tauri;
 
@@ -18,17 +19,18 @@ export class NumericalInputMethod extends InputMethod {
     manager.hide();
   }
 
-  async onKeyDown(event: KeyboardEvent, manager: InputBoxManager): Promise<KeyResponse> {
-    if (event.key === "Escape") {
+  async onKeyDown(input: KeyEventInput, manager: InputBoxManager): Promise<KeyResponse> {
+    const key = input.toEmacsSyntax();
+    if (key === "Escape") {
       // Abort the input.
-      event.preventDefault();
+      input.event.preventDefault();
       manager.hide();
       return KeyResponse.BLOCK;
-    } else if (event.key === "Enter") {
-      event.preventDefault();
+    } else if (key === "Enter") {
+      input.event.preventDefault();
       await this.submit(manager);
       return KeyResponse.BLOCK;
-    } else if (this.shouldAutoSubmit(event.key, manager)) {
+    } else if (this.shouldAutoSubmit(key, manager)) {
       // Submit and perform a top-level command.
       await this.submit(manager);
       return KeyResponse.PASS;

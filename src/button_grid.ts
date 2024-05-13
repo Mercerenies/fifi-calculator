@@ -2,6 +2,8 @@
 // Manager class for the button grid that shows up on-screen and for
 // keyboard shortcuts to said grid.
 
+import { KeyEventInput } from './keyboard.js';
+
 // NOTE: This should be kept up to date with the .button-grid class in
 // styles.css. If that value gets updated, update this as well!
 const GRID_CELLS_PER_ROW = 5;
@@ -56,13 +58,13 @@ export class ButtonGridManager {
     this.domElement.appendChild(gridDiv);
   }
 
-  async onKeyDown(event: KeyboardEvent): Promise<void> {
-    const button = this.buttonsByKey[event.key];
+  async onKeyDown(input: KeyEventInput): Promise<void> {
+    const button = this.buttonsByKey[input.toEmacsSyntax()];
     if (button !== undefined) {
-      event.preventDefault();
+      input.event.preventDefault();
       await button.fire(this);
     } else {
-      await this.activeGrid.onUnhandledKey(event);
+      await this.activeGrid.onUnhandledKey(input);
     }
   }
 }
@@ -73,7 +75,7 @@ export interface ButtonGrid {
   // filled in with Spacer objects.
   readonly rows: readonly (readonly GridCell[])[];
 
-  onUnhandledKey(event: KeyboardEvent): Promise<void>;
+  onUnhandledKey(input: KeyEventInput): Promise<void>;
 }
 
 export interface GridCell {

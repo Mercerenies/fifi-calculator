@@ -1,6 +1,8 @@
 
 // Manager class for the input textbox.
 
+import { KeyEventInput } from './keyboard.js';
+
 export class InputBoxManager {
   private inputMethod: InputMethod = NullaryInputMethod.INSTANCE;
   private inputBox: HTMLDivElement;
@@ -34,7 +36,7 @@ export class InputBoxManager {
     this.inputTextBox.value = "";
   }
 
-  async onKeyDown(event: KeyboardEvent): Promise<KeyResponse> {
+  async onKeyDown(event: KeyEventInput): Promise<KeyResponse> {
     if (this.isShowing()) {
       return await this.inputMethod.onKeyDown(event, this);
     } else {
@@ -68,7 +70,7 @@ export abstract class InputMethod {
     return true;
   }
 
-  abstract onKeyDown(event: KeyboardEvent, manager: InputBoxManager): Promise<KeyResponse>;
+  abstract onKeyDown(event: KeyEventInput, manager: InputBoxManager): Promise<KeyResponse>;
   abstract getLabelHTML(): string;
 }
 

@@ -3,6 +3,7 @@ import { ButtonGrid } from "../button_grid.js";
 import { DispatchButton } from './button.js';
 import { InputBoxManager } from '../input_box.js';
 import { NumericalInputMethod } from '../input_box/numerical_input.js';
+import { KeyEventInput } from '../keyboard.js';
 import { svg } from '../util.js';
 
 export interface Hideable {
@@ -46,12 +47,13 @@ export class MainButtonGrid implements ButtonGrid {
     this.onEscapeDismissable = onEscapeDismissable;
   }
 
-  async onUnhandledKey(event: KeyboardEvent): Promise<void> {
-    if (MainButtonGrid.NUMERICAL_INPUT_START_KEYS.has(event.key)) {
+  async onUnhandledKey(input: KeyEventInput): Promise<void> {
+    const key = input.toEmacsSyntax();
+    if (MainButtonGrid.NUMERICAL_INPUT_START_KEYS.has(key)) {
       // Start numerical input
-      event.preventDefault();
-      this.inputManager.show(new NumericalInputMethod(), this.translateInitialInput(event.key));
-    } else if (event.key === "Escape") {
+      input.event.preventDefault();
+      this.inputManager.show(new NumericalInputMethod(), this.translateInitialInput(key));
+    } else if (key === "Escape") {
       this.onEscapeDismissable.hide();
     }
   }
