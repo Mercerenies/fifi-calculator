@@ -26,12 +26,16 @@ export class KeyInput {
   }
 
   // Returns undefined if the keyboard event represents a modifier key
-  // itself.
-  static fromEvent(event: KeyboardEvent, osType: OsType): KeyInput | undefined {
+  // itself. The resulting object still has access to the original
+  // event that triggered it.
+  static fromEvent(event: KeyboardEvent, osType: OsType): KeyEventInput | undefined {
     if (MODIFIER_KEY_NAMES.has(event.key)) {
       return undefined;
     }
-    return new KeyInput(event.key, readModifiers(event, osType));
+    return Object.assign(
+      new KeyInput(event.key, readModifiers(event, osType)),
+      { event },
+    );
   }
 
   hasModifier(modifier: Modifier): boolean {
@@ -73,6 +77,8 @@ export class KeyInput {
     return new KeyInput(input, modifiers);
   }
 }
+
+export type KeyEventInput = KeyInput & { event: KeyboardEvent };
 
 export function readModifiers(event: KeyboardEvent, osType: OsType): Modifier {
   let modifiers: Modifier = 0;
