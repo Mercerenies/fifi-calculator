@@ -5,6 +5,7 @@ import { NotificationManager } from './notifications.js';
 import { ButtonGridManager } from './button_grid.js';
 import { MainButtonGrid } from './button_grid/main_button_grid.js';
 import { KeyInput } from './keyboard.js';
+import { RightPanelManager } from './right_panel.js';
 
 const { listen } = window.__TAURI__.event;
 const os = window.__TAURI__.os;
@@ -12,7 +13,7 @@ const os = window.__TAURI__.os;
 class UiManager {
   readonly inputManager: InputBoxManager;
   readonly notificationManager: NotificationManager;
-  readonly buttonGridManager: ButtonGridManager;
+  readonly rightPanelManager: RightPanelManager;
   readonly osType: OsType;
 
   constructor(osType: OsType) {
@@ -22,9 +23,11 @@ class UiManager {
       inputLabel: Page.getInputTextBoxLabel(),
     });
     this.notificationManager = new NotificationManager(Page.getNotificationBox());
-    this.buttonGridManager = new ButtonGridManager(
-      Page.getButtonGridContainer(),
-      new MainButtonGrid(this.inputManager, this.notificationManager),
+    this.rightPanelManager = new RightPanelManager(
+      new ButtonGridManager(
+        Page.getButtonGridContainer(),
+        new MainButtonGrid(this.inputManager, this.notificationManager),
+      ),
     );
     this.osType = osType;
   }
@@ -54,7 +57,7 @@ class UiManager {
         return;
       }
     }
-    await this.buttonGridManager.onKeyDown(input);
+    await this.rightPanelManager.onKeyDown(input);
   }
 }
 
