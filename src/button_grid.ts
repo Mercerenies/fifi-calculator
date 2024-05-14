@@ -28,6 +28,10 @@ export class ButtonGridManager {
     this.setActiveGrid(initialGrid); // Initialize the grid
   }
 
+  initListeners(): void {
+    // No listeners to initialize for right now.
+  }
+
   resetModifiers(): void {
     this.modifierDelegate.resetModifiers();
   }

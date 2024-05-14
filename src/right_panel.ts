@@ -24,4 +24,8 @@ export class RightPanelManager {
   async onKeyDown(input: KeyEventInput): Promise<void> {
     await this.buttonGrid.onKeyDown(input);
   }
+
+  initListeners() {
+    this.buttonGrid.initListeners();
+  }
 }

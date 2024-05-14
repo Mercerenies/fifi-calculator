@@ -37,6 +37,7 @@ class UiManager {
   initListeners(): void {
     this.inputManager.initListeners();
     this.notificationManager.initListeners();
+    this.rightPanelManager.initListeners();
     document.body.addEventListener("keydown", (event) => this.dispatchOnKey(event));
   }
 

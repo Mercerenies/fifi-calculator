@@ -46,6 +46,11 @@
     padding-bottom: 0.5em;
 }
 
+input.prefix-arg-value {
+    width: 1em;
+    text-align: center;
+}
+
 .notification-box-contents {
     padding: 5px;
     margin: 5px;
@@ -74,6 +79,10 @@
 .button-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
+}
+
+.prefix-arg-panel {
+    padding-top: 1em;
 }
 
 .svg-icon {
@@ -118,6 +127,10 @@ button:hover {
 button:active {
   border-color: #396cd8;
   background-color: #e8e8e8;
+}
+
+button.prefix-arg {
+    padding: 0.6em 0.5em;
 }
 
 input,
