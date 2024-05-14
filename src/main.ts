@@ -60,10 +60,10 @@ class UiManager {
 
 function refreshStack(newStack: string[]): void {
   const ol = document.createElement("ol");
-  for (let i = newStack.length - 1; i >= 0; i--) {
+  for (let i = 0; i < newStack.length; i++) {
     const elem = newStack[i];
     const li = document.createElement("li");
-    li.value = i + 1;
+    li.value = newStack.length - i;
     li.innerHTML = elem;
     ol.appendChild(li);
   }
