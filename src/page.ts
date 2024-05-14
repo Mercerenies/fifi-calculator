@@ -10,6 +10,7 @@ export const ElementIds = {
   NOTIFICATION_BOX_CLOSE_BUTTON: 'notification-box-close-button',
   NOTIFICATION_BOX_TEXT: 'notification-box-text',
   BUTTON_GRID_CONTAINER: 'button-grid-container',
+  PREFIX_ARG_PANEL: 'prefix-arg-panel',
 };
 
 function getElement(id: string): HTMLElement {
@@ -51,4 +52,8 @@ export function getNotificationBoxText(): HTMLElement {
 
 export function getButtonGridContainer(): HTMLElement {
   return getElement(ElementIds.BUTTON_GRID_CONTAINER);
+}
+
+export function getPrefixArgPanel(): HTMLElement {
+  return getElement(ElementIds.PREFIX_ARG_PANEL);
 }

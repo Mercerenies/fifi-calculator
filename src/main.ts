@@ -22,10 +22,11 @@ class UiManager {
       inputLabel: Page.getInputTextBoxLabel(),
     });
     this.notificationManager = new NotificationManager(Page.getNotificationBox());
-    this.rightPanelManager = new RightPanelManager(
-      Page.getButtonGridContainer(),
-      new MainButtonGrid(this.inputManager, this.notificationManager),
-    );
+    this.rightPanelManager = new RightPanelManager({
+      buttonGrid: Page.getButtonGridContainer(),
+      prefixPanel: Page.getPrefixArgPanel(),
+      initialGrid: new MainButtonGrid(this.inputManager, this.notificationManager),
+    });
     this.osType = osType;
   }
 
