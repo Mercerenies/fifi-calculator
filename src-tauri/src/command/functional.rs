@@ -103,6 +103,10 @@ impl Command for BinaryFunctionCommand {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use super::*;
+  use crate::command::test_utils::{act_on_stack, act_on_stack_err};
+  use crate::stack::test_utils::stack_of;
+  use crate::stack::error::StackError;
   use crate::expr::number::Number;
 
   fn push_constant_zero() -> PushConstantCommand {
@@ -111,7 +115,8 @@ mod tests {
 
   #[test]
   fn test_push_constant() {
-    
+    //let input_stack = vec![10, 20, 30, 40];
+    //let output_stack = act_on_stack(push_constant_zero()
   }
 
 }
