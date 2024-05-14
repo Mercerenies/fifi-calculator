@@ -52,3 +52,18 @@ impl Default for TauriApplicationState {
     }
   }
 }
+
+#[cfg(test)]
+pub(crate) mod test_utils {
+  use super::*;
+  use crate::stack::test_utils::stack_of;
+
+  /// Produces a default state, except that the state's `main_stack`
+  /// is equal to `stack` (with the top of the stack being the last
+  /// element in the vector).
+  pub fn state_for_stack(stack: Vec<i64>) -> ApplicationState {
+    let mut state = ApplicationState::new();
+    state.main_stack = stack_of(stack);
+    state
+  }
+}

@@ -38,6 +38,10 @@ impl UnaryFunctionCommand {
   pub fn new(function_name: impl Into<String>) -> UnaryFunctionCommand {
     UnaryFunctionCommand { function_name: function_name.into() }
   }
+
+  fn wrap_expr(&self, arg: Expr) -> Expr {
+    Expr::Call(self.function_name.clone(), vec![arg])
+  }
 }
 
 impl BinaryFunctionCommand {
@@ -59,8 +63,25 @@ impl Command for PushConstantCommand {
 
 impl Command for UnaryFunctionCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
-    // TODO Use arg
     let mut errors = ErrorList::new();
+    let arg = ctx.opts.argument.unwrap_or(1);
+    if arg > 0 {
+      // Apply to top N elements.
+      let values = shuffle::pop_several(&mut state.main_stack, arg as usize)?;
+      let values = values.into_iter().map(|e| {
+        ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors)
+      });
+      state.main_stack.push_several(values);
+    } else if arg < 0 {
+      // Apply to single element N down on the stack.
+      let e = shuffle::get_mut(&mut state.main_stack, - arg - 1)?;
+      e.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors));
+    } else {
+      // Apply to all elements.
+      for e in state.main_stack.iter_mut() {
+        e.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors));
+      }
+    }
     let top = shuffle::pop_one(&mut state.main_stack)?;
     let unary_call = Expr::Call(self.function_name.clone(), vec![top]);
     state.main_stack.push(ctx.simplifier.simplify_expr(unary_call, &mut errors));
@@ -77,4 +98,20 @@ impl Command for BinaryFunctionCommand {
     state.main_stack.push(ctx.simplifier.simplify_expr(binary_call, &mut errors));
     Ok(CommandOutput::from_errors(errors))
   }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::expr::number::Number;
+
+  fn push_constant_zero() -> PushConstantCommand {
+    PushConstantCommand::new(Expr::from(Number::from(0)))
+  }
+
+  #[test]
+  fn test_push_constant() {
+    
+  }
+
 }

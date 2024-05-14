@@ -85,28 +85,15 @@ impl Command for DupCommand {
 mod tests {
   use super::*;
   use crate::expr::Expr;
-  use crate::expr::number::Number;
+  use crate::state::test_utils::state_for_stack;
+  use crate::stack::test_utils::stack_of;
   use crate::stack::Stack;
   use crate::stack::error::StackError;
-
-  fn stack_of(number_vec: Vec<i64>) -> Stack<Expr> {
-    let expr_vec: Vec<_> = number_vec.into_iter().map(|n| {
-      Expr::from(Number::from(n))
-    }).collect();
-    Stack::from(expr_vec)
-  }
-
-  /// Takes a stack with the top on the right.
-  fn example_state(stack_vec: Vec<i64>) -> ApplicationState {
-    let mut state = ApplicationState::new();
-    state.main_stack = stack_of(stack_vec);
-    state
-  }
 
   /// Tests the operation on the given input stack, expecting a
   /// success.
   fn act_on_stack(command: impl Command, arg: Option<i64>, input_stack: Vec<i64>) -> Stack<Expr> {
-    let mut state = example_state(input_stack);
+    let mut state = state_for_stack(input_stack);
     let mut context = CommandContext::default();
     context.opts.argument = arg;
     let output = command.run_command(&mut state, &context).unwrap();
@@ -117,7 +104,7 @@ mod tests {
   /// Tests the operation on the given input stack. Expects a failure.
   /// Asserts that the stack is unchanged and returns the error.
   fn act_on_stack_err(command: impl Command, arg: Option<i64>, input_stack: Vec<i64>) -> StackError {
-    let mut state = example_state(input_stack.clone());
+    let mut state = state_for_stack(input_stack.clone());
     let mut context = CommandContext::default();
     context.opts.argument = arg;
     let err = command.run_command(&mut state, &context).unwrap_err();
