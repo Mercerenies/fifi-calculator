@@ -14,7 +14,7 @@ import { KeyResponse } from './keyboard.js';
 import { Signal } from './signal.js';
 
 export type SimpleInput = "C-u" | "-" | "C--" | "Escape";
-export type ArgInput = "C-#" | "#";
+export type ArgInput = "C-#" | "#" | "displayed-button";
 
 export type StateTransition =
   { input: SimpleInput } | { input: ArgInput, argument: number };
@@ -77,6 +77,7 @@ export const DEFAULT_STATE: PrefixArgState = {
     case "C-u":
       return multiplierState(1);
     case "C-#":
+    case "displayed-button":
       return numericalState(transition.argument);
     case "C--":
       return NEGATIVE_INPUT_STATE;
@@ -97,6 +98,7 @@ export function multiplierState(k: number): PrefixArgState {
         return multiplierState(k + 1);
       case "C-#":
       case "#":
+      case "displayed-button":
         return numericalState(transition.argument);
       case "-":
       case "C--":
@@ -118,6 +120,7 @@ export const NEGATIVE_INPUT_STATE: PrefixArgState = {
       return null; // Ignore the input; it does nothing at this point.
     case "C-#":
     case "#":
+    case "displayed-button":
       return numericalState(- transition.argument);
     case "Escape":
         return DEFAULT_STATE;
@@ -137,6 +140,8 @@ export function numericalState(n: number): PrefixArgState {
       case "C-#":
       case "#":
         return numericalState(10 * n + transition.argument);
+      case "displayed-button":
+        return numericalState(n + transition.argument);
       case "Escape":
         return DEFAULT_STATE;
       }

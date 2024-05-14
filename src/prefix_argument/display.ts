@@ -31,6 +31,18 @@ export class PrefixArgumentDisplay {
   initListeners(): void {
     this.signalListener = (event) => this.onStateChanged(event);
     this.stateMachine.stateChangedSignal.addListener(this.signalListener);
+    for (const button of this.panelNode.querySelectorAll("button")) {
+      const buttonValue = button.dataset.prefixArg;
+      if (buttonValue === undefined) {
+        throw "Button doesn't have dataset.prefixArg attribute";
+      }
+      button.addEventListener("click", () => {
+        this.stateMachine.onTransition({
+          input: "displayed-button",
+          argument: +buttonValue,
+        });
+      });
+    }
   }
 
   uninitListeners(): void {
