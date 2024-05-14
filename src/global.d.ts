@@ -13,7 +13,7 @@ interface TauriFunctions {
 
 interface TauriInvoke {
   (command: 'submit_number', args: { value: string }): Promise<void>;
-  (command: 'math_command', args: { commandName: string }): Promise<void>;
+  (command: 'math_command', args: { commandName: string, prefixArgument: number | null }): Promise<void>;
 }
 
 interface OsFunctions {

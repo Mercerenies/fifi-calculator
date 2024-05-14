@@ -3,8 +3,6 @@ import { ButtonGridManager, GridCell } from "../button_grid.js";
 import { InputBoxManager } from '../input_box.js';
 import { NumericalInputMethod } from '../input_box/numerical_input.js';
 
-const tauri = window.__TAURI__.tauri;
-
 export abstract class Button implements GridCell {
   readonly label: string | HTMLElement;
   readonly keyboardShortcut: string | null;
@@ -37,7 +35,7 @@ export class DispatchButton extends Button {
   }
 
   async fire(manager: ButtonGridManager): Promise<void> {
-    await tauri.invoke('math_command', { commandName: this.commandName });
+    manager.invokeMathCommand(this.commandName);
     manager.resetModifiers();
   }
 }

@@ -5,6 +5,8 @@
 import { KeyEventInput, KeyResponse } from './keyboard.js';
 import { ModifierDelegate } from './button_grid/modifier_delegate.js';
 
+const tauri = window.__TAURI__.tauri;
+
 // NOTE: This should be kept up to date with the .button-grid class in
 // styles.css. If that value gets updated, update this as well!
 const GRID_CELLS_PER_ROW = 5;
@@ -34,6 +36,11 @@ export class ButtonGridManager {
     this.activeGrid = grid;
     this.loadButtonShortcuts();
     this.loadHtml();
+  }
+
+  async invokeMathCommand(commandName: string): Promise<void> {
+    const prefixArgument = this.modifierDelegate.getModifiers().prefixArgument;
+    await tauri.invoke('math_command', { commandName, prefixArgument });
   }
 
   private loadButtonShortcuts(): void {
