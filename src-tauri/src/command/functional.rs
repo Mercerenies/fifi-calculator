@@ -52,7 +52,7 @@ impl BinaryFunctionCommand {
 
 impl Command for PushConstantCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
-    let arg = ctx.opts.argument.unwrap_or(1).min(0);
+    let arg = ctx.opts.argument.unwrap_or(1).max(0);
     let mut errors = ErrorList::new();
     for _ in 0..arg {
       state.main_stack.push(ctx.simplifier.simplify_expr(self.expr.clone(), &mut errors));
@@ -103,7 +103,6 @@ impl Command for BinaryFunctionCommand {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use super::*;
   use crate::command::test_utils::{act_on_stack, act_on_stack_err};
   use crate::stack::test_utils::stack_of;
   use crate::stack::error::StackError;
@@ -115,8 +114,46 @@ mod tests {
 
   #[test]
   fn test_push_constant() {
-    //let input_stack = vec![10, 20, 30, 40];
-    //let output_stack = act_on_stack(push_constant_zero()
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&push_constant_zero(), None, input_stack);
+    assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 0]));
+  }
+
+  #[test]
+  fn test_push_constant_with_empty_stack() {
+    let input_stack = vec![];
+    let output_stack = act_on_stack(&push_constant_zero(), None, input_stack);
+    assert_eq!(output_stack, stack_of(vec![0]));
+  }
+
+  #[test]
+  fn test_push_constant_with_explicit_argument_one() {
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&push_constant_zero(), Some(1), input_stack);
+    assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 0]));
+  }
+
+  #[test]
+  fn test_push_constant_with_positive_argument() {
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&push_constant_zero(), Some(3), input_stack);
+    assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 0, 0, 0]));
+  }
+
+  #[test]
+  fn test_push_constant_with_negative_argument() {
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&push_constant_zero(), Some(-4), input_stack);
+    // Does not change the stack
+    assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40]));
+  }
+
+  #[test]
+  fn test_push_constant_with_argument_of_zero() {
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&push_constant_zero(), Some(0), input_stack);
+    // Does not change the stack
+    assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40]));
   }
 
 }
