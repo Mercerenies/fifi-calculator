@@ -11,6 +11,7 @@
 // negative.
 
 import { KeyResponse } from './keyboard.js';
+import { Signal } from './signal.js';
 
 export type SimpleInput = "C-u" | "-" | "C--" | "Escape";
 export type ArgInput = "C-#" | "#";
@@ -27,14 +28,29 @@ export interface PrefixArgState {
 }
 
 export class PrefixArgStateMachine {
-  currentState: PrefixArgState;
+  private _currentState: PrefixArgState;
+  readonly stateChangedSignal: Signal<StateChangedEvent> = new Signal<StateChangedEvent>();
 
   constructor(initialState: PrefixArgState = DEFAULT_STATE) {
-    this.currentState = initialState;
+    this._currentState = initialState;
   }
 
   get prefixArgument(): number | null {
     return this.currentState.prefixArgument;
+  }
+
+  get currentState(): PrefixArgState {
+    return this._currentState;
+  }
+
+  set currentState(newState: PrefixArgState) {
+    const oldState = this._currentState;
+    this._currentState = newState;
+    this.stateChangedSignal.emit({
+      type: "prefix-arg-state-changed",
+      oldState,
+      newState,
+    });
   }
 
   onTransition(transition: StateTransition): KeyResponse {
@@ -46,6 +62,12 @@ export class PrefixArgStateMachine {
       return KeyResponse.BLOCK;
     }
   }
+}
+
+export interface StateChangedEvent {
+  type: "prefix-arg-state-changed";
+  oldState: PrefixArgState;
+  newState: PrefixArgState;
 }
 
 export const DEFAULT_STATE: PrefixArgState = {
