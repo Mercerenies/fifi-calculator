@@ -112,6 +112,11 @@ mod tests {
     PushConstantCommand::new(Expr::from(Number::from(0)))
   }
 
+  fn unary_function() -> UnaryFunctionCommand {
+    /////
+    todo!()
+  }
+
   #[test]
   fn test_push_constant() {
     let input_stack = vec![10, 20, 30, 40];
@@ -155,5 +160,7 @@ mod tests {
     // Does not change the stack
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40]));
   }
+
+  ///// unary tests, then write binary with prefix arg
 
 }
