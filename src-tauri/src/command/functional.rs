@@ -15,15 +15,11 @@ pub struct PushConstantCommand {
 }
 
 pub struct UnaryFunctionCommand {
-  function: Box<dyn Fn(Expr) -> Expr>,
+  function: Box<dyn Fn(Expr) -> Expr + Send + Sync>,
 }
 
-// Note for the future: I'm keeping these separate for now (rather
-// than having a unified FunctionCommand which has an `arity`
-// argument) since binary functions will have special treatment of
-// prefix arguments.
 pub struct BinaryFunctionCommand {
-  function_name: String,
+  function: Box<dyn Fn(Expr, Expr) -> Expr + Send + Sync>,
 }
 
 impl PushConstantCommand {
@@ -34,13 +30,15 @@ impl PushConstantCommand {
 
 impl UnaryFunctionCommand {
   pub fn new<F>(function: F) -> UnaryFunctionCommand
-  where F: Fn(Expr) -> Expr + 'static{
+  where F: Fn(Expr) -> Expr + Send + Sync + 'static {
     UnaryFunctionCommand { function: Box::new(function) }
   }
 
   pub fn named(function_name: impl Into<String>) -> UnaryFunctionCommand {
     let function_name = function_name.into();
-    UnaryFunctionCommand::new(move |arg| Expr::Call(function_name.clone(), vec![arg]))
+    UnaryFunctionCommand::new(move |arg| {
+      Expr::Call(function_name.clone(), vec![arg])
+    })
   }
 
   fn wrap_expr(&self, arg: Expr) -> Expr {
@@ -49,8 +47,20 @@ impl UnaryFunctionCommand {
 }
 
 impl BinaryFunctionCommand {
-  pub fn new(function_name: impl Into<String>) -> BinaryFunctionCommand {
-    BinaryFunctionCommand { function_name: function_name.into() }
+  pub fn new<F>(function: F) -> BinaryFunctionCommand
+  where F: Fn(Expr, Expr) -> Expr + Send + Sync + 'static {
+    BinaryFunctionCommand { function: Box::new(function) }
+  }
+
+  pub fn named(function_name: impl Into<String>) -> BinaryFunctionCommand {
+    let function_name = function_name.into();
+    BinaryFunctionCommand::new(move |arg1, arg2| {
+      Expr::Call(function_name.clone(), vec![arg1, arg2])
+    })
+  }
+
+  fn wrap_exprs(&self, a: Expr, b: Expr) -> Expr {
+    (self.function)(a, b)
   }
 }
 
@@ -97,7 +107,7 @@ impl Command for BinaryFunctionCommand {
     // TODO Use arg
     let mut errors = ErrorList::new();
     let (a, b) = shuffle::pop_two(&mut state.main_stack)?;
-    let binary_call = Expr::Call(self.function_name.clone(), vec![a, b]);
+    let binary_call = self.wrap_exprs(a, b);
     state.main_stack.push(ctx.simplifier.simplify_expr(binary_call, &mut errors));
     Ok(CommandOutput::from_errors(errors))
   }
