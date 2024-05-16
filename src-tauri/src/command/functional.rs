@@ -82,9 +82,6 @@ impl Command for UnaryFunctionCommand {
         e.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors));
       }
     }
-    let top = shuffle::pop_one(&mut state.main_stack)?;
-    let unary_call = Expr::Call(self.function_name.clone(), vec![top]);
-    state.main_stack.push(ctx.simplifier.simplify_expr(unary_call, &mut errors));
     Ok(CommandOutput::from_errors(errors))
   }
 }
@@ -105,6 +102,7 @@ mod tests {
   use super::*;
   use crate::command::test_utils::{act_on_stack, act_on_stack_err};
   use crate::stack::test_utils::stack_of;
+  use crate::stack::Stack;
   use crate::stack::error::StackError;
   use crate::expr::number::Number;
 
@@ -113,8 +111,7 @@ mod tests {
   }
 
   fn unary_function() -> UnaryFunctionCommand {
-    /////
-    todo!()
+    UnaryFunctionCommand::new("test_func")
   }
 
   #[test]
@@ -161,6 +158,184 @@ mod tests {
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40]));
   }
 
-  ///// unary tests, then write binary with prefix arg
+  #[test]
+  fn test_unary_function_command() {
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&unary_function(), None, input_stack);
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        Expr::from(10),
+        Expr::from(20),
+        Expr::from(30),
+        Expr::call("test_func", vec![Expr::from(40)]),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_unary_function_command_on_empty_stack() {
+    let input_stack = vec![];
+    let error = act_on_stack_err(&unary_function(), None, input_stack);
+    assert_eq!(
+      error,
+      StackError::NotEnoughElements { expected: 1, actual: 0 },
+    );
+  }
+
+  #[test]
+  fn test_unary_function_command_with_explicit_arg_one() {
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&unary_function(), Some(1), input_stack);
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        Expr::from(10),
+        Expr::from(20),
+        Expr::from(30),
+        Expr::call("test_func", vec![Expr::from(40)]),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_unary_function_command_with_arg_one_on_empty_stack() {
+    let input_stack = vec![];
+    let error = act_on_stack_err(&unary_function(), Some(1), input_stack);
+    assert_eq!(
+      error,
+      StackError::NotEnoughElements { expected: 1, actual: 0 },
+    );
+  }
+
+  #[test]
+  fn test_unary_function_command_with_arg_two() {
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&unary_function(), Some(2), input_stack);
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        Expr::from(10),
+        Expr::from(20),
+        Expr::call("test_func", vec![Expr::from(30)]),
+        Expr::call("test_func", vec![Expr::from(40)]),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_unary_function_command_with_arg_two_on_empty_stack() {
+    let input_stack = vec![];
+    let error = act_on_stack_err(&unary_function(), Some(2), input_stack);
+    assert_eq!(
+      error,
+      StackError::NotEnoughElements { expected: 2, actual: 0 },
+    );
+  }
+
+  #[test]
+  fn test_unary_function_command_with_arg_two_on_stack_size_one() {
+    let input_stack = vec![10];
+    let error = act_on_stack_err(&unary_function(), Some(2), input_stack);
+    assert_eq!(
+      error,
+      StackError::NotEnoughElements { expected: 2, actual: 1 },
+    );
+  }
+
+  #[test]
+  fn test_unary_function_command_with_arg_zero() {
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&unary_function(), Some(0), input_stack);
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        Expr::call("test_func", vec![Expr::from(10)]),
+        Expr::call("test_func", vec![Expr::from(20)]),
+        Expr::call("test_func", vec![Expr::from(30)]),
+        Expr::call("test_func", vec![Expr::from(40)]),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_unary_function_command_with_arg_zero_on_empty_stack() {
+    let input_stack = vec![];
+    let output_stack = act_on_stack(&unary_function(), Some(0), input_stack);
+    assert_eq!(output_stack, stack_of(vec![]));
+  }
+
+  #[test]
+  fn test_unary_function_command_with_arg_negative_one() {
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&unary_function(), Some(-1), input_stack);
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        Expr::from(10),
+        Expr::from(20),
+        Expr::from(30),
+        Expr::call("test_func", vec![Expr::from(40)]),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_unary_function_command_with_arg_negative_one_on_empty_stack() {
+    let input_stack = vec![];
+    let error = act_on_stack_err(&unary_function(), Some(1), input_stack);
+    assert_eq!(
+      error,
+      StackError::NotEnoughElements { expected: 1, actual: 0 },
+    );
+  }
+
+  #[test]
+  fn test_unary_function_command_with_arg_negative_two() {
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&unary_function(), Some(-2), input_stack);
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        Expr::from(10),
+        Expr::from(20),
+        Expr::call("test_func", vec![Expr::from(30)]),
+        Expr::from(40),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_unary_function_command_with_arg_negative_two_on_empty_stack() {
+    let input_stack = vec![];
+    let error = act_on_stack_err(&unary_function(), Some(-2), input_stack);
+    assert_eq!(
+      error,
+      StackError::NotEnoughElements { expected: 2, actual: 0 },
+    );
+  }
+
+  #[test]
+  fn test_unary_function_command_with_arg_negative_two_on_stack_size_one() {
+    let input_stack = vec![10];
+    let error = act_on_stack_err(&unary_function(), Some(-2), input_stack);
+    assert_eq!(
+      error,
+      StackError::NotEnoughElements { expected: 2, actual: 1 },
+    );
+  }
+
+  #[test]
+  fn test_unary_function_command_with_arg_negative_two_on_stack_size_two() {
+    let input_stack = vec![10, 20];
+    let output_stack = act_on_stack(&unary_function(), Some(-2), input_stack);
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        Expr::call("test_func", vec![Expr::from(10)]),
+        Expr::from(20),
+      ]),
+    );
+  }
 
 }
