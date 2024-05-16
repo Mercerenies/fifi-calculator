@@ -9,15 +9,46 @@ use crate::error::Error;
 use crate::expr::Expr;
 use crate::errorlist::ErrorList;
 
+/// A command that pushes a clone of its owned expression onto the
+/// stack.
+///
+/// With a nonnegative prefix argument N, the expression is pushed
+/// onto the stack N times. A negative prefix argument is treated as
+/// zero.
 #[derive(Clone, Debug)]
 pub struct PushConstantCommand {
   expr: Expr,
 }
 
+/// A command that applies an arbitrary function to the top element of
+/// the stack.
+///
+/// With a positive prefix argument N, applies the function
+/// (separately) to the top N elements. A prefix argument of zero is
+/// treated as being equal to the length of the stack.
+///
+/// With a negative prefix argument N, the function is applied to a
+/// single element (-N) elements down on the stack. That is, a prefix
+/// argument of -1 is equivalent to no argument at all, and a prefix
+/// argument of -2 applies the function to the element just below the
+/// top of the stack.
 pub struct UnaryFunctionCommand {
   function: Box<dyn Fn(Expr) -> Expr + Send + Sync>,
 }
 
+/// A command that applies an arbitrary function to the top two
+/// elements of the stack, with the second-from-the-top element of the
+/// stack being the first argument to the function.
+///
+/// With a positive prefix argument N, the top N stack elements are
+/// reduced down to one by repeatedly applying the function,
+/// associating to the left. A prefix argument of zero reduces the
+/// whole stack in this way.
+///
+/// A negative prefix argument N is a bit more complex. It pops one
+/// element and then applies the binary function `function` to the top
+/// (-N) elements of the remaining stack, with the second argument
+/// specialized to the popped value.
 pub struct BinaryFunctionCommand {
   function: Box<dyn Fn(Expr, Expr) -> Expr + Send + Sync>,
 }
