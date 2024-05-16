@@ -19,7 +19,9 @@ pub struct UnaryFunctionCommand {
 }
 
 pub struct BinaryFunctionCommand {
-  function: Box<dyn Fn(Expr, Expr) -> Expr + Send + Sync>,
+  binary_function: Box<dyn Fn(Expr, Expr) -> Expr + Send + Sync>,
+  unary_function: Box<dyn Fn(Expr) -> Expr + Send + Sync>,
+  zero_value: Expr,
 }
 
 impl PushConstantCommand {
@@ -47,20 +49,22 @@ impl UnaryFunctionCommand {
 }
 
 impl BinaryFunctionCommand {
-  pub fn new<F>(function: F) -> BinaryFunctionCommand
-  where F: Fn(Expr, Expr) -> Expr + Send + Sync + 'static {
-    BinaryFunctionCommand { function: Box::new(function) }
-  }
-
-  pub fn named(function_name: impl Into<String>) -> BinaryFunctionCommand {
-    let function_name = function_name.into();
-    BinaryFunctionCommand::new(move |arg1, arg2| {
-      Expr::Call(function_name.clone(), vec![arg1, arg2])
-    })
+  pub fn new<F1, F2>(binary_function: F2, unary_function: F1, zero_value: Expr) -> BinaryFunctionCommand
+  where F1: Fn(Expr) -> Expr + Send + Sync + 'static,
+        F2: Fn(Expr, Expr) -> Expr + Send + Sync + 'static {
+    BinaryFunctionCommand {
+      binary_function: Box::new(binary_function),
+      unary_function: Box::new(unary_function),
+      zero_value,
+    }
   }
 
   fn wrap_exprs(&self, a: Expr, b: Expr) -> Expr {
-    (self.function)(a, b)
+    (self.binary_function)(a, b)
+  }
+
+  fn wrap_expr_unary(&self, a: Expr) -> Expr {
+    (self.unary_function)(a)
   }
 }
 

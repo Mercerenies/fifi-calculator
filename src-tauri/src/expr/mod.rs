@@ -4,6 +4,8 @@ pub mod number;
 pub mod simplifier;
 pub mod walker;
 
+use num::{Zero, One};
+
 use std::mem;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -16,6 +18,14 @@ pub enum Expr {
 pub struct TryFromExprError;
 
 impl Expr {
+  pub fn zero() -> Expr {
+    Expr::Atom(number::Number::zero().into())
+  }
+
+  pub fn one() -> Expr {
+    Expr::Atom(number::Number::one().into())
+  }
+
   /// Convenience constructor for [Expr::Call].
   pub fn call(name: &str, args: Vec<Expr>) -> Expr {
     Expr::Call(name.to_string(), args)
