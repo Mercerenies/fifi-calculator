@@ -14,16 +14,14 @@ pub struct PushConstantCommand {
   expr: Expr,
 }
 
-#[derive(Clone, Debug)]
 pub struct UnaryFunctionCommand {
-  function_name: String,
+  function: Box<dyn Fn(Expr) -> Expr>,
 }
 
 // Note for the future: I'm keeping these separate for now (rather
 // than having a unified FunctionCommand which has an `arity`
 // argument) since binary functions will have special treatment of
 // prefix arguments.
-#[derive(Clone, Debug)]
 pub struct BinaryFunctionCommand {
   function_name: String,
 }
@@ -35,12 +33,18 @@ impl PushConstantCommand {
 }
 
 impl UnaryFunctionCommand {
-  pub fn new(function_name: impl Into<String>) -> UnaryFunctionCommand {
-    UnaryFunctionCommand { function_name: function_name.into() }
+  pub fn new<F>(function: F) -> UnaryFunctionCommand
+  where F: Fn(Expr) -> Expr + 'static{
+    UnaryFunctionCommand { function: Box::new(function) }
+  }
+
+  pub fn named(function_name: impl Into<String>) -> UnaryFunctionCommand {
+    let function_name = function_name.into();
+    UnaryFunctionCommand::new(move |arg| Expr::Call(function_name.clone(), vec![arg]))
   }
 
   fn wrap_expr(&self, arg: Expr) -> Expr {
-    Expr::Call(self.function_name.clone(), vec![arg])
+    (self.function)(arg)
   }
 }
 
@@ -113,7 +117,7 @@ mod tests {
   }
 
   fn unary_function() -> UnaryFunctionCommand {
-    UnaryFunctionCommand::new("test_func")
+    UnaryFunctionCommand::named("test_func")
   }
 
   #[test]
