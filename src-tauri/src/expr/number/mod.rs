@@ -9,7 +9,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 use std::fmt::{self, Display, Formatter};
-use std::ops::{Add, Sub, Mul, Div};
+use std::ops::{Add, Sub, Mul, Div, Neg};
 use std::str::FromStr;
 
 /// General-purpose number type, capable of automatically switching
@@ -227,6 +227,26 @@ impl Div for &Number {
 
   fn div(self, other: &Number) -> Number {
     (*self).clone() / (*other).clone()
+  }
+}
+
+impl Neg for Number {
+  type Output = Number;
+
+  fn neg(self) -> Number {
+    match self.inner {
+      NumberImpl::Integer(i) => Number::from(-i),
+      NumberImpl::Ratio(r) => Number::from(-r),
+      NumberImpl::Float(f) => Number::from(-f),
+    }
+  }
+}
+
+impl Neg for &Number {
+  type Output = Number;
+
+  fn neg(self) -> Number {
+    (*self).clone().neg()
   }
 }
 

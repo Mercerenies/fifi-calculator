@@ -88,6 +88,8 @@ impl Command for UnaryFunctionCommand {
 
 impl Command for BinaryFunctionCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
+    //let mut errors = ErrorList::new();
+    //let arg = ctx.opts.argument.unwrap_or(2);
     // TODO Use arg
     let mut errors = ErrorList::new();
     let (a, b) = shuffle::pop_two(&mut state.main_stack)?;
