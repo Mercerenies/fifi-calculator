@@ -1,8 +1,22 @@
 
 //! Miscellaneous stack shuffling commands and helpers.
 
+// TODO Most (possibly all?) of this should just be on Stack<T>
+// directly, not a separate module. The Result errors are always
+// strictly better than a bare Option.
+
 use super::structure::Stack;
 use super::error::StackError;
+
+/// Asserts that the stack has size at least `expected` but does not
+/// pop anything.
+pub fn check_stack_size<T>(stack: &Stack<T>, expected: usize) -> Result<(), StackError> {
+  if stack.len() < expected {
+    Err(StackError::NotEnoughElements { expected, actual: stack.len() })
+  } else {
+    Ok(())
+  }
+}
 
 pub fn pop_one<T>(stack: &mut Stack<T>) -> Result<T, StackError> {
   let Ok([a]) = TryInto::<[_; 1]>::try_into(pop_several(stack, 1)?) else {

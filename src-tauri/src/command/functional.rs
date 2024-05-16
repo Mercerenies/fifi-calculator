@@ -19,9 +19,7 @@ pub struct UnaryFunctionCommand {
 }
 
 pub struct BinaryFunctionCommand {
-  binary_function: Box<dyn Fn(Expr, Expr) -> Expr + Send + Sync>,
-  unary_function: Box<dyn Fn(Expr) -> Expr + Send + Sync>,
-  zero_value: Expr,
+  function: Box<dyn Fn(Expr, Expr) -> Expr + Send + Sync>,
 }
 
 impl PushConstantCommand {
@@ -49,22 +47,20 @@ impl UnaryFunctionCommand {
 }
 
 impl BinaryFunctionCommand {
-  pub fn new<F1, F2>(binary_function: F2, unary_function: F1, zero_value: Expr) -> BinaryFunctionCommand
-  where F1: Fn(Expr) -> Expr + Send + Sync + 'static,
-        F2: Fn(Expr, Expr) -> Expr + Send + Sync + 'static {
-    BinaryFunctionCommand {
-      binary_function: Box::new(binary_function),
-      unary_function: Box::new(unary_function),
-      zero_value,
-    }
+  pub fn new<F>(function: F) -> BinaryFunctionCommand
+  where F: Fn(Expr, Expr) -> Expr + Send + Sync + 'static {
+    BinaryFunctionCommand { function: Box::new(function) }
+  }
+
+  pub fn named(function_name: impl Into<String>) -> BinaryFunctionCommand {
+    let function_name = function_name.into();
+    BinaryFunctionCommand::new(move |arg1, arg2| {
+      Expr::Call(function_name.clone(), vec![arg1, arg2])
+    })
   }
 
   fn wrap_exprs(&self, a: Expr, b: Expr) -> Expr {
-    (self.binary_function)(a, b)
-  }
-
-  fn wrap_expr_unary(&self, a: Expr) -> Expr {
-    (self.unary_function)(a)
+    (self.function)(a, b)
   }
 }
 
@@ -106,13 +102,35 @@ impl Command for UnaryFunctionCommand {
 
 impl Command for BinaryFunctionCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
-    //let mut errors = ErrorList::new();
-    //let arg = ctx.opts.argument.unwrap_or(2);
-    // TODO Use arg
     let mut errors = ErrorList::new();
-    let (a, b) = shuffle::pop_two(&mut state.main_stack)?;
-    let binary_call = self.wrap_exprs(a, b);
-    state.main_stack.push(ctx.simplifier.simplify_expr(binary_call, &mut errors));
+    let arg = ctx.opts.argument.unwrap_or(2);
+    if arg > 0 {
+      // Perform reduction on top N elements.
+      let values = shuffle::pop_several(&mut state.main_stack, arg as usize)?;
+      let result = values.into_iter().reduce(|a, b| {
+        self.wrap_exprs(a, b)
+      }).expect("Empty stack"); // expect safety: We popped at least one element off the stack
+      let result = ctx.simplifier.simplify_expr(result, &mut errors);
+      state.main_stack.push(result);
+    } else if arg < 0 {
+      // Apply top to next N elements.
+      let mut values = shuffle::pop_several(&mut state.main_stack, (- arg + 1) as usize)?;
+      // expect safety: We popped at least two values, so removing one is safe.
+      let second_argument = values.pop().expect("Empty stack");
+      for e in values.iter_mut() {
+        e.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_exprs(e, second_argument.clone()), &mut errors));
+      }
+      state.main_stack.push_several(values);
+    } else {
+      // Reduce entire stack.
+      shuffle::check_stack_size(&state.main_stack, 1)?;
+      let values = state.main_stack.pop_all();
+      let result = values.into_iter().reduce(|a, b| {
+        self.wrap_exprs(a, b)
+      }).expect("Empty stack"); // expect safety: We just checked that the stack was non-empty
+      let result = ctx.simplifier.simplify_expr(result, &mut errors);
+      state.main_stack.push(result);
+    }
     Ok(CommandOutput::from_errors(errors))
   }
 }
@@ -132,6 +150,10 @@ mod tests {
 
   fn unary_function() -> UnaryFunctionCommand {
     UnaryFunctionCommand::named("test_func")
+  }
+
+  fn binary_function() -> BinaryFunctionCommand {
+    BinaryFunctionCommand::named("test_func")
   }
 
   #[test]
@@ -358,4 +380,251 @@ mod tests {
     );
   }
 
+  #[test]
+  fn test_binary_function_command() {
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&binary_function(), None, input_stack);
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        Expr::from(10),
+        Expr::from(20),
+        Expr::call("test_func", vec![Expr::from(30), Expr::from(40)]),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_binary_function_command_on_stack_size_two() {
+    let input_stack = vec![10, 20];
+    let output_stack = act_on_stack(&binary_function(), None, input_stack);
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        Expr::call("test_func", vec![Expr::from(10), Expr::from(20)]),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_binary_function_command_on_stack_size_one() {
+    let input_stack = vec![10];
+    let error = act_on_stack_err(&binary_function(), None, input_stack);
+    assert_eq!(
+      error,
+      StackError::NotEnoughElements { expected: 2, actual: 1 },
+    );
+  }
+
+  #[test]
+  fn test_binary_function_command_on_empty_stack() {
+    let input_stack = vec![];
+    let error = act_on_stack_err(&binary_function(), None, input_stack);
+    assert_eq!(
+      error,
+      StackError::NotEnoughElements { expected: 2, actual: 0 },
+    );
+  }
+
+  #[test]
+  fn test_binary_function_command_with_argument_two() {
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&binary_function(), Some(2), input_stack);
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        Expr::from(10),
+        Expr::from(20),
+        Expr::call("test_func", vec![Expr::from(30), Expr::from(40)]),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_binary_function_command_on_stack_size_two_with_arg_two() {
+    let input_stack = vec![10, 20];
+    let output_stack = act_on_stack(&binary_function(), Some(2), input_stack);
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        Expr::call("test_func", vec![Expr::from(10), Expr::from(20)]),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_binary_function_command_on_stack_size_one_with_arg_two() {
+    let input_stack = vec![10];
+    let error = act_on_stack_err(&binary_function(), Some(2), input_stack);
+    assert_eq!(
+      error,
+      StackError::NotEnoughElements { expected: 2, actual: 1 },
+    );
+  }
+
+  #[test]
+  fn test_binary_function_command_on_empty_stack_with_arg_two() {
+    let input_stack = vec![];
+    let error = act_on_stack_err(&binary_function(), Some(2), input_stack);
+    assert_eq!(
+      error,
+      StackError::NotEnoughElements { expected: 2, actual: 0 },
+    );
+  }
+
+  #[test]
+  fn test_binary_function_command_with_argument_one() {
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&binary_function(), Some(1), input_stack);
+    assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40]));
+  }
+
+  #[test]
+  fn test_binary_function_command_on_stack_size_one_with_arg_one() {
+    let input_stack = vec![10];
+    let output_stack = act_on_stack(&binary_function(), Some(1), input_stack);
+    assert_eq!(output_stack, stack_of(vec![10]));
+  }
+
+  #[test]
+  fn test_binary_function_command_on_empty_stack_with_arg_one() {
+    let input_stack = vec![];
+    let error = act_on_stack_err(&binary_function(), Some(1), input_stack);
+    assert_eq!(
+      error,
+      StackError::NotEnoughElements { expected: 1, actual: 0 },
+    );
+  }
+
+  #[test]
+  fn test_binary_function_command_with_positive_arg() {
+    let input_stack = vec![10, 20, 30, 40, 50];
+    let output_stack = act_on_stack(&binary_function(), Some(4), input_stack);
+
+    fn test_func(a: Expr, b: Expr) -> Expr {
+      Expr::call("test_func", vec![a, b])
+    }
+
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        Expr::from(10),
+        test_func(
+          test_func(
+            test_func(
+              Expr::from(20),
+              Expr::from(30),
+            ),
+            Expr::from(40),
+          ),
+          Expr::from(50),
+        ),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_binary_function_command_with_positive_arg_equal_to_stack_size() {
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&binary_function(), Some(4), input_stack);
+
+    fn test_func(a: Expr, b: Expr) -> Expr {
+      Expr::call("test_func", vec![a, b])
+    }
+
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        test_func(
+          test_func(
+            test_func(
+              Expr::from(10),
+              Expr::from(20),
+            ),
+            Expr::from(30),
+          ),
+          Expr::from(40),
+        ),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_binary_function_command_with_positive_arg_and_stack_too_small() {
+    let input_stack = vec![10, 20, 30];
+    let error = act_on_stack_err(&binary_function(), Some(4), input_stack);
+    assert_eq!(
+      error,
+      StackError::NotEnoughElements { expected: 4, actual: 3 },
+    )
+  }
+
+  #[test]
+  fn test_binary_function_command_with_positive_arg_and_empty_stack() {
+    let input_stack = vec![];
+    let error = act_on_stack_err(&binary_function(), Some(3), input_stack);
+    assert_eq!(
+      error,
+      StackError::NotEnoughElements { expected: 3, actual: 0 },
+    )
+  }
+
+  #[test]
+  fn test_binary_function_command_with_arg_negative_one() {
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&binary_function(), Some(-1), input_stack);
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        Expr::from(10),
+        Expr::from(20),
+        Expr::call("test_func", vec![Expr::from(30), Expr::from(40)]),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_binary_function_command_with_arg_negative_one_on_stack_size_one() {
+    let input_stack = vec![10];
+    let error = act_on_stack_err(&binary_function(), Some(-1), input_stack);
+    assert_eq!(
+      error,
+      StackError::NotEnoughElements { expected: 2, actual: 1 },
+    )
+  }
+
+  #[test]
+  fn test_binary_function_command_with_negative_arg() {
+    let input_stack = vec![10, 20, 30, 40, 50];
+    let output_stack = act_on_stack(&binary_function(), Some(-3), input_stack);
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        Expr::from(10),
+        Expr::call("test_func", vec![Expr::from(20), Expr::from(50)]),
+        Expr::call("test_func", vec![Expr::from(30), Expr::from(50)]),
+        Expr::call("test_func", vec![Expr::from(40), Expr::from(50)]),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_binary_function_command_with_negative_arg_and_too_small_stack() {
+    let input_stack = vec![10, 20, 30, 40];
+    let error = act_on_stack_err(&binary_function(), Some(-4), input_stack);
+    assert_eq!(
+      error,
+      StackError::NotEnoughElements { expected: 5, actual: 4 },
+    )
+  }
+
+  #[test]
+  fn test_binary_function_command_with_negative_arg_and_empty_stack() {
+    let input_stack = vec![];
+    let error = act_on_stack_err(&binary_function(), Some(-4), input_stack);
+    assert_eq!(
+      error,
+      StackError::NotEnoughElements { expected: 5, actual: 0 },
+    )
+  }
 }
