@@ -38,6 +38,12 @@ pub struct OnVec<X> {
   inner: X,
 }
 
+/// Prism viewing the value on the inside of an `Option`.
+#[derive(Debug, Clone, Default)]
+pub struct InOption {
+  _private: (),
+}
+
 impl Identity {
   pub fn new() -> Self {
     Self::default()
@@ -53,6 +59,12 @@ impl<X, Y, B> Composed<X, Y, B> {
 impl<X> OnVec<X> {
   pub fn new(inner: X) -> Self {
     Self { inner }
+  }
+}
+
+impl InOption {
+  pub fn new() -> Self {
+    Self::default()
   }
 }
 
@@ -110,6 +122,16 @@ where X: Prism<Up, Down> {
   }
 }
 
+impl<T> Prism<Option<T>, T> for InOption {
+  fn narrow_type(&self, input: Option<T>) -> Result<T, Option<T>> {
+    input.ok_or(None)
+  }
+
+  fn widen_type(&self, input: T) -> Option<T> {
+    Some(input)
+  }
+}
+
 fn recover_failed_downcast<X, Up, Down, I>(
   vec_prism: &OnVec<X>,
   some_outputs: Vec<Down>,
@@ -125,4 +147,158 @@ where X: Prism<Up, Down>,
   inputs.push(current_element);
   inputs.extend(rest_of_inputs);
   inputs
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[derive(Debug, Clone, PartialEq)]
+  enum ExampleA {
+    Empty,
+    NonEmpty(ExampleB),
+  }
+
+  #[derive(Debug, Clone, PartialEq)]
+  enum ExampleB {
+    Empty,
+    NonEmpty(i32),
+  }
+
+  #[derive(Debug)]
+  struct ExampleAPrism;
+
+  #[derive(Debug)]
+  struct ExampleBPrism;
+
+  impl Prism<ExampleA, ExampleB> for ExampleAPrism {
+    fn narrow_type(&self, input: ExampleA) -> Result<ExampleB, ExampleA> {
+      match input {
+        ExampleA::Empty => Err(ExampleA::Empty),
+        ExampleA::NonEmpty(b) => Ok(b),
+      }
+    }
+
+    fn widen_type(&self, input: ExampleB) -> ExampleA {
+      ExampleA::NonEmpty(input)
+    }
+  }
+
+  impl Prism<ExampleB, i32> for ExampleBPrism {
+    fn narrow_type(&self, input: ExampleB) -> Result<i32, ExampleB> {
+      match input {
+        ExampleB::Empty => Err(ExampleB::Empty),
+        ExampleB::NonEmpty(i) => Ok(i),
+      }
+    }
+
+    fn widen_type(&self, input: i32) -> ExampleB {
+      ExampleB::NonEmpty(input)
+    }
+  }
+
+  #[test]
+  fn test_identity_prism() {
+    let identity = Identity::new();
+    assert_eq!(identity.narrow_type(100), Ok(100));
+    assert_eq!(identity.widen_type(100), 100);
+  }
+
+  #[test]
+  fn test_composed_prism_widening() {
+    let composed = Composed::<_, _, ExampleB>::new(ExampleAPrism, ExampleBPrism);
+    assert_eq!(composed.widen_type(9), ExampleA::NonEmpty(ExampleB::NonEmpty(9)));
+  }
+
+  #[test]
+  fn test_composed_prism_narrowing_failure() {
+    let composed = Composed::<_, _, ExampleB>::new(ExampleAPrism, ExampleBPrism);
+    assert_eq!(composed.narrow_type(ExampleA::Empty), Err(ExampleA::Empty));
+    assert_eq!(
+      composed.narrow_type(ExampleA::NonEmpty(ExampleB::Empty)),
+      Err(ExampleA::NonEmpty(ExampleB::Empty)),
+    );
+  }
+
+  #[test]
+  fn test_composed_prism_narrowing_success() {
+    let composed = Composed::<_, _, ExampleB>::new(ExampleAPrism, ExampleBPrism);
+    assert_eq!(
+      composed.narrow_type(ExampleA::NonEmpty(ExampleB::NonEmpty(99))),
+      Ok(99),
+    );
+  }
+
+  #[test]
+  fn test_option_prism() {
+    let opt_prism = InOption::new();
+    assert_eq!(opt_prism.widen_type(100), Some(100));
+    assert_eq!(opt_prism.narrow_type(Some(100)), Ok(100));
+    assert_eq!(opt_prism.narrow_type(None::<i32>), Err(None));
+  }
+
+  #[test]
+  fn test_lifted_vec_prism_on_empty() {
+    let vec_prism = OnVec::new(ExampleBPrism);
+    assert_eq!(vec_prism.widen_type(vec![]), vec![]);
+    assert_eq!(vec_prism.narrow_type(vec![]), Ok(vec![]));
+  }
+
+  #[test]
+  fn test_lifted_vec_prism_widening() {
+    let vec_prism = OnVec::new(ExampleBPrism);
+    assert_eq!(
+      vec_prism.widen_type(vec![0, 10, 20, 30]),
+      vec![
+        ExampleB::NonEmpty(0),
+        ExampleB::NonEmpty(10),
+        ExampleB::NonEmpty(20),
+        ExampleB::NonEmpty(30),
+      ],
+    );
+  }
+
+  #[test]
+  fn test_lifted_vec_prism_successful_narrowing() {
+    let vec_prism = OnVec::new(ExampleBPrism);
+    let input = vec![
+      ExampleB::NonEmpty(0),
+      ExampleB::NonEmpty(10),
+      ExampleB::NonEmpty(20),
+      ExampleB::NonEmpty(30),
+    ];
+    assert_eq!(
+      vec_prism.narrow_type(input),
+      Ok(vec![0, 10, 20, 30]),
+    );
+  }
+
+  #[test]
+  fn test_lifted_vec_prism_no_matches() {
+    let vec_prism = OnVec::new(ExampleBPrism);
+    let input = vec![
+      ExampleB::Empty,
+      ExampleB::Empty,
+      ExampleB::Empty,
+    ];
+    assert_eq!(
+      vec_prism.narrow_type(input.clone()),
+      Err(input),
+    );
+  }
+
+  #[test]
+  fn test_lifted_vec_prism_partial_matches() {
+    let vec_prism = OnVec::new(ExampleBPrism);
+    let input = vec![
+      ExampleB::Empty,
+      ExampleB::NonEmpty(100),
+      ExampleB::Empty,
+      ExampleB::NonEmpty(99),
+    ];
+    assert_eq!(
+      vec_prism.narrow_type(input.clone()),
+      Err(input),
+    );
+  }
 }
