@@ -4,10 +4,8 @@ use super::number::Number;
 use crate::util::prism::Prism;
 
 /// Prism which downcasts an [`Expr`] to a contained [`Number`].
-#[derive(Debug, Clone, Default)]
-pub struct ExprToNumber {
-  _private: (),
-}
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ExprToNumber;
 
 impl ExprToNumber {
   pub fn new() -> Self {

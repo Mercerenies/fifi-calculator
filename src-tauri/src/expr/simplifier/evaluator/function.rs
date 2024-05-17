@@ -30,6 +30,10 @@ impl Function {
     Function { name: name.into(), body: Box::new(body) }
   }
 
+  pub fn name(&self) -> &str {
+    &self.name
+  }
+
   pub fn call(
     &self,
     args: Vec<Expr>,
