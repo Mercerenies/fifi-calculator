@@ -43,16 +43,6 @@ pub enum NumberRepr {
   Integer, Ratio, Float,
 }
 
-/// Produces a `BigRational`, or falls back to floats if `b == 0`.
-fn rational_div(a: BigRational, b: BigRational) -> Number {
-  if b == BigRational::zero() {
-    let a = a.to_f64().unwrap_or(f64::NAN);
-    Number::from(a / 0.0)
-  } else {
-    Number::from(a / b)
-  }
-}
-
 impl Number {
   pub fn repr(&self) -> NumberRepr {
     match &self.inner {
@@ -253,8 +243,9 @@ impl ops::Div for Number {
 
   fn div(self, other: Number) -> Number {
     match NumberPair::promote(self, other) {
-      NumberPair::Integers(left, right) => rational_div(left.into(), right.into()),
-      NumberPair::Ratios(left, right) => rational_div(left, right),
+      NumberPair::Integers(left, right) =>
+        Number::from(BigRational::from(left) / BigRational::from(right)),
+      NumberPair::Ratios(left, right) => Number::from(left / right),
       NumberPair::Floats(left, right) => Number::from(left / right),
     }
   }
@@ -573,19 +564,6 @@ mod tests {
   }
 
   #[test]
-  fn test_div_by_zero() {
-    assert_strict_eq!(Number::from(3) / Number::from(0), Number::from(f64::INFINITY));
-    assert_strict_eq!(Number::from(-3) / Number::from(0), Number::from(f64::NEG_INFINITY));
-    assert_strict_eq!(Number::ratio(1, 2) / Number::from(0), Number::from(f64::INFINITY));
-    assert_strict_eq!(Number::ratio(-1, 2) / Number::from(0), Number::from(f64::NEG_INFINITY));
-    assert_strict_eq!(Number::from(1.2) / Number::from(0), Number::from(f64::INFINITY));
-    assert_strict_eq!(Number::from(-1.0) / Number::from(0), Number::from(f64::NEG_INFINITY));
-    assert_strict_eq!(Number::from(1) / Number::from(0.0), Number::from(f64::INFINITY));
-    assert_strict_eq!(Number::from(-1) / Number::from(0.0), Number::from(f64::NEG_INFINITY));
-    assert_strict_eq!(Number::from(-1) / Number::from(-0.0), Number::from(f64::INFINITY));
-  }
-
-  #[test]
   fn test_mod() {
     assert_strict_eq!(Number::from(3) % Number::from(3), Number::from(0));
     assert_strict_eq!(Number::from(3) % Number::from(2), Number::from(1));
@@ -623,17 +601,6 @@ mod tests {
     assert_strict_eq!(Number::from(-3).div_floor(&Number::from(-2)), Number::from(1));
     assert_strict_eq!(Number::from(-3).div_floor(&Number::from(-2.0)), Number::from(1));
     assert_strict_eq!(Number::ratio(3, -1).div_floor(&Number::from(-2.0)), Number::from(1));
-  }
-
-  fn is_nan(number: Number) -> bool {
-    let NumberImpl::Float(number) = number.inner else { return false };
-    number.is_nan()
-  }
-
-  #[test]
-  fn test_div_by_zero_nan() {
-    assert!(is_nan(Number::from(0) / Number::from(0)));
-    assert!(is_nan(Number::from(0.0) / Number::from(0.0)));
   }
 
   #[test]
