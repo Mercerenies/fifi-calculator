@@ -17,6 +17,7 @@ pub fn arithmetic_functions() -> HashMap<String, Function> {
   functions.insert("-".to_string(), subtraction());
   functions.insert("*".to_string(), multiplication());
   functions.insert("/".to_string(), division());
+  functions.insert("%".to_string(), modulo());
   functions
 }
 
@@ -59,6 +60,16 @@ pub fn division() -> Function {
       builder::any_arity().of_type(ExprToNumber).and_then(|args, _| {
         let quotient = args.into_iter().reduce(|a, b| a / b).unwrap_or(Number::one());
         Ok(Expr::from(quotient))
+      })
+    )
+    .build()
+}
+
+pub fn modulo() -> Function {
+  FunctionBuilder::new("%")
+    .add_case(
+      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, _| {
+        Ok(Expr::from(arg1 % arg2))
       })
     )
     .build()

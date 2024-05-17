@@ -43,7 +43,10 @@ export class MainButtonGrid implements ButtonGrid {
       [new DispatchButton("+", "+", "+")],
       [new DispatchButton("-", "-", "-")],
       [new DispatchButton("&times;", "*", "*")],
-      [new DispatchButton("&divide;", "/", "/")],
+      [
+        new DispatchButton("&divide;", "/", "/"),
+        new DispatchButton("%", "%", "%"),
+      ],
       [
         new DispatchButton(discardSvg(), "pop", "Backspace"),
         new DispatchButton(swapSvg(), "swap", "Tab"),

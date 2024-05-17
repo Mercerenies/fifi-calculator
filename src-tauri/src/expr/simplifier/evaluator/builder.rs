@@ -144,6 +144,15 @@ where C1: Prism<Expr, Down1>,
     TwoArgumentMatcher { first_arg_prism, second_arg_prism, _phantom: PhantomData }
   }
 
+  pub fn both_of_type<NewDown, D>(self, arg_prism: D) -> TwoArgumentMatcher<D, D, NewDown, NewDown>
+  where D: Prism<Expr, NewDown> + Clone {
+   TwoArgumentMatcher {
+      first_arg_prism: arg_prism.clone(),
+      second_arg_prism: arg_prism,
+      _phantom: PhantomData,
+    }
+  }
+
   pub fn and_then<F>(self, f: F) -> Box<FunctionCase>
   where F: Fn(Down1, Down2, &mut ErrorList<SimplifierError>) -> Result<Expr, Vec<Expr>> + Send + Sync + 'static,
         C1: Send + Sync + 'static,
