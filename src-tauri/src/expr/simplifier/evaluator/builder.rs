@@ -116,7 +116,7 @@ impl<Down, C: Prism<Expr, Down>> OneArgumentMatcher<C, Down> {
   }
 
   pub fn and_then<F>(self, f: F) -> Box<FunctionCase>
-  where F: Fn(Down, &mut ErrorList<SimplifierError>) -> Result<Expr, Vec<Expr>> + Send + Sync + 'static,
+  where F: Fn(Down, &mut ErrorList<SimplifierError>) -> Result<Expr, Down> + Send + Sync + 'static,
         C: Send + Sync + 'static {
     Box::new(move |mut args, errors| {
       if args.len() != 1 {
@@ -125,7 +125,11 @@ impl<Down, C: Prism<Expr, Down>> OneArgumentMatcher<C, Down> {
       let arg = args.pop().unwrap(); // unwrap: args.len() == 1
       match self.arg_prism.narrow_type(arg) {
         Err(original_arg) => FunctionCaseResult::NoMatch(vec![original_arg]),
-        Ok(arg) => FunctionCaseResult::from_result(f(arg, errors)),
+        Ok(arg) => FunctionCaseResult::from_result(
+          f(arg, errors).map_err(|arg| {
+            vec![self.arg_prism.widen_type(arg)]
+          }),
+        ),
       }
     })
   }
@@ -154,7 +158,7 @@ where C1: Prism<Expr, Down1>,
   }
 
   pub fn and_then<F>(self, f: F) -> Box<FunctionCase>
-  where F: Fn(Down1, Down2, &mut ErrorList<SimplifierError>) -> Result<Expr, Vec<Expr>> + Send + Sync + 'static,
+  where F: Fn(Down1, Down2, &mut ErrorList<SimplifierError>) -> Result<Expr, (Down1, Down2)> + Send + Sync + 'static,
         C1: Send + Sync + 'static,
         C2: Send + Sync + 'static {
     Box::new(move |mut args, errors| {
@@ -171,7 +175,13 @@ where C1: Prism<Expr, Down1>,
               let original_arg1 = self.first_arg_prism.widen_type(arg1);
               FunctionCaseResult::NoMatch(vec![original_arg1, original_arg2])
             }
-            Ok(arg2) => FunctionCaseResult::from_result(f(arg1, arg2, errors)),
+            Ok(arg2) => {
+              FunctionCaseResult::from_result(
+                f(arg1, arg2, errors).map_err(|(arg1, arg2)| {
+                  vec![self.first_arg_prism.widen_type(arg1), self.second_arg_prism.widen_type(arg2)]
+                }),
+              )
+            }
           }
         }
       }
@@ -191,7 +201,7 @@ impl<Down, C: Prism<Expr, Down>> VecMatcher<C, Down> {
   }
 
   pub fn and_then<F>(self, f: F) -> Box<FunctionCase>
-  where F: Fn(Vec<Down>, &mut ErrorList<SimplifierError>) -> Result<Expr, Vec<Expr>> + Send + Sync + 'static,
+  where F: Fn(Vec<Down>, &mut ErrorList<SimplifierError>) -> Result<Expr, Vec<Down>> + Send + Sync + 'static,
         C: Send + Sync + 'static {
     let arg_prism = OnVec::new(self.arg_prism);
     Box::new(move |args, errors| {
@@ -202,7 +212,11 @@ impl<Down, C: Prism<Expr, Down>> VecMatcher<C, Down> {
 
       match arg_prism.narrow_type(args) {
         Err(args) => FunctionCaseResult::NoMatch(args),
-        Ok(args) => FunctionCaseResult::from_result(f(args, errors)),
+        Ok(args) => FunctionCaseResult::from_result(
+          f(args, errors).map_err(|args| {
+            arg_prism.widen_type(args)
+          }),
+        ),
       }
     })
   }

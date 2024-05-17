@@ -6,6 +6,7 @@ use super::builder::{self, FunctionBuilder};
 use crate::expr::prisms::ExprToNumber;
 use crate::expr::Expr;
 use crate::expr::number::Number;
+use crate::expr::simplifier::error::SimplifierError;
 
 use num::{Zero, One};
 
@@ -58,7 +59,11 @@ pub fn multiplication() -> Function {
 pub fn division() -> Function {
   FunctionBuilder::new("/")
     .add_case(
-      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, _| {
+      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, errors| {
+        if arg2 == Number::zero() {
+          errors.push(SimplifierError::division_by_zero("/"));
+          return Err((arg1, arg2));
+        }
         let quotient = arg1 / arg2;
         Ok(Expr::from(quotient))
       })
@@ -69,7 +74,11 @@ pub fn division() -> Function {
 pub fn modulo() -> Function {
   FunctionBuilder::new("%")
     .add_case(
-      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, _| {
+      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, errors| {
+        if arg2 == Number::zero() {
+          errors.push(SimplifierError::division_by_zero("%"));
+          return Err((arg1, arg2));
+        }
         Ok(Expr::from(arg1 % arg2))
       })
     )
@@ -79,8 +88,12 @@ pub fn modulo() -> Function {
 pub fn floor_division() -> Function {
   FunctionBuilder::new("\\")
     .add_case(
-      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, _| {
-        Ok(Expr::from(arg1 % arg2))
+      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, errors| {
+        if arg2 == Number::zero() {
+          errors.push(SimplifierError::division_by_zero("\\"));
+          return Err((arg1, arg2));
+        }
+        Ok(Expr::from(arg1.div_floor(&arg2)))
       })
     )
     .build()
