@@ -41,7 +41,7 @@ pub enum NumberRepr {
   Integer, Ratio, Float,
 }
 
-/// Produce a `BigRational`, or fall back to floats if `b == 0`.
+/// Produces a `BigRational`, or falls back to floats if `b == 0`.
 fn rational_div(a: BigRational, b: BigRational) -> Number {
   if b == BigRational::zero() {
     let a = a.to_f64().unwrap_or(f64::NAN);
@@ -66,8 +66,8 @@ impl Number {
 
   /// Produces a rational number with repr [`NumberRepr::Ratio`].
   /// Panics if `denom == 0`.
-  pub fn ratio(numer: BigInt, denom: BigInt) -> Number {
-    Number::from(BigRational::new(numer, denom))
+  pub fn ratio(numer: impl Into<BigInt>, denom: impl Into<BigInt>) -> Number {
+    Number::from(BigRational::new(numer.into(), denom.into()))
   }
 
   /// Simplify representation. If the number is stored as a rational
@@ -346,6 +346,16 @@ mod tests {
     }
   }
 
+  macro_rules! assert_strict_ne {
+    ($left:expr, $right:expr $(,)?) => {
+      match (&$left, &$right) {
+        (left_val, right_val) => {
+          assert_ne!(StrictNumber(left_val), StrictNumber(right_val))
+        }
+      }
+    }
+  }
+
   fn roundtrip_display(number: Number) -> Number {
     Number::from_str(&number.to_string()).unwrap()
   }
@@ -409,5 +419,113 @@ mod tests {
     assert_strict_eq!(Number::from_str("-88.0").unwrap(), Number::from(-88f64));
     assert_strict_eq!(Number::from_str("3e-6").unwrap(), Number::from(3e-6f64));
     assert_strict_eq!(Number::from_str("3e6").unwrap(), Number::from(3e6f64));
+  }
+
+  #[test]
+  fn test_number_repr() {
+    assert_eq!(Number::zero().repr(), NumberRepr::Integer);
+    assert_eq!(Number::one().repr(), NumberRepr::Integer);
+    assert_eq!(Number::from(BigInt::from(9)).repr(), NumberRepr::Integer);
+    assert_eq!(Number::from(999).repr(), NumberRepr::Integer);
+    assert_eq!(Number::ratio(BigInt::from(1), BigInt::from(2)).repr(), NumberRepr::Ratio);
+    assert_eq!(Number::ratio(BigInt::from(-1), BigInt::from(9)).repr(), NumberRepr::Ratio);
+    assert_eq!(Number::from(BigRational::new(BigInt::from(-1), BigInt::from(9))).repr(), NumberRepr::Ratio);
+    assert_eq!(Number::from(9.9).repr(), NumberRepr::Float);
+  }
+
+  #[test]
+  fn test_ratio_repr_simplification() {
+    // If we explicitly construct a rational number but it can be
+    // represented as an integer, we should use the integer repr.
+    assert_eq!(Number::ratio(BigInt::from(2), BigInt::from(1)).repr(), NumberRepr::Integer);
+    assert_eq!(Number::ratio(BigInt::from(3), BigInt::from(3)).repr(), NumberRepr::Integer);
+    assert_eq!(Number::ratio(BigInt::from(9), BigInt::from(-3)).repr(), NumberRepr::Integer);
+  }
+
+  #[test]
+  fn test_strict_eq() {
+    assert_strict_eq!(Number::from(3), Number::from(3));
+    assert_strict_ne!(Number::from(3), Number::from(3.0));
+    assert_strict_eq!(Number::from(3), Number::ratio(9, 3));
+    assert_strict_ne!(Number::from(0.5), Number::ratio(1, 2));
+    assert_strict_ne!(Number::from(3), Number::from(3.001));
+    assert_strict_eq!(Number::ratio(1, 2), Number::ratio(2, 4));
+    assert_strict_eq!(Number::ratio(-1, 2), Number::ratio(1, -2));
+  }
+
+  #[test]
+  fn test_partial_eq() {
+    assert_eq!(Number::from(3), Number::from(3));
+    assert_eq!(Number::from(3), Number::from(3.0));
+    assert_eq!(Number::from(3), Number::ratio(9, 3));
+    assert_eq!(Number::from(0.5), Number::ratio(1, 2));
+    assert_ne!(Number::from(3), Number::from(3.001));
+  }
+
+  #[test]
+  fn test_add() {
+    assert_strict_eq!(Number::from(3) + Number::from(3), Number::from(6));
+    assert_strict_eq!(Number::from(3) + Number::ratio(1, 2), Number::ratio(7, 2));
+    assert_strict_eq!(Number::ratio(1, 2) + Number::ratio(1, 2), Number::from(1));
+    assert_strict_eq!(Number::from(3) + Number::from(3.0), Number::from(6.0));
+    assert_strict_eq!(Number::ratio(1, 2) + Number::from(3.0), Number::from(3.5));
+  }
+
+  #[test]
+  fn test_sub() {
+    assert_strict_eq!(Number::from(3) - Number::from(3), Number::from(0));
+    assert_strict_eq!(Number::from(3) - Number::ratio(1, 2), Number::ratio(5, 2));
+    assert_strict_eq!(Number::ratio(1, 2) - Number::ratio(1, 2), Number::from(0));
+    assert_strict_eq!(Number::ratio(1, 3) - Number::ratio(2, 3), Number::ratio(-1, 3));
+    assert_strict_eq!(Number::from(3) - Number::from(3.0), Number::from(0.0));
+    assert_strict_eq!(Number::ratio(1, 2) - Number::from(3.0), Number::from(-2.5));
+  }
+
+  #[test]
+  fn test_mul() {
+    assert_strict_eq!(Number::from(3) * Number::from(3), Number::from(9));
+    assert_strict_eq!(Number::from(3) * Number::ratio(1, 2), Number::ratio(3, 2));
+    assert_strict_eq!(Number::ratio(1, 2) * Number::ratio(1, 2), Number::ratio(1, 4));
+    assert_strict_eq!(Number::ratio(1, 3) * Number::ratio(2, 3), Number::ratio(2, 9));
+    assert_strict_eq!(Number::from(3) * Number::from(3.0), Number::from(9.0));
+    assert_strict_eq!(Number::ratio(1, 2) * Number::from(3.0), Number::from(1.5));
+    assert_strict_eq!(Number::from(0) * Number::from(9.9), Number::from(0.0));
+    assert_strict_eq!(Number::from(0) * Number::ratio(2, 3), Number::from(0));
+  }
+
+  #[test]
+  fn test_div() {
+    assert_strict_eq!(Number::from(3) / Number::from(3), Number::from(1));
+    assert_strict_eq!(Number::from(3) / Number::from(2), Number::ratio(3, 2));
+    assert_strict_eq!(Number::from(3) / Number::ratio(1, 2), Number::from(6));
+    assert_strict_eq!(Number::ratio(1, 2) / Number::ratio(1, 2), Number::from(1));
+    assert_strict_eq!(Number::from(3) / Number::from(3.0), Number::from(1.0));
+    assert_strict_eq!(Number::ratio(1, 2) / Number::from(2.0), Number::from(0.25));
+    assert_strict_eq!(Number::from(0) / Number::from(9.9), Number::from(0.0));
+    assert_strict_eq!(Number::from(0) / Number::from(9), Number::from(0));
+  }
+
+  #[test]
+  fn test_div_by_zero() {
+    assert_strict_eq!(Number::from(3) / Number::from(0), Number::from(f64::INFINITY));
+    assert_strict_eq!(Number::from(-3) / Number::from(0), Number::from(f64::NEG_INFINITY));
+    assert_strict_eq!(Number::ratio(1, 2) / Number::from(0), Number::from(f64::INFINITY));
+    assert_strict_eq!(Number::ratio(-1, 2) / Number::from(0), Number::from(f64::NEG_INFINITY));
+    assert_strict_eq!(Number::from(1.2) / Number::from(0), Number::from(f64::INFINITY));
+    assert_strict_eq!(Number::from(-1.0) / Number::from(0), Number::from(f64::NEG_INFINITY));
+    assert_strict_eq!(Number::from(1) / Number::from(0.0), Number::from(f64::INFINITY));
+    assert_strict_eq!(Number::from(-1) / Number::from(0.0), Number::from(f64::NEG_INFINITY));
+    assert_strict_eq!(Number::from(-1) / Number::from(-0.0), Number::from(f64::INFINITY));
+  }
+
+  fn is_nan(number: Number) -> bool {
+    let NumberImpl::Float(number) = number.inner else { return false };
+    number.is_nan()
+  }
+
+  #[test]
+  fn test_div_by_zero_nan() {
+    assert!(is_nan(Number::from(0) / Number::from(0)));
+    assert!(is_nan(Number::from(0.0) / Number::from(0.0)));
   }
 }
