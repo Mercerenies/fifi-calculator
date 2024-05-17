@@ -45,8 +45,10 @@ pub struct TwoArgumentMatcher<C1, C2, Down1, Down2> {
   _phantom: PhantomData<(Down1, Down2)>,
 }
 
-pub struct AnyArityMatcher<C, Down> {
+pub struct VecMatcher<C, Down> {
   arg_prism: C,
+  min_length: usize,
+  max_length: usize,
   _phantom: PhantomData<Down>,
 }
 
@@ -160,10 +162,15 @@ where C1: Prism<Expr, Down1>,
   }
 }
 
-impl<Down, C: Prism<Expr, Down>> AnyArityMatcher<C, Down> {
-  pub fn of_type<NewDown, D>(self, arg_prism: D) -> AnyArityMatcher<D, NewDown>
+impl<Down, C: Prism<Expr, Down>> VecMatcher<C, Down> {
+  pub fn of_type<NewDown, D>(self, arg_prism: D) -> VecMatcher<D, NewDown>
   where D: Prism<Expr, NewDown> {
-    AnyArityMatcher { arg_prism, _phantom: PhantomData }
+    VecMatcher {
+      arg_prism,
+      min_length: self.min_length,
+      max_length: self.max_length,
+      _phantom: PhantomData,
+    }
   }
 
   pub fn and_then<F>(self, f: F) -> Box<FunctionCase>
@@ -171,6 +178,11 @@ impl<Down, C: Prism<Expr, Down>> AnyArityMatcher<C, Down> {
         C: Send + Sync + 'static {
     let arg_prism = OnVec::new(self.arg_prism);
     Box::new(move |args, errors| {
+      // Check arity
+      if args.len() < self.min_length || args.len() > self.max_length {
+        return FunctionCaseResult::NoMatch(args);
+      }
+
       match arg_prism.narrow_type(args) {
         Err(args) => FunctionCaseResult::NoMatch(args),
         Ok(args) => FunctionCaseResult::from_result(f(args, errors)),
@@ -194,9 +206,20 @@ pub fn arity_two() -> TwoArgumentMatcher<Identity, Identity, Expr, Expr> {
   }
 }
 
-pub fn any_arity() -> AnyArityMatcher<Identity, Expr> {
-  AnyArityMatcher {
+pub fn any_arity() -> VecMatcher<Identity, Expr> {
+  VecMatcher {
     arg_prism: Identity::new(),
+    min_length: 0,
+    max_length: usize::MAX,
+    _phantom: PhantomData,
+  }
+}
+
+pub fn non_zero_arity() -> VecMatcher<Identity, Expr> {
+  VecMatcher {
+    arg_prism: Identity::new(),
+    min_length: 1,
+    max_length: usize::MAX,
     _phantom: PhantomData,
   }
 }
