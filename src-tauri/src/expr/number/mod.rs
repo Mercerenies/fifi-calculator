@@ -11,6 +11,7 @@ use regex::Regex;
 use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
 use std::ops;
+use std::cmp::Ordering;
 
 /// General-purpose number type, capable of automatically switching
 /// between representations when mathematical functions demand it.
@@ -57,6 +58,15 @@ impl Number {
       NumberImpl::Integer(_) => NumberRepr::Integer,
       NumberImpl::Ratio(_) => NumberRepr::Ratio,
       NumberImpl::Float(_) => NumberRepr::Float,
+    }
+  }
+
+  pub fn signum(&self) -> Number {
+    match self.partial_cmp(&Number::zero()) {
+      Some(Ordering::Greater) => Number::from(1),
+      Some(Ordering::Less) => Number::from(-1),
+      Some(Ordering::Equal) => Number::from(0),
+      None => Number::from(f64::NAN),
     }
   }
 
@@ -150,6 +160,16 @@ impl PartialEq for Number {
   }
 }
 
+impl PartialOrd for Number {
+  fn partial_cmp(&self, other: &Number) -> Option<Ordering> {
+    match NumberPair::promote(self.clone(), other.clone()) {
+      NumberPair::Integers(left, right) => left.partial_cmp(&right),
+      NumberPair::Ratios(left, right) => left.partial_cmp(&right),
+      NumberPair::Floats(left, right) => left.partial_cmp(&right),
+    }
+  }
+}
+
 impl ops::Add for Number {
   type Output = Number;
 
@@ -227,6 +247,35 @@ impl ops::Div for &Number {
 
   fn div(self, other: &Number) -> Number {
     (*self).clone() / (*other).clone()
+  }
+}
+
+/// We implement the Euclidean remainder here, for simplicitly in
+/// interacting with the calculator functions (all of which use the
+/// Euclidean remainder).
+impl ops::Rem for Number {
+  type Output = Number;
+
+  fn rem(self, other: Number) -> Number {
+    let result = match NumberPair::promote(self, other.clone()) {
+      NumberPair::Integers(left, right) => Number::from(left % right),
+      NumberPair::Ratios(left, right) => Number::from(left % right),
+      NumberPair::Floats(left, right) => Number::from(left % right),
+    };
+    // Adjust sign to match divisor
+    if result.signum() * other.signum() == Number::from(-1) {
+      result + other
+    } else {
+      result
+    }
+  }
+}
+
+impl ops::Rem for &Number {
+  type Output = Number;
+
+  fn rem(self, other: &Number) -> Number {
+    (*self).clone() % (*other).clone()
   }
 }
 
@@ -318,7 +367,7 @@ mod tests {
   use num::bigint::Sign;
   use std::fmt::Debug;
 
-  // TODO Incomplete test suite in this file :)
+  // TODO Missing tests: PartialOrd, signum
 
   /// A [`Number`] but with equality performed via [`strict_eq`], not
   /// [`PartialEq`].
@@ -516,6 +565,24 @@ mod tests {
     assert_strict_eq!(Number::from(1) / Number::from(0.0), Number::from(f64::INFINITY));
     assert_strict_eq!(Number::from(-1) / Number::from(0.0), Number::from(f64::NEG_INFINITY));
     assert_strict_eq!(Number::from(-1) / Number::from(-0.0), Number::from(f64::INFINITY));
+  }
+
+  #[test]
+  fn test_mod() {
+    assert_strict_eq!(Number::from(3) % Number::from(3), Number::from(0));
+    assert_strict_eq!(Number::from(3) % Number::from(2), Number::from(1));
+    assert_strict_eq!(Number::from(3) % Number::from(3.0), Number::from(0.0));
+    assert_strict_eq!(Number::from(3.0) % Number::from(2), Number::from(1.0));
+    assert_strict_eq!(Number::ratio(5, 4) % Number::ratio(1, 2), Number::ratio(1, 4));
+    assert_strict_eq!(Number::from(0) % Number::ratio(1, 2), Number::from(0));
+  }
+
+  #[test]
+  fn test_mod_on_negatives() {
+    assert_strict_eq!(Number::from(-4) % Number::from(3), Number::from(2));
+    assert_strict_eq!(Number::from(4) % Number::from(-3), Number::from(-2));
+    assert_strict_eq!(Number::from(-4) % Number::from(-3), Number::from(-1));
+    assert_strict_eq!(Number::ratio(-1, 2) % Number::from(3), Number::ratio(5, 2));
   }
 
   fn is_nan(number: Number) -> bool {
