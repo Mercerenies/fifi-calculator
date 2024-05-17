@@ -18,6 +18,7 @@ pub fn arithmetic_functions() -> HashMap<String, Function> {
   functions.insert("*".to_string(), multiplication());
   functions.insert("/".to_string(), division());
   functions.insert("%".to_string(), modulo());
+  functions.insert("\\".to_string(), floor_division());
   functions
 }
 
@@ -67,6 +68,16 @@ pub fn division() -> Function {
 
 pub fn modulo() -> Function {
   FunctionBuilder::new("%")
+    .add_case(
+      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, _| {
+        Ok(Expr::from(arg1 % arg2))
+      })
+    )
+    .build()
+}
+
+pub fn floor_division() -> Function {
+  FunctionBuilder::new("\\")
     .add_case(
       builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, _| {
         Ok(Expr::from(arg1 % arg2))
