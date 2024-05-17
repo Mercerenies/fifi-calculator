@@ -193,3 +193,10 @@ pub fn arity_two() -> TwoArgumentMatcher<Identity, Identity, Expr, Expr> {
     _phantom: PhantomData,
   }
 }
+
+pub fn any_arity() -> AnyArityMatcher<Identity, Expr> {
+  AnyArityMatcher {
+    type_checker: Identity::new(),
+    _phantom: PhantomData,
+  }
+}
