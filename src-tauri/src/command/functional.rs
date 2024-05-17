@@ -9,6 +9,8 @@ use crate::error::Error;
 use crate::expr::Expr;
 use crate::errorlist::ErrorList;
 
+use std::cmp::Ordering;
+
 /// A command that pushes a clone of its owned expression onto the
 /// stack.
 ///
@@ -110,21 +112,25 @@ impl Command for UnaryFunctionCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
     let mut errors = ErrorList::new();
     let arg = ctx.opts.argument.unwrap_or(1);
-    if arg > 0 {
-      // Apply to top N elements.
-      let values = shuffle::pop_several(&mut state.main_stack, arg as usize)?;
-      let values = values.into_iter().map(|e| {
-        ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors)
-      });
-      state.main_stack.push_several(values);
-    } else if arg < 0 {
-      // Apply to single element N down on the stack.
-      let e = shuffle::get_mut(&mut state.main_stack, - arg - 1)?;
-      e.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors));
-    } else {
-      // Apply to all elements.
-      for e in state.main_stack.iter_mut() {
+    match arg.cmp(&0) {
+      Ordering::Greater => {
+        // Apply to top N elements.
+        let values = shuffle::pop_several(&mut state.main_stack, arg as usize)?;
+        let values = values.into_iter().map(|e| {
+          ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors)
+        });
+        state.main_stack.push_several(values);
+      }
+      Ordering::Less => {
+        // Apply to single element N down on the stack.
+        let e = shuffle::get_mut(&mut state.main_stack, - arg - 1)?;
         e.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors));
+      }
+      Ordering::Equal => {
+        // Apply to all elements.
+        for e in state.main_stack.iter_mut() {
+          e.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors));
+        }
       }
     }
     Ok(CommandOutput::from_errors(errors))
@@ -135,32 +141,36 @@ impl Command for BinaryFunctionCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
     let mut errors = ErrorList::new();
     let arg = ctx.opts.argument.unwrap_or(2);
-    if arg > 0 {
-      // Perform reduction on top N elements.
-      let values = shuffle::pop_several(&mut state.main_stack, arg as usize)?;
-      let result = values.into_iter().reduce(|a, b| {
-        self.wrap_exprs(a, b)
-      }).expect("Empty stack"); // expect safety: We popped at least one element off the stack
-      let result = ctx.simplifier.simplify_expr(result, &mut errors);
-      state.main_stack.push(result);
-    } else if arg < 0 {
-      // Apply top to next N elements.
-      let mut values = shuffle::pop_several(&mut state.main_stack, (- arg + 1) as usize)?;
-      // expect safety: We popped at least two values, so removing one is safe.
-      let second_argument = values.pop().expect("Empty stack");
-      for e in values.iter_mut() {
-        e.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_exprs(e, second_argument.clone()), &mut errors));
+    match arg.cmp(&0) {
+      Ordering::Greater => {
+        // Perform reduction on top N elements.
+        let values = shuffle::pop_several(&mut state.main_stack, arg as usize)?;
+        let result = values.into_iter().reduce(|a, b| {
+          self.wrap_exprs(a, b)
+        }).expect("Empty stack"); // expect safety: We popped at least one element off the stack
+        let result = ctx.simplifier.simplify_expr(result, &mut errors);
+        state.main_stack.push(result);
       }
-      state.main_stack.push_several(values);
-    } else {
-      // Reduce entire stack.
-      shuffle::check_stack_size(&state.main_stack, 1)?;
-      let values = state.main_stack.pop_all();
-      let result = values.into_iter().reduce(|a, b| {
-        self.wrap_exprs(a, b)
-      }).expect("Empty stack"); // expect safety: We just checked that the stack was non-empty
-      let result = ctx.simplifier.simplify_expr(result, &mut errors);
-      state.main_stack.push(result);
+      Ordering::Less => {
+        // Apply top to next N elements.
+        let mut values = shuffle::pop_several(&mut state.main_stack, (- arg + 1) as usize)?;
+        // expect safety: We popped at least two values, so removing one is safe.
+        let second_argument = values.pop().expect("Empty stack");
+        for e in values.iter_mut() {
+          e.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_exprs(e, second_argument.clone()), &mut errors));
+        }
+        state.main_stack.push_several(values);
+      }
+      Ordering::Equal => {
+        // Reduce entire stack.
+        shuffle::check_stack_size(&state.main_stack, 1)?;
+        let values = state.main_stack.pop_all();
+        let result = values.into_iter().reduce(|a, b| {
+          self.wrap_exprs(a, b)
+        }).expect("Empty stack"); // expect safety: We just checked that the stack was non-empty
+        let result = ctx.simplifier.simplify_expr(result, &mut errors);
+        state.main_stack.push(result);
+      }
     }
     Ok(CommandOutput::from_errors(errors))
   }

@@ -6,6 +6,8 @@ use crate::state::ApplicationState;
 use crate::error::Error;
 use crate::stack::shuffle;
 
+use std::cmp::Ordering;
+
 /// Pops and discards a single value.
 #[derive(Debug, Clone)]
 pub struct PopCommand;
@@ -21,15 +23,19 @@ pub struct DupCommand;
 impl Command for PopCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
     let arg = ctx.opts.argument.unwrap_or(1);
-    if arg > 0 {
-      // Pop N elements
-      let _ = shuffle::pop_several(&mut state.main_stack, arg as usize)?;
-    } else if arg < 0 {
-      // Pop a single specific element
-      let _ = shuffle::pop_nth(&mut state.main_stack, (- arg - 1) as usize)?;
-    } else {
-      // Pop all elements
-      state.main_stack.pop_all();
+    match arg.cmp(&0) {
+      Ordering::Greater => {
+        // Pop N elements
+        let _ = shuffle::pop_several(&mut state.main_stack, arg as usize)?;
+      }
+      Ordering::Less => {
+        // Pop a single specific element
+        let _ = shuffle::pop_nth(&mut state.main_stack, (- arg - 1) as usize)?;
+      }
+      Ordering::Equal => {
+        // Pop all elements
+        state.main_stack.pop_all();
+      }
     }
     Ok(CommandOutput::success())
   }
@@ -38,22 +44,26 @@ impl Command for PopCommand {
 impl Command for SwapCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
     let arg = ctx.opts.argument.unwrap_or(2);
-    if arg > 0 {
-      // Bury top element N deep.
-      let mut elements = shuffle::pop_several(&mut state.main_stack, arg as usize)?;
-      state.main_stack.push(elements.pop().unwrap()); // unwrap: arg > 0 so elements is non-empty.
-      state.main_stack.push_several(elements);
-    } else if arg < 0 {
-      // Bury top N elements at bottom.
-      let elements_to_bury = shuffle::pop_several(&mut state.main_stack, (- arg) as usize)?;
-      let rest_of_elements = state.main_stack.pop_all();
-      state.main_stack.push_several(elements_to_bury);
-      state.main_stack.push_several(rest_of_elements);
-    } else {
-      // Reverse stack.
-      let mut elements = state.main_stack.pop_all();
-      elements.reverse();
-      state.main_stack.push_several(elements);
+    match arg.cmp(&0) {
+      Ordering::Greater => {
+        // Bury top element N deep.
+        let mut elements = shuffle::pop_several(&mut state.main_stack, arg as usize)?;
+        state.main_stack.push(elements.pop().unwrap()); // unwrap: arg > 0 so elements is non-empty.
+        state.main_stack.push_several(elements);
+      }
+      Ordering::Less => {
+        // Bury top N elements at bottom.
+        let elements_to_bury = shuffle::pop_several(&mut state.main_stack, (- arg) as usize)?;
+        let rest_of_elements = state.main_stack.pop_all();
+        state.main_stack.push_several(elements_to_bury);
+        state.main_stack.push_several(rest_of_elements);
+      }
+      Ordering::Equal => {
+        // Reverse stack.
+        let mut elements = state.main_stack.pop_all();
+        elements.reverse();
+        state.main_stack.push_several(elements);
+      }
     }
     Ok(CommandOutput::success())
   }
@@ -62,20 +72,24 @@ impl Command for SwapCommand {
 impl Command for DupCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
     let arg = ctx.opts.argument.unwrap_or(1);
-    if arg > 0 {
-      // Duplicate top N arguments.
-      let elements = shuffle::pop_several(&mut state.main_stack, arg as usize)?;
-      state.main_stack.push_several(elements.clone());
-      state.main_stack.push_several(elements);
-    } else if arg < 0 {
-      // Duplicate specific element N down.
-      let element = shuffle::get(&mut state.main_stack, - arg - 1)?.clone();
-      state.main_stack.push(element);
-    } else {
-      // Duplicate entire stack.
-      let elements = state.main_stack.pop_all();
-      state.main_stack.push_several(elements.clone());
-      state.main_stack.push_several(elements);
+    match arg.cmp(&0) {
+      Ordering::Greater => {
+        // Duplicate top N arguments.
+        let elements = shuffle::pop_several(&mut state.main_stack, arg as usize)?;
+        state.main_stack.push_several(elements.clone());
+        state.main_stack.push_several(elements);
+      }
+      Ordering::Less => {
+        // Duplicate specific element N down.
+        let element = shuffle::get(&mut state.main_stack, - arg - 1)?.clone();
+        state.main_stack.push(element);
+      }
+      Ordering::Equal => {
+        // Duplicate entire stack.
+        let elements = state.main_stack.pop_all();
+        state.main_stack.push_several(elements.clone());
+        state.main_stack.push_several(elements);
+      }
     }
     Ok(CommandOutput::success())
   }
