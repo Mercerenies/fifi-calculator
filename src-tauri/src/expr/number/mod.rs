@@ -3,7 +3,8 @@ mod visitor;
 
 use visitor::NumberPair;
 
-use num::{BigInt, BigRational, Zero, ToPrimitive, One};
+use num::{BigInt, BigRational, Zero, ToPrimitive, One, FromPrimitive};
+use num::integer::div_floor;
 use thiserror::Error;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -92,6 +93,23 @@ impl Number {
       }
     }
     self
+  }
+
+  /// Divide, but truncate toward negative infinity.
+  pub fn div_floor(&self, other: &Number) -> Number {
+    match NumberPair::promote(self.clone(), other.clone()) {
+      NumberPair::Integers(left, right) => {
+        Number::from(div_floor(left, right))
+      }
+      NumberPair::Ratios(left, right) => {
+        let quotient = (left / right).floor();
+        Number::from(quotient.to_integer())
+      }
+      NumberPair::Floats(left, right) => {
+        let quotient = (left / right).floor();
+        Number::from(BigInt::from_f64(quotient).expect("floor should produce integer value"))
+      }
+    }
   }
 }
 
@@ -583,6 +601,28 @@ mod tests {
     assert_strict_eq!(Number::from(4) % Number::from(-3), Number::from(-2));
     assert_strict_eq!(Number::from(-4) % Number::from(-3), Number::from(-1));
     assert_strict_eq!(Number::ratio(-1, 2) % Number::from(3), Number::ratio(5, 2));
+  }
+
+  #[test]
+  fn test_div_floor() {
+    assert_strict_eq!(Number::from(3).div_floor(&Number::from(3)), Number::from(1));
+    assert_strict_eq!(Number::from(0).div_floor(&Number::from(3)), Number::from(0));
+    assert_strict_eq!(Number::from(3).div_floor(&Number::from(2)), Number::from(1));
+    assert_strict_eq!(Number::from(2).div_floor(&Number::from(3)), Number::from(0));
+    assert_strict_eq!(Number::from(8).div_floor(&Number::from(3)), Number::from(2));
+    assert_strict_eq!(Number::ratio(8, 3).div_floor(&Number::from(2)), Number::from(1));
+    assert_strict_eq!(Number::ratio(8, 3).div_floor(&Number::ratio(1, 2)), Number::from(5));
+    assert_strict_eq!(Number::ratio(8, 3).div_floor(&Number::from(0.5)), Number::from(5));
+    assert_strict_eq!(Number::from(8.0).div_floor(&Number::from(3.1)), Number::from(2));
+  }
+
+  #[test]
+  fn test_div_floor_on_negatives() {
+    assert_strict_eq!(Number::from(-3).div_floor(&Number::from(2)), Number::from(-2));
+    assert_strict_eq!(Number::from(3).div_floor(&Number::from(-2)), Number::from(-2));
+    assert_strict_eq!(Number::from(-3).div_floor(&Number::from(-2)), Number::from(1));
+    assert_strict_eq!(Number::from(-3).div_floor(&Number::from(-2.0)), Number::from(1));
+    assert_strict_eq!(Number::ratio(3, -1).div_floor(&Number::from(-2.0)), Number::from(1));
   }
 
   fn is_nan(number: Number) -> bool {
