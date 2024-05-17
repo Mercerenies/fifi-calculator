@@ -36,8 +36,8 @@ pub fn addition() -> Function {
 pub fn subtraction() -> Function {
   FunctionBuilder::new("-")
     .add_case(
-      builder::any_arity().of_type(ExprToNumber).and_then(|args, _| {
-        let difference = args.into_iter().reduce(|a, b| a - b).unwrap_or(Number::zero());
+      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, _| {
+        let difference = arg1 - arg2;
         Ok(Expr::from(difference))
       })
     )
@@ -58,8 +58,8 @@ pub fn multiplication() -> Function {
 pub fn division() -> Function {
   FunctionBuilder::new("/")
     .add_case(
-      builder::any_arity().of_type(ExprToNumber).and_then(|args, _| {
-        let quotient = args.into_iter().reduce(|a, b| a / b).unwrap_or(Number::one());
+      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, _| {
+        let quotient = arg1 / arg2;
         Ok(Expr::from(quotient))
       })
     )

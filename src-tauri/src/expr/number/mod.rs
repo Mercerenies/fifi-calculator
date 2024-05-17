@@ -3,7 +3,7 @@ mod visitor;
 
 use visitor::NumberPair;
 
-use num::{BigInt, BigRational, Zero, ToPrimitive, One, FromPrimitive};
+use num::{BigInt, BigRational, Zero, One, FromPrimitive};
 use num::integer::div_floor;
 use thiserror::Error;
 use once_cell::sync::Lazy;
