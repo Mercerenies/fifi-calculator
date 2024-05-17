@@ -26,7 +26,7 @@ enum NumberImpl {
   Float(f64),
 }
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq)]
 #[non_exhaustive]
 pub struct ParseNumberError {}
 
@@ -316,15 +316,42 @@ fn parse_float(s: &str) -> Option<Number> {
 mod tests {
   use super::*;
   use num::bigint::Sign;
+  use std::fmt::Debug;
 
   // TODO Incomplete test suite in this file :)
+
+  /// A [`Number`] but with equality performed via [`strict_eq`], not
+  /// [`PartialEq`].
+  struct StrictNumber<'a>(&'a Number);
+
+  impl<'a> PartialEq for StrictNumber<'a> {
+    fn eq(&self, other: &StrictNumber) -> bool {
+      self.0.strict_eq(&other.0)
+    }
+  }
+
+  impl<'a> Debug for StrictNumber<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+      write!(f, "{:?}", self.0)
+    }
+  }
+
+  macro_rules! assert_strict_eq {
+    ($left:expr, $right:expr $(,)?) => {
+      match (&$left, &$right) {
+        (left_val, right_val) => {
+          assert_eq!(StrictNumber(left_val), StrictNumber(right_val))
+        }
+      }
+    }
+  }
 
   fn roundtrip_display(number: Number) -> Number {
     Number::from_str(&number.to_string()).unwrap()
   }
 
   fn assert_roundtrip_display(number: Number) {
-    assert!(number.strict_eq(&roundtrip_display(number.clone())));
+    assert_strict_eq!(number.clone(), roundtrip_display(number));
   }
 
   #[test]
@@ -351,24 +378,36 @@ mod tests {
 
   #[test]
   fn test_parse_integer() {
-    assert!(Number::from_str("7").unwrap().strict_eq(&Number::from(7i64)));
-    assert!(Number::from_str("-99").unwrap().strict_eq(&Number::from(-99i64)));
-    assert!(Number::from_str("888888888888888888888888888888888").unwrap().strict_eq(&Number::from(BigInt::from_str("888888888888888888888888888888888").unwrap())));
+    assert_strict_eq!(Number::from_str("7").unwrap(), Number::from(7i64));
+    assert_strict_eq!(Number::from_str("-99").unwrap(), Number::from(-99i64));
+    assert_strict_eq!(
+      Number::from_str("888888888888888888888888888888888").unwrap(),
+      Number::from(BigInt::from_str("888888888888888888888888888888888").unwrap()),
+    );
   }
 
   #[test]
   fn test_parse_ratio() {
-    assert!(Number::from_str("1:2").unwrap().strict_eq(&Number::ratio(BigInt::from(1), BigInt::from(2))));
-    assert!(Number::from_str("-7:9").unwrap().strict_eq(&Number::ratio(BigInt::from(-7), BigInt::from(9))));
-    assert!(Number::from_str("7:-9").unwrap().strict_eq(&Number::ratio(BigInt::from(-7), BigInt::from(9))));
-    assert!(Number::from_str("1:0").is_err());
+    assert_strict_eq!(
+      Number::from_str("1:2").unwrap(),
+      Number::ratio(BigInt::from(1), BigInt::from(2)),
+    );
+    assert_strict_eq!(
+      Number::from_str("-7:9").unwrap(),
+      Number::ratio(BigInt::from(-7), BigInt::from(9)),
+    );
+    assert_strict_eq!(
+      Number::from_str("7:-9").unwrap(),
+      Number::ratio(BigInt::from(-7), BigInt::from(9)),
+    );
+    assert_eq!(Number::from_str("1:0"), Err(ParseNumberError {}));
   }
 
   #[test]
   fn test_parse_float() {
-    assert!(Number::from_str("1.9").unwrap().strict_eq(&Number::from(1.9f64)));
-    assert!(Number::from_str("-88.0").unwrap().strict_eq(&Number::from(-88f64)));
-    assert!(Number::from_str("3e-6").unwrap().strict_eq(&Number::from(3e-6f64)));
-    assert!(Number::from_str("3e6").unwrap().strict_eq(&Number::from(3e6f64)));
+    assert_strict_eq!(Number::from_str("1.9").unwrap(), Number::from(1.9f64));
+    assert_strict_eq!(Number::from_str("-88.0").unwrap(), Number::from(-88f64));
+    assert_strict_eq!(Number::from_str("3e-6").unwrap(), Number::from(3e-6f64));
+    assert_strict_eq!(Number::from_str("3e6").unwrap(), Number::from(3e6f64));
   }
 }
