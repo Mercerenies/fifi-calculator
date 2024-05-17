@@ -34,17 +34,25 @@ pub enum FunctionCaseResult {
   NoMatch(Vec<Expr>),
 }
 
+/// Matcher that requires exactly one argument in order to match. The
+/// argument can optionally be narrowed by a prism, which defaults to
+/// [`Identity`].
 pub struct OneArgumentMatcher<C, Down> {
   arg_prism: C,
   _phantom: PhantomData<Down>,
 }
 
+/// Matcher that requires exactly two arguments in order to match. The
+/// arguments can each be narrowed by prisms.
 pub struct TwoArgumentMatcher<C1, C2, Down1, Down2> {
   first_arg_prism: C1,
   second_arg_prism: C2,
   _phantom: PhantomData<(Down1, Down2)>,
 }
 
+/// Matcher that accepts a variable number of arguments, possibly with
+/// some arbitrary interval restriction on the number of arguments.
+/// The arguments can uniformly be narrowed by a single prism.
 pub struct VecMatcher<C, Down> {
   arg_prism: C,
   min_length: usize,
