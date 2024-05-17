@@ -1,7 +1,7 @@
 
 pub mod builder;
 pub mod function;
-pub mod typechecker;
+pub mod prism;
 
 use crate::expr::Expr;
 use crate::expr::number::Number;

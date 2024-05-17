@@ -2,10 +2,12 @@
 //! Builder API for [`Function`](super::function::Function) objects.
 
 use super::function::Function;
-use super::typechecker::{TypeChecker, Identity};
+use super::prism::{Prism, Identity};
 use crate::expr::Expr;
 use crate::expr::simplifier::error::SimplifierError;
 use crate::errorlist::ErrorList;
+
+use std::marker::PhantomData;
 
 pub struct FunctionBuilder {
   name: String,
@@ -32,13 +34,15 @@ pub enum FunctionCaseResult {
   NoMatch(Vec<Expr>),
 }
 
-pub struct OneArgumentMatcher<C> {
+pub struct OneArgumentMatcher<C, Down> {
   type_checker: C,
+  _phantom: PhantomData<Down>,
 }
 
-pub struct TwoArgumentMatcher<C1, C2> {
+pub struct TwoArgumentMatcher<C1, C2, Down1, Down2> {
   first_type_checker: C1,
   second_type_checker: C2,
+  _phantom: PhantomData<(Down1, Down2)>,
 }
 
 impl FunctionBuilder {
@@ -90,13 +94,14 @@ impl FunctionCaseResult {
   }
 }
 
-impl<C: TypeChecker<Expr>> OneArgumentMatcher<C> {
-  pub fn of_type<D: TypeChecker<Expr>>(self, type_checker: D) -> OneArgumentMatcher<D> {
-    OneArgumentMatcher { type_checker }
+impl<Down, C: Prism<Expr, Down>> OneArgumentMatcher<C, Down> {
+  pub fn of_type<NewDown, D>(self, type_checker: D) -> OneArgumentMatcher<D, NewDown>
+  where D: Prism<Expr, NewDown> {
+    OneArgumentMatcher { type_checker, _phantom: PhantomData }
   }
 
   pub fn and_then<F>(self, f: F) -> Box<FunctionCase>
-  where F: Fn(C::Output, &mut ErrorList<SimplifierError>) -> Result<Expr, Vec<Expr>> + Send + Sync + 'static,
+  where F: Fn(Down, &mut ErrorList<SimplifierError>) -> Result<Expr, Vec<Expr>> + Send + Sync + 'static,
         C: Send + Sync + 'static {
     Box::new(move |mut args, errors| {
       if args.len() != 1 {
@@ -111,17 +116,21 @@ impl<C: TypeChecker<Expr>> OneArgumentMatcher<C> {
   }
 }
 
-impl<C1: TypeChecker<Expr>, C2: TypeChecker<Expr>> TwoArgumentMatcher<C1, C2> {
-  pub fn of_types<D1: TypeChecker<Expr>, D2: TypeChecker<Expr>>(
+impl<Down1, Down2, C1, C2> TwoArgumentMatcher<C1, C2, Down1, Down2>
+where C1: Prism<Expr, Down1>,
+      C2: Prism<Expr, Down2> {
+  pub fn of_types<NewDown1, NewDown2, D1, D2>(
     self,
     first_type_checker: D1,
     second_type_checker: D2,
-  ) -> TwoArgumentMatcher<D1, D2> {
-    TwoArgumentMatcher { first_type_checker, second_type_checker }
+  ) -> TwoArgumentMatcher<D1, D2, NewDown1, NewDown2>
+  where D1: Prism<Expr, NewDown1>,
+        D2: Prism<Expr, NewDown2> {
+    TwoArgumentMatcher { first_type_checker, second_type_checker, _phantom: PhantomData }
   }
 
   pub fn and_then<F>(self, f: F) -> Box<FunctionCase>
-  where F: Fn(C1::Output, C2::Output, &mut ErrorList<SimplifierError>) -> Result<Expr, Vec<Expr>> + Send + Sync + 'static,
+  where F: Fn(Down1, Down2, &mut ErrorList<SimplifierError>) -> Result<Expr, Vec<Expr>> + Send + Sync + 'static,
         C1: Send + Sync + 'static,
         C2: Send + Sync + 'static {
     Box::new(move |mut args, errors| {
@@ -146,15 +155,17 @@ impl<C1: TypeChecker<Expr>, C2: TypeChecker<Expr>> TwoArgumentMatcher<C1, C2> {
   }
 }
 
-pub fn arity_one() -> OneArgumentMatcher<Identity<Expr>> {
+pub fn arity_one() -> OneArgumentMatcher<Identity<Expr>, Expr> {
   OneArgumentMatcher {
     type_checker: Identity::new(),
+    _phantom: PhantomData,
   }
 }
 
-pub fn arity_two() -> TwoArgumentMatcher<Identity<Expr>, Identity<Expr>> {
+pub fn arity_two() -> TwoArgumentMatcher<Identity<Expr>, Identity<Expr>, Expr, Expr> {
   TwoArgumentMatcher {
     first_type_checker: Identity::new(),
     second_type_checker: Identity::new(),
+    _phantom: PhantomData,
   }
 }
