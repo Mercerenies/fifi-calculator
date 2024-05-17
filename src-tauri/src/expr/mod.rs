@@ -15,7 +15,9 @@ pub enum Expr {
 }
 
 #[derive(Debug, Clone)]
-pub struct TryFromExprError;
+pub struct TryFromExprError {
+  original_expr: Expr,
+}
 
 impl Expr {
   pub fn zero() -> Expr {
@@ -64,7 +66,7 @@ impl TryFrom<Expr> for number::Number {
   fn try_from(e: Expr) -> Result<Self, Self::Error> {
     match e {
       Expr::Atom(atom::Atom::Number(n)) => Ok(n),
-      _ => Err(TryFromExprError),
+      e => Err(TryFromExprError { original_expr: e }),
     }
   }
 }

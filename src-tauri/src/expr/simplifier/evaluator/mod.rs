@@ -1,4 +1,8 @@
 
+pub mod builder;
+pub mod function;
+pub mod typechecker;
+
 use crate::expr::Expr;
 use crate::expr::number::Number;
 use crate::errorlist::ErrorList;
