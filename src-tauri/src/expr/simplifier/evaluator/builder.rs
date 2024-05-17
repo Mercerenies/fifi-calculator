@@ -2,7 +2,7 @@
 //! Builder API for [`Function`](super::function::Function) objects.
 
 use super::function::Function;
-use crate::util::prism::{Prism, Identity};
+use crate::util::prism::{Prism, Identity, OnVec};
 use crate::expr::Expr;
 use crate::expr::simplifier::error::SimplifierError;
 use crate::errorlist::ErrorList;
@@ -43,6 +43,11 @@ pub struct TwoArgumentMatcher<C1, C2, Down1, Down2> {
   first_type_checker: C1,
   second_type_checker: C2,
   _phantom: PhantomData<(Down1, Down2)>,
+}
+
+pub struct AnyArityMatcher<C, Down> {
+  type_checker: C,
+  _phantom: PhantomData<Down>,
 }
 
 impl FunctionBuilder {
@@ -155,14 +160,33 @@ where C1: Prism<Expr, Down1>,
   }
 }
 
-pub fn arity_one() -> OneArgumentMatcher<Identity<Expr>, Expr> {
+impl<Down, C: Prism<Expr, Down>> AnyArityMatcher<C, Down> {
+  pub fn of_type<NewDown, D>(self, type_checker: D) -> AnyArityMatcher<D, NewDown>
+  where D: Prism<Expr, NewDown> {
+    AnyArityMatcher { type_checker, _phantom: PhantomData }
+  }
+
+  pub fn and_then<F>(self, f: F) -> Box<FunctionCase>
+  where F: Fn(Vec<Down>, &mut ErrorList<SimplifierError>) -> Result<Expr, Vec<Expr>> + Send + Sync + 'static,
+        C: Send + Sync + 'static {
+    let type_checker = OnVec::new(self.type_checker);
+    Box::new(move |args, errors| {
+      match type_checker.narrow_type(args) {
+        Err(args) => FunctionCaseResult::NoMatch(args),
+        Ok(args) => FunctionCaseResult::from_result(f(args, errors)),
+      }
+    })
+  }
+}
+
+pub fn arity_one() -> OneArgumentMatcher<Identity, Expr> {
   OneArgumentMatcher {
     type_checker: Identity::new(),
     _phantom: PhantomData,
   }
 }
 
-pub fn arity_two() -> TwoArgumentMatcher<Identity<Expr>, Identity<Expr>, Expr, Expr> {
+pub fn arity_two() -> TwoArgumentMatcher<Identity, Identity, Expr, Expr> {
   TwoArgumentMatcher {
     first_type_checker: Identity::new(),
     second_type_checker: Identity::new(),

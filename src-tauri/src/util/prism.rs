@@ -20,67 +20,49 @@ pub trait Prism<Up, Down> {
 
 /// The identity prism, which always succeeds.
 #[derive(Debug, Clone)]
-pub struct Identity<T> {
-  _phantom: PhantomData<T>,
+pub struct Identity {
+  _private: (),
 }
 
 /// Composition of two prisms.
 #[derive(Debug, Clone)]
-pub struct Composed<X, Y, A, B, C> {
+pub struct Composed<X, Y, B> {
   left: X,
   right: Y,
-  _phantom: PhantomData<(A, B, C)>,
+  _phantom: PhantomData<B>,
 }
 
 /// Lift a type-checker into each element of a `Vec`.
 #[derive(Debug, Clone)]
-pub struct OnVec<C, Up, Down> {
-  inner: C,
-  _phantom: PhantomData<(Up, Down)>,
+pub struct OnVec<X> {
+  inner: X,
 }
 
-impl<T> Identity<T> {
+impl Identity {
   pub fn new() -> Self {
     Self::default()
   }
 }
 
-impl<X, Y, A, B, C> Composed<X, Y, A, B, C> {
+impl<X, Y, B> Composed<X, Y, B> {
   pub fn new(left: X, right: Y) -> Self {
     Self { left, right, _phantom: PhantomData }
   }
 }
 
-impl<C, Up, Down> OnVec<C, Up, Down>
-where C: Prism<Up, Down> {
-  pub fn new(inner: C) -> Self {
-    Self { inner, _phantom: PhantomData }
-  }
-
-  fn recover_failed_downcast<I>(
-    &self,
-    some_outputs: Vec<Down>,
-    current_element: Up,
-    rest_of_inputs: I,
-  ) -> Vec<Up>
-  where I: Iterator<Item=Up> {
-    let mut inputs = Vec::with_capacity(some_outputs.len() * 2);
-    for out in some_outputs {
-      inputs.push(self.inner.widen_type(out));
-    }
-    inputs.push(current_element);
-    inputs.extend(rest_of_inputs);
-    inputs
+impl<X> OnVec<X> {
+  pub fn new(inner: X) -> Self {
+    Self { inner }
   }
 }
 
-impl<T> Default for Identity<T> {
+impl Default for Identity {
   fn default() -> Self {
-    Identity { _phantom: PhantomData }
+    Identity { _private: () }
   }
 }
 
-impl<T> Prism<T, T> for Identity<T> {
+impl<T> Prism<T, T> for Identity {
   fn narrow_type(&self, input: T) -> Result<T, T> {
     Ok(input)
   }
@@ -90,7 +72,7 @@ impl<T> Prism<T, T> for Identity<T> {
   }
 }
 
-impl<X, Y, A, B, C> Prism<A, C> for Composed<X, Y, A, B, C>
+impl<X, Y, A, B, C> Prism<A, C> for Composed<X, Y, B>
 where X: Prism<A, B>,
       Y: Prism<B, C> {
   fn narrow_type(&self, input: A) -> Result<C, A> {
@@ -107,8 +89,8 @@ where X: Prism<A, B>,
   }
 }
 
-impl<C, Up, Down> Prism<Vec<Up>, Vec<Down>> for OnVec<C, Up, Down>
-where C: Prism<Up, Down> {
+impl<X, Up, Down> Prism<Vec<Up>, Vec<Down>> for OnVec<X>
+where X: Prism<Up, Down> {
   fn narrow_type(&self, input: Vec<Up>) -> Result<Vec<Down>, Vec<Up>> {
     let mut output = Vec::with_capacity(input.len());
     let mut iter = input.into_iter();
@@ -116,7 +98,7 @@ where C: Prism<Up, Down> {
       match self.inner.narrow_type(elem) {
         Ok(elem) => output.push(elem),
         Err(elem) => {
-          return Err(self.recover_failed_downcast(output, elem, iter));
+          return Err(recover_failed_downcast(&self, output, elem, iter));
         }
       }
     }
@@ -126,4 +108,21 @@ where C: Prism<Up, Down> {
   fn widen_type(&self, input: Vec<Down>) -> Vec<Up> {
     input.into_iter().map(|i| self.inner.widen_type(i)).collect()
   }
+}
+
+fn recover_failed_downcast<X, Up, Down, I>(
+  vec_prism: &OnVec<X>,
+  some_outputs: Vec<Down>,
+  current_element: Up,
+  rest_of_inputs: I,
+) -> Vec<Up>
+where X: Prism<Up, Down>,
+      I: Iterator<Item=Up> {
+  let mut inputs = Vec::with_capacity(some_outputs.len() * 2);
+  for out in some_outputs {
+    inputs.push(vec_prism.inner.widen_type(out));
+  }
+  inputs.push(current_element);
+  inputs.extend(rest_of_inputs);
+  inputs
 }
