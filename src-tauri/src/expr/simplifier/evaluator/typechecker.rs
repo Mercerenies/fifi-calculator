@@ -30,6 +30,12 @@ pub struct Identity<I> {
   _phantom: PhantomData<I>,
 }
 
+/// Type-check which downcasts an [`Expr`] to a contained [`Number`].
+#[derive(Debug, Clone, Default)]
+pub struct IsNumber {
+  _private: (),
+}
+
 impl<I> Identity<I> {
   pub fn new() -> Self {
     Self::default()
@@ -52,12 +58,6 @@ impl<I> TypeChecker<I> for Identity<I> {
   fn widen_type(&self, value: I) -> I {
     value
   }
-}
-
-/// Type-check which downcasts an [`Expr`] to a contained [`Number`].
-#[derive(Debug, Clone, Default)]
-pub struct IsNumber {
-  _private: (),
 }
 
 impl IsNumber {
