@@ -35,18 +35,18 @@ pub enum FunctionCaseResult {
 }
 
 pub struct OneArgumentMatcher<C, Down> {
-  type_checker: C,
+  arg_prism: C,
   _phantom: PhantomData<Down>,
 }
 
 pub struct TwoArgumentMatcher<C1, C2, Down1, Down2> {
-  first_type_checker: C1,
-  second_type_checker: C2,
+  first_arg_prism: C1,
+  second_arg_prism: C2,
   _phantom: PhantomData<(Down1, Down2)>,
 }
 
 pub struct AnyArityMatcher<C, Down> {
-  type_checker: C,
+  arg_prism: C,
   _phantom: PhantomData<Down>,
 }
 
@@ -100,9 +100,9 @@ impl FunctionCaseResult {
 }
 
 impl<Down, C: Prism<Expr, Down>> OneArgumentMatcher<C, Down> {
-  pub fn of_type<NewDown, D>(self, type_checker: D) -> OneArgumentMatcher<D, NewDown>
+  pub fn of_type<NewDown, D>(self, arg_prism: D) -> OneArgumentMatcher<D, NewDown>
   where D: Prism<Expr, NewDown> {
-    OneArgumentMatcher { type_checker, _phantom: PhantomData }
+    OneArgumentMatcher { arg_prism, _phantom: PhantomData }
   }
 
   pub fn and_then<F>(self, f: F) -> Box<FunctionCase>
@@ -113,7 +113,7 @@ impl<Down, C: Prism<Expr, Down>> OneArgumentMatcher<C, Down> {
         return FunctionCaseResult::NoMatch(args);
       }
       let arg = args.pop().unwrap(); // unwrap: args.len() == 1
-      match self.type_checker.narrow_type(arg) {
+      match self.arg_prism.narrow_type(arg) {
         Err(original_arg) => FunctionCaseResult::NoMatch(vec![original_arg]),
         Ok(arg) => FunctionCaseResult::from_result(f(arg, errors)),
       }
@@ -126,12 +126,12 @@ where C1: Prism<Expr, Down1>,
       C2: Prism<Expr, Down2> {
   pub fn of_types<NewDown1, NewDown2, D1, D2>(
     self,
-    first_type_checker: D1,
-    second_type_checker: D2,
+    first_arg_prism: D1,
+    second_arg_prism: D2,
   ) -> TwoArgumentMatcher<D1, D2, NewDown1, NewDown2>
   where D1: Prism<Expr, NewDown1>,
         D2: Prism<Expr, NewDown2> {
-    TwoArgumentMatcher { first_type_checker, second_type_checker, _phantom: PhantomData }
+    TwoArgumentMatcher { first_arg_prism, second_arg_prism, _phantom: PhantomData }
   }
 
   pub fn and_then<F>(self, f: F) -> Box<FunctionCase>
@@ -144,12 +144,12 @@ where C1: Prism<Expr, Down1>,
       }
       let arg2 = args.pop().unwrap(); // unwrap: args.len() == 2
       let arg1 = args.pop().unwrap(); // unwrap: args.len() == 2
-      match self.first_type_checker.narrow_type(arg1) {
+      match self.first_arg_prism.narrow_type(arg1) {
         Err(original_arg1) => FunctionCaseResult::NoMatch(vec![original_arg1, arg2]),
         Ok(arg1) => {
-          match self.second_type_checker.narrow_type(arg2) {
+          match self.second_arg_prism.narrow_type(arg2) {
             Err(original_arg2) => {
-              let original_arg1 = self.first_type_checker.widen_type(arg1);
+              let original_arg1 = self.first_arg_prism.widen_type(arg1);
               FunctionCaseResult::NoMatch(vec![original_arg1, original_arg2])
             }
             Ok(arg2) => FunctionCaseResult::from_result(f(arg1, arg2, errors)),
@@ -161,17 +161,17 @@ where C1: Prism<Expr, Down1>,
 }
 
 impl<Down, C: Prism<Expr, Down>> AnyArityMatcher<C, Down> {
-  pub fn of_type<NewDown, D>(self, type_checker: D) -> AnyArityMatcher<D, NewDown>
+  pub fn of_type<NewDown, D>(self, arg_prism: D) -> AnyArityMatcher<D, NewDown>
   where D: Prism<Expr, NewDown> {
-    AnyArityMatcher { type_checker, _phantom: PhantomData }
+    AnyArityMatcher { arg_prism, _phantom: PhantomData }
   }
 
   pub fn and_then<F>(self, f: F) -> Box<FunctionCase>
   where F: Fn(Vec<Down>, &mut ErrorList<SimplifierError>) -> Result<Expr, Vec<Expr>> + Send + Sync + 'static,
         C: Send + Sync + 'static {
-    let type_checker = OnVec::new(self.type_checker);
+    let arg_prism = OnVec::new(self.arg_prism);
     Box::new(move |args, errors| {
-      match type_checker.narrow_type(args) {
+      match arg_prism.narrow_type(args) {
         Err(args) => FunctionCaseResult::NoMatch(args),
         Ok(args) => FunctionCaseResult::from_result(f(args, errors)),
       }
@@ -181,22 +181,22 @@ impl<Down, C: Prism<Expr, Down>> AnyArityMatcher<C, Down> {
 
 pub fn arity_one() -> OneArgumentMatcher<Identity, Expr> {
   OneArgumentMatcher {
-    type_checker: Identity::new(),
+    arg_prism: Identity::new(),
     _phantom: PhantomData,
   }
 }
 
 pub fn arity_two() -> TwoArgumentMatcher<Identity, Identity, Expr, Expr> {
   TwoArgumentMatcher {
-    first_type_checker: Identity::new(),
-    second_type_checker: Identity::new(),
+    first_arg_prism: Identity::new(),
+    second_arg_prism: Identity::new(),
     _phantom: PhantomData,
   }
 }
 
 pub fn any_arity() -> AnyArityMatcher<Identity, Expr> {
   AnyArityMatcher {
-    type_checker: Identity::new(),
+    arg_prism: Identity::new(),
     _phantom: PhantomData,
   }
 }
