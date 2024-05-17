@@ -9,8 +9,8 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 use std::fmt::{self, Display, Formatter};
-use std::ops::{Add, Sub, Mul, Div, Neg};
 use std::str::FromStr;
+use std::ops;
 
 /// General-purpose number type, capable of automatically switching
 /// between representations when mathematical functions demand it.
@@ -150,7 +150,7 @@ impl PartialEq for Number {
   }
 }
 
-impl Add for Number {
+impl ops::Add for Number {
   type Output = Number;
 
   fn add(self, other: Number) -> Number {
@@ -162,7 +162,7 @@ impl Add for Number {
   }
 }
 
-impl Add for &Number {
+impl ops::Add for &Number {
   type Output = Number;
 
   fn add(self, other: &Number) -> Number {
@@ -170,7 +170,7 @@ impl Add for &Number {
   }
 }
 
-impl Sub for Number {
+impl ops::Sub for Number {
   type Output = Number;
 
   fn sub(self, other: Number) -> Number {
@@ -182,7 +182,7 @@ impl Sub for Number {
   }
 }
 
-impl Sub for &Number {
+impl ops::Sub for &Number {
   type Output = Number;
 
   fn sub(self, other: &Number) -> Number {
@@ -190,7 +190,7 @@ impl Sub for &Number {
   }
 }
 
-impl Mul for Number {
+impl ops::Mul for Number {
   type Output = Number;
 
   fn mul(self, other: Number) -> Number {
@@ -202,7 +202,7 @@ impl Mul for Number {
   }
 }
 
-impl Mul for &Number {
+impl ops::Mul for &Number {
   type Output = Number;
 
   fn mul(self, other: &Number) -> Number {
@@ -210,7 +210,7 @@ impl Mul for &Number {
   }
 }
 
-impl Div for Number {
+impl ops::Div for Number {
   type Output = Number;
 
   fn div(self, other: Number) -> Number {
@@ -222,7 +222,7 @@ impl Div for Number {
   }
 }
 
-impl Div for &Number {
+impl ops::Div for &Number {
   type Output = Number;
 
   fn div(self, other: &Number) -> Number {
@@ -230,7 +230,7 @@ impl Div for &Number {
   }
 }
 
-impl Neg for Number {
+impl ops::Neg for Number {
   type Output = Number;
 
   fn neg(self) -> Number {
@@ -242,7 +242,7 @@ impl Neg for Number {
   }
 }
 
-impl Neg for &Number {
+impl ops::Neg for &Number {
   type Output = Number;
 
   fn neg(self) -> Number {
@@ -527,5 +527,32 @@ mod tests {
   fn test_div_by_zero_nan() {
     assert!(is_nan(Number::from(0) / Number::from(0)));
     assert!(is_nan(Number::from(0.0) / Number::from(0.0)));
+  }
+
+  #[test]
+  fn test_neg() {
+    assert_strict_eq!(- Number::from(3), Number::from(-3));
+    assert_strict_eq!(- Number::ratio(-1, 2), Number::ratio(1, 2));
+    assert_strict_eq!(- Number::from(3.5), Number::from(-3.5));
+    assert_strict_eq!(- Number::from(0.0), Number::from(-0.0));
+  }
+
+  #[test]
+  fn test_is_zero() {
+    assert!(Number::from(0).is_zero());
+    assert!(Number::from(0.0).is_zero());
+    assert!(!Number::from(1.0).is_zero());
+    assert!(!Number::from(-3).is_zero());
+    assert!(!Number::ratio(-3, 2).is_zero());
+  }
+
+  #[test]
+  fn test_is_one() {
+    assert!(Number::from(1).is_one());
+    assert!(Number::from(1.0).is_one());
+    assert!(!Number::from(-1).is_one());
+    assert!(!Number::ratio(-3, 2).is_one());
+    assert!(!Number::from(0).is_one());
+    assert!(!Number::from(0.0).is_one());
   }
 }
