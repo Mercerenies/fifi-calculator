@@ -2,7 +2,7 @@
 //! Builder API for [`Function`](super::function::Function) objects.
 
 use super::function::Function;
-use super::prism::{Prism, Identity};
+use crate::util::prism::{Prism, Identity};
 use crate::expr::Expr;
 use crate::expr::simplifier::error::SimplifierError;
 use crate::errorlist::ErrorList;

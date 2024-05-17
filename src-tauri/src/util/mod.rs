@@ -1,6 +1,8 @@
 
 //! Various utility functions.
 
+pub mod prism;
+
 use std::convert::Infallible;
 
 pub fn unwrap_infallible<T>(res: Result<T, Infallible>) -> T {

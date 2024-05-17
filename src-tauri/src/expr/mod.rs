@@ -1,6 +1,7 @@
 
 pub mod atom;
 pub mod number;
+pub mod prisms;
 pub mod simplifier;
 pub mod walker;
 
