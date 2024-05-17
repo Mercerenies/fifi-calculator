@@ -19,7 +19,7 @@ pub trait Prism<Up, Down> {
 }
 
 /// The identity prism, which always succeeds.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Identity {
   _private: (),
 }
@@ -68,12 +68,6 @@ impl InOption {
   }
 }
 
-impl Default for Identity {
-  fn default() -> Self {
-    Identity { _private: () }
-  }
-}
-
 impl<T> Prism<T, T> for Identity {
   fn narrow_type(&self, input: T) -> Result<T, T> {
     Ok(input)
@@ -110,7 +104,7 @@ where X: Prism<Up, Down> {
       match self.inner.narrow_type(elem) {
         Ok(elem) => output.push(elem),
         Err(elem) => {
-          return Err(recover_failed_downcast(&self, output, elem, iter));
+          return Err(recover_failed_downcast(self, output, elem, iter));
         }
       }
     }

@@ -294,7 +294,7 @@ fn parse_integer(s: &str) -> Option<Number> {
 
 fn parse_ratio(s: &str) -> Option<Number> {
   static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"([+-]?\d+):([+-]?\d+)").unwrap());
-  let Some(caps) = RE.captures(s) else { return None; };
+  let caps = RE.captures(s)?;
   // Note: We panic if BigInt::from_str fails here, since the regex
   // *should* guarantee it succeeds. If that assumption fails, it's a
   // bug and I want to know.

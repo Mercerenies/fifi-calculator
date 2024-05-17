@@ -19,7 +19,7 @@ impl<T> Stack<T> {
   /// Push in the order we see them, so that the last element in the
   /// iterable is at the top of the resulting stack.
   pub fn push_several(&mut self, elements: impl IntoIterator<Item = T>) {
-    self.elements.extend(elements.into_iter());
+    self.elements.extend(elements);
   }
 
   pub fn pop(&mut self) -> Option<T> {

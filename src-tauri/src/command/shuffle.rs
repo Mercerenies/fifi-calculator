@@ -81,7 +81,7 @@ impl Command for DupCommand {
       }
       Ordering::Less => {
         // Duplicate specific element N down.
-        let element = shuffle::get(&mut state.main_stack, - arg - 1)?.clone();
+        let element = shuffle::get(&state.main_stack, - arg - 1)?.clone();
         state.main_stack.push(element);
       }
       Ordering::Equal => {

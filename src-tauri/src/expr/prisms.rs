@@ -9,7 +9,7 @@ pub struct ExprToNumber;
 
 impl ExprToNumber {
   pub fn new() -> Self {
-    Self::default()
+    ExprToNumber
   }
 }
 
