@@ -24,8 +24,16 @@ pub struct Identity<T> {
   _phantom: PhantomData<T>,
 }
 
+/// Composition of two prisms.
+#[derive(Debug, Clone)]
+pub struct Composed<X, Y, A, B, C> {
+  left: X,
+  right: Y,
+  _phantom: PhantomData<(A, B, C)>,
+}
+
 /// Lift a type-checker into each element of a `Vec`.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct OnVec<C, Up, Down> {
   inner: C,
   _phantom: PhantomData<(Up, Down)>,
@@ -34,6 +42,12 @@ pub struct OnVec<C, Up, Down> {
 impl<T> Identity<T> {
   pub fn new() -> Self {
     Self::default()
+  }
+}
+
+impl<X, Y, A, B, C> Composed<X, Y, A, B, C> {
+  pub fn new(left: X, right: Y) -> Self {
+    Self { left, right, _phantom: PhantomData }
   }
 }
 
@@ -67,13 +81,29 @@ impl<T> Default for Identity<T> {
 }
 
 impl<T> Prism<T, T> for Identity<T> {
-
   fn narrow_type(&self, input: T) -> Result<T, T> {
     Ok(input)
   }
 
   fn widen_type(&self, input: T) -> T {
     input
+  }
+}
+
+impl<X, Y, A, B, C> Prism<A, C> for Composed<X, Y, A, B, C>
+where X: Prism<A, B>,
+      Y: Prism<B, C> {
+  fn narrow_type(&self, input: A) -> Result<C, A> {
+    let b = self.left.narrow_type(input)?;
+    match self.right.narrow_type(b) {
+      Ok(c) => Ok(c),
+      Err(b) => Err(self.left.widen_type(b)),
+    }
+  }
+
+  fn widen_type(&self, input: C) -> A {
+    let b = self.right.widen_type(input);
+    self.left.widen_type(b)
   }
 }
 
