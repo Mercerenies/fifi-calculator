@@ -1,5 +1,5 @@
 
-use super::{Number, NumberRepr};
+use super::{Number, NumberRepr, powi_by_repeated_square};
 use crate::util::stricteq::StrictEq;
 
 use num::{Zero, One, BigInt};
@@ -80,6 +80,20 @@ impl ComplexNumber {
       imag: - &self.imag / abs_sqr,
     }
   }
+
+  pub fn powi(&self, exp: BigInt) -> ComplexNumber {
+    match exp.cmp(&BigInt::zero()) {
+      Ordering::Equal => {
+        ComplexNumber::one()
+      }
+      Ordering::Greater => {
+        powi_by_repeated_square(self.clone(), exp)
+      }
+      Ordering::Less => {
+        powi_by_repeated_square(self.recip(), -exp)
+      }
+    }
+  }
 }
 
 impl StrictEq for ComplexNumber {
@@ -149,6 +163,14 @@ impl ops::Mul for &ComplexNumber {
 
   fn mul(self, other: &ComplexNumber) -> ComplexNumber {
     self.to_owned() * other.to_owned()
+  }
+}
+
+// Needed to call powi_by_repeated_square. We'll implement the other
+// ops::*Assign traits on an as-needed basis.
+impl ops::MulAssign for ComplexNumber {
+  fn mul_assign(&mut self, other: ComplexNumber) {
+    *self = self.clone() * other
   }
 }
 
@@ -281,6 +303,30 @@ mod tests {
     assert_strict_eq!(
       ComplexNumber::new(Number::from(2), Number::from(10)).recip(),
       ComplexNumber::new(Number::ratio(2, 104), Number::ratio(-10, 104)),
+    );
+  }
+
+  #[test]
+  fn test_powi_zero_exponent() {
+    assert_strict_eq!(
+      ComplexNumber::new(Number::from(2), Number::from(3)).powi(BigInt::zero()),
+      ComplexNumber::new(Number::from(1), Number::from(0)),
+    );
+  }
+
+  #[test]
+  fn test_powi_positive_exponent() {
+    assert_strict_eq!(
+      ComplexNumber::new(Number::from(2), Number::from(3)).powi(BigInt::from(4)),
+      ComplexNumber::new(Number::from(-119), Number::from(-120)),
+    );
+  }
+
+  #[test]
+  fn test_powi_negative_exponent() {
+    assert_strict_eq!(
+      ComplexNumber::new(Number::from(2), Number::from(3)).powi(BigInt::from(-3)),
+      ComplexNumber::new(Number::ratio(-46, 2197), Number::ratio(-9, 2197)),
     );
   }
 }
