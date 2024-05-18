@@ -157,4 +157,54 @@ mod tests {
       epsilon = 0.0001,
     );
   }
+
+  #[test]
+  fn test_pow_real_with_integer_exponent() {
+    assert_strict_eq!(
+      pow_real(Number::from(2), Number::from(2)),
+      ComplexLike::Real(Number::from(4)),
+    );
+    assert_strict_eq!(
+      pow_real(Number::from(3), Number::from(10)),
+      ComplexLike::Real(Number::from(59049)),
+    );
+    assert_strict_eq!(
+      pow_real(Number::ratio(2, 3), Number::from(2)),
+      ComplexLike::Real(Number::ratio(4, 9)),
+    );
+    assert_strict_eq!(
+      pow_real(Number::ratio(2, 3), Number::from(-2)),
+      ComplexLike::Real(Number::ratio(9, 4)),
+    );
+    assert_strict_eq!(
+      pow_real(Number::ratio(2, 3), Number::from(0)),
+      ComplexLike::Real(Number::from(1)),
+    );
+  }
+
+  #[test]
+  fn test_pow_real_with_rational_exponent() {
+    let value = pow_real(Number::from(2), Number::ratio(2, 3)).unwrap_real();
+    assert_abs_diff_eq!(value, Number::from(1.5874010519), epsilon = 0.0001);
+
+    let value = pow_real(Number::from(-2), Number::ratio(1, 3)).unwrap_complex();
+    assert_abs_diff_eq!(
+      value,
+      ComplexNumber::new(Number::from(0.6299605), Number::from(1.0911236)),
+      epsilon = 0.0001,
+    );
+  }
+
+  #[test]
+  fn test_pow_real_with_floating_exponent() {
+    let value = pow_real(Number::from(2), Number::from(0.666666)).unwrap_real();
+    assert_abs_diff_eq!(value, Number::from(1.5874010519), epsilon = 0.0001);
+
+    let value = pow_real(Number::from(-2), Number::from(0.333333)).unwrap_complex();
+    assert_abs_diff_eq!(
+      value,
+      ComplexNumber::new(Number::from(0.6299605), Number::from(1.0911236)),
+      epsilon = 0.0001,
+    );
+  }
 }

@@ -524,9 +524,11 @@ mod tests {
   use super::*;
   use crate::{assert_strict_eq, assert_strict_ne};
 
+  use approx::assert_abs_diff_eq;
+
   use num::bigint::Sign;
 
-  // TODO Missing tests: PartialOrd, powf, to_f64, Signed
+  // TODO Missing tests: PartialOrd, to_f64, Signed
 
   fn roundtrip_display(number: Number) -> Number {
     Number::from_str(&number.to_string()).unwrap()
@@ -769,5 +771,19 @@ mod tests {
     assert_strict_eq!(Number::ratio(1, 3).powi(BigInt::from(-2)), Number::from(9));
     assert_strict_eq!(Number::from(3).powi(BigInt::from(-10)), Number::ratio(1, 59049));
     assert_strict_eq!(Number::from(2.0).powi(BigInt::from(-2)), Number::from(0.25));
+  }
+
+  #[test]
+  fn test_powf_zero_exponent() {
+    assert_abs_diff_eq!(Number::from(3).powf(0.0), 1.0);
+    assert_abs_diff_eq!(Number::ratio(1, 2).powf(0.0), 1.0);
+    assert_abs_diff_eq!(Number::from(3.2).powf(0.0), 1.0);
+  }
+
+  #[test]
+  fn test_powf_positive_exponent() {
+    assert_abs_diff_eq!(Number::from(3).powf(1.0), 3.0);
+    assert_abs_diff_eq!(Number::from(3).powf(2.0), 9.0);
+    assert_abs_diff_eq!(Number::from(3).powf(2.5), 15.5884572, epsilon = 0.001);
   }
 }
