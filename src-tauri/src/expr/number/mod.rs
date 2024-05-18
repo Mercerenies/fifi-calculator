@@ -31,8 +31,9 @@ where T: One + MulAssign + Clone {
 }
 
 /// Either a real number or a complex number. This is used as a target
-/// for the [`ExprToComplex`] and can be safely converted (via
-/// [`From::from`]) into a [`ComplexNumber`] if desired.
+/// for the [`ExprToComplex`](super::prisms::ExprToComplex) prism and
+/// can be safely converted (via [`From::from`]) into a
+/// [`ComplexNumber`] if desired.
 ///
 /// If we directly wrote a prism for narrowing `Expr` to
 /// `ComplexNumber`, then that prism would fail to catch non-complex

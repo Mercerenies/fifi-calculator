@@ -6,7 +6,7 @@ pub mod general;
 pub mod options;
 pub mod shuffle;
 
-pub use base::{Command, CommandContext};
+pub use base::{Command, CommandContext, CommandOutput};
 use functional::{UnaryFunctionCommand, BinaryFunctionCommand};
 use dispatch::CommandDispatchTable;
 use crate::expr::Expr;

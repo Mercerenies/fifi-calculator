@@ -1,5 +1,5 @@
 
-//! Builder API for [`Function`](super::function::Function) objects.
+//! Builder API for [`Function`] objects.
 
 use super::function::Function;
 use crate::util::prism::{Prism, Identity, OnVec};
