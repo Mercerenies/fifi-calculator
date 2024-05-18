@@ -5,7 +5,7 @@ use super::function::Function;
 use super::builder::{self, FunctionBuilder};
 use crate::expr::prisms::{ExprToNumber, ExprToComplex};
 use crate::expr::Expr;
-use crate::expr::number::{Number, ComplexNumber, pow_real};
+use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex, pow_complex_to_real};
 use crate::expr::simplifier::error::SimplifierError;
 
 use num::{Zero, One};
@@ -128,6 +128,40 @@ pub fn power() -> Function {
           return Err((arg1, arg2));
         }
         let power = pow_real(arg1, arg2);
+        Ok(Expr::from(power))
+      })
+    )
+    .add_case(
+      // Complex-to-real number power function
+      builder::arity_two().of_types(ExprToComplex, ExprToNumber).and_then(|arg1, arg2, errors| {
+        if arg1.is_zero() && arg2.is_zero() {
+          errors.push(SimplifierError::zero_to_zero_power("^"));
+          return Err((arg1, arg2));
+        }
+        if arg1.is_zero() && arg2 < Number::zero() {
+          errors.push(SimplifierError::division_by_zero("^"));
+          return Err((arg1, arg2));
+        }
+        let power = pow_complex_to_real(arg1.into(), arg2);
+        Ok(Expr::from(power))
+      })
+    )
+    .add_case(
+      // Complex number power function
+      builder::arity_two().of_types(ExprToComplex, ExprToComplex).and_then(|arg1, arg2, errors| {
+        if arg1.is_zero() && arg2.is_zero() {
+          errors.push(SimplifierError::zero_to_zero_power("^"));
+          return Err((arg1, arg2));
+        }
+        if arg1.is_zero() {
+          // Arguably, a positive real exponent which happens to be
+          // represented as a complex number can simplify here, but
+          // that's getting so far into the weeds. Just bail out if
+          // arg1 == 0 in general.
+          errors.push(SimplifierError::division_by_zero("^"));
+          return Err((arg1, arg2));
+        }
+        let power = pow_complex(arg1.into(), arg2.into());
         Ok(Expr::from(power))
       })
     )
