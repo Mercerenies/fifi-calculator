@@ -7,7 +7,7 @@ const tauri = window.__TAURI__.tauri;
 // Input method that accepts numerical input.
 export class NumericalInputMethod extends InputMethod {
   // TODO Get this from somewhere automated.
-  static AUTO_SUBMIT_KEYS = new Set(["*", "/"]);
+  static AUTO_SUBMIT_KEYS = new Set(["*", "/", "^"]);
 
   getLabelHTML() { return "#:"; }
 
