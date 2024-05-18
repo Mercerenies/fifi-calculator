@@ -10,6 +10,7 @@ use num::traits::ToPrimitive;
 use thiserror::Error;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use approx::{AbsDiffEq, RelativeEq, UlpsEq};
 
 use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
@@ -270,6 +271,44 @@ impl StrictEq for Number {
   /// ```
   fn strict_eq(&self, other: &Number) -> bool {
     self.repr() == other.repr() && self == other
+  }
+}
+
+impl AbsDiffEq for Number {
+  type Epsilon = f64;
+
+  fn default_epsilon() -> f64 {
+    <f64 as AbsDiffEq>::default_epsilon()
+  }
+
+  fn abs_diff_eq(&self, other: &Number, epsilon: f64) -> bool {
+    let left = self.to_f64().unwrap_or(f64::NAN);
+    let right = other.to_f64().unwrap_or(f64::NAN);
+    left.abs_diff_eq(&right, epsilon)
+  }
+}
+
+impl RelativeEq for Number {
+  fn default_max_relative() -> f64 {
+    <f64 as RelativeEq>::default_max_relative()
+  }
+
+  fn relative_eq(&self, other: &Number, epsilon: f64, max_relative: f64) -> bool {
+    let left = self.to_f64().unwrap_or(f64::NAN);
+    let right = other.to_f64().unwrap_or(f64::NAN);
+    left.relative_eq(&right, epsilon, max_relative)
+  }
+}
+
+impl UlpsEq for Number {
+  fn default_max_ulps() -> u32 {
+    <f64 as UlpsEq>::default_max_ulps()
+  }
+
+  fn ulps_eq(&self, other: &Number, epsilon: f64, max_ulps: u32) -> bool {
+    let left = self.to_f64().unwrap_or(f64::NAN);
+    let right = other.to_f64().unwrap_or(f64::NAN);
+    left.ulps_eq(&right, epsilon, max_ulps)
   }
 }
 
