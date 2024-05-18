@@ -55,8 +55,8 @@ impl From<number::Number> for Expr {
   }
 }
 
-impl From<number::complex::ComplexNumber> for Expr {
-  fn from(z: number::complex::ComplexNumber) -> Expr {
+impl From<number::ComplexNumber> for Expr {
+  fn from(z: number::ComplexNumber) -> Expr {
     Expr::Atom(z.into())
   }
 }

@@ -1,6 +1,8 @@
 
-pub mod complex;
+mod complex;
 mod visitor;
+
+pub use complex::ComplexNumber;
 
 use visitor::NumberPair;
 use crate::util::stricteq::StrictEq;

@@ -5,8 +5,7 @@ use super::function::Function;
 use super::builder::{self, FunctionBuilder};
 use crate::expr::prisms::{ExprToNumber, ExprToComplex};
 use crate::expr::Expr;
-use crate::expr::number::Number;
-use crate::expr::number::complex::ComplexNumber;
+use crate::expr::number::{Number, ComplexNumber};
 use crate::expr::simplifier::error::SimplifierError;
 
 use num::{Zero, One};

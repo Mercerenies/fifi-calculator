@@ -1,6 +1,5 @@
 
-use super::number::Number;
-use super::number::complex::ComplexNumber;
+use super::number::{Number, ComplexNumber};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Atom {

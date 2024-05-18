@@ -1,8 +1,7 @@
 
 use super::Expr;
 use super::atom::Atom;
-use super::number::Number;
-use super::number::complex::ComplexNumber;
+use super::number::{Number, ComplexNumber};
 use crate::util::prism::Prism;
 
 use num::Zero;

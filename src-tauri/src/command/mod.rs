@@ -10,8 +10,7 @@ pub use base::{Command, CommandContext};
 use functional::{UnaryFunctionCommand, BinaryFunctionCommand};
 use dispatch::CommandDispatchTable;
 use crate::expr::Expr;
-use crate::expr::number::Number;
-use crate::expr::number::complex::ComplexNumber;
+use crate::expr::number::{Number, ComplexNumber};
 
 use num::One;
 
