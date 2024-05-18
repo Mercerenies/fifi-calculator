@@ -1,4 +1,5 @@
 
+pub mod complex;
 mod visitor;
 
 use visitor::NumberPair;
@@ -170,6 +171,12 @@ impl From<BigRational> for Number {
 impl From<f64> for Number {
   fn from(f: f64) -> Number {
     Number { inner: NumberImpl::Float(f) }
+  }
+}
+
+impl Default for Number {
+  fn default() -> Number {
+    Number::from(0)
   }
 }
 
