@@ -8,7 +8,7 @@ mod repr;
 pub use real::{Number, ParseNumberError};
 pub use complex::ComplexNumber;
 pub use repr::NumberRepr;
-pub use power::{pow_real, root_real};
+pub use power::{pow_real, pow_complex_to_real, pow_complex, root_real, root_complex};
 
 use super::Expr;
 use crate::util::stricteq::StrictEq;

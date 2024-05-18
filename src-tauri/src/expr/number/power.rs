@@ -69,6 +69,62 @@ pub fn root_real(x: Number, n: BigInt) -> ComplexLike {
   }
 }
 
+/// Raises a complex number to a real numbered power, producing the
+/// principal value of `x^y`.
+pub fn pow_complex_to_real(x: ComplexNumber, y: Number) -> ComplexNumber {
+  match y.inner {
+    NumberImpl::Integer(y) => {
+      x.powi(y)
+    }
+    NumberImpl::Ratio(y) => {
+      let big_x = x.powi(y.numer().clone());
+      root_complex(big_x, y.denom().clone())
+    }
+    NumberImpl::Float(y) => {
+      // Calculate the result in polar coordinates.
+      let magnitude = x.abs().powf(y);
+      let angle = PI * y;
+      ComplexNumber::from_polar_inexact(magnitude, angle)
+    }
+  }
+}
+
+fn raise_to_power_i(x: ComplexNumber) -> ComplexNumber {
+  let abs = x.abs();
+  let angle = x.angle();
+  let new_abs = (- angle).exp();
+  let new_angle = abs.ln();
+  ComplexNumber::from_polar_inexact(new_abs, new_angle)
+}
+
+/// Raises an arbitrary complex number to another complex
+/// numbered-power.
+pub fn pow_complex(x: ComplexNumber, y: ComplexNumber) -> ComplexNumber {
+  // Distribute y = a + b i, and do x^a and (x^i)^b separately.
+  let first_term = pow_complex_to_real(x.clone(), y.real().clone());
+  let second_term = pow_complex_to_real(raise_to_power_i(x), y.imag().clone());
+  first_term * second_term
+}
+
+/// Finds the principal nth root of a complex number.
+///
+/// Precondition: `n > 0`
+pub fn root_complex(x: ComplexNumber, n: BigInt) -> ComplexNumber {
+  assert!(n > BigInt::zero());
+
+  // Corner cases: x == 0 or n == 1.
+  if x.is_zero() || n == BigInt::one() {
+    return x;
+  }
+
+  // TODO Exactness here as well, just like root_real. It should be
+  // possible in some situations.
+  let n = n.to_f64().unwrap_or(f64::NAN);
+  let magnitude = x.abs().powf(n.recip());
+  let angle = x.angle() / n;
+  ComplexNumber::from_polar_inexact(magnitude, angle)
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -204,6 +260,19 @@ mod tests {
     assert_abs_diff_eq!(
       value,
       ComplexNumber::new(Number::from(0.6299605), Number::from(1.0911236)),
+      epsilon = 0.0001,
+    );
+  }
+
+  #[test]
+  fn test_pow_complex() {
+    let value = pow_complex(
+      ComplexNumber::new(Number::from(0.3), Number::from(0.8)),
+      ComplexNumber::new(Number::from(0.1), Number::from(0.2)),
+    );
+    assert_abs_diff_eq!(
+      value,
+      ComplexNumber::new(Number::from(0.7693787), Number::from(0.069223389)),
       epsilon = 0.0001,
     );
   }
