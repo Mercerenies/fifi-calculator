@@ -7,8 +7,13 @@ pub mod options;
 pub mod shuffle;
 
 pub use base::{Command, CommandContext};
-use functional::BinaryFunctionCommand;
+use functional::{UnaryFunctionCommand, BinaryFunctionCommand};
 use dispatch::CommandDispatchTable;
+use crate::expr::Expr;
+use crate::expr::number::Number;
+use crate::expr::number::complex::ComplexNumber;
+
+use num::One;
 
 use std::collections::HashMap;
 
@@ -20,10 +25,16 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("/".to_string(), Box::new(BinaryFunctionCommand::named("/")));
   map.insert("%".to_string(), Box::new(BinaryFunctionCommand::named("%")));
   map.insert("\\".to_string(), Box::new(BinaryFunctionCommand::named("\\")));
+  map.insert("*i".to_string(), Box::new(UnaryFunctionCommand::new(times_i)));
   map.insert("pop".to_string(), Box::new(shuffle::PopCommand));
   map.insert("swap".to_string(), Box::new(shuffle::SwapCommand));
   map.insert("dup".to_string(), Box::new(shuffle::DupCommand));
   CommandDispatchTable::from_hash_map(map)
+}
+
+fn times_i(expr: Expr) -> Expr {
+  let ii = ComplexNumber::from_imag(Number::one());
+  Expr::Call("*".to_string(), vec![expr, Expr::from(ii)])
 }
 
 #[cfg(test)]

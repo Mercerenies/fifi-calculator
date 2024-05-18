@@ -42,7 +42,10 @@ export class MainButtonGrid implements ButtonGrid {
     return [
       [new DispatchButton("+", "+", "+")],
       [new DispatchButton("-", "-", "-")],
-      [new DispatchButton("&times;", "*", "*")],
+      [
+        new DispatchButton("<math><mo>&times;</mo></math>", "*", "*"),
+        new DispatchButton("<math><mo>&times;</mo><mi>i</mi></math>", "*i", null),
+      ],
       [
         new DispatchButton("&divide;", "/", "/"),
         new DispatchButton("%", "%", "%"),

@@ -17,6 +17,9 @@ impl Renderer for DefaultRenderer {
       Expr::Atom(Atom::Number(n)) => {
         out.push_str(&n.to_string());
       }
+      Expr::Atom(Atom::Complex(z)) => {
+        out.push_str(&z.to_string());
+      }
       Expr::Call(f, args) => {
         // TODO Do smarter stuff for infix operators, etc.
         function_call_to_html(out, f, args);

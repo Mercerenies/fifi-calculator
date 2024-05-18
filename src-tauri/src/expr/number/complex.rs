@@ -2,6 +2,8 @@
 use super::{Number, NumberRepr};
 use crate::util::stricteq::StrictEq;
 
+use num::Zero;
+
 use std::fmt::{self, Formatter, Display};
 use std::ops;
 
@@ -37,6 +39,14 @@ impl ComplexNumber {
 
   pub fn imag_repr(&self) -> NumberRepr {
     self.imag.repr()
+  }
+
+  pub fn from_real(real: Number) -> Self {
+    Self { real, imag: Number::zero() }
+  }
+
+  pub fn from_imag(imag: Number) -> Self {
+    Self { real: Number::zero(), imag }
   }
 }
 
