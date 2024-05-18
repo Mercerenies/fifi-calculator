@@ -3,7 +3,7 @@ use super::{Number, NumberRepr};
 use crate::util::stricteq::StrictEq;
 
 use num::{Zero, One};
-use approx::AbsDiffEq;
+use approx::{AbsDiffEq, RelativeEq};
 
 use std::fmt::{self, Formatter, Display};
 use std::ops;
@@ -193,6 +193,16 @@ impl AbsDiffEq for ComplexNumber {
 
   fn abs_diff_eq(&self, other: &Self, epsilon: f64) -> bool {
     self.abs() - other.abs() <= epsilon
+  }
+}
+
+impl RelativeEq for ComplexNumber {
+  fn default_max_relative() -> f64 {
+    <f64 as RelativeEq>::default_max_relative()
+  }
+
+  fn relative_eq(&self, other: &Self, epsilon: f64, max_relative: f64) -> bool {
+    (self - other).abs() <= epsilon * f64::max(self.abs(), other.abs()) * max_relative
   }
 }
 

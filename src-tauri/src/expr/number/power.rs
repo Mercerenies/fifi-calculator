@@ -74,6 +74,8 @@ mod tests {
   use super::*;
   use crate::assert_strict_eq;
 
+  use approx::assert_abs_diff_eq;
+
   #[test]
   #[should_panic]
   fn test_root_real_negative_power() {
@@ -124,5 +126,35 @@ mod tests {
     );
   }
 
-  // TODO The rest
+  #[test]
+  fn test_root_real_with_exponent_two() {
+    let value = root_real(Number::from(4), BigInt::from(2)).unwrap_real();
+    assert_abs_diff_eq!(value, Number::from(2));
+
+    let value = root_real(Number::from(99), BigInt::from(2)).unwrap_real();
+    assert_abs_diff_eq!(value, Number::from(9.94987437107), epsilon = 0.0001);
+
+    let value = root_real(Number::from(-99), BigInt::from(2)).unwrap_complex();
+    assert_abs_diff_eq!(
+      value,
+      ComplexNumber::new(Number::zero(), Number::from(9.94987437107)),
+      epsilon = 0.0001,
+    );
+  }
+
+  #[test]
+  fn test_root_real_with_exponent_three() {
+    let value = root_real(Number::from(8), BigInt::from(3)).unwrap_real();
+    assert_abs_diff_eq!(value, Number::from(2));
+
+    let value = root_real(Number::from(5), BigInt::from(3)).unwrap_real();
+    assert_abs_diff_eq!(value, Number::from(1.70997594), epsilon = 0.0001);
+
+    let value = root_real(Number::from(-5), BigInt::from(3)).unwrap_complex();
+    assert_abs_diff_eq!(
+      value,
+      ComplexNumber::new(Number::from(0.85498797), Number::from(1.4808826)),
+      epsilon = 0.0001,
+    );
+  }
 }
