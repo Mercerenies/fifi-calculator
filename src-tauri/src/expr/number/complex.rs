@@ -73,6 +73,20 @@ impl ComplexNumber {
     self.abs_sqr().powf(0.5)
   }
 
+  /// Computes the polar angle of this complex number, as an `f64`.
+  /// The returned angle is in radians.
+  ///
+  /// If `self.is_zero()`, then this returns zero.
+  pub fn angle(&self) -> f64 {
+    if self.is_zero() {
+      0.0
+    } else {
+      let real = self.real.to_f64().unwrap_or(f64::NAN);
+      let imag = self.imag.to_f64().unwrap_or(f64::NAN);
+      imag.atan2(real)
+    }
+  }
+
   pub fn recip(&self) -> ComplexNumber {
     let abs_sqr = self.abs_sqr();
     ComplexNumber {
@@ -93,6 +107,10 @@ impl ComplexNumber {
         powi_by_repeated_square(self.recip(), -exp)
       }
     }
+  }
+
+  pub fn powf(&self, exp: f64) -> ComplexNumber {
+    ComplexNumber::from_polar_inexact(self.abs().powf(exp), exp * self.angle())
   }
 }
 
@@ -242,6 +260,8 @@ mod tests {
   use super::*;
   use crate::assert_strict_eq;
 
+  use approx::assert_abs_diff_eq;
+
   #[test]
   fn test_add() {
     assert_strict_eq!(
@@ -327,6 +347,33 @@ mod tests {
     assert_strict_eq!(
       ComplexNumber::new(Number::from(2), Number::from(3)).powi(BigInt::from(-3)),
       ComplexNumber::new(Number::ratio(-46, 2197), Number::ratio(-9, 2197)),
+    );
+  }
+
+  #[test]
+  fn test_powf() {
+    assert_abs_diff_eq!(
+      ComplexNumber::new(Number::from(2), Number::from(3)).powf(0.0),
+      ComplexNumber::new(Number::from(1), Number::from(0)),
+      epsilon = 0.0001,
+    );
+
+    assert_abs_diff_eq!(
+      ComplexNumber::new(Number::from(2), Number::from(3)).powf(4.0),
+      ComplexNumber::new(Number::from(-119), Number::from(-120)),
+      epsilon = 0.0001,
+    );
+
+    assert_abs_diff_eq!(
+      ComplexNumber::new(Number::from(2), Number::from(3)).powf(-3.0),
+      ComplexNumber::new(Number::ratio(-46, 2197), Number::ratio(-9, 2197)),
+      epsilon = 0.0001,
+    );
+
+    assert_abs_diff_eq!(
+      ComplexNumber::new(Number::from(2), Number::from(3)).powf(1.8),
+      ComplexNumber::new(Number::from(-1.980959), Number::from(9.861875)),
+      epsilon = 0.0001,
     );
   }
 }
