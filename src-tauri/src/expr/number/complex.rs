@@ -2,11 +2,12 @@
 use super::{Number, NumberRepr};
 use crate::util::stricteq::StrictEq;
 
-use num::{Zero, One};
+use num::{Zero, One, BigInt};
 use approx::{AbsDiffEq, RelativeEq};
 
 use std::fmt::{self, Formatter, Display};
 use std::ops;
+use std::cmp::Ordering;
 
 /// A complex number has a real part and an imaginary part.
 ///
@@ -70,6 +71,14 @@ impl ComplexNumber {
   pub fn abs(&self) -> f64 {
     // TODO Do this exactly, when we can.
     self.abs_sqr().powf(0.5)
+  }
+
+  pub fn recip(&self) -> ComplexNumber {
+    let abs_sqr = self.abs_sqr();
+    ComplexNumber {
+      real: &self.real / &abs_sqr,
+      imag: - &self.imag / abs_sqr,
+    }
   }
 }
 
@@ -264,6 +273,14 @@ mod tests {
       ComplexNumber::new(Number::from(1.0), Number::from(10)) /
         ComplexNumber::new(Number::from(2), Number::from(20)),
       ComplexNumber::new(Number::from(0.5), Number::from(0.0)),
+    );
+  }
+
+  #[test]
+  fn test_recip() {
+    assert_strict_eq!(
+      ComplexNumber::new(Number::from(2), Number::from(10)).recip(),
+      ComplexNumber::new(Number::ratio(2, 104), Number::ratio(-10, 104)),
     );
   }
 }
