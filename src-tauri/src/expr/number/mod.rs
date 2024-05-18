@@ -153,6 +153,23 @@ impl Number {
       }
     }
   }
+
+  /// Converts `self` to an `f64` on a best-effort basis.
+  pub fn to_f64(&self) -> Option<f64> {
+    match &self.inner {
+      NumberImpl::Integer(i) => i.to_f64(),
+      NumberImpl::Ratio(r) => r.to_f64(),
+      NumberImpl::Float(d) => Some(*d),
+    }
+  }
+
+  /// Raises a `Number` to a floating point power. The result is
+  /// always a floating point, which may be NaN if the value does not,
+  /// mathematically, exist as a real number.
+  pub fn powf(&self, exp: f64) -> f64 {
+    let self_as_f64 = self.to_f64().unwrap_or(f64::NAN);
+    self_as_f64.powf(exp)
+  }
 }
 
 // Precondition: exp > 0.
