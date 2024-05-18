@@ -49,19 +49,6 @@ impl Number {
     }
   }
 
-  /// Returns the sign of the number, as an exact integer.
-  ///
-  /// If the number is a non-orderable floating-point constant (such
-  /// as NaN), then NaN is returned.
-  pub fn signum(&self) -> Number {
-    match self.partial_cmp(&Number::zero()) {
-      Some(Ordering::Greater) => Number::from(1),
-      Some(Ordering::Less) => Number::from(-1),
-      Some(Ordering::Equal) => Number::from(0),
-      None => Number::from(f64::NAN),
-    }
-  }
-
   /// Produces a rational number. If the denominator divides evenly
   /// into the numerator, then the resulting value will have
   /// reprentation `NumberRepr::Integer`. Otherwise, the resulting
@@ -150,6 +137,36 @@ impl Number {
   pub fn powf(&self, exp: f64) -> f64 {
     let self_as_f64 = self.to_f64().unwrap_or(f64::NAN);
     self_as_f64.powf(exp)
+  }
+
+  /// The absolute value of `self`.
+  pub fn abs(&self) -> Number {
+    if self >= &Number::zero() {
+      self.clone()
+    } else {
+      - self
+    }
+  }
+
+  /// Returns the sign of the number, as an exact integer.
+  ///
+  /// If the number is a non-orderable floating-point constant (such
+  /// as NaN), then NaN is returned.
+  pub fn signum(&self) -> Number {
+    match self.partial_cmp(&Number::zero()) {
+      Some(Ordering::Greater) => Number::from(1),
+      Some(Ordering::Less) => Number::from(-1),
+      Some(Ordering::Equal) => Number::from(0),
+      None => Number::from(f64::NAN),
+    }
+  }
+
+  pub fn is_positive(&self) -> bool {
+    self > &Number::zero()
+  }
+
+  pub fn is_negative(&self) -> bool {
+    self < &Number::zero()
   }
 }
 
@@ -400,6 +417,7 @@ impl ops::Neg for &Number {
   }
 }
 
+
 impl Zero for Number {
   fn zero() -> Number {
     Number::from(0i64)
@@ -469,7 +487,7 @@ mod tests {
 
   use num::bigint::Sign;
 
-  // TODO Missing tests: PartialOrd, signum, powf, to_f64
+  // TODO Missing tests: PartialOrd, powf, to_f64, Signed
 
   fn roundtrip_display(number: Number) -> Number {
     Number::from_str(&number.to_string()).unwrap()

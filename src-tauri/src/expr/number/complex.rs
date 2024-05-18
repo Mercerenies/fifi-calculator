@@ -48,6 +48,28 @@ impl ComplexNumber {
   pub fn from_imag(imag: Number) -> Self {
     Self { real: Number::zero(), imag }
   }
+
+  /// Constructs an (inexact) complex number from polar coordinates,
+  /// with `phi` represented in radians.
+  pub fn from_polar_inexact(r: f64, phi: f64) -> Self {
+    Self {
+      real: Number::from(r * phi.cos()),
+      imag: Number::from(r * phi.sin()),
+    }
+  }
+
+  /// Computes the square of the absolute value of this complex
+  /// number.
+  pub fn abs_sqr(&self) -> Number {
+    &self.real * &self.real + &self.imag * &self.imag
+  }
+
+  /// Computes the absolute value of this complex number. Note that,
+  /// for now, this is always an inexact quantity.
+  pub fn abs(&self) -> f64 {
+    // TODO Do this exactly, when we can.
+    self.abs_sqr().powf(0.5)
+  }
 }
 
 impl StrictEq for ComplexNumber {

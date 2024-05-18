@@ -1,12 +1,15 @@
 
 mod complex;
 mod visitor;
+mod power;
 mod real;
 mod repr;
 
 pub use real::{Number, ParseNumberError};
 pub use complex::ComplexNumber;
 pub use repr::NumberRepr;
+pub use power::pow_real;
+use crate::util::stricteq::StrictEq;
 
 use num::{BigInt, Zero, One};
 
@@ -42,7 +45,7 @@ where T: One + MulAssign + Clone {
 /// gives us the best of both worlds: We get the implicit upcast of a
 /// real number into a `ComplexNumber` while still having a lawful
 /// `ExprToComplex` prism.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ComplexLike {
   Real(Number),
   Complex(ComplexNumber),
@@ -62,6 +65,27 @@ impl From<ComplexLike> for ComplexNumber {
     match input {
       ComplexLike::Real(real) => ComplexNumber::from_real(real),
       ComplexLike::Complex(complex) => complex,
+    }
+  }
+}
+
+impl TryFrom<ComplexLike> for Number {
+  type Error = ComplexLike;
+
+  fn try_from(input: ComplexLike) -> Result<Number, ComplexLike> {
+    match input {
+      ComplexLike::Real(real) => Ok(real),
+      ComplexLike::Complex(_) => Err(input),
+    }
+  }
+}
+
+impl StrictEq for ComplexLike {
+  fn strict_eq(&self, other: &Self) -> bool {
+    match (self, other) {
+      (ComplexLike::Real(a), ComplexLike::Real(b)) => a.strict_eq(b),
+      (ComplexLike::Complex(a), ComplexLike::Complex(b)) => a.strict_eq(b),
+      _ => false
     }
   }
 }
