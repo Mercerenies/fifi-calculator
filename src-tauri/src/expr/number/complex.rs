@@ -130,3 +130,25 @@ impl ops::Div for &ComplexNumber {
     self.to_owned() / other.to_owned()
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::assert_strict_eq;
+
+  // TODO The rest of these tests
+
+  #[test]
+  fn test_add() {
+    assert_strict_eq!(
+      ComplexNumber::new(Number::from(1), Number::from(2)) +
+        ComplexNumber::new(Number::from(3), Number::from(4)),
+      ComplexNumber::new(Number::from(4), Number::from(6))
+    );
+    assert_strict_eq!(
+      ComplexNumber::new(Number::from(1.0), Number::from(2)) +
+        ComplexNumber::new(Number::from(3), Number::from(4)),
+      ComplexNumber::new(Number::from(4.0), Number::from(6))
+    );
+  }
+}
