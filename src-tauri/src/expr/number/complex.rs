@@ -3,6 +3,7 @@ use super::{Number, NumberRepr};
 use crate::util::stricteq::StrictEq;
 
 use num::{Zero, One};
+use approx::AbsDiffEq;
 
 use std::fmt::{self, Formatter, Display};
 use std::ops;
@@ -180,6 +181,18 @@ impl One for ComplexNumber {
 
   fn is_one(&self) -> bool {
     self.real.is_one() && self.imag.is_zero()
+  }
+}
+
+impl AbsDiffEq for ComplexNumber {
+  type Epsilon = f64;
+
+  fn default_epsilon() -> f64 {
+    <f64 as AbsDiffEq>::default_epsilon()
+  }
+
+  fn abs_diff_eq(&self, other: &Self, epsilon: f64) -> bool {
+    self.abs() - other.abs() <= epsilon
   }
 }
 

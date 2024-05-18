@@ -58,6 +58,22 @@ impl ComplexLike {
       ComplexLike::Complex(z) => z.is_zero(),
     }
   }
+
+  /// Panics if `self` is a [`ComplexLike::Complex`].
+  pub fn unwrap_real(self) -> Number {
+    match self {
+      ComplexLike::Real(r) => r,
+      ComplexLike::Complex(_) => panic!("Cannot unwrap a complex number as a real number"),
+    }
+  }
+
+  /// Panics if `self` is a [`ComplexLike::Real`].
+  pub fn unwrap_complex(self) -> ComplexNumber {
+    match self {
+      ComplexLike::Real(_) => panic!("Cannot unwrap a real number as a complex number"),
+      ComplexLike::Complex(z) => z,
+    }
+  }
 }
 
 impl From<ComplexLike> for ComplexNumber {
