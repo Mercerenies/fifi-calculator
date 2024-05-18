@@ -24,6 +24,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("/".to_string(), Box::new(BinaryFunctionCommand::named("/")));
   map.insert("%".to_string(), Box::new(BinaryFunctionCommand::named("%")));
   map.insert("\\".to_string(), Box::new(BinaryFunctionCommand::named("\\")));
+  map.insert("^".to_string(), Box::new(BinaryFunctionCommand::named("^")));
   map.insert("*i".to_string(), Box::new(UnaryFunctionCommand::new(times_i)));
   map.insert("pop".to_string(), Box::new(shuffle::PopCommand));
   map.insert("swap".to_string(), Box::new(shuffle::SwapCommand));

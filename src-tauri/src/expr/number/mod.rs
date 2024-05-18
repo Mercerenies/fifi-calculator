@@ -8,7 +8,9 @@ mod repr;
 pub use real::{Number, ParseNumberError};
 pub use complex::ComplexNumber;
 pub use repr::NumberRepr;
-pub use power::pow_real;
+pub use power::{pow_real, root_real};
+
+use super::Expr;
 use crate::util::stricteq::StrictEq;
 
 use num::{BigInt, Zero, One};
@@ -81,6 +83,15 @@ impl From<ComplexLike> for ComplexNumber {
     match input {
       ComplexLike::Real(real) => ComplexNumber::from_real(real),
       ComplexLike::Complex(complex) => complex,
+    }
+  }
+}
+
+impl From<ComplexLike> for Expr {
+  fn from(input: ComplexLike) -> Expr {
+    match input {
+      ComplexLike::Real(real) => real.into(),
+      ComplexLike::Complex(complex) => complex.into(),
     }
   }
 }

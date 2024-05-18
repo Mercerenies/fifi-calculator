@@ -5,7 +5,7 @@ use super::function::Function;
 use super::builder::{self, FunctionBuilder};
 use crate::expr::prisms::{ExprToNumber, ExprToComplex};
 use crate::expr::Expr;
-use crate::expr::number::{Number, ComplexNumber};
+use crate::expr::number::{Number, ComplexNumber, pow_real};
 use crate::expr::simplifier::error::SimplifierError;
 
 use num::{Zero, One};
@@ -18,6 +18,7 @@ pub fn arithmetic_functions() -> HashMap<String, Function> {
   functions.insert("-".to_string(), subtraction());
   functions.insert("*".to_string(), multiplication());
   functions.insert("/".to_string(), division());
+  functions.insert("^".to_string(), power());
   functions.insert("%".to_string(), modulo());
   functions.insert("\\".to_string(), floor_division());
   functions
@@ -111,6 +112,23 @@ pub fn division() -> Function {
       })
     )
     .build()
+}
+
+pub fn power() -> Function {
+  FunctionBuilder::new("^")
+    .add_case(
+      // Real number power function
+      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, errors| {
+        if arg1.is_zero() && arg2.is_zero() {
+          errors.push(SimplifierError::zero_to_zero_power("^"));
+          return Err((arg1, arg2));
+        }
+        let power = pow_real(arg1, arg2);
+        Ok(Expr::from(power))
+      })
+    )
+    .build()
+  // TODO Complex
 }
 
 pub fn modulo() -> Function {

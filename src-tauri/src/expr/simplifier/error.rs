@@ -15,6 +15,8 @@ pub const DIVISION_BY_ZERO: &str = "Division by zero";
 
 pub const EXPECTED_REAL: &str = "Expected real number";
 
+pub const ZERO_TO_ZERO_POWER: &str = "Indeterminate form 0^0";
+
 impl SimplifierError {
   pub fn division_by_zero(function: impl Into<String>) -> SimplifierError {
     SimplifierError::DomainError {
@@ -22,10 +24,18 @@ impl SimplifierError {
       explanation: DIVISION_BY_ZERO.to_owned(),
     }
   }
+
   pub fn expected_real(function: impl Into<String>) -> SimplifierError {
     SimplifierError::DomainError {
       function: function.into(),
       explanation: EXPECTED_REAL.to_owned(),
+    }
+  }
+
+  pub fn zero_to_zero_power(function: impl Into<String>) -> SimplifierError {
+    SimplifierError::DomainError {
+      function: function.into(),
+      explanation: ZERO_TO_ZERO_POWER.to_owned(),
     }
   }
 }
