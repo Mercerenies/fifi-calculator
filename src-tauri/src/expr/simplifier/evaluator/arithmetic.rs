@@ -123,6 +123,10 @@ pub fn power() -> Function {
           errors.push(SimplifierError::zero_to_zero_power("^"));
           return Err((arg1, arg2));
         }
+        if arg1.is_zero() && arg2 < Number::zero() {
+          errors.push(SimplifierError::division_by_zero("^"));
+          return Err((arg1, arg2));
+        }
         let power = pow_real(arg1, arg2);
         Ok(Expr::from(power))
       })
