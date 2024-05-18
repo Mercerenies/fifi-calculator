@@ -3,7 +3,7 @@
 //! for our numerical representation. None of this functionality is
 //! directly exposed outside of `crate::expr::number`.
 
-use super::{Number, NumberImpl};
+use super::real::{Number, NumberImpl};
 
 use num::{BigInt, BigRational, ToPrimitive};
 
