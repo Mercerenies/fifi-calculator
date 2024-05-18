@@ -14,8 +14,13 @@ use std::str::FromStr;
 use std::ops;
 use std::cmp::Ordering;
 
-/// General-purpose number type, capable of automatically switching
-/// between representations when mathematical functions demand it.
+/// General-purpose real number type, capable of automatically
+/// switching between representations when mathematical functions
+/// demand it.
+///
+/// A real number can be represented as an exact (arbitrary-precision)
+/// integer, a rational number, or an IEEE 754 floating point value.
+/// Use [`Number::repr`] to get the number's current representation.
 #[derive(Debug, Clone)]
 pub struct Number {
   inner: NumberImpl,
@@ -40,10 +45,16 @@ pub struct ParseNumberError {}
 /// to floating-point values when necessary.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum NumberRepr {
-  Integer, Ratio, Float,
+  /// An integer, exact.
+  Integer,
+  /// A rational number, exact.
+  Ratio,
+  /// An inexact IEEE 754 floating-point value.
+  Float,
 }
 
 impl Number {
+  /// Gets the current representation of the number.
   pub fn repr(&self) -> NumberRepr {
     match &self.inner {
       NumberImpl::Integer(_) => NumberRepr::Integer,
@@ -52,6 +63,10 @@ impl Number {
     }
   }
 
+  /// Returns the sign of the number, as an exact integer.
+  ///
+  /// If the number is a non-orderable floating-point constant (such
+  /// as NaN), then NaN is returned.
   pub fn signum(&self) -> Number {
     match self.partial_cmp(&Number::zero()) {
       Some(Ordering::Greater) => Number::from(1),
@@ -61,11 +76,25 @@ impl Number {
     }
   }
 
+  /// Compares both the representation and the value of the type. This
+  /// is stricter than the standard [`PartialEq`] implementation.
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// # use fifi::expr::number::Number;
+  /// assert!(Number::from(0).strict_eq(&Number::from(0)));
+  /// assert!(!Number::from(0).strict_eq(&Number::from(0.0)));
+  /// ```
   pub fn strict_eq(&self, other: &Number) -> bool {
     self.repr() == other.repr() && self == other
   }
 
-  /// Produces a rational number with repr [`NumberRepr::Ratio`].
+  /// Produces a rational number. If the denominator divides evenly
+  /// into the numerator, then the resulting value will have
+  /// reprentation `NumberRepr::Integer`. Otherwise, the resulting
+  /// value will have representation `NumberRepr::Ratio`.
+  ///
   /// Panics if `denom == 0`.
   pub fn ratio(numer: impl Into<BigInt>, denom: impl Into<BigInt>) -> Number {
     Number::from(BigRational::new(numer.into(), denom.into()))
@@ -103,24 +132,41 @@ impl Number {
   }
 }
 
+impl NumberRepr {
+  /// Returns true if the numerical representation represents exact
+  /// known quantities, as opposed to approximations.
+  pub fn is_exact(&self) -> bool {
+    match self {
+      NumberRepr::Integer => true,
+      NumberRepr::Ratio => true,
+      NumberRepr::Float => false,
+    }
+  }
+}
+
+/// Constructs an integer number from an `i64`.
 impl From<i64> for Number {
   fn from(i: i64) -> Number {
     Number { inner: NumberImpl::Integer(i.into()) }
   }
 }
 
+/// Constructs an integer number from an arbitrary-sized `BigInt`
+/// integer.
 impl From<BigInt> for Number {
   fn from(i: BigInt) -> Number {
     Number { inner: NumberImpl::Integer(i) }
   }
 }
 
+/// Constructs a rational number from a `BigRational` value.
 impl From<BigRational> for Number {
   fn from(r: BigRational) -> Number {
     Number { inner: NumberImpl::Ratio(r) }.simplify()
   }
 }
 
+/// Constructs a floating-point number from an `f64` value.
 impl From<f64> for Number {
   fn from(f: f64) -> Number {
     Number { inner: NumberImpl::Float(f) }
@@ -158,6 +204,16 @@ impl Display for ParseNumberError {
 /// `PartialEq` impl for `Number` compares the numerical value and
 /// ignores the representation. To include the representation, use
 /// [`Number::strict_eq`].
+///
+/// # Examples
+///
+/// ```
+/// # use fifi::expr::number::Number;
+/// assert_eq!(Number::from(0), Number::from(0));
+/// assert_eq!(!Number::from(0), Number::from(0.0));
+/// assert_eq!(!Number::ratio(1, 2), Number::from(0.5));
+/// assert_ne!(!Number::ratio(1, 3), Number::from(0.5));
+/// ```
 impl PartialEq for Number {
   fn eq(&self, other: &Number) -> bool {
     match NumberPair::promote(self.clone(), other.clone()) {
@@ -238,6 +294,10 @@ impl ops::Mul for &Number {
   }
 }
 
+/// This division operation will not truncate, even if given two
+/// values of representation `NumberRepr::Integer`. However, it will
+/// preserve exactness, so given two exact inputs, the output will be
+/// exact as well.
 impl ops::Div for Number {
   type Output = Number;
 
