@@ -2,7 +2,7 @@
 use super::{Number, NumberRepr};
 use crate::util::stricteq::StrictEq;
 
-use num::Zero;
+use num::{Zero, One};
 
 use std::fmt::{self, Formatter, Display};
 use std::ops;
@@ -138,6 +138,26 @@ impl ops::Div for &ComplexNumber {
 
   fn div(self, other: &ComplexNumber) -> ComplexNumber {
     self.to_owned() / other.to_owned()
+  }
+}
+
+impl Zero for ComplexNumber {
+  fn zero() -> Self {
+    Self::new(Number::zero(), Number::zero())
+  }
+
+  fn is_zero(&self) -> bool {
+    self.real.is_zero() && self.imag.is_zero()
+  }
+}
+
+impl One for ComplexNumber {
+  fn one() -> Self {
+    Self::new(Number::one(), Number::zero())
+  }
+
+  fn is_one(&self) -> bool {
+    self.real.is_one() && self.imag.is_zero()
   }
 }
 

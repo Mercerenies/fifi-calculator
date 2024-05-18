@@ -3,9 +3,10 @@
 
 use super::function::Function;
 use super::builder::{self, FunctionBuilder};
-use crate::expr::prisms::ExprToNumber;
+use crate::expr::prisms::{ExprToNumber, ExprToComplex};
 use crate::expr::Expr;
 use crate::expr::number::Number;
+use crate::expr::number::complex::ComplexNumber;
 use crate::expr::simplifier::error::SimplifierError;
 
 use num::{Zero, One};
@@ -26,8 +27,19 @@ pub fn arithmetic_functions() -> HashMap<String, Function> {
 pub fn addition() -> Function {
   FunctionBuilder::new("+")
     .add_case(
+      // Real number addition
       builder::any_arity().of_type(ExprToNumber).and_then(|args, _| {
         let sum = args.into_iter().reduce(|a, b| a + b).unwrap_or(Number::zero());
+        Ok(Expr::from(sum))
+      })
+    )
+    .add_case(
+      // Complex number addition
+      builder::any_arity().of_type(ExprToComplex).and_then(|args, _| {
+        let sum = args.into_iter()
+          .map(ComplexNumber::from)
+          .reduce(|a, b| a + b)
+          .unwrap_or(ComplexNumber::zero());
         Ok(Expr::from(sum))
       })
     )
@@ -37,8 +49,16 @@ pub fn addition() -> Function {
 pub fn subtraction() -> Function {
   FunctionBuilder::new("-")
     .add_case(
+      // Real number subtraction
       builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, _| {
         let difference = arg1 - arg2;
+        Ok(Expr::from(difference))
+      })
+    )
+    .add_case(
+      // Complex number subtraction
+      builder::arity_two().both_of_type(ExprToComplex).and_then(|arg1, arg2, _| {
+        let difference = ComplexNumber::from(arg1) - ComplexNumber::from(arg2);
         Ok(Expr::from(difference))
       })
     )
@@ -48,8 +68,19 @@ pub fn subtraction() -> Function {
 pub fn multiplication() -> Function {
   FunctionBuilder::new("*")
     .add_case(
+      // Real number multiplication
       builder::any_arity().of_type(ExprToNumber).and_then(|args, _| {
         let product = args.into_iter().reduce(|a, b| a * b).unwrap_or(Number::one());
+        Ok(Expr::from(product))
+      })
+    )
+    .add_case(
+      // Complex number multiplication
+      builder::any_arity().of_type(ExprToComplex).and_then(|args, _| {
+        let product = args.into_iter()
+          .map(ComplexNumber::from)
+          .reduce(|a, b| a * b)
+          .unwrap_or(ComplexNumber::one());
         Ok(Expr::from(product))
       })
     )
@@ -59,8 +90,9 @@ pub fn multiplication() -> Function {
 pub fn division() -> Function {
   FunctionBuilder::new("/")
     .add_case(
+      // Real number division
       builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, errors| {
-        if arg2 == Number::zero() {
+        if arg2.is_zero() {
           errors.push(SimplifierError::division_by_zero("/"));
           return Err((arg1, arg2));
         }
@@ -68,14 +100,26 @@ pub fn division() -> Function {
         Ok(Expr::from(quotient))
       })
     )
+    .add_case(
+      // Complex number division
+      builder::arity_two().both_of_type(ExprToComplex).and_then(|arg1, arg2, errors| {
+        if arg2.is_zero() {
+          errors.push(SimplifierError::division_by_zero("/"));
+          return Err((arg1, arg2));
+        }
+        let quotient = ComplexNumber::from(arg1) / ComplexNumber::from(arg2);
+        Ok(Expr::from(quotient))
+      })
+    )
     .build()
 }
 
 pub fn modulo() -> Function {
+  // TODO Complex numbers?
   FunctionBuilder::new("%")
     .add_case(
       builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, errors| {
-        if arg2 == Number::zero() {
+        if arg2.is_zero() {
           errors.push(SimplifierError::division_by_zero("%"));
           return Err((arg1, arg2));
         }
@@ -86,10 +130,11 @@ pub fn modulo() -> Function {
 }
 
 pub fn floor_division() -> Function {
+  // TODO Complex numbers?
   FunctionBuilder::new("\\")
     .add_case(
       builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, errors| {
-        if arg2 == Number::zero() {
+        if arg2.is_zero() {
           errors.push(SimplifierError::division_by_zero("\\"));
           return Err((arg1, arg2));
         }

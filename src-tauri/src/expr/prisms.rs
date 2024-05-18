@@ -1,8 +1,11 @@
 
 use super::Expr;
+use super::atom::Atom;
 use super::number::Number;
 use super::number::complex::ComplexNumber;
 use crate::util::prism::Prism;
+
+use num::Zero;
 
 /// Prism which downcasts an [`Expr`] to a contained [`Number`].
 #[derive(Debug, Clone, Copy, Default)]
@@ -42,6 +45,15 @@ impl ExprToComplex {
   }
 }
 
+impl ComplexLike {
+  pub fn is_zero(&self) -> bool {
+    match self {
+      ComplexLike::Real(r) => r.is_zero(),
+      ComplexLike::Complex(z) => z.is_zero(),
+    }
+  }
+}
+
 impl From<ComplexLike> for ComplexNumber {
   fn from(input: ComplexLike) -> ComplexNumber {
     match input {
@@ -58,5 +70,22 @@ impl Prism<Expr, Number> for ExprToNumber {
 
   fn widen_type(&self, input: Number) -> Expr {
     Expr::from(input)
+  }
+}
+
+impl Prism<Expr, ComplexLike> for ExprToComplex {
+  fn narrow_type(&self, input: Expr) -> Result<ComplexLike, Expr> {
+    match input {
+      Expr::Atom(Atom::Number(r)) => Ok(ComplexLike::Real(r)),
+      Expr::Atom(Atom::Complex(z)) => Ok(ComplexLike::Complex(z)),
+      _ => Err(input),
+    }
+  }
+
+  fn widen_type(&self, input: ComplexLike) -> Expr {
+    match input {
+      ComplexLike::Real(r) => Expr::Atom(Atom::Number(r)),
+      ComplexLike::Complex(z) => Expr::Atom(Atom::Complex(z)),
+    }
   }
 }
