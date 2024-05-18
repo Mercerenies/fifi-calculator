@@ -20,7 +20,7 @@ pub struct Strictly<'a, T>(pub &'a T);
 
 impl<'a, T: StrictEq> PartialEq for Strictly<'a, T> {
   fn eq(&self, other: &Self) -> bool {
-    self.0.strict_eq(&other.0)
+    self.0.strict_eq(other.0)
   }
 }
 

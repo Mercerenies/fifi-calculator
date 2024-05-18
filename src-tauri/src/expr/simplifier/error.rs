@@ -11,7 +11,7 @@ pub enum SimplifierError {
   DomainError { function: String, explanation: String },
 }
 
-pub const DIVISION_BY_ZERO: &'static str = "Division by zero";
+pub const DIVISION_BY_ZERO: &str = "Division by zero";
 
 impl SimplifierError {
   pub fn division_by_zero(function: impl Into<String>) -> SimplifierError {
