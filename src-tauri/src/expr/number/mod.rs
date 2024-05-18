@@ -7,6 +7,7 @@ use crate::util::stricteq::StrictEq;
 
 use num::{BigInt, BigRational, Zero, One, FromPrimitive};
 use num::integer::div_floor;
+use num::traits::ToPrimitive;
 use thiserror::Error;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -118,6 +119,56 @@ impl Number {
       }
     }
   }
+
+  pub fn recip(&self) -> Number {
+    &Number::one() / self
+  }
+
+  /// Raises a `Number` to an integer power.
+  ///
+  /// The indeterminate form `0^0` is treated as 1.
+  pub fn powi(&self, exp: BigInt) -> Number {
+    match exp.cmp(&BigInt::zero()) {
+      Ordering::Equal => {
+        // Exponent is zero, so return 1.
+        Number::one()
+      }
+      Ordering::Less => {
+        // Exponent is negative, so make it positive and apply to
+        // reciprocal.
+        self.recip().powi(- exp)
+      }
+      Ordering::Greater => {
+        match &self.inner {
+          NumberImpl::Integer(n) => Number::from(powi_by_repeated_square(n.clone(), exp)),
+          NumberImpl::Ratio(r) => Number::from(powi_by_repeated_square(r.clone(), exp)),
+          NumberImpl::Float(f) =>
+            // In the floating case, we're already going to end up
+            // with an inexact result, so just rely on the hardware
+            // powf implementation instead of repeated squaring.
+            Number::from(f.powf(exp.to_f64().unwrap_or(f64::NAN))),
+        }
+      }
+    }
+  }
+}
+
+// Precondition: exp > 0.
+fn powi_by_repeated_square<T>(mut input: T, mut exp: BigInt) -> T
+where T: One + ops::MulAssign + Clone {
+  assert!(exp > BigInt::zero());
+  let mut result = T::one();
+  while exp > BigInt::one() {
+    if exp.clone() % BigInt::from(2) == BigInt::zero() {
+      input *= input.clone();
+      exp /= BigInt::from(2);
+    } else {
+      result *= input.clone();
+      exp -= BigInt::one();
+    }
+  }
+  result *= input;
+  result
 }
 
 impl NumberRepr {
@@ -664,5 +715,32 @@ mod tests {
     assert!(!Number::ratio(-3, 2).is_one());
     assert!(!Number::from(0).is_one());
     assert!(!Number::from(0.0).is_one());
+  }
+
+  #[test]
+  fn test_powi_zero_exponent() {
+    assert_strict_eq!(Number::from(3).powi(BigInt::zero()), Number::from(1));
+    assert_strict_eq!(Number::ratio(1, 2).powi(BigInt::zero()), Number::from(1));
+    assert_strict_eq!(Number::from(0).powi(BigInt::zero()), Number::from(1));
+    assert_strict_eq!(Number::from(3.2).powi(BigInt::zero()), Number::from(1));
+    assert_strict_eq!(Number::from(-1).powi(BigInt::zero()), Number::from(1));
+    assert_strict_eq!(Number::from(0.0).powi(BigInt::zero()), Number::from(1));
+  }
+
+  #[test]
+  fn test_powi_positive_exponent() {
+    assert_strict_eq!(Number::from(3).powi(BigInt::from(1)), Number::from(3));
+    assert_strict_eq!(Number::from(3).powi(BigInt::from(2)), Number::from(9));
+    assert_strict_eq!(Number::from(3).powi(BigInt::from(10)), Number::from(59049));
+    assert_strict_eq!(Number::ratio(3, 2).powi(BigInt::from(10)), Number::ratio(59049, 1024));
+    assert_strict_eq!(Number::from(3.0).powi(BigInt::from(2)), Number::from(9.0));
+  }
+
+  #[test]
+  fn test_powi_negative_exponent() {
+    assert_strict_eq!(Number::from(3).powi(BigInt::from(-1)), Number::ratio(1, 3));
+    assert_strict_eq!(Number::ratio(1, 3).powi(BigInt::from(-2)), Number::from(9));
+    assert_strict_eq!(Number::from(3).powi(BigInt::from(-10)), Number::ratio(1, 59049));
+    assert_strict_eq!(Number::from(2.0).powi(BigInt::from(-2)), Number::from(0.25));
   }
 }
