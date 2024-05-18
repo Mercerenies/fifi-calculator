@@ -115,9 +115,9 @@ pub fn division() -> Function {
 }
 
 pub fn modulo() -> Function {
-  // TODO Complex numbers?
   FunctionBuilder::new("%")
     .add_case(
+      // Real modulo
       builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, errors| {
         if arg2.is_zero() {
           errors.push(SimplifierError::division_by_zero("%"));
@@ -126,19 +126,33 @@ pub fn modulo() -> Function {
         Ok(Expr::from(arg1 % arg2))
       })
     )
+    .add_case(
+      // Trap case: Complex numbers
+      builder::arity_two().both_of_type(ExprToComplex).and_then(|arg1, arg2, errors| {
+        errors.push(SimplifierError::expected_real("%"));
+        Err((arg1, arg2))
+      })
+    )
     .build()
 }
 
 pub fn floor_division() -> Function {
-  // TODO Complex numbers?
   FunctionBuilder::new("\\")
     .add_case(
+      // Real floor div
       builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, errors| {
         if arg2.is_zero() {
           errors.push(SimplifierError::division_by_zero("\\"));
           return Err((arg1, arg2));
         }
         Ok(Expr::from(arg1.div_floor(&arg2)))
+      })
+    )
+    .add_case(
+      // Trap case: Complex numbers
+      builder::arity_two().both_of_type(ExprToComplex).and_then(|arg1, arg2, errors| {
+        errors.push(SimplifierError::expected_real("\\"));
+        Err((arg1, arg2))
       })
     )
     .build()
