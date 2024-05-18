@@ -2,6 +2,7 @@
 //! Various utility functions.
 
 pub mod prism;
+pub mod stricteq;
 
 use std::convert::Infallible;
 

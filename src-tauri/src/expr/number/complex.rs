@@ -1,5 +1,6 @@
 
 use super::{Number, NumberRepr};
+use crate::util::stricteq::StrictEq;
 
 use std::fmt::{self, Formatter, Display};
 use std::ops;
@@ -37,9 +38,11 @@ impl ComplexNumber {
   pub fn imag_repr(&self) -> NumberRepr {
     self.imag.repr()
   }
+}
 
+impl StrictEq for ComplexNumber {
   /// Compares the inner components using [`Number::strict_eq`].
-  pub fn strict_eq(&self, other: &ComplexNumber) -> bool {
+  fn strict_eq(&self, other: &ComplexNumber) -> bool {
     self.real.strict_eq(&other.real) && self.imag.strict_eq(&other.imag)
   }
 }

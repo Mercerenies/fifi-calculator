@@ -3,6 +3,7 @@ pub mod complex;
 mod visitor;
 
 use visitor::NumberPair;
+use crate::util::stricteq::StrictEq;
 
 use num::{BigInt, BigRational, Zero, One, FromPrimitive};
 use num::integer::div_floor;
@@ -75,20 +76,6 @@ impl Number {
       Some(Ordering::Equal) => Number::from(0),
       None => Number::from(f64::NAN),
     }
-  }
-
-  /// Compares both the representation and the value of the type. This
-  /// is stricter than the standard [`PartialEq`] implementation.
-  ///
-  /// # Examples
-  ///
-  /// ```
-  /// # use fifi::expr::number::Number;
-  /// assert!(Number::from(0).strict_eq(&Number::from(0)));
-  /// assert!(!Number::from(0).strict_eq(&Number::from(0.0)));
-  /// ```
-  pub fn strict_eq(&self, other: &Number) -> bool {
-    self.repr() == other.repr() && self == other
   }
 
   /// Produces a rational number. If the denominator divides evenly
@@ -210,16 +197,16 @@ impl Display for ParseNumberError {
 
 /// `PartialEq` impl for `Number` compares the numerical value and
 /// ignores the representation. To include the representation, use
-/// [`Number::strict_eq`].
+/// [`StrictEq::strict_eq`].
 ///
 /// # Examples
 ///
 /// ```
 /// # use fifi::expr::number::Number;
 /// assert_eq!(Number::from(0), Number::from(0));
-/// assert_eq!(!Number::from(0), Number::from(0.0));
-/// assert_eq!(!Number::ratio(1, 2), Number::from(0.5));
-/// assert_ne!(!Number::ratio(1, 3), Number::from(0.5));
+/// assert_eq!(Number::from(0), Number::from(0.0));
+/// assert_eq!(Number::ratio(1, 2), Number::from(0.5));
+/// assert_ne!(Number::ratio(1, 3), Number::from(0.5));
 /// ```
 impl PartialEq for Number {
   fn eq(&self, other: &Number) -> bool {
@@ -228,6 +215,23 @@ impl PartialEq for Number {
       NumberPair::Ratios(left, right) => left == right,
       NumberPair::Floats(left, right) => left == right,
     }
+  }
+}
+
+impl StrictEq for Number {
+  /// Compares both the representation and the value of the type. This
+  /// is stricter than the standard [`PartialEq`] implementation.
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// # use fifi::expr::number::Number;
+  /// # use fifi::util::stricteq::StrictEq;
+  /// assert!(Number::from(0).strict_eq(&Number::from(0)));
+  /// assert!(!Number::from(0).strict_eq(&Number::from(0.0)));
+  /// ```
+  fn strict_eq(&self, other: &Number) -> bool {
+    self.repr() == other.repr() && self == other
   }
 }
 
@@ -440,46 +444,11 @@ fn parse_float(s: &str) -> Option<Number> {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::{assert_strict_eq, assert_strict_ne};
+
   use num::bigint::Sign;
-  use std::fmt::Debug;
 
   // TODO Missing tests: PartialOrd, signum
-
-  /// A [`Number`] but with equality performed via [`strict_eq`], not
-  /// [`PartialEq`].
-  struct StrictNumber<'a>(&'a Number);
-
-  impl<'a> PartialEq for StrictNumber<'a> {
-    fn eq(&self, other: &StrictNumber) -> bool {
-      self.0.strict_eq(&other.0)
-    }
-  }
-
-  impl<'a> Debug for StrictNumber<'a> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-      write!(f, "{:?}", self.0)
-    }
-  }
-
-  macro_rules! assert_strict_eq {
-    ($left:expr, $right:expr $(,)?) => {
-      match (&$left, &$right) {
-        (left_val, right_val) => {
-          assert_eq!(StrictNumber(left_val), StrictNumber(right_val))
-        }
-      }
-    }
-  }
-
-  macro_rules! assert_strict_ne {
-    ($left:expr, $right:expr $(,)?) => {
-      match (&$left, &$right) {
-        (left_val, right_val) => {
-          assert_ne!(StrictNumber(left_val), StrictNumber(right_val))
-        }
-      }
-    }
-  }
 
   fn roundtrip_display(number: Number) -> Number {
     Number::from_str(&number.to_string()).unwrap()
