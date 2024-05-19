@@ -7,6 +7,7 @@
 use super::real::{Number, NumberImpl};
 use super::complex::ComplexNumber;
 use super::ComplexLike;
+use crate::util::angles::Radians;
 
 use num::{BigInt, Zero, One, ToPrimitive};
 
@@ -31,7 +32,7 @@ pub fn pow_real(x: Number, y: Number) -> ComplexLike {
       } else {
         // Calculate the result in polar coordinates.
         let magnitude = x.abs().powf(y);
-        let angle = PI * y;
+        let angle = Radians(PI * y);
         ComplexLike::Complex(ComplexNumber::from_polar_inexact(magnitude, angle))
       }
     }
@@ -64,7 +65,7 @@ pub fn root_real(x: Number, n: BigInt) -> ComplexLike {
   } else {
     // x is negative, so the result will be complex.
     let magnitude = x.abs().powf(n.recip());
-    let angle = PI / n;
+    let angle = Radians(PI / n);
     ComplexLike::Complex(ComplexNumber::from_polar_inexact(magnitude, angle))
   }
 }
@@ -83,7 +84,7 @@ pub fn pow_complex_to_real(x: ComplexNumber, y: Number) -> ComplexNumber {
     NumberImpl::Float(y) => {
       // Calculate the result in polar coordinates.
       let magnitude = x.abs().powf(y);
-      let angle = PI * y;
+      let angle = Radians(PI * y);
       ComplexNumber::from_polar_inexact(magnitude, angle)
     }
   }
@@ -92,8 +93,8 @@ pub fn pow_complex_to_real(x: ComplexNumber, y: Number) -> ComplexNumber {
 fn raise_to_power_i(x: ComplexNumber) -> ComplexNumber {
   let abs = x.abs();
   let angle = x.angle();
-  let new_abs = (- angle).exp();
-  let new_angle = abs.ln();
+  let new_abs = (- angle.0).exp();
+  let new_angle = Radians(abs.ln());
   ComplexNumber::from_polar_inexact(new_abs, new_angle)
 }
 

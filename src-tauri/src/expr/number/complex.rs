@@ -1,6 +1,7 @@
 
 use super::{Number, NumberRepr, powi_by_repeated_square};
 use crate::util::stricteq::StrictEq;
+use crate::util::angles::Radians;
 
 use num::{Zero, One, BigInt};
 use approx::{AbsDiffEq, RelativeEq};
@@ -53,7 +54,7 @@ impl ComplexNumber {
 
   /// Constructs an (inexact) complex number from polar coordinates,
   /// with `phi` represented in radians.
-  pub fn from_polar_inexact(r: f64, phi: f64) -> Self {
+  pub fn from_polar_inexact(r: f64, phi: Radians<f64>) -> Self {
     Self {
       real: Number::from(r * phi.cos()),
       imag: Number::from(r * phi.sin()),
@@ -77,13 +78,13 @@ impl ComplexNumber {
   /// The returned angle is in radians.
   ///
   /// If `self.is_zero()`, then this returns zero.
-  pub fn angle(&self) -> f64 {
+  pub fn angle(&self) -> Radians<f64> {
     if self.is_zero() {
-      0.0
+      Radians::zero()
     } else {
       let real = self.real.to_f64().unwrap_or(f64::NAN);
       let imag = self.imag.to_f64().unwrap_or(f64::NAN);
-      imag.atan2(real)
+      Radians::atan2(imag, real)
     }
   }
 
@@ -110,7 +111,7 @@ impl ComplexNumber {
   }
 
   pub fn powf(&self, exp: f64) -> ComplexNumber {
-    ComplexNumber::from_polar_inexact(self.abs().powf(exp), exp * self.angle())
+    ComplexNumber::from_polar_inexact(self.abs().powf(exp), self.angle() * exp)
   }
 }
 

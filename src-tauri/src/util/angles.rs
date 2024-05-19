@@ -2,6 +2,9 @@
 //! Helpers for keeping track of which angle format is currently in
 //! use.
 
+use num::{FromPrimitive, Float, Zero};
+use num::traits::FloatConst;
+
 use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign};
 
 /// A number representing degrees.
@@ -18,11 +21,43 @@ impl<T> Degrees<T> {
   pub fn new(value: T) -> Degrees<T> {
     Degrees(value)
   }
+
+  pub fn into_radians(self) -> Radians<T>
+  where T: FloatConst + Mul<Output=T> + Div<Output=T> + FromPrimitive {
+    Radians(self.0 * T::PI() / T::from_i32(180).unwrap())
+  }
 }
 
 impl<T> Radians<T> {
   pub fn new(value: T) -> Radians<T> {
     Radians(value)
+  }
+
+  pub fn into_degrees(self) -> Degrees<T>
+  where T: FloatConst + Mul<Output=T> + Div<Output=T> + FromPrimitive {
+    Degrees(self.0 * T::from_i32(180).unwrap() / T::PI())
+  }
+}
+
+impl<T: Float> Radians<T> {
+  pub fn cos(self) -> T {
+    self.0.cos()
+  }
+
+  pub fn sin(self) -> T {
+    self.0.sin()
+  }
+
+  pub fn tan(self) -> T {
+    self.0.tan()
+  }
+
+  pub fn atan(value: T) -> Self {
+    Radians(T::atan(value))
+  }
+
+  pub fn atan2(y: T, x: T) -> Self {
+    Radians(T::atan2(y, x))
   }
 }
 
@@ -87,3 +122,21 @@ newtype_impl_assign! { impl MulAssign<T> for Degrees { fn mul_assign }; }
 newtype_impl_assign! { impl MulAssign<T> for Radians { fn mul_assign }; }
 newtype_impl_assign! { impl DivAssign<T> for Degrees { fn div_assign }; }
 newtype_impl_assign! { impl DivAssign<T> for Radians { fn div_assign }; }
+
+impl<T: Zero> Zero for Degrees<T> {
+  fn zero() -> Self {
+    Degrees(T::zero())
+  }
+  fn is_zero(&self) -> bool {
+    self.0.is_zero()
+  }
+}
+
+impl<T: Zero> Zero for Radians<T> {
+  fn zero() -> Self {
+    Radians(T::zero())
+  }
+  fn is_zero(&self) -> bool {
+    self.0.is_zero()
+  }
+}
