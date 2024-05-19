@@ -55,7 +55,7 @@ pub(crate) mod test_utils {
     context.opts.argument = arg;
     let output = command.run_command(&mut state, &context).unwrap();
     assert!(output.errors.is_empty());
-    state.main_stack
+    state.into_main_stack()
   }
 
   /// Tests the operation on the given input stack. Expects a failure.
@@ -68,7 +68,7 @@ pub(crate) mod test_utils {
     let Error::StackError(err) = err else {
       panic!("Expected StackError, got {:?}", err)
     };
-    assert_eq!(state.main_stack, stack_of(input_stack));
+    assert_eq!(state.into_main_stack(), stack_of(input_stack));
     err
   }
 }

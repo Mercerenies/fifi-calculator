@@ -19,8 +19,8 @@ pub struct TauriApplicationState {
 
 #[derive(Default)]
 pub struct ApplicationState {
-  pub main_stack: Stack<Expr>,
-  pub display_settings: DisplaySettings,
+  main_stack: Stack<Expr>,
+  display_settings: DisplaySettings,
 }
 
 impl TauriApplicationState {
@@ -30,7 +30,6 @@ impl TauriApplicationState {
 }
 
 impl ApplicationState {
-
   pub fn new() -> Self {
     Self::default()
   }
@@ -42,6 +41,25 @@ impl ApplicationState {
     app_handle.emit_all(RefreshStackPayload::EVENT_NAME, payload)
   }
 
+  pub fn display_settings(&self) -> &DisplaySettings {
+    &self.display_settings
+  }
+
+  pub fn display_settings_mut(&mut self) -> &mut DisplaySettings {
+    &mut self.display_settings
+  }
+
+  pub fn main_stack(&self) -> &Stack<Expr> {
+    &self.main_stack
+  }
+
+  pub fn main_stack_mut(&mut self) -> &mut Stack<Expr> {
+    &mut self.main_stack
+  }
+
+  pub fn into_main_stack(self) -> Stack<Expr> {
+    self.main_stack
+  }
 }
 
 impl Default for TauriApplicationState {
