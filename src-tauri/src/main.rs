@@ -43,7 +43,7 @@ fn math_command(
 
 fn parse_and_push_number(state: &mut ApplicationState, string: &str) -> Result<(), Error> {
   let number = Number::from_str(string)?;
-  state.main_stack.push(Expr::from(number));
+  state.main_stack_mut().push(Expr::from(number));
   Ok(())
 }
 

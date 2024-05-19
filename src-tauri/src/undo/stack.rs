@@ -17,7 +17,7 @@ pub struct UndoStack<S> {
 
 enum UndoStackValue<S> {
   Cut,
-  Change(Box<dyn UndoableChange<S>>),
+  Change(Box<dyn UndoableChange<S> + Send + Sync>),
 }
 
 impl<S> UndoStack<S> {
@@ -62,7 +62,7 @@ impl<S> UndoStack<S> {
   ///
   /// This also clears the future stack, since previously-available
   /// redos are no longer relevant.
-  pub fn push_change(&mut self, change: impl UndoableChange<S> + 'static) {
+  pub fn push_change(&mut self, change: impl UndoableChange<S> + Send + Sync + 'static) {
     self.future.clear();
     self.past.push(UndoStackValue::Change(Box::new(change)));
   }
