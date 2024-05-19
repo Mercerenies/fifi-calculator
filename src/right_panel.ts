@@ -7,8 +7,6 @@ import { PrefixArgStateMachine } from "./prefix_argument.js";
 import { PrefixArgumentDelegate } from "./prefix_argument/prefix_delegate.js";
 import { PrefixArgumentDisplay } from "./prefix_argument/display.js";
 
-// Currently this is just a trivial wrapper around ButtonGridManager.
-// But we'll add more with prefix arguments.
 export class RightPanelManager {
   private prefixArgStateMachine: PrefixArgStateMachine;
   private buttonGrid: ButtonGridManager;

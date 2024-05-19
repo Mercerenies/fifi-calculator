@@ -81,7 +81,7 @@ input.prefix-arg-value {
     grid-template-columns: repeat(5, 1fr);
 }
 
-.prefix-arg-panel {
+.button-panel-below-grid {
     padding-top: 1em;
 }
 
@@ -130,6 +130,10 @@ button:active {
 }
 
 button.prefix-arg {
+    padding: 0.6em 0.5em;
+}
+
+button.undo-redo {
     padding: 0.6em 0.5em;
 }
 

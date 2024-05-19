@@ -26,12 +26,22 @@
         <div id="button-grid-container">
           <!-- To be filled in by JavaScript -->
         </div>
-        <div id="prefix-arg-panel" class="prefix-arg-panel">
+        <div id="prefix-arg-panel" class="button-panel-below-grid">
           <button class="prefix-arg" data-prefix-arg="-4"><math><mi>u</mi> <mo>-</mo> <mn>4</mn></math></button>
           <button class="prefix-arg" data-prefix-arg="-1"><math><mi>u</mi> <mo>-</mo> <mn>1</mn></math></button>
           <input id="prefix-arg-display-box" class="prefix-arg-value" disabled value=""></input>
           <button class="prefix-arg" data-prefix-arg="1" ><math><mi>u</mi> <mo>+</mo> <mn>1</mn></math></button>
           <button class="prefix-arg" data-prefix-arg="4" ><math><mi>u</mi> <mo>+</mo> <mn>4</mn></math></button>
+        </div>
+        <div class="button-panel-below-grid">
+          <button id="undo-button" class="undo-redo">
+            <img src="assets/undo-left.svg" class="svg-icon" alt="Undo button" />
+            Undo
+          </button>
+          <button id="redo-button" class="undo-redo">
+            <img src="assets/undo-right.svg" class="svg-icon" alt="Redo button" />
+            Redo
+          </button>
         </div>
       </div>
     </div>
