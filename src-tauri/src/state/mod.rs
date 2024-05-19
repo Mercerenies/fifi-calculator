@@ -7,7 +7,7 @@ use crate::events::RefreshStackPayload;
 use crate::command::default_dispatch_table;
 use crate::command::dispatch::CommandDispatchTable;
 use crate::display::DisplaySettings;
-use crate::undo::stack::UndoStack;
+use crate::undo::{UndoStack, UndoError};
 
 use tauri::Manager;
 
@@ -75,6 +75,14 @@ impl ApplicationState {
 
   pub fn undo_stack_mut(&mut self) -> &mut UndoStack<UndoableState> {
     &mut self.undo_stack
+  }
+
+  pub fn undo(&mut self) -> Result<(), UndoError> {
+    self.undo_stack.undo(&mut self.undoable_state)
+  }
+
+  pub fn redo(&mut self) -> Result<(), UndoError> {
+    self.undo_stack.redo(&mut self.undoable_state)
   }
 }
 

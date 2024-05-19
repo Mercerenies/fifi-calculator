@@ -1,6 +1,10 @@
 
 //! Undo/redo stack capabilities.
 
-pub mod change;
-pub mod error;
-pub mod stack;
+mod change;
+mod error;
+mod stack;
+
+pub use change::{UndoableChange, NoChange};
+pub use error::UndoError;
+pub use stack::UndoStack;
