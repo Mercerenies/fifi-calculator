@@ -50,7 +50,11 @@ impl<S> UndoStack<S> {
 
   /// Pushes a cut onto the past stack. Cuts indicate where to stop
   /// undoing and redoing when an action is requested.
-  pub fn cut(&mut self) {
+  ///
+  /// This also clears the future stack, since previously-available
+  /// redos are no longer relevant.
+  pub fn push_cut(&mut self) {
+    self.future.clear();
     self.past.push(UndoStackValue::Cut);
   }
 
@@ -144,7 +148,7 @@ where F: FnMut(&dyn UndoableChange<S>) {
   }
 
   // Now play any actions we encounter up to the next cut.
-  while !matches!(source.last(), Some(UndoStackValue::Cut)) {
+  while matches!(source.last(), Some(UndoStackValue::Change(_))) {
     let Some(UndoStackValue::Change(action)) = source.pop() else {
       panic!("top of stack must be an UndoStackValue::Change");
     };
@@ -173,4 +177,237 @@ impl<S> Debug for UndoStackValue<S> {
       UndoStackValue::Change(change) => write!(f, "Change({})", change.undo_summary()),
     }
   }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+  struct AddOneAction;
+
+  #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+  struct MulTwoAction;
+
+  impl UndoableChange<i32> for AddOneAction {
+    fn play_forward(&self, state: &mut i32) {
+      *state += 1;
+    }
+    fn play_backward(&self, state: &mut i32) {
+      *state -= 1;
+    }
+  }
+
+  impl UndoableChange<i32> for MulTwoAction {
+    fn play_forward(&self, state: &mut i32) {
+      *state *= 2;
+    }
+    fn play_backward(&self, state: &mut i32) {
+      *state /= 2;
+    }
+  }
+
+  #[test]
+  fn test_empty_stack() {
+    let mut stack = UndoStack::<i32>::new();
+    assert!(!stack.has_undos());
+    assert!(!stack.has_redos());
+    assert_eq!(stack.undo(&mut 0), Err(UndoError::NothingToUndo));
+    assert_eq!(stack.redo(&mut 0), Err(UndoError::NothingToRedo));
+  }
+
+  #[test]
+  fn test_single_undo_and_redo() {
+    let mut stack = UndoStack::<i32>::new();
+    stack.push_change(MulTwoAction);
+    stack.push_change(AddOneAction);
+    stack.push_change(AddOneAction);
+
+    let mut state = 4;
+    assert!(stack.has_undos());
+    assert!(!stack.has_redos());
+
+    let success = stack.undo(&mut state);
+    assert!(success.is_ok());
+    assert_eq!(state, 1);
+    assert!(!stack.has_undos());
+    assert!(stack.has_redos());
+
+    let success = stack.redo(&mut state);
+    assert!(success.is_ok());
+    assert_eq!(state, 4);
+    assert!(stack.has_undos());
+    assert!(!stack.has_redos());
+  }
+
+  #[test]
+  fn test_undo_and_redo_with_one_cut() {
+    let mut stack = UndoStack::<i32>::new();
+    stack.push_change(MulTwoAction);
+    stack.push_cut();
+    stack.push_change(AddOneAction);
+    stack.push_change(AddOneAction);
+
+    let mut state = 20;
+    assert!(stack.has_undos());
+    assert!(!stack.has_redos());
+
+    let success = stack.undo(&mut state);
+    assert!(success.is_ok());
+    assert_eq!(state, 18);
+    assert!(stack.has_undos());
+    assert!(stack.has_redos());
+
+    let success = stack.undo(&mut state);
+    assert!(success.is_ok());
+    assert_eq!(state, 9);
+    assert!(!stack.has_undos());
+    assert!(stack.has_redos());
+
+    let success = stack.undo(&mut state);
+    assert!(success.is_err());
+    assert_eq!(state, 9);
+
+    let success = stack.redo(&mut state);
+    assert!(success.is_ok());
+    assert_eq!(state, 18);
+    assert!(stack.has_undos());
+    assert!(stack.has_redos());
+
+    let success = stack.redo(&mut state);
+    assert!(success.is_ok());
+    assert_eq!(state, 20);
+    assert!(stack.has_undos());
+    assert!(!stack.has_redos());
+
+    let success = stack.redo(&mut state);
+    assert!(success.is_err());
+    assert_eq!(state, 20);
+  }
+
+  #[test]
+  fn test_undo_and_redo_with_consecutive_cuts() {
+    let mut stack = UndoStack::<i32>::new();
+    stack.push_cut();
+    stack.push_cut();
+    stack.push_cut();
+    stack.push_change(MulTwoAction);
+    stack.push_cut();
+    stack.push_cut();
+    stack.push_change(AddOneAction);
+    stack.push_change(AddOneAction);
+    stack.push_cut();
+    stack.push_cut();
+
+    let mut state = 20;
+    assert!(stack.has_undos());
+    assert!(!stack.has_redos());
+
+    let success = stack.undo(&mut state);
+    assert!(success.is_ok());
+    assert_eq!(state, 18);
+    assert!(stack.has_undos());
+    assert!(stack.has_redos());
+
+    let success = stack.undo(&mut state);
+    assert!(success.is_ok());
+    assert_eq!(state, 9);
+    assert!(!stack.has_undos());
+    assert!(stack.has_redos());
+
+    let success = stack.undo(&mut state);
+    assert!(success.is_err());
+    assert_eq!(state, 9);
+
+    let success = stack.redo(&mut state);
+    assert!(success.is_ok());
+    assert_eq!(state, 18);
+    assert!(stack.has_undos());
+    assert!(stack.has_redos());
+
+    let success = stack.redo(&mut state);
+    assert!(success.is_ok());
+    assert_eq!(state, 20);
+    assert!(stack.has_undos());
+    assert!(!stack.has_redos());
+
+    let success = stack.redo(&mut state);
+    assert!(success.is_err());
+    assert_eq!(state, 20);
+  }
+
+  #[test]
+  fn test_future_is_clear_after_pushed_cut() {
+    let mut stack = UndoStack::<i32>::new();
+    let mut state = 64;
+    stack.push_change(MulTwoAction);
+    stack.push_cut();
+    stack.push_change(MulTwoAction);
+    assert!(stack.has_undos());
+    assert!(!stack.has_redos());
+
+    let success = stack.undo(&mut state);
+    assert!(success.is_ok());
+    assert_eq!(state, 32);
+    assert!(stack.has_undos());
+    assert!(stack.has_redos());
+
+    state += 1;
+    stack.push_cut();
+    assert!(stack.has_undos());
+    assert!(!stack.has_redos());
+    stack.push_change(AddOneAction);
+    assert!(stack.has_undos());
+    assert!(!stack.has_redos());
+
+    let success = stack.redo(&mut state);
+    assert!(success.is_err());
+    assert_eq!(state, 33);
+
+    let success = stack.undo(&mut state);
+    assert!(success.is_ok());
+    assert_eq!(state, 32);
+    assert!(stack.has_undos());
+    assert!(stack.has_redos());
+
+    let success = stack.undo(&mut state);
+    assert!(success.is_ok());
+    assert_eq!(state, 16);
+    assert!(!stack.has_undos());
+    assert!(stack.has_redos());
+
+    let success = stack.redo(&mut state);
+    assert!(success.is_ok());
+    assert_eq!(state, 32);
+    assert!(stack.has_undos());
+    assert!(stack.has_redos());
+
+    let success = stack.redo(&mut state);
+    assert!(success.is_ok());
+    assert_eq!(state, 33);
+    assert!(stack.has_undos());
+    assert!(!stack.has_redos());
+  }
+
+  #[test]
+  fn test_future_is_clear_after_pushed_change() {
+    let mut stack = UndoStack::<i32>::new();
+    let mut state = 64;
+    stack.push_change(MulTwoAction);
+    stack.push_cut();
+    stack.push_change(MulTwoAction);
+    assert!(stack.has_undos());
+    assert!(!stack.has_redos());
+
+    let success = stack.undo(&mut state);
+    assert!(success.is_ok());
+    assert_eq!(state, 32);
+    assert!(stack.has_undos());
+    assert!(stack.has_redos());
+
+    stack.push_change(AddOneAction);
+    assert!(stack.has_undos());
+    assert!(!stack.has_redos());
+  }
+
 }
