@@ -1,6 +1,7 @@
 
 //! Various utility functions.
 
+pub mod angles;
 pub mod prism;
 pub mod stricteq;
 
