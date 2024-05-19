@@ -7,4 +7,5 @@ pub mod events;
 pub mod expr;
 pub mod stack;
 pub mod state;
+pub mod undo;
 pub mod util;
