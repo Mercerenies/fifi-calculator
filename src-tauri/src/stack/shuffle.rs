@@ -49,22 +49,3 @@ pub fn pop_several<T>(stack: &mut Stack<T>, count: usize) -> Result<Vec<T>, Stac
   result.reverse();
   Ok(result)
 }
-
-/// Pops the nth element off the stack. Equivalent to
-/// [`Stack::pop_nth`] but reports a good error in [`StackError`]
-/// rather than returning a simple `None`.
-pub fn pop_nth<T>(stack: &mut Stack<T>, index: usize) -> Result<T, StackError> {
-  stack.pop_nth(index)
-}
-
-/// Equivalent to [`Stack::get`] but reports errors in [`StackError`].
-pub fn get<T>(stack: &Stack<T>, index: i64) -> Result<&T, StackError> {
-  let len = stack.len();
-  stack.get(index)
-}
-
-/// Equivalent to [`Stack::get_mut`] but reports errors in [`StackError`].
-pub fn get_mut<T>(stack: &mut Stack<T>, index: i64) -> Result<&mut T, StackError> {
-  let len = stack.len();
-  stack.get_mut(index)
-}

@@ -28,6 +28,13 @@ impl<T> Stack<T> {
     self.elements.pop().ok_or(StackError::NotEnoughElements { expected: 1, actual: 0 })
   }
 
+  /// As [`Stack::pop`], but with no result value. Use this function
+  /// if you don't plan to use the result and don't care if the `pop`
+  /// call fails due to an empty stack.
+  pub fn pop_and_discard(&mut self) {
+    let _ = self.elements.pop();
+  }
+
   /// Pops the nth element (0-indexed and counting from the top) and
   /// returns it. If out of bounds, returns None. This function does
   /// NOT support negative indexing.
@@ -182,7 +189,7 @@ mod tests {
     stack.push(0);
     stack.push(0);
     assert_eq!(stack.len(), 3);
-    stack.pop();
+    let _ = stack.pop();
     assert_eq!(stack.len(), 2);
   }
 
@@ -194,9 +201,9 @@ mod tests {
     assert!(!stack.is_empty());
     stack.push(0);
     assert!(!stack.is_empty());
-    stack.pop();
+    let _ = stack.pop();
     assert!(!stack.is_empty());
-    stack.pop();
+    let _ = stack.pop();
     assert!(stack.is_empty());
   }
 

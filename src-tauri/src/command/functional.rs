@@ -125,7 +125,7 @@ impl Command for UnaryFunctionCommand {
       }
       Ordering::Less => {
         // Apply to single element N down on the stack.
-        let e = shuffle::get_mut(state.main_stack_mut(), - arg - 1)?;
+        let e = state.main_stack_mut().get_mut(- arg - 1)?;
         e.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors));
       }
       Ordering::Equal => {

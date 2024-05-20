@@ -36,7 +36,7 @@ impl UndoableChange<UndoableState> for PushExprChange {
   }
 
   fn play_backward(&self, state: &mut UndoableState) {
-    state.main_stack_mut().pop();
+    state.main_stack_mut().pop_and_discard();
   }
 
   fn undo_summary(&self) -> String {
@@ -46,7 +46,7 @@ impl UndoableChange<UndoableState> for PushExprChange {
 
 impl UndoableChange<UndoableState> for PopExprChange {
   fn play_forward(&self, state: &mut UndoableState) {
-    state.main_stack_mut().pop();
+    state.main_stack_mut().pop_and_discard();
   }
 
   fn play_backward(&self, state: &mut UndoableState) {

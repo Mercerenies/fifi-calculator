@@ -31,7 +31,7 @@ impl Command for PopCommand {
       }
       Ordering::Less => {
         // Pop a single specific element
-        let _ = shuffle::pop_nth(&mut state.main_stack_mut(), (- arg - 1) as usize)?;
+        let _ = state.main_stack_mut().pop_nth((- arg - 1) as usize)?;
       }
       Ordering::Equal => {
         // Pop all elements
@@ -84,7 +84,7 @@ impl Command for DupCommand {
       }
       Ordering::Less => {
         // Duplicate specific element N down.
-        let element = shuffle::get(&state.main_stack_mut(), - arg - 1)?.clone();
+        let element = state.main_stack().get(- arg - 1)?.clone();
         state.main_stack_mut().push(element);
       }
       Ordering::Equal => {
