@@ -99,6 +99,7 @@ impl BinaryFunctionCommand {
 
 impl Command for PushConstantCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
+    // TODO Undo/redo
     let arg = ctx.opts.argument.unwrap_or(1).max(0);
     let mut errors = ErrorList::new();
     for _ in 0..arg {
@@ -110,6 +111,7 @@ impl Command for PushConstantCommand {
 
 impl Command for UnaryFunctionCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
+    // TODO Undo/redo
     let mut errors = ErrorList::new();
     let arg = ctx.opts.argument.unwrap_or(1);
     match arg.cmp(&0) {
@@ -139,6 +141,7 @@ impl Command for UnaryFunctionCommand {
 
 impl Command for BinaryFunctionCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
+    // TODO Undo/redo
     let mut errors = ErrorList::new();
     let arg = ctx.opts.argument.unwrap_or(2);
     match arg.cmp(&0) {
