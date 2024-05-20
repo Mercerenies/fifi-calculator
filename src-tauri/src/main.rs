@@ -4,6 +4,7 @@
 use fifi::error::Error;
 use fifi::state::{TauriApplicationState, ApplicationState, UndoDirection};
 use fifi::state::events::show_error;
+use fifi::state::undo;
 use fifi::command::CommandContext;
 use fifi::command::options::CommandOptions;
 use fifi::command::dispatch::CommandDispatchTable;
@@ -64,7 +65,10 @@ fn perform_undo_action(
 
 fn parse_and_push_number(state: &mut ApplicationState, string: &str) -> Result<(), Error> {
   let number = Number::from_str(string)?;
-  state.main_stack_mut().push(Expr::from(number));
+  let expr = Expr::from(number);
+  state.undo_stack_mut().push_cut();
+  state.undo_stack_mut().push_change(undo::PushExprChange::new(expr.clone()));
+  state.main_stack_mut().push(expr);
   Ok(())
 }
 

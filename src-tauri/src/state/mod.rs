@@ -2,6 +2,7 @@
 //! Backend application state manager.
 
 pub mod events;
+pub mod undo;
 
 use events::{RefreshStackPayload, UndoAvailabilityPayload};
 use crate::stack::Stack;
@@ -102,6 +103,16 @@ impl ApplicationState {
 
   pub fn redo(&mut self) -> Result<(), UndoError> {
     self.undo_stack.redo(&mut self.undoable_state)
+  }
+}
+
+impl UndoableState {
+  pub fn main_stack(&self) -> &Stack<Expr> {
+    &self.main_stack
+  }
+
+  pub fn main_stack_mut(&mut self) -> &mut Stack<Expr> {
+    &mut self.main_stack
   }
 }
 
