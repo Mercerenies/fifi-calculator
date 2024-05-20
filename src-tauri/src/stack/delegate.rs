@@ -23,7 +23,7 @@ pub trait StackDelegate<T> {
   fn on_pop(&mut self, old_value: &T);
 
   /// Called after a value on the stack is modified in-place.
-  fn on_mutate(&mut self, old_value: T, new_value: &T);
+  fn on_mutate(&mut self, index: i64, old_value: T, new_value: &T);
 }
 
 /// Null Object implementation of [`StackDelegate`]. Never performs
@@ -100,6 +100,20 @@ where D: StackDelegate<T> {
     self.stack.get(index)
   }
 
+  /// Modifies the value at the given position, using the given
+  /// function. In order to properly invoke the delegate, `T` must be
+  /// `Clone`, so that the delegate can be called with both the old
+  /// and new values.
+  pub fn mutate<F>(&mut self, index: i64, f: F) -> Result<(), StackError>
+  where F: FnOnce(&mut T),
+        T: Clone {
+    let value = self.stack.get_mut(index)?;
+    let old_value = value.clone();
+    f(value);
+    self.delegate.on_mutate(index, old_value, value);
+    Ok(())
+  }
+
   /// Iterates from the bottom of the stack.
   pub fn iter(&self) -> impl DoubleEndedIterator<Item = &T> {
     self.stack.iter()
@@ -125,7 +139,7 @@ impl<'a, T: Hash, D> Hash for DelegatingStack<'a, T, D> {
 impl<T> StackDelegate<T> for NullStackDelegate {
   fn on_push(&mut self, _: &T) {}
   fn on_pop(&mut self, _: &T) {}
-  fn on_mutate(&mut self, _: T, _: &T) {}
+  fn on_mutate(&mut self, _: i64, _: T, _: &T) {}
 }
 
 #[cfg(test)]
@@ -136,7 +150,7 @@ mod tests {
   struct TestDelegate {
     pushes: Vec<i32>,
     pops: Vec<i32>,
-    mutations: Vec<(i32, i32)>,
+    mutations: Vec<(i64, i32, i32)>,
   }
 
   impl StackDelegate<i32> for TestDelegate {
@@ -148,8 +162,8 @@ mod tests {
       self.pops.push(*value);
     }
 
-    fn on_mutate(&mut self, old_value: i32, new_value: &i32) {
-      self.mutations.push((old_value, *new_value));
+    fn on_mutate(&mut self, index: i64, old_value: i32, new_value: &i32) {
+      self.mutations.push((index, old_value, *new_value));
     }
   }
 
@@ -243,6 +257,28 @@ mod tests {
       pushes: vec![],
       pops: vec![50, 40, 30, 20, 10],
       mutations: vec![],
+    });
+  }
+
+  #[test]
+  fn test_mutate() {
+    let mut stack = Stack::from(vec![10, 20, 30, 40, 50]);
+    let mut stack = DelegatingStack::new(&mut stack, TestDelegate::default());
+    assert_eq!(stack.mutate(1, |value| *value += 1), Ok(()));
+    assert_eq!(stack.mutate(-2, |value| *value += 2), Ok(()));
+    assert_eq!(
+      stack.mutate(-999, |value| *value += 3),
+      Err(StackError::NotEnoughElements { expected: 999, actual: 5 }),
+    );
+    assert_eq!(
+      stack.mutate(999, |value| *value += 4),
+      Err(StackError::NotEnoughElements { expected: 1000, actual: 5 }),
+    );
+    assert_eq!(stack.stack.iter().collect::<Vec<_>>(), vec![&10, &22, &30, &41, &50]);
+    assert_eq!(stack.delegate, TestDelegate {
+      pushes: vec![],
+      pops: vec![],
+      mutations: vec![(1, 40, 41), (-2, 20, 22)],
     });
   }
 }

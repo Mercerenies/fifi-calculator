@@ -109,6 +109,21 @@ impl<T> Stack<T> {
     Ok(&mut self.elements[index])
   }
 
+  /// Modifies the value at the given position, using the given
+  /// function.
+  ///
+  /// On [`Stack`], this is equivalent to simply calling
+  /// [`get_mut`](Stack::get_mut) and making the modification
+  /// directly. But a similar method is also exposed on
+  /// [`DelegatingStack`](super::delegate::DelegatingStack), which
+  /// tracks the modification as well.
+  pub fn mutate<F>(&mut self, index: i64, f: F) -> Result<(), StackError>
+  where F: FnOnce(&mut T) {
+    let value = self.get_mut(index)?;
+    f(value);
+    Ok(())
+  }
+
   /// Iterates from the bottom of the stack.
   pub fn iter(&self) -> impl DoubleEndedIterator<Item = &T> {
     self.elements.iter()
@@ -294,5 +309,39 @@ mod tests {
     let stack = Stack::from(vec!['A', 'B', 'C', 'D']);
     let vec = stack.into_iter().collect::<Vec<_>>();
     assert_eq!(vec, vec!['A', 'B', 'C', 'D']);
+  }
+
+  #[test]
+  fn test_mutate() {
+    let mut stack = Stack::from(vec![10, 20, 30, 40, 50]);
+    assert_eq!(stack.mutate(1, |x| { *x += 5 }), Ok(()));
+    assert_eq!(stack.pop_all(), vec![10, 20, 30, 45, 50]);
+  }
+
+  #[test]
+  fn test_mutate_negative_index() {
+    let mut stack = Stack::from(vec![10, 20, 30, 40, 50]);
+    assert_eq!(stack.mutate(-2, |x| { *x += 5 }), Ok(()));
+    assert_eq!(stack.pop_all(), vec![10, 25, 30, 40, 50]);
+  }
+
+  #[test]
+  fn test_mutate_out_of_bounds() {
+    let mut stack = Stack::from(vec![10, 20, 30, 40, 50]);
+    assert_eq!(
+      stack.mutate(9, |x| { *x += 5 }),
+      Err(StackError::NotEnoughElements { expected: 10, actual: 5 }),
+    );
+    assert_eq!(stack.pop_all(), vec![10, 20, 30, 40, 50]);
+  }
+
+  #[test]
+  fn test_mutate_out_of_bounds_negative_index() {
+    let mut stack = Stack::from(vec![10, 20, 30, 40, 50]);
+    assert_eq!(
+      stack.mutate(-8, |x| { *x += 5 }),
+      Err(StackError::NotEnoughElements { expected: 8, actual: 5 }),
+    );
+    assert_eq!(stack.pop_all(), vec![10, 20, 30, 40, 50]);
   }
 }
