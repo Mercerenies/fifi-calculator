@@ -1,4 +1,6 @@
 
+use super::error::StackError;
+
 /// FIFO stack. Implemented internally as a vector whose "top" is at
 /// the end, allowing for constant-time pushes and pops.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -22,18 +24,18 @@ impl<T> Stack<T> {
     self.elements.extend(elements);
   }
 
-  pub fn pop(&mut self) -> Option<T> {
-    self.elements.pop()
+  pub fn pop(&mut self) -> Result<T, StackError> {
+    self.elements.pop().ok_or(StackError::NotEnoughElements { expected: 1, actual: 0 })
   }
 
   /// Pops the nth element (0-indexed and counting from the top) and
   /// returns it. If out of bounds, returns None. This function does
   /// NOT support negative indexing.
-  pub fn pop_nth(&mut self, index: usize) -> Option<T> {
+  pub fn pop_nth(&mut self, index: usize) -> Result<T, StackError> {
     if index >= self.len() {
-      return None;
+      return Err(StackError::NotEnoughElements { expected: index + 1, actual: self.len() })
     }
-    Some(self.elements.remove(self.len() - index - 1))
+    Ok(self.elements.remove(self.len() - index - 1))
   }
 
   pub fn pop_all(&mut self) -> Vec<T> {
@@ -48,28 +50,38 @@ impl<T> Stack<T> {
     self.elements.is_empty()
   }
 
-  fn to_vec_index(&self, index: i64) -> usize {
+  /// Returns either an index into the internal vector (as an `Ok`) or
+  /// an appropriate [`StackError`]. If an `Ok` is returned, it is
+  /// guaranteed to be in-bounds for the vector.
+  fn to_vec_index(&self, index: i64) -> Result<usize, StackError> {
     if index < 0 {
-      (- index - 1) as usize
+      // Negative index, count from the bottom of the stack.
+      let index = (- index - 1) as usize;
+      if index >= self.len() {
+        Err(StackError::NotEnoughElements { expected: index + 1, actual: self.len() })
+      } else {
+        Ok(index)
+      }
+    } else if index as usize >= self.len() {
+      // Non-negative index out-of-bounds, report error.
+      Err(StackError::NotEnoughElements { expected: index as usize + 1, actual: self.len() })
     } else {
-      // Wrap at the boundary. If the index is out of bounds, we'll
-      // get an absurdly large number, and `Vec::get` will simply
-      // return `None`.
-      usize::wrapping_sub(self.len(), (index + 1) as usize)
+      // Non-negative index in-bounds, ok.
+      Ok(self.len() - ((index + 1) as usize))
     }
   }
 
   /// Stacks index from the top of the stack, so index zero is always
   /// the very top. Negative indices can be used to index from the
   /// bottom.
-  pub fn get(&self, index: i64) -> Option<&T> {
-    let index = self.to_vec_index(index);
-    self.elements.get(index)
+  pub fn get(&self, index: i64) -> Result<&T, StackError> {
+    let index = self.to_vec_index(index)?;
+    Ok(&self.elements[index])
   }
 
-  pub fn get_mut(&mut self, index: i64) -> Option<&mut T> {
-    let index = self.to_vec_index(index);
-    self.elements.get_mut(index)
+  pub fn get_mut(&mut self, index: i64) -> Result<&mut T, StackError> {
+    let index = self.to_vec_index(index)?;
+    Ok(&mut self.elements[index])
   }
 
   /// Iterates from the bottom of the stack.
@@ -142,22 +154,22 @@ mod tests {
   fn test_push_pop() {
     let mut stack = Stack::from(vec![0, 10]);
     stack.push(20);
-    assert_eq!(stack.pop(), Some(20));
-    assert_eq!(stack.pop(), Some(10));
-    assert_eq!(stack.pop(), Some(0));
-    assert_eq!(stack.pop(), None);
+    assert_eq!(stack.pop(), Ok(20));
+    assert_eq!(stack.pop(), Ok(10));
+    assert_eq!(stack.pop(), Ok(0));
+    assert_eq!(stack.pop(), Err(StackError::NotEnoughElements { expected: 1, actual: 0 }));
   }
 
   #[test]
   fn test_pop_nth() {
     let mut stack = Stack::from(vec![0, 10, 20, 30, 40]);
-    assert_eq!(stack.pop_nth(0), Some(40));
+    assert_eq!(stack.pop_nth(0), Ok(40));
     assert_eq!(stack.clone().into_iter().collect::<Vec<_>>(), vec![0, 10, 20, 30]);
-    assert_eq!(stack.pop_nth(1), Some(20));
+    assert_eq!(stack.pop_nth(1), Ok(20));
     assert_eq!(stack.clone().into_iter().collect::<Vec<_>>(), vec![0, 10, 30]);
-    assert_eq!(stack.pop_nth(3), None);
-    assert_eq!(stack.pop_nth(9), None);
-    assert_eq!(stack.pop_nth(99), None);
+    assert_eq!(stack.pop_nth(3), Err(StackError::NotEnoughElements { expected: 4, actual: 3 }));
+    assert_eq!(stack.pop_nth(9), Err(StackError::NotEnoughElements { expected: 10, actual: 3 }));
+    assert_eq!(stack.pop_nth(99), Err(StackError::NotEnoughElements { expected: 100, actual: 3 }));
     assert_eq!(stack.into_iter().collect::<Vec<_>>(), vec![0, 10, 30]);
   }
 
@@ -192,34 +204,34 @@ mod tests {
   fn test_get() {
     let stack = Stack::from(vec!['A', 'B', 'C', 'D']);
     // Regular indexing
-    assert_eq!(stack.get(0), Some(&'D'));
-    assert_eq!(stack.get(1), Some(&'C'));
-    assert_eq!(stack.get(2), Some(&'B'));
-    assert_eq!(stack.get(3), Some(&'A'));
-    assert_eq!(stack.get(4), None);
+    assert_eq!(stack.get(0), Ok(&'D'));
+    assert_eq!(stack.get(1), Ok(&'C'));
+    assert_eq!(stack.get(2), Ok(&'B'));
+    assert_eq!(stack.get(3), Ok(&'A'));
+    assert_eq!(stack.get(4), Err(StackError::NotEnoughElements { expected: 5, actual: 4 }));
     // Negative indexing
-    assert_eq!(stack.get(-1), Some(&'A'));
-    assert_eq!(stack.get(-2), Some(&'B'));
-    assert_eq!(stack.get(-3), Some(&'C'));
-    assert_eq!(stack.get(-4), Some(&'D'));
-    assert_eq!(stack.get(-5), None);
+    assert_eq!(stack.get(-1), Ok(&'A'));
+    assert_eq!(stack.get(-2), Ok(&'B'));
+    assert_eq!(stack.get(-3), Ok(&'C'));
+    assert_eq!(stack.get(-4), Ok(&'D'));
+    assert_eq!(stack.get(-5), Err(StackError::NotEnoughElements { expected: 5, actual: 4 }));
   }
 
   #[test]
   fn test_get_mut() {
     let mut stack = Stack::from(vec!['A', 'B', 'C', 'D']);
     // Regular indexing
-    assert_eq!(stack.get_mut(0), Some(&mut 'D'));
-    assert_eq!(stack.get_mut(1), Some(&mut 'C'));
-    assert_eq!(stack.get_mut(2), Some(&mut 'B'));
-    assert_eq!(stack.get_mut(3), Some(&mut 'A'));
-    assert_eq!(stack.get_mut(4), None);
+    assert_eq!(stack.get_mut(0), Ok(&mut 'D'));
+    assert_eq!(stack.get_mut(1), Ok(&mut 'C'));
+    assert_eq!(stack.get_mut(2), Ok(&mut 'B'));
+    assert_eq!(stack.get_mut(3), Ok(&mut 'A'));
+    assert_eq!(stack.get_mut(4), Err(StackError::NotEnoughElements { expected: 5, actual: 4 }));
     // Negative indexing
-    assert_eq!(stack.get_mut(-1), Some(&mut 'A'));
-    assert_eq!(stack.get_mut(-2), Some(&mut 'B'));
-    assert_eq!(stack.get_mut(-3), Some(&mut 'C'));
-    assert_eq!(stack.get_mut(-4), Some(&mut 'D'));
-    assert_eq!(stack.get_mut(-5), None);
+    assert_eq!(stack.get_mut(-1), Ok(&mut 'A'));
+    assert_eq!(stack.get_mut(-2), Ok(&mut 'B'));
+    assert_eq!(stack.get_mut(-3), Ok(&mut 'C'));
+    assert_eq!(stack.get_mut(-4), Ok(&mut 'D'));
+    assert_eq!(stack.get_mut(-5), Err(StackError::NotEnoughElements { expected: 5, actual: 4 }));
   }
 
   #[test]
@@ -232,12 +244,12 @@ mod tests {
     stack.push(5);
     let ptr = stack.get_mut(1).unwrap();
     *ptr = 999;
-    assert_eq!(stack.pop(), Some(5));
-    assert_eq!(stack.pop(), Some(999));
-    assert_eq!(stack.pop(), Some(3));
-    assert_eq!(stack.pop(), Some(2));
-    assert_eq!(stack.pop(), Some(1));
-    assert_eq!(stack.pop(), None);
+    assert_eq!(stack.pop(), Ok(5));
+    assert_eq!(stack.pop(), Ok(999));
+    assert_eq!(stack.pop(), Ok(3));
+    assert_eq!(stack.pop(), Ok(2));
+    assert_eq!(stack.pop(), Ok(1));
+    assert_eq!(stack.pop(), Err(StackError::NotEnoughElements { expected: 1, actual: 0 }));
   }
 
   #[test]
