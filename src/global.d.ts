@@ -27,6 +27,7 @@ interface EventFunctions {
 
 interface EventListen {
   (event: 'refresh-stack', callback: EventCallback<RefreshStackPayload>): Promise<UnlistenFunction>;
+  (event: 'refresh-undo-availabiity', callback: EventCallback<UndoAvailabilityPayload>): Promise<UnlistenFunction>;
   (event: 'show-error', callback: EventCallback<ShowErrorPayload>): Promise<UnlistenFunction>;
 }
 
@@ -43,6 +44,11 @@ type UnlistenFunction = () => void;
 
 interface RefreshStackPayload {
   stack: string[];
+}
+
+interface UndoAvailabilityPayload {
+  hasUndos: boolean;
+  hasRedos: boolean;
 }
 
 interface ShowErrorPayload {

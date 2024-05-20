@@ -13,6 +13,15 @@ pub struct RefreshStackPayload {
   pub stack: Vec<String>,
 }
 
+/// Instructs the frontend to update the states of the "Undo" and
+/// "Redo" buttons.
+#[derive(Serialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct UndoAvailabilityPayload {
+  pub has_undos: bool,
+  pub has_redos: bool,
+}
+
 /// Instructs the frontend to render an error message to the user.
 #[derive(Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
