@@ -1,6 +1,5 @@
 
 const tauri = window.__TAURI__.tauri;
-const events = window.__TAURI__.events;
 
 export class UndoManager {
   private undoButton: HTMLButtonElement;

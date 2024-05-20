@@ -117,14 +117,19 @@ button {
   box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
 }
 
-button {
+button:enabled {
   cursor: pointer;
 }
 
-button:hover {
+button:disabled {
+    color: #aaa;
+    background-color: #cccccc98;
+}
+
+button:hover:enabled {
   border-color: #396cd8;
 }
-button:active {
+button:active:enabled {
   border-color: #396cd8;
   background-color: #e8e8e8;
 }
@@ -161,8 +166,14 @@ button {
     color: #ffffff;
     background-color: #0f0f0f98;
   }
-  button:active {
+
+  button:active:enabled {
     background-color: #0f0f0f69;
+  }
+
+  button:disabled {
+      color: #777;
+      background-color: #44444498;
   }
 
   .notification-box-contents {

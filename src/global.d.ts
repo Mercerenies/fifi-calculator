@@ -27,7 +27,7 @@ interface EventFunctions {
 
 interface EventListen {
   (event: 'refresh-stack', callback: EventCallback<RefreshStackPayload>): Promise<UnlistenFunction>;
-  (event: 'refresh-undo-availabiity', callback: EventCallback<UndoAvailabilityPayload>): Promise<UnlistenFunction>;
+  (event: 'refresh-undo-availability', callback: EventCallback<UndoAvailabilityPayload>): Promise<UnlistenFunction>;
   (event: 'show-error', callback: EventCallback<ShowErrorPayload>): Promise<UnlistenFunction>;
 }
 

@@ -9,10 +9,10 @@ import { PrefixArgumentDisplay } from "./prefix_argument/display.js";
 import { UndoManager } from './undo_manager.js';
 
 export class RightPanelManager {
-  private prefixArgStateMachine: PrefixArgStateMachine;
-  private buttonGrid: ButtonGridManager;
-  private prefixArgDisplay: PrefixArgumentDisplay;
-  private undoManager: UndoManager;
+  readonly prefixArgStateMachine: PrefixArgStateMachine;
+  readonly buttonGrid: ButtonGridManager;
+  readonly prefixArgDisplay: PrefixArgumentDisplay;
+  readonly undoManager: UndoManager;
 
   constructor(args: RightPanelArguments) {
     this.prefixArgStateMachine = new PrefixArgStateMachine();
