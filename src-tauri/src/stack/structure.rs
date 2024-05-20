@@ -186,6 +186,18 @@ mod tests {
   }
 
   #[test]
+  fn test_pop_several() {
+    let mut stack = Stack::from(vec![0, 10, 20, 30, 40]);
+    assert_eq!(stack.pop_several(3), Ok(vec![20, 30, 40]));
+    assert_eq!(stack.len(), 2);
+    assert_eq!(stack.pop_several(3), Err(StackError::NotEnoughElements { expected: 3, actual: 2 }));
+    assert_eq!(stack.len(), 2);
+    assert_eq!(stack.pop_several(2), Ok(vec![0, 10]));
+    assert_eq!(stack.len(), 0);
+    assert!(stack.is_empty());
+  }
+
+  #[test]
   fn test_pop_nth() {
     let mut stack = Stack::from(vec![0, 10, 20, 30, 40]);
     assert_eq!(stack.pop_nth(0), Ok(40));
