@@ -1,9 +1,11 @@
 
+mod delegate;
 mod error;
 mod structure;
 
-pub use structure::Stack;
+pub use delegate::{DelegatingStack, StackDelegate};
 pub use error::StackError;
+pub use structure::Stack;
 
 #[cfg(test)]
 pub(crate) mod test_utils {
