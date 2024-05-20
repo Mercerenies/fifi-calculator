@@ -11,6 +11,8 @@ export const ElementIds = {
   NOTIFICATION_BOX_TEXT: 'notification-box-text',
   BUTTON_GRID_CONTAINER: 'button-grid-container',
   PREFIX_ARG_PANEL: 'prefix-arg-panel',
+  UNDO_BUTTON: 'undo-button',
+  REDO_BUTTON: 'redo-button',
 };
 
 function getElement(id: string): HTMLElement {
@@ -56,4 +58,12 @@ export function getButtonGridContainer(): HTMLElement {
 
 export function getPrefixArgPanel(): HTMLElement {
   return getElement(ElementIds.PREFIX_ARG_PANEL);
+}
+
+export function getUndoButton(): HTMLButtonElement {
+  return getElement(ElementIds.UNDO_BUTTON) as HTMLButtonElement;
+}
+
+export function getRedoButton(): HTMLButtonElement {
+  return getElement(ElementIds.REDO_BUTTON) as HTMLButtonElement;
 }

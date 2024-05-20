@@ -26,6 +26,8 @@ class UiManager {
       buttonGrid: Page.getButtonGridContainer(),
       prefixPanel: Page.getPrefixArgPanel(),
       initialGrid: new MainButtonGrid(this.inputManager, this.notificationManager),
+      undoButton: Page.getUndoButton(),
+      redoButton: Page.getRedoButton(),
     });
     this.osType = osType;
   }

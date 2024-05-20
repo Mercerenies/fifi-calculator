@@ -9,6 +9,8 @@ use crate::command::dispatch::CommandDispatchTable;
 use crate::display::DisplaySettings;
 use crate::undo::{UndoStack, UndoError};
 
+use serde::{Serialize, Deserialize};
+
 use tauri::Manager;
 
 use std::sync::Mutex;
@@ -28,6 +30,13 @@ pub struct ApplicationState {
 pub struct UndoableState {
   main_stack: Stack<Expr>,
   display_settings: DisplaySettings,
+}
+
+/// Direction of an undo command issued to Tauri.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum UndoDirection {
+  Undo, Redo,
 }
 
 impl TauriApplicationState {

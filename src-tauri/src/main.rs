@@ -2,7 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use fifi::error::Error;
-use fifi::state::{TauriApplicationState, ApplicationState};
+use fifi::state::{TauriApplicationState, ApplicationState, UndoDirection};
 use fifi::command::CommandContext;
 use fifi::command::options::CommandOptions;
 use fifi::command::dispatch::CommandDispatchTable;
@@ -37,6 +37,24 @@ fn math_command(
     &app_handle,
     run_math_command(&app_handle, &mut state, &app_state.command_table, command_name, prefix_argument),
   )?;
+  state.send_refresh_stack_event(&app_handle)?;
+  Ok(())
+}
+
+#[tauri::command]
+fn perform_undo_action(
+  app_state: tauri::State<TauriApplicationState>,
+  app_handle: tauri::AppHandle,
+  direction: UndoDirection,
+) -> Result<(), tauri::Error> {
+  let mut state = app_state.state.lock().expect("poisoned mutex");
+  // TODO Maybe log these failures? It's a bug in the frontend if the
+  // user was allowed to push these buttons when there was nothing
+  // available.
+  let _ = match direction {
+    UndoDirection::Undo => state.undo(),
+    UndoDirection::Redo => state.redo(),
+  };
   state.send_refresh_stack_event(&app_handle)?;
   Ok(())
 }
@@ -82,7 +100,7 @@ fn handle_non_tauri_errors(app_handle: &tauri::AppHandle, err: Result<(), Error>
 fn main() {
   tauri::Builder::default()
     .manage(TauriApplicationState::new())
-    .invoke_handler(tauri::generate_handler![submit_number, math_command])
+    .invoke_handler(tauri::generate_handler![submit_number, math_command, perform_undo_action])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }
