@@ -22,6 +22,7 @@ fn submit_number(
   let mut state = app_state.state.lock().expect("poisoned mutex");
   handle_non_tauri_errors(&app_handle, parse_and_push_number(&mut state, value))?;
   state.send_refresh_stack_event(&app_handle)?;
+  state.send_undo_buttons_event(&app_handle)?;
   Ok(())
 }
 
@@ -38,6 +39,7 @@ fn math_command(
     run_math_command(&app_handle, &mut state, &app_state.command_table, command_name, prefix_argument),
   )?;
   state.send_refresh_stack_event(&app_handle)?;
+  state.send_undo_buttons_event(&app_handle)?;
   Ok(())
 }
 
@@ -56,6 +58,7 @@ fn perform_undo_action(
     UndoDirection::Redo => state.redo(),
   };
   state.send_refresh_stack_event(&app_handle)?;
+  state.send_undo_buttons_event(&app_handle)?;
   Ok(())
 }
 

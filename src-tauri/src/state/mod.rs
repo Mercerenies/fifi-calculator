@@ -3,7 +3,7 @@
 
 pub mod events;
 
-use events::RefreshStackPayload;
+use events::{RefreshStackPayload, UndoAvailabilityPayload};
 use crate::stack::Stack;
 use crate::expr::Expr;
 use crate::command::default_dispatch_table;
@@ -58,6 +58,14 @@ impl ApplicationState {
       state.main_stack.iter().map(|expr| state.display_settings.to_html(expr)).collect();
     let payload = RefreshStackPayload { stack: displayed_stack };
     app_handle.emit_all(RefreshStackPayload::EVENT_NAME, payload)
+  }
+
+  pub fn send_undo_buttons_event(&self, app_handle: &tauri::AppHandle) -> tauri::Result<()> {
+    let payload = UndoAvailabilityPayload {
+      has_undos: self.undo_stack.has_undos(),
+      has_redos: self.undo_stack.has_redos(),
+    };
+    app_handle.emit_all(UndoAvailabilityPayload::EVENT_NAME, payload)
   }
 
   pub fn display_settings(&self) -> &DisplaySettings {

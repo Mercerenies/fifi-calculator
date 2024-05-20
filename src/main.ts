@@ -76,9 +76,16 @@ function refreshStack(newStack: string[]): void {
   stack.appendChild(ol);
 }
 
+function refreshUndoButtons(uiManager: UiManager, state: UndoAvailabilityPayload) {
+  const undoManager = uiManager.rightPanelManager.undoManager;
+  undoManager.setUndoButtonEnabled(state.hasUndos);
+  undoManager.setRedoButtonEnabled(state.hasRedos);
+}
+
 window.addEventListener("DOMContentLoaded", async function() {
   const uiManager = await UiManager.create();
   uiManager.initListeners();
   await listen("refresh-stack", (event) => refreshStack(event.payload.stack));
   await listen("show-error", (event) => uiManager.notificationManager.show(event.payload.errorMessage));
+  await listen("refresh-undo-availability", (event) => refreshUndoButtons(uiManager, event.payload));
 });

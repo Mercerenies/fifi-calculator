@@ -34,6 +34,10 @@ impl RefreshStackPayload {
   pub const EVENT_NAME: &'static str = "refresh-stack";
 }
 
+impl UndoAvailabilityPayload {
+  pub const EVENT_NAME: &'static str = "refresh-undo-availability";
+}
+
 impl ShowErrorPayload {
   pub const EVENT_NAME: &'static str = "show-error";
 }
