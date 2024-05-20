@@ -1,9 +1,9 @@
 
-pub mod error;
-pub mod shuffle;
+mod error;
 mod structure;
 
 pub use structure::Stack;
+pub use error::StackError;
 
 #[cfg(test)]
 pub(crate) mod test_utils {

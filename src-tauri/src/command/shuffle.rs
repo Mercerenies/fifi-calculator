@@ -4,7 +4,6 @@
 use super::base::{Command, CommandContext, CommandOutput};
 use crate::state::ApplicationState;
 use crate::error::Error;
-use crate::stack::shuffle;
 
 use std::cmp::Ordering;
 
@@ -27,7 +26,7 @@ impl Command for PopCommand {
     match arg.cmp(&0) {
       Ordering::Greater => {
         // Pop N elements
-        let _ = shuffle::pop_several(&mut state.main_stack_mut(), arg as usize)?;
+        let _ = state.main_stack_mut().pop_several(arg as usize)?;
       }
       Ordering::Less => {
         // Pop a single specific element
@@ -49,13 +48,13 @@ impl Command for SwapCommand {
     match arg.cmp(&0) {
       Ordering::Greater => {
         // Bury top element N deep.
-        let mut elements = shuffle::pop_several(&mut state.main_stack_mut(), arg as usize)?;
+        let mut elements = state.main_stack_mut().pop_several(arg as usize)?;
         state.main_stack_mut().push(elements.pop().unwrap()); // unwrap: arg > 0 so elements is non-empty.
         state.main_stack_mut().push_several(elements);
       }
       Ordering::Less => {
         // Bury top N elements at bottom.
-        let elements_to_bury = shuffle::pop_several(&mut state.main_stack_mut(), (- arg) as usize)?;
+        let elements_to_bury = state.main_stack_mut().pop_several((- arg) as usize)?;
         let rest_of_elements = state.main_stack_mut().pop_all();
         state.main_stack_mut().push_several(elements_to_bury);
         state.main_stack_mut().push_several(rest_of_elements);
@@ -78,7 +77,7 @@ impl Command for DupCommand {
     match arg.cmp(&0) {
       Ordering::Greater => {
         // Duplicate top N arguments.
-        let elements = shuffle::pop_several(&mut state.main_stack_mut(), arg as usize)?;
+        let elements = state.main_stack_mut().pop_several(arg as usize)?;
         state.main_stack_mut().push_several(elements.clone());
         state.main_stack_mut().push_several(elements);
       }
@@ -103,7 +102,7 @@ mod tests {
   use super::*;
   use crate::command::test_utils::{act_on_stack, act_on_stack_err};
   use crate::stack::test_utils::stack_of;
-  use crate::stack::error::StackError;
+  use crate::stack::StackError;
 
   #[test]
   fn test_simple_pop() {

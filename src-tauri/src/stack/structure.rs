@@ -14,6 +14,16 @@ impl<T> Stack<T> {
     Self::default()
   }
 
+  /// Asserts that the stack has size at least `expected` but does not
+  /// pop anything.
+  pub fn check_stack_size(&self, expected: usize) -> Result<(), StackError> {
+    if self.len() < expected {
+      Err(StackError::NotEnoughElements { expected, actual: self.len() })
+    } else {
+      Ok(())
+    }
+  }
+
   pub fn push(&mut self, element: T) {
     self.elements.push(element);
   }
@@ -33,6 +43,14 @@ impl<T> Stack<T> {
   /// call fails due to an empty stack.
   pub fn pop_and_discard(&mut self) {
     let _ = self.elements.pop();
+  }
+
+  /// Pops `count` elements off the stack and returns those elements,
+  /// with the former top of the stack at the end of the vector. In
+  /// case of a [`StackError`], `self` will NOT be modified.
+  pub fn pop_several(&mut self, count: usize) -> Result<Vec<T>, StackError> {
+    self.check_stack_size(count)?;
+    Ok(self.elements.split_off(self.len() - count))
   }
 
   /// Pops the nth element (0-indexed and counting from the top) and

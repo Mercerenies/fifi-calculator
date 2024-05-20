@@ -1,5 +1,5 @@
 
-use crate::stack::error::StackError;
+use crate::stack::StackError;
 use crate::command::dispatch::NoSuchCommandError;
 use crate::expr::number::ParseNumberError;
 

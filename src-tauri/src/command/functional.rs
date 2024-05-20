@@ -4,7 +4,6 @@
 
 use super::base::{Command, CommandContext, CommandOutput};
 use crate::state::ApplicationState;
-use crate::stack::shuffle;
 use crate::error::Error;
 use crate::expr::Expr;
 use crate::errorlist::ErrorList;
@@ -117,7 +116,7 @@ impl Command for UnaryFunctionCommand {
     match arg.cmp(&0) {
       Ordering::Greater => {
         // Apply to top N elements.
-        let values = shuffle::pop_several(&mut state.main_stack_mut(), arg as usize)?;
+        let values = state.main_stack_mut().pop_several(arg as usize)?;
         let values = values.into_iter().map(|e| {
           ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors)
         });
@@ -147,7 +146,7 @@ impl Command for BinaryFunctionCommand {
     match arg.cmp(&0) {
       Ordering::Greater => {
         // Perform reduction on top N elements.
-        let values = shuffle::pop_several(&mut state.main_stack_mut(), arg as usize)?;
+        let values = state.main_stack_mut().pop_several(arg as usize)?;
         let result = values.into_iter().reduce(|a, b| {
           self.wrap_exprs(a, b)
         }).expect("Empty stack"); // expect safety: We popped at least one element off the stack
@@ -156,7 +155,7 @@ impl Command for BinaryFunctionCommand {
       }
       Ordering::Less => {
         // Apply top to next N elements.
-        let mut values = shuffle::pop_several(&mut state.main_stack_mut(), (- arg + 1) as usize)?;
+        let mut values = state.main_stack_mut().pop_several((- arg + 1) as usize)?;
         // expect safety: We popped at least two values, so removing one is safe.
         let second_argument = values.pop().expect("Empty stack");
         for e in values.iter_mut() {
@@ -166,7 +165,7 @@ impl Command for BinaryFunctionCommand {
       }
       Ordering::Equal => {
         // Reduce entire stack.
-        shuffle::check_stack_size(&state.main_stack_mut(), 1)?;
+        state.main_stack().check_stack_size(1)?;
         let values = state.main_stack_mut().pop_all();
         let result = values.into_iter().reduce(|a, b| {
           self.wrap_exprs(a, b)
@@ -184,8 +183,7 @@ mod tests {
   use super::*;
   use crate::command::test_utils::{act_on_stack, act_on_stack_err};
   use crate::stack::test_utils::stack_of;
-  use crate::stack::Stack;
-  use crate::stack::error::StackError;
+  use crate::stack::{Stack, StackError};
   use crate::expr::number::Number;
 
   fn push_constant_zero() -> PushConstantCommand {

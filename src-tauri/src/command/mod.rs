@@ -43,8 +43,7 @@ pub(crate) mod test_utils {
   use crate::expr::Expr;
   use crate::state::test_utils::state_for_stack;
   use crate::stack::test_utils::stack_of;
-  use crate::stack::Stack;
-  use crate::stack::error::StackError;
+  use crate::stack::{Stack, StackError};
   use crate::error::Error;
 
   /// Tests the operation on the given input stack, expecting a
