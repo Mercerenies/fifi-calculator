@@ -11,7 +11,7 @@
 /// That is, if `state: S`, and we call
 ///
 /// ```
-/// # use fifi::undo::change::{UndoableChange, NoChange};
+/// # use fifi::undo::{UndoableChange, NoChange};
 /// # let mut state: i32 = 0;
 /// # let change = NoChange;
 /// change.play_forward(&mut state);
@@ -23,7 +23,7 @@
 /// sequence
 ///
 /// ```
-/// # use fifi::undo::change::{UndoableChange, NoChange};
+/// # use fifi::undo::{UndoableChange, NoChange};
 /// # let mut state: i32 = 0;
 /// # let change = NoChange;
 /// change.play_backward(&mut state);
