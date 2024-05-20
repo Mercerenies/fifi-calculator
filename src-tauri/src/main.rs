@@ -3,13 +3,13 @@
 
 use fifi::error::Error;
 use fifi::state::{TauriApplicationState, ApplicationState, UndoDirection};
+use fifi::state::events::show_error;
 use fifi::command::CommandContext;
 use fifi::command::options::CommandOptions;
 use fifi::command::dispatch::CommandDispatchTable;
 use fifi::expr::simplifier::default_simplifier;
 use fifi::expr::Expr;
 use fifi::expr::number::Number;
-use fifi::events::show_error;
 
 use std::str::FromStr;
 

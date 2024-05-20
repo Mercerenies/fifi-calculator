@@ -1,9 +1,11 @@
 
 //! Backend application state manager.
 
+pub mod events;
+
+use events::RefreshStackPayload;
 use crate::stack::Stack;
 use crate::expr::Expr;
-use crate::events::RefreshStackPayload;
 use crate::command::default_dispatch_table;
 use crate::command::dispatch::CommandDispatchTable;
 use crate::display::DisplaySettings;
