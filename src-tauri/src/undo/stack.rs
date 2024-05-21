@@ -179,6 +179,15 @@ impl<S> Debug for UndoStackValue<S> {
   }
 }
 
+impl<S> Debug for UndoStack<S> {
+  fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    f.debug_struct("UndoStack")
+      .field("past", &self.past)
+      .field("future", &self.future)
+      .finish()
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
