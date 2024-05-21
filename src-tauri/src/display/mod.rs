@@ -3,7 +3,7 @@ pub mod language;
 
 use crate::expr::Expr;
 use language::LanguageMode;
-use language::basic::DefaultLanguageMode;
+use language::basic::BasicLanguageMode;
 
 pub struct DisplaySettings {
   pub language_mode: Box<dyn LanguageMode + Send + Sync>,
@@ -19,7 +19,7 @@ impl DisplaySettings {
 
 impl Default for DisplaySettings {
   fn default() -> Self {
-    let language_mode = Box::new(DefaultLanguageMode);
+    let language_mode = Box::new(BasicLanguageMode::with_default_operators());
     DisplaySettings {
       language_mode,
     }

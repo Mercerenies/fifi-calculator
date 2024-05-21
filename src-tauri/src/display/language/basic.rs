@@ -3,10 +3,23 @@ use super::LanguageMode;
 use crate::expr::Expr;
 use crate::expr::atom::Atom;
 
-#[derive(Clone, Debug)]
-pub struct DefaultLanguageMode;
+use std::marker::PhantomData;
 
-impl DefaultLanguageMode {
+#[derive(Clone, Debug, Default)]
+pub struct BasicLanguageMode {
+  _private: PhantomData<()>,
+}
+
+impl BasicLanguageMode {
+  pub fn new() -> Self {
+    Self::default()
+  }
+
+  pub fn with_default_operators() -> Self {
+    // TODO Add operators
+    Self::default()
+  }
+
   fn function_call_to_html(&self, out: &mut String, f: &str, args: &[Expr]) {
     let mut first = true;
     out.push_str(f);
@@ -22,7 +35,7 @@ impl DefaultLanguageMode {
   }
 }
 
-impl LanguageMode for DefaultLanguageMode {
+impl LanguageMode for BasicLanguageMode {
   fn to_html(&self, out: &mut String, expr: &Expr) {
     match expr {
       Expr::Atom(Atom::Number(n)) => {
