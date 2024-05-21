@@ -83,12 +83,18 @@ impl ApplicationState {
     &self.undoable_state.main_stack
   }
 
-  pub fn main_stack_mut(&mut self) -> &mut Stack<Expr> {
+  /// Returns the main stack as a mutable reference, without any undo
+  /// semantics. The user of this function is then responsible for
+  /// managing the undo stack themselves.
+  ///
+  /// Consider using
+  /// [`main_stack_mut`](ApplicationState::main_stack_mut) instead,
+  /// which provides the undo capabilities automatically.
+  pub fn main_stack_mut_raw(&mut self) -> &mut Stack<Expr> {
     &mut self.undoable_state.main_stack
   }
 
-  // TODO Swap this and `main_stack_mut` when we're ready.
-  pub fn main_stack_mut_with_undos<'a>(&'a mut self) -> DelegatingStack<'a, Expr, UndoingDelegate<'a>> {
+  pub fn main_stack_mut<'a>(&'a mut self) -> DelegatingStack<'a, Expr, UndoingDelegate<'a>> {
     DelegatingStack::new(
       self.undoable_state.main_stack_mut(),
       UndoingDelegate::new(&mut self.undo_stack),
@@ -145,7 +151,7 @@ pub(crate) mod test_utils {
   /// element in the vector).
   pub fn state_for_stack(stack: Vec<i64>) -> ApplicationState {
     let mut state = ApplicationState::new();
-    *state.main_stack_mut() = stack_of(stack);
+    *state.main_stack_mut_raw() = stack_of(stack);
     state
   }
 }

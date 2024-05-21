@@ -21,7 +21,7 @@ pub struct DupCommand;
 
 impl Command for PopCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
-    // TODO Undo/redo
+    state.undo_stack_mut().push_cut();
     let arg = ctx.opts.argument.unwrap_or(1);
     match arg.cmp(&0) {
       Ordering::Greater => {
@@ -43,7 +43,7 @@ impl Command for PopCommand {
 
 impl Command for SwapCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
-    // TODO Undo/redo
+    state.undo_stack_mut().push_cut();
     let arg = ctx.opts.argument.unwrap_or(2);
     match arg.cmp(&0) {
       Ordering::Greater => {
@@ -72,7 +72,7 @@ impl Command for SwapCommand {
 
 impl Command for DupCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
-    // TODO Undo/redo
+    state.undo_stack_mut().push_cut();
     let arg = ctx.opts.argument.unwrap_or(1);
     match arg.cmp(&0) {
       Ordering::Greater => {

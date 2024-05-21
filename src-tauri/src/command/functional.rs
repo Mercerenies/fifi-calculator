@@ -98,7 +98,7 @@ impl BinaryFunctionCommand {
 
 impl Command for PushConstantCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
-    // TODO Undo/redo
+    state.undo_stack_mut().push_cut();
     let arg = ctx.opts.argument.unwrap_or(1).max(0);
     let mut errors = ErrorList::new();
     for _ in 0..arg {
@@ -110,28 +110,29 @@ impl Command for PushConstantCommand {
 
 impl Command for UnaryFunctionCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
-    // TODO Undo/redo
+    state.undo_stack_mut().push_cut();
     let mut errors = ErrorList::new();
     let arg = ctx.opts.argument.unwrap_or(1);
+    let mut stack = state.main_stack_mut();
     match arg.cmp(&0) {
       Ordering::Greater => {
         // Apply to top N elements.
-        let values = state.main_stack_mut().pop_several(arg as usize)?;
+        let values = stack.pop_several(arg as usize)?;
         let values = values.into_iter().map(|e| {
           ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors)
         });
-        state.main_stack_mut().push_several(values);
+        stack.push_several(values);
       }
       Ordering::Less => {
         // Apply to single element N down on the stack.
-        let e = state.main_stack_mut().get_mut(- arg - 1)?;
+        let mut e = stack.get_mut(- arg - 1)?;
         e.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors));
       }
       Ordering::Equal => {
         // Apply to all elements.
-        for e in state.main_stack_mut().iter_mut() {
+        stack.foreach_mut(|e| {
           e.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors));
-        }
+        });
       }
     }
     Ok(CommandOutput::from_errors(errors))
@@ -140,7 +141,7 @@ impl Command for UnaryFunctionCommand {
 
 impl Command for BinaryFunctionCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
-    // TODO Undo/redo
+    state.undo_stack_mut().push_cut();
     let mut errors = ErrorList::new();
     let arg = ctx.opts.argument.unwrap_or(2);
     match arg.cmp(&0) {
