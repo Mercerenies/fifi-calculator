@@ -30,13 +30,6 @@ export class RightPanelManager {
     this.undoManager = new UndoManager(args);
   }
 
-  async onKeyDown(input: KeyEventInput): Promise<void> {
-    const blocked = await this.undoManager.onKeyDown(input);
-    if (blocked !== KeyResponse.BLOCK) {
-      await this.buttonGrid.onKeyDown(input);
-    }
-  }
-
   initListeners() {
     this.buttonGrid.initListeners();
     this.prefixArgDisplay.initListeners();

@@ -4,6 +4,7 @@ import { InputBoxManager } from './input_box.js';
 import { NotificationManager } from './notifications.js';
 import { MainButtonGrid } from './button_grid/main_button_grid.js';
 import { KeyInput, KeyResponse } from './keyboard.js';
+import * as KeyDispatcher from './keyboard/dispatcher.js';
 import { RightPanelManager } from './right_panel.js';
 
 const { listen } = window.__TAURI__.event;
@@ -14,6 +15,8 @@ class UiManager {
   readonly notificationManager: NotificationManager;
   readonly rightPanelManager: RightPanelManager;
   readonly osType: OsType;
+
+  private keyHandler: KeyDispatcher.KeyEventHandler;
 
   constructor(osType: OsType) {
     this.inputManager = new InputBoxManager({
@@ -30,6 +33,15 @@ class UiManager {
       redoButton: Page.getRedoButton(),
     });
     this.osType = osType;
+
+    this.keyHandler = KeyDispatcher.sequential([
+      KeyDispatcher.filtered(
+        this.inputManager,
+        () => document.activeElement === Page.getInputTextBox(),
+      ),
+      this.rightPanelManager.undoManager,
+      this.rightPanelManager.buttonGrid,
+    ]);
   }
 
   static async create(): Promise<UiManager> {
@@ -52,13 +64,7 @@ class UiManager {
       return;
     }
 
-    if (document.activeElement === Page.getInputTextBox()) {
-      const keyResponse = await this.inputManager.onKeyDown(input);
-      if (keyResponse === KeyResponse.BLOCK) {
-        return;
-      }
-    }
-    await this.rightPanelManager.onKeyDown(input);
+    this.keyHandler.onKeyDown(input);
   }
 }
 

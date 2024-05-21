@@ -76,19 +76,20 @@ export class ButtonGridManager {
     this.domElement.appendChild(gridDiv);
   }
 
-  async onKeyDown(input: KeyEventInput): Promise<void> {
+  async onKeyDown(input: KeyEventInput): Promise<KeyResponse> {
     const responseFromDelegate = await this.modifierDelegate.onKeyDown(input);
     if (responseFromDelegate == KeyResponse.BLOCK) {
       // Delegate handled the event, so don't propagate to the
       // buttons.
-      return;
+      return KeyResponse.BLOCK;
     }
     const button = this.buttonsByKey[input.toEmacsSyntax()];
     if (button !== undefined) {
       input.event.preventDefault();
       await button.fire(this);
+      return KeyResponse.BLOCK;
     } else {
-      await this.activeGrid.onUnhandledKey(input);
+      return await this.activeGrid.onUnhandledKey(input);
     }
   }
 }
@@ -99,7 +100,7 @@ export interface ButtonGrid {
   // filled in with Spacer objects.
   readonly rows: readonly (readonly GridCell[])[];
 
-  onUnhandledKey(input: KeyEventInput): Promise<void>;
+  onUnhandledKey(input: KeyEventInput): Promise<KeyResponse>;
 }
 
 export interface GridCell {

@@ -3,7 +3,7 @@ import { ButtonGrid, GridCell } from "../button_grid.js";
 import { NumericalInputButton, DispatchButton } from './button.js';
 import { InputBoxManager } from '../input_box.js';
 import { NumericalInputMethod } from '../input_box/numerical_input.js';
-import { KeyEventInput } from '../keyboard.js';
+import { KeyEventInput, KeyResponse } from '../keyboard.js';
 import { svg } from '../util.js';
 
 export interface Hideable {
@@ -61,14 +61,18 @@ export class MainButtonGrid implements ButtonGrid {
     ];
   }
 
-  async onUnhandledKey(input: KeyEventInput): Promise<void> {
+  async onUnhandledKey(input: KeyEventInput): Promise<KeyResponse> {
     const key = input.toEmacsSyntax();
     if (MainButtonGrid.NUMERICAL_INPUT_START_KEYS.has(key)) {
       // Start numerical input
       input.event.preventDefault();
       this.inputManager.show(new NumericalInputMethod(), this.translateInitialInput(key));
+      return KeyResponse.BLOCK;
     } else if (key === "Escape") {
       this.onEscapeDismissable.hide();
+      return KeyResponse.BLOCK;
+    } else {
+      return KeyResponse.PASS;
     }
   }
 
