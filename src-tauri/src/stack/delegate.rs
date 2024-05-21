@@ -7,6 +7,7 @@ use super::error::StackError;
 
 use std::hash::{Hash, Hasher};
 use std::ops::{Deref, DerefMut};
+use std::slice;
 
 pub trait StackDelegate<T> {
   /// Called before a new value is pushed onto the stack.
@@ -140,6 +141,8 @@ where D: StackDelegate<T> {
   pub fn iter(&self) -> impl DoubleEndedIterator<Item = &T> {
     self.stack.iter()
   }
+
+  ///// Think about how we can get iter_mut here. Definitely a custom iterator, but can we do it in safe Rust? Need to call on_mutate whenever the LAST mutable ref is dropped (probably using Rc shenanigans)
 }
 
 impl<'a, T, D: StackDelegate<T>> Deref for RefMut<'a, T, D> {
