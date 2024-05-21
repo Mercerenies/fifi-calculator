@@ -163,19 +163,19 @@ impl<'a, T, D: StackDelegate<T>> Deref for RefMut<'a, T, D> {
   type Target = T;
 
   fn deref(&self) -> &T {
-    &self.value
+    self.value
   }
 }
 
 impl<'a, T, D: StackDelegate<T>> DerefMut for RefMut<'a, T, D> {
   fn deref_mut(&mut self) -> &mut T {
-    &mut self.value
+    self.value
   }
 }
 
 impl<'a, T, D: StackDelegate<T>> Drop for RefMut<'a, T, D> {
   fn drop(&mut self) {
-    self.delegate.on_mutate(self.index, &self.original_value, &self.value);
+    self.delegate.on_mutate(self.index, &self.original_value, self.value);
   }
 }
 
