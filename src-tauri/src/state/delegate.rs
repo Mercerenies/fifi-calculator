@@ -24,8 +24,8 @@ impl<'a> StackDelegate<Expr> for UndoingDelegate<'a> {
     self.undo_stack.push_change(PushExprChange::new(new_value.clone()));
   }
 
-  fn on_pop(&mut self, old_value: &Expr) {
-    self.undo_stack.push_change(PopExprChange::new(old_value.clone()));
+  fn on_pop(&mut self, index: usize, old_value: &Expr) {
+    self.undo_stack.push_change(PopExprChange::new(index, old_value.clone()));
   }
 
   fn on_mutate(&mut self, index: i64, old_value: &Expr, new_value: &Expr) {

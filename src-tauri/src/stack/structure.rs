@@ -65,6 +65,15 @@ impl<T> Stack<T> {
     Ok(self.elements.remove(self.len() - index - 1))
   }
 
+  /// Inserts an element at the given position, 0-indexed from the top
+  /// of the stack. `self.insert(0, x)` is equivalent to
+  /// `self.push(x)`.
+  pub fn insert(&mut self, index: usize, element: T) -> Result<(), StackError> {
+    self.check_stack_size(index)?;
+    self.elements.insert(self.len() - index, element);
+    Ok(())
+  }
+
   pub fn pop_all(&mut self) -> Vec<T> {
     self.elements.drain(..).collect()
   }

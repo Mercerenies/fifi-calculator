@@ -21,7 +21,7 @@ pub trait StackDelegate<T> {
   /// If several values are popped at once, this method may be called
   /// after each one individually, or after all of them have been
   /// popped.
-  fn on_pop(&mut self, old_value: &T);
+  fn on_pop(&mut self, index: usize, old_value: &T);
 
   /// Called after a value on the stack is modified in-place.
   fn on_mutate(&mut self, index: i64, old_value: &T, new_value: &T);
@@ -68,7 +68,13 @@ where D: StackDelegate<T> {
 
   pub fn pop(&mut self) -> Result<T, StackError> {
     let value = self.stack.pop()?;
-    self.delegate.on_pop(&value);
+    self.delegate.on_pop(0, &value);
+    Ok(value)
+  }
+
+  pub fn pop_nth(&mut self, index: usize) -> Result<T, StackError> {
+    let value = self.stack.pop_nth(index)?;
+    self.delegate.on_pop(index, &value);
     Ok(value)
   }
 
@@ -79,7 +85,7 @@ where D: StackDelegate<T> {
   pub fn pop_several(&mut self, count: usize) -> Result<Vec<T>, StackError> {
     let values = self.stack.pop_several(count)?;
     for value in values.iter().rev() {
-      self.delegate.on_pop(value);
+      self.delegate.on_pop(0, value);
     }
     Ok(values)
   }
@@ -87,7 +93,7 @@ where D: StackDelegate<T> {
   pub fn pop_all(&mut self) -> Vec<T> {
     let values = self.stack.pop_all();
     for value in values.iter().rev() {
-      self.delegate.on_pop(value);
+      self.delegate.on_pop(0, value);
     }
     values
   }
@@ -191,7 +197,7 @@ impl<'a, T: Hash, D> Hash for DelegatingStack<'a, T, D> {
 
 impl<T> StackDelegate<T> for NullStackDelegate {
   fn on_push(&mut self, _: &T) {}
-  fn on_pop(&mut self, _: &T) {}
+  fn on_pop(&mut self, _: usize, _: &T) {}
   fn on_mutate(&mut self, _: i64, _: &T, _: &T) {}
 }
 
@@ -202,7 +208,7 @@ mod tests {
   #[derive(Default, Debug, PartialEq, Eq)]
   struct TestDelegate {
     pushes: Vec<i32>,
-    pops: Vec<i32>,
+    pops: Vec<(usize, i32)>,
     mutations: Vec<(i64, i32, i32)>,
   }
 
@@ -211,8 +217,8 @@ mod tests {
       self.pushes.push(*value);
     }
 
-    fn on_pop(&mut self, value: &i32) {
-      self.pops.push(*value);
+    fn on_pop(&mut self, index: usize, value: &i32) {
+      self.pops.push((index, *value));
     }
 
     fn on_mutate(&mut self, index: i64, old_value: &i32, new_value: &i32) {
@@ -257,7 +263,23 @@ mod tests {
     assert_eq!(stack.len(), 1);
     assert_eq!(stack.delegate, TestDelegate {
       pushes: vec![],
-      pops: vec![30, 20],
+      pops: vec![(0, 30), (0, 20)],
+      mutations: vec![],
+    });
+  }
+
+  #[test]
+  fn test_pop_nth() {
+    let mut stack = Stack::from(vec![10, 20, 30, 40, 50]);
+    let mut stack = DelegatingStack::new(&mut stack, TestDelegate::default());
+    assert_eq!(stack.pop_nth(1), Ok(40));
+    assert_eq!(stack.pop_nth(2), Ok(20));
+    assert_eq!(stack.pop_nth(3), Err(StackError::NotEnoughElements { expected: 4, actual: 3 }));
+    assert_eq!(stack.len(), 3);
+    assert_eq!(stack.stack.iter().collect::<Vec<_>>(), vec![&10, &30, &50]);
+    assert_eq!(stack.delegate, TestDelegate {
+      pushes: vec![],
+      pops: vec![(1, 40), (2, 20)],
       mutations: vec![],
     });
   }
@@ -272,7 +294,7 @@ mod tests {
     assert!(stack.is_empty());
     assert_eq!(stack.delegate, TestDelegate {
       pushes: vec![],
-      pops: vec![30, 20, 10],
+      pops: vec![(0, 30), (0, 20), (0, 10)],
       mutations: vec![],
     });
   }
@@ -285,7 +307,7 @@ mod tests {
     assert_eq!(stack.len(), 2);
     assert_eq!(stack.delegate, TestDelegate {
       pushes: vec![],
-      pops: vec![50, 40, 30],
+      pops: vec![(0, 50), (0, 40), (0, 30)],
       mutations: vec![],
     });
 
@@ -295,7 +317,7 @@ mod tests {
     assert_eq!(stack.len(), 2);
     assert_eq!(stack.delegate, TestDelegate {
       pushes: vec![],
-      pops: vec![50, 40, 30],
+      pops: vec![(0, 50), (0, 40), (0, 30)],
       mutations: vec![],
     });
   }
@@ -308,7 +330,7 @@ mod tests {
     assert!(stack.is_empty());
     assert_eq!(stack.delegate, TestDelegate {
       pushes: vec![],
-      pops: vec![50, 40, 30, 20, 10],
+      pops: vec![(0, 50), (0, 40), (0, 30), (0, 20), (0, 10)],
       mutations: vec![],
     });
   }

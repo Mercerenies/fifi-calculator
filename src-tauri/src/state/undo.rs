@@ -12,9 +12,11 @@ pub struct PushExprChange {
   expr: Expr,
 }
 
-/// `UndoableChange` that pops a single value off the stack.
+/// `UndoableChange` that pops a single value off the stack, not
+/// necessarily the top one.
 #[derive(Clone, Debug)]
 pub struct PopExprChange {
+  index: usize,
   expr: Expr,
 }
 
@@ -34,8 +36,8 @@ impl PushExprChange {
 }
 
 impl PopExprChange {
-  pub fn new(expr: Expr) -> Self {
-    Self { expr }
+  pub fn new(index: usize, expr: Expr) -> Self {
+    Self { index, expr }
   }
 }
 
@@ -61,11 +63,11 @@ impl UndoableChange<UndoableState> for PushExprChange {
 
 impl UndoableChange<UndoableState> for PopExprChange {
   fn play_forward(&self, state: &mut UndoableState) {
-    state.main_stack_mut().pop_and_discard();
+    let _ = state.main_stack_mut().pop_nth(self.index);
   }
 
   fn play_backward(&self, state: &mut UndoableState) {
-    state.main_stack_mut().push(self.expr.clone());
+    let _ = state.main_stack_mut().insert(self.index, self.expr.clone());
   }
 
   fn undo_summary(&self) -> String {
