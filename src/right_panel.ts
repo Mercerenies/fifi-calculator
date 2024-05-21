@@ -7,6 +7,7 @@ import { PrefixArgStateMachine } from "./prefix_argument.js";
 import { PrefixArgumentDelegate } from "./prefix_argument/prefix_delegate.js";
 import { PrefixArgumentDisplay } from "./prefix_argument/display.js";
 import { UndoManager } from './undo_manager.js';
+import { KeyResponse } from './keyboard.js';
 
 export class RightPanelManager {
   readonly prefixArgStateMachine: PrefixArgStateMachine;
@@ -30,7 +31,10 @@ export class RightPanelManager {
   }
 
   async onKeyDown(input: KeyEventInput): Promise<void> {
-    await this.buttonGrid.onKeyDown(input);
+    const blocked = await this.undoManager.onKeyDown(input);
+    if (blocked !== KeyResponse.BLOCK) {
+      await this.buttonGrid.onKeyDown(input);
+    }
   }
 
   initListeners() {

@@ -50,9 +50,11 @@ fn perform_undo_action(
   direction: UndoDirection,
 ) -> Result<(), tauri::Error> {
   let mut state = app_state.state.lock().expect("poisoned mutex");
-  // TODO Maybe log these failures? It's a bug in the frontend if the
-  // user was allowed to push these buttons when there was nothing
-  // available.
+  // We disable the undo/redo on-screen buttons if there's no action
+  // to perform. But the user can still use keyboard shortcuts to
+  // trigger them anyway, so these actions can fail. If they do, they
+  // perform no operations and harmlessly fail, so we can ignore Err
+  // here.
   let _ = match direction {
     UndoDirection::Undo => state.undo(),
     UndoDirection::Redo => state.redo(),
