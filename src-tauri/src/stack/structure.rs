@@ -1,6 +1,8 @@
 
 use super::error::StackError;
 
+use std::slice;
+
 /// FIFO stack. Implemented internally as a vector whose "top" is at
 /// the end, allowing for constant-time pushes and pops.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -125,12 +127,12 @@ impl<T> Stack<T> {
   }
 
   /// Iterates from the bottom of the stack.
-  pub fn iter(&self) -> impl DoubleEndedIterator<Item = &T> {
+  pub fn iter(&self) -> slice::Iter<'_, T> {
     self.elements.iter()
   }
 
   /// Iterates (with mutable references) from the bottom of the stack.
-  pub fn iter_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut T> {
+  pub fn iter_mut(&mut self) -> slice::IterMut<'_, T> {
     self.elements.iter_mut()
   }
 
