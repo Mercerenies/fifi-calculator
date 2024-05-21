@@ -106,7 +106,7 @@ fn handle_non_tauri_errors(app_handle: &tauri::AppHandle, err: Result<(), Error>
 
 fn main() {
   tauri::Builder::default()
-    .manage(TauriApplicationState::new())
+    .manage(TauriApplicationState::with_default_command_table())
     .invoke_handler(tauri::generate_handler![submit_number, math_command, perform_undo_action])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

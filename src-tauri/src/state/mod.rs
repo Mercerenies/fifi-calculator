@@ -45,8 +45,11 @@ pub enum UndoDirection {
 }
 
 impl TauriApplicationState {
-  pub fn new() -> Self {
-    Self::default()
+  pub fn with_default_command_table() -> Self {
+    Self {
+      state: Mutex::default(),
+      command_table: default_dispatch_table(),
+    }
   }
 }
 
@@ -129,15 +132,6 @@ impl UndoableState {
 
   pub fn main_stack_mut(&mut self) -> &mut Stack<Expr> {
     &mut self.main_stack
-  }
-}
-
-impl Default for TauriApplicationState {
-  fn default() -> Self {
-    Self {
-      state: Mutex::default(),
-      command_table: default_dispatch_table(),
-    }
   }
 }
 
