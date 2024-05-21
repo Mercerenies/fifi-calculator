@@ -1,26 +1,26 @@
 
-pub mod renderer;
+pub mod language;
 
 use crate::expr::Expr;
-use renderer::{Renderer, DefaultRenderer};
+use language::{LanguageMode, DefaultLanguageMode};
 
 pub struct DisplaySettings {
-  pub renderer: Box<dyn Renderer + Send + Sync>,
+  pub language_mode: Box<dyn LanguageMode + Send + Sync>,
 }
 
 impl DisplaySettings {
   pub fn to_html(&self, expr: &Expr) -> String {
     let mut result = String::new();
-    self.renderer.to_html(&mut result, expr);
+    self.language_mode.to_html(&mut result, expr);
     result
   }
 }
 
 impl Default for DisplaySettings {
   fn default() -> Self {
-    let renderer = Box::new(DefaultRenderer);
+    let language_mode = Box::new(DefaultLanguageMode);
     DisplaySettings {
-      renderer,
+      language_mode,
     }
   }
 }

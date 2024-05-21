@@ -2,16 +2,16 @@
 use crate::expr::Expr;
 use crate::expr::atom::Atom;
 
-/// A display renderer provides a mechanism to convert Exprs into HTML
+/// A language mode provides a mechanism to convert Exprs into HTML
 /// code for display within the frontend.
-pub trait Renderer {
+pub trait LanguageMode {
   fn to_html(&self, out: &mut String, expr: &Expr);
 }
 
 #[derive(Clone, Debug)]
-pub struct DefaultRenderer;
+pub struct DefaultLanguageMode;
 
-impl Renderer for DefaultRenderer {
+impl LanguageMode for DefaultLanguageMode {
   fn to_html(&self, out: &mut String, expr: &Expr) {
     match expr {
       Expr::Atom(Atom::Number(n)) => {
@@ -37,7 +37,7 @@ fn function_call_to_html(out: &mut String, f: &str, args: &[Expr]) {
       out.push_str(", ");
     }
     first = false;
-    DefaultRenderer.to_html(out, e);
+    DefaultLanguageMode.to_html(out, e);
   });
   out.push(')');
 }
