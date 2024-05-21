@@ -2,7 +2,8 @@
 pub mod language;
 
 use crate::expr::Expr;
-use language::{LanguageMode, DefaultLanguageMode};
+use language::LanguageMode;
+use language::basic::DefaultLanguageMode;
 
 pub struct DisplaySettings {
   pub language_mode: Box<dyn LanguageMode + Send + Sync>,
