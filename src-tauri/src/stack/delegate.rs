@@ -7,7 +7,6 @@ use super::error::StackError;
 
 use std::hash::{Hash, Hasher};
 use std::ops::{Deref, DerefMut};
-use std::slice;
 
 pub trait StackDelegate<T> {
   /// Called before a new value is pushed onto the stack.
@@ -142,7 +141,16 @@ where D: StackDelegate<T> {
     self.stack.iter()
   }
 
-  ///// Think about how we can get iter_mut here. Definitely a custom iterator, but can we do it in safe Rust? Need to call on_mutate whenever the LAST mutable ref is dropped (probably using Rc shenanigans)
+  pub fn foreach_mut<F>(&mut self, mut f: F)
+  where F: FnMut(&mut T),
+        T: Clone {
+    let len = self.len();
+    for (i, elem) in self.stack.iter_mut().enumerate() {
+      let original_elem = elem.clone();
+      f(elem);
+      self.delegate.on_mutate((len - i - 1) as i64, &original_elem, elem);
+    }
+  }
 }
 
 impl<'a, T, D: StackDelegate<T>> Deref for RefMut<'a, T, D> {
@@ -348,4 +356,18 @@ mod tests {
       mutations: vec![(1, 40, 41), (-2, 20, 22)],
     });
   }
+
+  #[test]
+  fn test_foreach_mut() {
+    let mut stack = Stack::from(vec![10, 20, 30, 40, 50]);
+    let mut stack = DelegatingStack::new(&mut stack, TestDelegate::default());
+    stack.foreach_mut(|value| *value += 1);
+    assert_eq!(stack.stack.iter().collect::<Vec<_>>(), vec![&11, &21, &31, &41, &51]);
+    assert_eq!(stack.delegate, TestDelegate {
+      pushes: vec![],
+      pops: vec![],
+      mutations: vec![(4, 10, 11), (3, 20, 21), (2, 30, 31), (1, 40, 41), (0, 50, 51)],
+    });
+  }
+
 }
