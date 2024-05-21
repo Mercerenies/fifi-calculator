@@ -1,5 +1,6 @@
 
 pub mod basic;
+pub mod operator;
 
 use crate::expr::Expr;
 
