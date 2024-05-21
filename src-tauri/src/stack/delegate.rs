@@ -6,6 +6,7 @@ use super::structure::Stack;
 use super::error::StackError;
 
 use std::hash::{Hash, Hasher};
+use std::ops::{Deref, DerefMut};
 
 pub trait StackDelegate<T> {
   /// Called before a new value is pushed onto the stack.
@@ -23,7 +24,7 @@ pub trait StackDelegate<T> {
   fn on_pop(&mut self, old_value: &T);
 
   /// Called after a value on the stack is modified in-place.
-  fn on_mutate(&mut self, index: i64, old_value: T, new_value: &T);
+  fn on_mutate(&mut self, index: i64, old_value: &T, new_value: &T);
 }
 
 /// Null Object implementation of [`StackDelegate`]. Never performs
@@ -35,6 +36,13 @@ pub struct NullStackDelegate;
 pub struct DelegatingStack<'a, T, D> {
   stack: &'a mut Stack<T>,
   delegate: D,
+}
+
+pub struct RefMut<'a, T, D: StackDelegate<T>> {
+  index: i64,
+  delegate: &'a mut D,
+  original_value: T,
+  value: &'a mut T,
 }
 
 impl<'a, T, D> DelegatingStack<'a, T, D>
@@ -100,6 +108,20 @@ where D: StackDelegate<T> {
     self.stack.get(index)
   }
 
+  /// Gets a mutable reference from the stack. When this reference is
+  /// dropped, the mutation will be logged to the delegate, which
+  /// requires `T: Clone` in order to be fully implemented correctly.
+  pub fn get_mut(&mut self, index: i64) -> Result<RefMut<'_, T, D>, StackError>
+  where T: Clone {
+    let value = self.stack.get_mut(index)?;
+    Ok(RefMut {
+      index,
+      delegate: &mut self.delegate,
+      original_value: value.clone(),
+      value,
+    })
+  }
+
   /// Modifies the value at the given position, using the given
   /// function. In order to properly invoke the delegate, `T` must be
   /// `Clone`, so that the delegate can be called with both the old
@@ -110,13 +132,33 @@ where D: StackDelegate<T> {
     let value = self.stack.get_mut(index)?;
     let old_value = value.clone();
     f(value);
-    self.delegate.on_mutate(index, old_value, value);
+    self.delegate.on_mutate(index, &old_value, value);
     Ok(())
   }
 
   /// Iterates from the bottom of the stack.
   pub fn iter(&self) -> impl DoubleEndedIterator<Item = &T> {
     self.stack.iter()
+  }
+}
+
+impl<'a, T, D: StackDelegate<T>> Deref for RefMut<'a, T, D> {
+  type Target = T;
+
+  fn deref(&self) -> &T {
+    &self.value
+  }
+}
+
+impl<'a, T, D: StackDelegate<T>> DerefMut for RefMut<'a, T, D> {
+  fn deref_mut(&mut self) -> &mut T {
+    &mut self.value
+  }
+}
+
+impl<'a, T, D: StackDelegate<T>> Drop for RefMut<'a, T, D> {
+  fn drop(&mut self) {
+    self.delegate.on_mutate(self.index, &self.original_value, &self.value);
   }
 }
 
@@ -139,7 +181,7 @@ impl<'a, T: Hash, D> Hash for DelegatingStack<'a, T, D> {
 impl<T> StackDelegate<T> for NullStackDelegate {
   fn on_push(&mut self, _: &T) {}
   fn on_pop(&mut self, _: &T) {}
-  fn on_mutate(&mut self, _: i64, _: T, _: &T) {}
+  fn on_mutate(&mut self, _: i64, _: &T, _: &T) {}
 }
 
 #[cfg(test)]
@@ -162,8 +204,8 @@ mod tests {
       self.pops.push(*value);
     }
 
-    fn on_mutate(&mut self, index: i64, old_value: i32, new_value: &i32) {
-      self.mutations.push((index, old_value, *new_value));
+    fn on_mutate(&mut self, index: i64, old_value: &i32, new_value: &i32) {
+      self.mutations.push((index, *old_value, *new_value));
     }
   }
 
@@ -274,6 +316,28 @@ mod tests {
       stack.mutate(999, |value| *value += 4),
       Err(StackError::NotEnoughElements { expected: 1000, actual: 5 }),
     );
+    assert_eq!(stack.stack.iter().collect::<Vec<_>>(), vec![&10, &22, &30, &41, &50]);
+    assert_eq!(stack.delegate, TestDelegate {
+      pushes: vec![],
+      pops: vec![],
+      mutations: vec![(1, 40, 41), (-2, 20, 22)],
+    });
+  }
+
+  #[test]
+  fn test_get_mut() {
+    let mut stack = Stack::from(vec![10, 20, 30, 40, 50]);
+    let mut stack = DelegatingStack::new(&mut stack, TestDelegate::default());
+
+    {
+      let mut v = stack.get_mut(1).unwrap();
+      *v += 1;
+    }
+    {
+      let mut v = stack.get_mut(-2).unwrap();
+      *v += 2;
+    }
+
     assert_eq!(stack.stack.iter().collect::<Vec<_>>(), vec![&10, &22, &30, &41, &50]);
     assert_eq!(stack.delegate, TestDelegate {
       pushes: vec![],

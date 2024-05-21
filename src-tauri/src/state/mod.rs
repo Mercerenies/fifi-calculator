@@ -1,11 +1,13 @@
 
 //! Backend application state manager.
 
+pub mod delegate;
 pub mod events;
 pub mod undo;
 
 use events::{RefreshStackPayload, UndoAvailabilityPayload};
-use crate::stack::Stack;
+use delegate::UndoingDelegate;
+use crate::stack::{Stack, DelegatingStack};
 use crate::expr::Expr;
 use crate::command::default_dispatch_table;
 use crate::command::dispatch::CommandDispatchTable;
@@ -83,6 +85,14 @@ impl ApplicationState {
 
   pub fn main_stack_mut(&mut self) -> &mut Stack<Expr> {
     &mut self.undoable_state.main_stack
+  }
+
+  // TODO Swap this and `main_stack_mut` when we're ready.
+  pub fn main_stack_mut_with_undos<'a>(&'a mut self) -> DelegatingStack<'a, Expr, UndoingDelegate<'a>> {
+    DelegatingStack::new(
+      self.undoable_state.main_stack_mut(),
+      UndoingDelegate::new(&mut self.undo_stack),
+    )
   }
 
   pub fn into_main_stack(self) -> Stack<Expr> {
