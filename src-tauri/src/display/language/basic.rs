@@ -255,4 +255,12 @@ mod tests {
     );
     assert_eq!(mode.to_html(&expr), "(1 % 2) % (3 % 4)");
   }
+
+  #[test]
+  #[ignore = "Known bug, see Issue #16"]
+  fn test_power_with_negative_base() {
+    let mode = BasicLanguageMode::from_common_operators();
+    let expr = Expr::call("^", vec![Expr::from(-1), Expr::from(2)]);
+    assert_eq!(mode.to_html(&expr), "(-1) ^ 2");
+  }
 }
