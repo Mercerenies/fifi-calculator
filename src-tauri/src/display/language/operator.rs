@@ -42,6 +42,20 @@ impl Operator {
       self.prec.incremented()
     }
   }
+
+  pub fn common_operators_collection() -> Vec<Operator> {
+    // Note: We borrow the Emacs Calc operator precedence values here
+    // when it makes sense to do so. See
+    // https://www.gnu.org/software/emacs/manual/html_mono/calc.html#Composition-Basics
+    vec![
+      Operator::new("^", Associativity::RIGHT, Precedence::new(200)),
+      Operator::new("*", Associativity::FULL, Precedence::new(195)),
+      Operator::new("/", Associativity::LEFT, Precedence::new(190)),
+      Operator::new("%", Associativity::NONE, Precedence::new(190)),
+      Operator::new("+", Associativity::FULL, Precedence::new(180)),
+      Operator::new("-", Associativity::LEFT, Precedence::new(180)),
+    ]
+  }
 }
 
 impl Associativity {
@@ -72,6 +86,9 @@ impl Associativity {
   }
   pub const fn is_right_assoc(self) -> bool {
     self.right_assoc
+  }
+  pub const fn is_fully_assoc(self) -> bool {
+    self.left_assoc && self.right_assoc
   }
 }
 
