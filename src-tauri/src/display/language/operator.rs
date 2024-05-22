@@ -27,6 +27,18 @@ impl Operator {
     }
   }
 
+  pub fn name(&self) -> &str {
+    &self.name
+  }
+
+  pub fn associativity(&self) -> Associativity {
+    self.assoc
+  }
+
+  pub fn precedence(&self) -> Precedence {
+    self.prec
+  }
+
   pub fn left_precedence(&self) -> Precedence {
     if self.assoc.is_left_assoc() {
       self.prec
@@ -93,6 +105,9 @@ impl Associativity {
 }
 
 impl Precedence {
+  pub const MIN: Precedence = Precedence(0);
+  pub const MAX: Precedence = Precedence(u64::MAX);
+
   /// Internally, we store an operator's precedence as ten times the
   /// input value, so that we can increment or decrement to represent
   /// associativity.

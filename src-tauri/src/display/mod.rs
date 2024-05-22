@@ -11,15 +11,13 @@ pub struct DisplaySettings {
 
 impl DisplaySettings {
   pub fn to_html(&self, expr: &Expr) -> String {
-    let mut result = String::new();
-    self.language_mode.to_html(&mut result, expr);
-    result
+    self.language_mode.to_html(expr)
   }
 }
 
 impl Default for DisplaySettings {
   fn default() -> Self {
-    let language_mode = Box::new(BasicLanguageMode::with_default_operators());
+    let language_mode = Box::new(BasicLanguageMode::from_common_operators());
     DisplaySettings {
       language_mode,
     }
