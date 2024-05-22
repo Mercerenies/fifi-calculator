@@ -50,7 +50,7 @@ export class MainButtonGrid implements ButtonGrid {
       [
         new DispatchButton("&divide;", "/", "/"),
         new DispatchButton("%", "%", "%"),
-        new DispatchButton("&lfloor;&divide;&rfloor;", "\\", "\\"),
+        new DispatchButton("&lfloor;&divide;&rfloor;", "div", "\\"),
       ],
       [
         new DispatchButton(discardSvg(), "pop", "Backspace"),

@@ -20,7 +20,7 @@ pub fn arithmetic_functions() -> HashMap<String, Function> {
   functions.insert("/".to_string(), division());
   functions.insert("^".to_string(), power());
   functions.insert("%".to_string(), modulo());
-  functions.insert("\\".to_string(), floor_division());
+  functions.insert("div".to_string(), floor_division());
   functions
 }
 
@@ -192,12 +192,12 @@ pub fn modulo() -> Function {
 }
 
 pub fn floor_division() -> Function {
-  FunctionBuilder::new("\\")
+  FunctionBuilder::new("div")
     .add_case(
       // Real floor div
       builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, errors| {
         if arg2.is_zero() {
-          errors.push(SimplifierError::division_by_zero("\\"));
+          errors.push(SimplifierError::division_by_zero("div"));
           return Err((arg1, arg2));
         }
         Ok(Expr::from(arg1.div_floor(&arg2)))
@@ -206,7 +206,7 @@ pub fn floor_division() -> Function {
     .add_case(
       // Trap case: Complex numbers
       builder::arity_two().both_of_type(ExprToComplex).and_then(|arg1, arg2, errors| {
-        errors.push(SimplifierError::expected_real("\\"));
+        errors.push(SimplifierError::expected_real("div"));
         Err((arg1, arg2))
       })
     )
