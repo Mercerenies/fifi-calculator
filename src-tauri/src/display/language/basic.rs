@@ -1,6 +1,6 @@
 
-use super::operator::{Operator, Precedence};
 use super::LanguageMode;
+use crate::parsing::operator::{Operator, Precedence};
 use crate::expr::Expr;
 use crate::expr::atom::Atom;
 
