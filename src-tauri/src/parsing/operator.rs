@@ -1,5 +1,5 @@
 
-use std::collections::HashMap;
+use std::collections::{hash_map, HashMap};
 
 /// A table of operators, indexed by their name.
 #[derive(Debug, Clone, Default)]
@@ -58,6 +58,10 @@ impl OperatorTable {
       Operator::new("+", Associativity::FULL, Precedence::new(180)),
       Operator::new("-", Associativity::LEFT, Precedence::new(180)),
     ].into_iter().collect()
+  }
+
+  pub fn iter(&self) -> impl Iterator<Item = &Operator> {
+    self.mapping.values()
   }
 }
 
@@ -165,6 +169,15 @@ impl Precedence {
 impl From<u64> for Precedence {
   fn from(n: u64) -> Precedence {
     Precedence::new(n)
+  }
+}
+
+impl IntoIterator for OperatorTable {
+  type Item = Operator;
+  type IntoIter = hash_map::IntoValues<String, Operator>;
+
+  fn into_iter(self) -> Self::IntoIter {
+    self.mapping.into_values()
   }
 }
 
