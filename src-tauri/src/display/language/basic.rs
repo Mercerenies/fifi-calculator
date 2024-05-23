@@ -1,14 +1,12 @@
 
 use super::LanguageMode;
-use crate::parsing::operator::{Operator, Precedence};
+use crate::parsing::operator::{Operator, Precedence, OperatorTable};
 use crate::expr::Expr;
 use crate::expr::atom::Atom;
 
-use std::collections::HashMap;
-
 #[derive(Clone, Debug, Default)]
 pub struct BasicLanguageMode {
-  known_operators: HashMap<String, Operator>,
+  known_operators: OperatorTable,
 }
 
 impl BasicLanguageMode {
@@ -16,14 +14,14 @@ impl BasicLanguageMode {
     Self::default()
   }
 
-  pub fn from_operators(operators: impl IntoIterator<Item = Operator>) -> Self {
+  pub fn from_operators(known_operators: OperatorTable) -> Self {
     Self {
-      known_operators: operators.into_iter().map(|o| (o.name().to_owned(), o)).collect(),
+      known_operators,
     }
   }
 
   pub fn from_common_operators() -> Self {
-    Self::from_operators(Operator::common_operators_collection())
+    Self::from_operators(OperatorTable::common_operators())
   }
 
   fn fn_call_to_html(&self, out: &mut String, f: &str, args: &[Expr]) {

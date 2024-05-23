@@ -1,4 +1,12 @@
 
+use std::collections::HashMap;
+
+/// A table of operators, indexed by their name.
+#[derive(Debug, Clone, Default)]
+pub struct OperatorTable {
+  mapping: HashMap<String, Operator>,
+}
+
 /// An operator has a precedence and an associativity.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Operator {
@@ -16,6 +24,41 @@ pub struct Precedence(u64);
 pub struct Associativity {
   left_assoc: bool,
   right_assoc: bool,
+}
+
+impl OperatorTable {
+  pub fn new() -> OperatorTable {
+    OperatorTable::default()
+  }
+
+  pub fn with_capacity(capacity: usize) -> OperatorTable {
+    OperatorTable {
+      mapping: HashMap::with_capacity(capacity),
+    }
+  }
+
+  pub fn get(&self, name: &str) -> Option<&Operator> {
+    self.mapping.get(name)
+  }
+
+  pub fn insert(&mut self, op: Operator) -> Option<Operator> {
+    let name = op.name().to_owned();
+    self.mapping.insert(name, op)
+  }
+
+  pub fn common_operators() -> OperatorTable {
+    // Note: We borrow the Emacs Calc operator precedence values here
+    // when it makes sense to do so. See
+    // https://www.gnu.org/software/emacs/manual/html_mono/calc.html#Composition-Basics
+    vec![
+      Operator::new("^", Associativity::RIGHT, Precedence::new(200)),
+      Operator::new("*", Associativity::FULL, Precedence::new(195)),
+      Operator::new("/", Associativity::LEFT, Precedence::new(190)),
+      Operator::new("%", Associativity::NONE, Precedence::new(190)),
+      Operator::new("+", Associativity::FULL, Precedence::new(180)),
+      Operator::new("-", Associativity::LEFT, Precedence::new(180)),
+    ].into_iter().collect()
+  }
 }
 
 impl Operator {
@@ -53,20 +96,6 @@ impl Operator {
     } else {
       self.prec.incremented()
     }
-  }
-
-  pub fn common_operators_collection() -> Vec<Operator> {
-    // Note: We borrow the Emacs Calc operator precedence values here
-    // when it makes sense to do so. See
-    // https://www.gnu.org/software/emacs/manual/html_mono/calc.html#Composition-Basics
-    vec![
-      Operator::new("^", Associativity::RIGHT, Precedence::new(200)),
-      Operator::new("*", Associativity::FULL, Precedence::new(195)),
-      Operator::new("/", Associativity::LEFT, Precedence::new(190)),
-      Operator::new("%", Associativity::NONE, Precedence::new(190)),
-      Operator::new("+", Associativity::FULL, Precedence::new(180)),
-      Operator::new("-", Associativity::LEFT, Precedence::new(180)),
-    ]
   }
 }
 
@@ -136,6 +165,19 @@ impl Precedence {
 impl From<u64> for Precedence {
   fn from(n: u64) -> Precedence {
     Precedence::new(n)
+  }
+}
+
+impl FromIterator<Operator> for OperatorTable {
+  fn from_iter<I>(iter: I) -> Self
+  where I : IntoIterator<Item = Operator> {
+    let iter = iter.into_iter();
+    let (len_bound, _) = iter.size_hint();
+    let mut table = OperatorTable::with_capacity(len_bound);
+    for op in iter {
+      table.insert(op);
+    }
+    table
   }
 }
 
