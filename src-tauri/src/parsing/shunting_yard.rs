@@ -1,6 +1,6 @@
 
 use super::operator::Operator;
-use super::source::{Span, SourceOffset};
+use super::source::Span;
 
 use std::error::{Error as StdError};
 use std::fmt::{self, Display, Formatter};
@@ -21,9 +21,9 @@ struct OutputWithToken<T, O> {
 }
 
 #[derive(Clone, Debug)]
-enum OpStackValue {
-  Operator(Operator, Span),
-  OpenParen(Option<String>, usize, Span),
+struct OpStackValue {
+  operator: Operator,
+  span: Span,
 }
 
 /// The content of a token.
@@ -33,14 +33,6 @@ pub enum TokenData<T> {
   Scalar(T),
   /// An infix, binary operator.
   Operator(Operator),
-  /// A comma, separating a parenthesized expression or function call
-  /// arguments.
-  Comma,
-  /// An opening parenthesis literal, optionally associated with a
-  /// function name.
-  OpenParen(Option<String>),
-  /// A close paren literal.
-  CloseParen,
 }
 
 #[derive(Debug, Clone)]
@@ -64,19 +56,6 @@ pub trait ShuntingYardDriver<T> {
     operator: Operator,
     right: Self::Output,
   ) -> Result<Self::Output, Self::Error>;
-  fn compile_function_call(
-    &mut self,
-    function_name: Option<String>,
-    args: Vec<Self::Output>,
-  ) -> Result<Self::Output, Self::Error>;
-}
-
-impl OpStackValue {
-  fn span(&self) -> Span {
-    match self {
-      OpStackValue::Operator(_, s) | OpStackValue::OpenParen(_, _, s) => *s,
-    }
-  }
 }
 
 impl<T: Display> Display for TokenData<T> {
@@ -84,9 +63,6 @@ impl<T: Display> Display for TokenData<T> {
     match self {
       TokenData::Scalar(s) => s.fmt(f),
       TokenData::Operator(op) => op.name().fmt(f),
-      TokenData::Comma => write!(f, ","),
-      TokenData::OpenParen(name) => write!(f, "{}(", name.as_deref().unwrap_or("")),
-      TokenData::CloseParen => write!(f, ")"),
     }
   }
 }
@@ -146,65 +122,26 @@ where T: Clone,
         output_stack.push(OutputWithToken { output, token });
       }
       TokenData::Operator(op) => {
-        // Loop until we hit an open paren, the bottom, or an operator
-        // of higher precedence.
-        loop {
-          match operator_stack.pop() {
-            None => {
-              break;
-            }
-            Some(OpStackValue::OpenParen(f, arity, span)) => {
-              operator_stack.push(OpStackValue::OpenParen(f, arity, span));
-              break;
-            }
-            Some(OpStackValue::Operator(stack_op, span)) => {
-              if compare_precedence(&stack_op, &op) {
-                let token = Token { data: TokenData::Operator(op.clone()), span };
-                let error = ShuntingYardError::UnexpectedToken(token);
-                simplify_operator(driver, &mut output_stack, stack_op, error)?;
-              } else {
-                operator_stack.push(OpStackValue::Operator(stack_op, span));
-                break;
-              }
-            }
+        // Pop operators until we hit one with higher precedence.
+        while let Some(OpStackValue { operator: stack_op, span }) = operator_stack.pop() {
+          if compare_precedence(&stack_op, &op) {
+            let token = Token { data: TokenData::Operator(op.clone()), span };
+            let error = ShuntingYardError::UnexpectedToken(token);
+            simplify_operator(driver, &mut output_stack, stack_op, error)?;
+          } else {
+            operator_stack.push(OpStackValue { operator: stack_op, span });
+            break;
           }
         }
-        operator_stack.push(OpStackValue::Operator(op, token.span));
-      }
-      TokenData::Comma => {
-        // Loop until we find an open parenthesis, and simplify
-        // operators.
-        loop {
-          match operator_stack.pop() {
-            None => {
-              let token = Token { data: TokenData::Comma, span: token.span };
-              return Err(ShuntingYardError::UnexpectedToken(token));
-            }
-            Some(OpStackValue::OpenParen(f, arity, span)) => {
-              // We've found the open paren; put it back and move on.
-              operator_stack.push(OpStackValue::OpenParen(f, arity + 1, span));
-              break;
-            }
-            Some(OpStackValue::Operator(op, _)) => {
-              let token = Token { data: TokenData::Comma, span: token.span };
-              let error = ShuntingYardError::UnexpectedToken(token);
-              simplify_operator(driver, &mut output_stack, op, error)?;
-            }
-          }
-        }
-      }
-      TokenData::OpenParen(function_name) => {
-        operator_stack.push(OpStackValue::OpenParen(function_name, 0, token.span));
-      }
-      TokenData::CloseParen => {
-        // Loop until we find an open parenthesis.
-        todo!();
+        operator_stack.push(OpStackValue { operator: op, span: token.span });
       }
     }
   }
 
   // Pop and resolve remaining operators.
-  todo!();
+  while let Some(op) = operator_stack.pop() {
+    simplify_operator(driver, &mut output_stack, op.operator, ShuntingYardError::UnexpectedEOF)?;
+  }
 
   let final_result = output_stack.pop().ok_or(ShuntingYardError::UnexpectedEOF)?;
   if let Some(remaining_value) = output_stack.pop() {
@@ -232,4 +169,139 @@ where T: Clone,
   let output = driver.compile_bin_op(arg1.output, operator, arg2.output)?;
   output_stack.push(OutputWithToken { output, token: arg1.token });
   Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::parsing::source::SourceOffset;
+  use crate::parsing::operator::{Precedence, Associativity};
+
+  use std::convert::Infallible;
+
+  /// Basic test "expression" type for our unit tests.
+  #[derive(Debug, Clone, PartialEq, Eq)]
+  enum TestExpr {
+    Scalar(i64),
+    BinOp(Box<TestExpr>, String, Box<TestExpr>),
+  }
+
+  #[derive(Clone, Debug)]
+  struct TestDriver;
+
+  impl TestExpr {
+    fn bin_op(left: TestExpr, op: impl Into<String>, right: TestExpr) -> Self {
+      Self::BinOp(Box::new(left), op.into(), Box::new(right))
+    }
+  }
+
+  impl ShuntingYardDriver<i64> for TestDriver {
+    type Output = TestExpr;
+    type Error = Infallible;
+
+    fn compile_scalar(&mut self, scalar: i64) -> Result<Self::Output, Self::Error> {
+      Ok(TestExpr::Scalar(scalar))
+    }
+
+    fn compile_bin_op(
+      &mut self,
+      left: Self::Output,
+      op: Operator,
+      right: Self::Output,
+    ) -> Result<Self::Output, Self::Error> {
+      Ok(TestExpr::bin_op(left, op.name(), right))
+    }
+  }
+
+  fn plus() -> Operator {
+    Operator::new("+", Associativity::FULL, Precedence::new(10))
+  }
+
+  fn minus() -> Operator {
+    Operator::new("-", Associativity::LEFT, Precedence::new(10))
+  }
+
+  fn times() -> Operator {
+    Operator::new("*", Associativity::FULL, Precedence::new(20))
+  }
+
+  fn pow() -> Operator {
+    Operator::new("^", Associativity::RIGHT, Precedence::new(30))
+  }
+
+  fn span(start: usize, end: usize) -> Span {
+    Span::new(SourceOffset(start), SourceOffset(end))
+  }
+
+  #[test]
+  fn test_full_assoc_op() {
+    let tokens = vec![
+      Token { data: TokenData::Scalar(1), span: span(0, 1) },
+      Token { data: TokenData::Operator(plus()), span: span(1, 2) },
+      Token { data: TokenData::Scalar(2), span: span(2, 3) },
+      Token { data: TokenData::Operator(plus()), span: span(3, 4) },
+      Token { data: TokenData::Scalar(3), span: span(4, 5) },
+    ];
+    let result = parse(&mut TestDriver, tokens).unwrap();
+    assert_eq!(
+      TestExpr::bin_op(
+        TestExpr::bin_op(
+          TestExpr::Scalar(1),
+          "+",
+          TestExpr::Scalar(2),
+        ),
+        "+",
+        TestExpr::Scalar(3),
+      ),
+      result,
+    );
+  }
+
+  #[test]
+  fn test_left_assoc_op() {
+    let tokens = vec![
+      Token { data: TokenData::Scalar(1), span: span(0, 1) },
+      Token { data: TokenData::Operator(minus()), span: span(1, 2) },
+      Token { data: TokenData::Scalar(2), span: span(2, 3) },
+      Token { data: TokenData::Operator(minus()), span: span(3, 4) },
+      Token { data: TokenData::Scalar(3), span: span(4, 5) },
+    ];
+    let result = parse(&mut TestDriver, tokens).unwrap();
+    assert_eq!(
+      TestExpr::bin_op(
+        TestExpr::bin_op(
+          TestExpr::Scalar(1),
+          "-",
+          TestExpr::Scalar(2),
+        ),
+        "-",
+        TestExpr::Scalar(3),
+      ),
+      result,
+    );
+  }
+
+  #[test]
+  fn test_right_assoc_op() {
+    let tokens = vec![
+      Token { data: TokenData::Scalar(1), span: span(0, 1) },
+      Token { data: TokenData::Operator(pow()), span: span(1, 2) },
+      Token { data: TokenData::Scalar(2), span: span(2, 3) },
+      Token { data: TokenData::Operator(pow()), span: span(3, 4) },
+      Token { data: TokenData::Scalar(3), span: span(4, 5) },
+    ];
+    let result = parse(&mut TestDriver, tokens).unwrap();
+    assert_eq!(
+      TestExpr::bin_op(
+        TestExpr::Scalar(1),
+        "^",
+        TestExpr::bin_op(
+          TestExpr::Scalar(2),
+          "^",
+          TestExpr::Scalar(3),
+        ),
+      ),
+      result,
+    );
+  }
 }
