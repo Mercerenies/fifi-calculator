@@ -26,3 +26,6 @@ dist-ssr
 
 # Compiled JS
 src/**/*.js
+
+# Misc
+etc/
