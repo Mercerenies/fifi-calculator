@@ -1,4 +1,7 @@
 
+//! Basic parsing language for the [basic language
+//! mode](crate::display::basic::BasicLanguageMode].
+
 use super::Expr;
 use crate::parsing::shunting_yard::ShuntingYardDriver;
 use crate::parsing::operator::Operator;
