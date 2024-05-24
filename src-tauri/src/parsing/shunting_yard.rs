@@ -304,4 +304,52 @@ mod tests {
       result,
     );
   }
+
+  #[test]
+  fn test_differing_assoc_op_higher_on_right() {
+    let tokens = vec![
+      Token { data: TokenData::Scalar(1), span: span(0, 1) },
+      Token { data: TokenData::Operator(plus()), span: span(1, 2) },
+      Token { data: TokenData::Scalar(2), span: span(2, 3) },
+      Token { data: TokenData::Operator(times()), span: span(3, 4) },
+      Token { data: TokenData::Scalar(3), span: span(4, 5) },
+    ];
+    let result = parse(&mut TestDriver, tokens).unwrap();
+    assert_eq!(
+      TestExpr::bin_op(
+        TestExpr::Scalar(1),
+        "+",
+        TestExpr::bin_op(
+          TestExpr::Scalar(2),
+          "*",
+          TestExpr::Scalar(3),
+        ),
+      ),
+      result,
+    );
+  }
+
+  #[test]
+  fn test_differing_assoc_op_higher_on_left() {
+    let tokens = vec![
+      Token { data: TokenData::Scalar(1), span: span(0, 1) },
+      Token { data: TokenData::Operator(times()), span: span(1, 2) },
+      Token { data: TokenData::Scalar(2), span: span(2, 3) },
+      Token { data: TokenData::Operator(plus()), span: span(3, 4) },
+      Token { data: TokenData::Scalar(3), span: span(4, 5) },
+    ];
+    let result = parse(&mut TestDriver, tokens).unwrap();
+    assert_eq!(
+      TestExpr::bin_op(
+        TestExpr::bin_op(
+          TestExpr::Scalar(1),
+          "*",
+          TestExpr::Scalar(2),
+        ),
+        "+",
+        TestExpr::Scalar(3),
+      ),
+      result,
+    );
+  }
 }
