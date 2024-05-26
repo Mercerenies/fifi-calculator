@@ -1,7 +1,7 @@
 
 use super::source::{SourceOffset, Span};
 
-use regex::Regex;
+use regex::{Regex, Captures};
 use once_cell::sync::Lazy;
 
 #[derive(Debug, Clone)]
@@ -13,6 +13,13 @@ pub struct TokenizerState<'a> {
 #[derive(Debug, Clone)]
 pub struct TokenizerMatch<'a> {
   matched_str: &'a str,
+  start: SourceOffset,
+  end: SourceOffset,
+}
+
+#[derive(Debug)]
+pub struct TokenizerCaptures<'a> {
+  captures: Captures<'a>,
   start: SourceOffset,
   end: SourceOffset,
 }
@@ -79,6 +86,16 @@ impl<'a> TokenizerState<'a> {
     Some(self.advance(m.len()))
   }
 
+  pub fn read_regex_with_captures(&mut self, regex: &Regex) -> Option<TokenizerCaptures<'_>> {
+    let c = regex.captures(self.input)?;
+    let m = self.advance(c.get(0).unwrap().len()); // unwrap: First capture group always exists
+    Some(TokenizerCaptures {
+      captures: c,
+      start: m.start(),
+      end: m.end(),
+    })
+  }
+
   pub fn read_many<T, F>(&mut self, mut function: F) -> Vec<T>
   where F: FnMut(&mut Self) -> Option<T> {
     let mut output = Vec::new();
@@ -115,6 +132,29 @@ impl<'h> TokenizerMatch<'h> {
   }
   pub fn is_empty(&self) -> bool {
     self.start == self.end
+  }
+}
+
+impl<'h> TokenizerCaptures<'h> {
+  pub fn as_str(&self) -> &'h str {
+    // unwrap safety: When capture group == 0, Captures::get is
+    // guaranteed to return a non-empty value.
+    self.captures.get(0).unwrap().as_str()
+  }
+  pub fn get(&self, i: usize) -> Option<&'h str> {
+    self.captures.get(i).map(|m| m.as_str())
+  }
+  pub fn len(&self) -> usize {
+    self.captures.len()
+  }
+  pub fn start(&self) -> SourceOffset {
+    self.start
+  }
+  pub fn end(&self) -> SourceOffset {
+    self.end
+  }
+  pub fn span(&self) -> Span {
+    Span::new(self.start, self.end)
   }
 }
 
@@ -270,6 +310,37 @@ mod tests {
     let mut state = TokenizerState::new("abcd efgh");
     let re = Regex::new(r"\d+").unwrap();
     let m = state.read_regex(&re);
+    assert!(m.is_none());
+    assert_eq!(state.current_pos(), SourceOffset(0));
+  }
+
+  #[test]
+  fn test_read_regex_with_captures_success() {
+    let re = Regex::new(r"([a-z]+)([0-9]+)").unwrap();
+
+    let mut state = TokenizerState::new("abc0 XXX");
+    let m = state.read_regex_with_captures(&re).unwrap();
+    assert_eq!(m.as_str(), "abc0");
+    assert_eq!(m.len(), 3);
+    assert_eq!(m.get(0), Some("abc0"));
+    assert_eq!(m.get(1), Some("abc"));
+    assert_eq!(m.get(2), Some("0"));
+    assert_eq!(m.get(3), None);
+    assert_eq!(m.span(), Span::new(SourceOffset(0), SourceOffset(4)));
+    assert_eq!(state.current_pos(), SourceOffset(4));
+  }
+
+  #[test]
+  fn test_read_regex_with_captures_fail() {
+    let re = Regex::new(r"([a-z]+)([0-9]+)").unwrap();
+
+    let mut state = TokenizerState::new("XXX");
+    let m = state.read_regex_with_captures(&re);
+    assert!(m.is_none());
+    assert_eq!(state.current_pos(), SourceOffset(0));
+
+    let mut state = TokenizerState::new("abcX");
+    let m = state.read_regex_with_captures(&re);
     assert!(m.is_none());
     assert_eq!(state.current_pos(), SourceOffset(0));
   }
