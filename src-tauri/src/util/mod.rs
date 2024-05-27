@@ -29,9 +29,18 @@ where I : IntoIterator<Item = &'a str> {
 pub fn regex_opt_with<'a, I, F>(options: I, helper: F) -> Regex
 where I : IntoIterator<Item = &'a str>,
       F : FnOnce(String) -> String {
+  // Put longer elements first, so we always match the longest thing
+  // we can.
+  let mut options: Vec<_> = options.into_iter().collect();
+  options.sort_by(|a, b| b.len().cmp(&a.len()));
+
   let regex_str = options.into_iter().map(|s| escape(s)).collect::<Vec<_>>().join("|");
   let regex_str = helper(format!("(?:{regex_str})"));
   Regex::new(&regex_str).expect(&format!("Invalid regular expression: {}", regex_str))
+}
+
+pub fn clamp<T: PartialOrd>(val: T, min: T, max: T) -> T {
+  if val < min { min } else if val > max { max } else { val }
 }
 
 #[cfg(test)]
@@ -63,7 +72,13 @@ mod tests {
   #[test]
   fn test_regex_opt_output() {
     assert_eq!(regex_opt(["foo", "bar"]).to_string(), "(?:foo|bar)");
+    assert_eq!(regex_opt(["bar", "foo"]).to_string(), "(?:bar|foo)");
     assert_eq!(regex_opt(["**", "(x"]).to_string(), r"(?:\*\*|\(x)");
+  }
+
+  #[test]
+  fn test_regex_opt_output_on_different_string_lengths() {
+    assert_eq!(regex_opt(["a", "aaa", "aa", "aaaa", "aaaaa"]).to_string(), "(?:aaaaa|aaaa|aaa|aa|a)");
   }
 
   #[test]
