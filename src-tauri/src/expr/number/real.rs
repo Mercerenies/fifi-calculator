@@ -36,7 +36,7 @@ pub(super) enum NumberImpl {
   Float(f64),
 }
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct ParseNumberError {}
 

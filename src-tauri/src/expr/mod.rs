@@ -4,6 +4,7 @@ pub mod basic_parser;
 pub mod number;
 pub mod prisms;
 pub mod simplifier;
+pub mod tokenizer;
 pub mod walker;
 
 use num::{Zero, One};
