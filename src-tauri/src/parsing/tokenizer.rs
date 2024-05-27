@@ -1,11 +1,13 @@
 
 use super::source::{SourceOffset, Span};
+use crate::util::clamp;
 
 use regex::{Regex, Captures};
 use once_cell::sync::Lazy;
 
 #[derive(Debug, Clone)]
 pub struct TokenizerState<'a> {
+  whole_input: &'a str,
   input: &'a str,
   position: SourceOffset,
 }
@@ -27,6 +29,7 @@ pub struct TokenizerCaptures<'a> {
 impl<'a> TokenizerState<'a> {
   pub fn new(input: &'a str) -> Self {
     Self {
+      whole_input: input,
       input,
       position: SourceOffset(0)
     }
@@ -42,6 +45,18 @@ impl<'a> TokenizerState<'a> {
 
   pub fn is_eof(&self) -> bool {
     self.input.is_empty()
+  }
+
+  pub fn peek(&self) -> Option<char> {
+    self.input.chars().next()
+  }
+
+  /// Seeks to an absolute position in the string. Out of bounds
+  /// indices are truncated.
+  pub fn seek(&mut self, mut pos: SourceOffset) {
+    pos = clamp(pos, SourceOffset(0), SourceOffset(self.len()));
+    self.position = pos;
+    self.input = &self.whole_input[pos.0..];
   }
 
   /// Advances the position of `self` by `amount`. Returns a
@@ -111,7 +126,7 @@ impl<'a> TokenizerState<'a> {
     (!output.is_empty()).then(|| output)
   }
 
-  pub fn read_spaces(&mut self) {
+  pub fn consume_spaces(&mut self) {
     static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\s*").unwrap());
     self.read_regex(&RE).expect("regex should not fail");
   }
@@ -161,6 +176,7 @@ impl<'h> TokenizerCaptures<'h> {
 impl Default for TokenizerState<'static> {
   fn default() -> Self {
     Self {
+      whole_input: "",
       input: "",
       position: SourceOffset(0)
     }
@@ -188,6 +204,33 @@ mod tests {
     assert_eq!(state.len(), 7);
     state.advance(99);
     assert_eq!(state.len(), 7);
+  }
+
+  #[test]
+  fn test_seek() {
+    let mut state = TokenizerState::new("abcd");
+    assert_eq!(state.current_pos(), SourceOffset(0));
+    assert_eq!(state.len(), 4);
+    assert_eq!(state.remaining_len(), 4);
+    assert_eq!(state.peek(), Some('a'));
+
+    state.seek(SourceOffset(3));
+    assert_eq!(state.current_pos(), SourceOffset(3));
+    assert_eq!(state.len(), 4);
+    assert_eq!(state.remaining_len(), 1);
+    assert_eq!(state.peek(), Some('d'));
+
+    state.seek(SourceOffset(1));
+    assert_eq!(state.current_pos(), SourceOffset(1));
+    assert_eq!(state.len(), 4);
+    assert_eq!(state.remaining_len(), 3);
+    assert_eq!(state.peek(), Some('b'));
+
+    state.seek(SourceOffset(999));
+    assert_eq!(state.current_pos(), SourceOffset(4));
+    assert_eq!(state.len(), 4);
+    assert_eq!(state.remaining_len(), 0);
+    assert_eq!(state.peek(), None);
   }
 
   #[test]
@@ -384,13 +427,27 @@ mod tests {
   }
 
   #[test]
-  fn test_read_spaces() {
+  fn test_consume_spaces() {
     let mut state = TokenizerState::new("  abc  def");
-    state.read_spaces();
+    state.consume_spaces();
     assert_eq!(state.current_pos(), SourceOffset(2));
 
     // Second one has no effect, since there are no spaces to consume.
-    state.read_spaces();
+    state.consume_spaces();
     assert_eq!(state.current_pos(), SourceOffset(2));
+  }
+
+  #[test]
+  fn test_peek() {
+    let mut state = TokenizerState::new("abcd");
+    assert_eq!(state.peek(), Some('a'));
+    state.advance(1);
+    assert_eq!(state.peek(), Some('b'));
+    state.advance(1);
+    assert_eq!(state.peek(), Some('c'));
+    state.advance(1);
+    assert_eq!(state.peek(), Some('d'));
+    state.advance(1);
+    assert_eq!(state.peek(), None);
   }
 }
