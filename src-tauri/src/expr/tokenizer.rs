@@ -34,7 +34,7 @@ pub enum TokenData {
   RightParen,
 }
 
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Clone, Error, PartialEq)]
 #[non_exhaustive]
 pub enum TokenizerError {
   #[error("Expected token, but found EOF at {0}")]
@@ -53,6 +53,7 @@ impl<'a> ExprTokenizer<'a> {
   }
 
   pub fn read_tokens(&self, state: &mut TokenizerState<'_>) -> Result<Vec<Token>, TokenizerError> {
+    let start_pos = state.current_pos();
     let mut tokens = Vec::new();
     loop {
       state.consume_spaces();
@@ -64,6 +65,7 @@ impl<'a> ExprTokenizer<'a> {
           return Ok(tokens);
         }
         Err(err) => {
+          state.seek(start_pos);
           return Err(err);
         }
       }
@@ -106,7 +108,7 @@ impl<'a> ExprTokenizer<'a> {
   }
 
   fn read_function_call_token(&self, state: &mut TokenizerState<'_>) -> Option<Token> {
-    static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"([a-zA-Z_][a-zA-Z0-9_]*)\(").unwrap());
+    static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^([a-zA-Z_][a-zA-Z0-9_]*)\(").unwrap());
     state.read_regex_with_captures(&RE).map(|m| {
       let function_name = m.get(1).expect("expected at least one capture group");
       Token::new(TokenData::FunctionCallStart(function_name.to_owned()), m.span())
@@ -124,7 +126,7 @@ impl<'a> ExprTokenizer<'a> {
     static RE: Lazy<Regex> = Lazy::new(|| {
       let ratio_re = r"[+-]?[0-9]+:[+-]?[0-9]+";
       let int_float_re = r"[+-]?[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?";
-      Regex::new(&format!("(?:{ratio_re}|{int_float_re})")).unwrap()
+      Regex::new(&format!("^(?:{ratio_re}|{int_float_re})")).unwrap()
     });
     let reset_pos = state.current_pos();
     let m = state.read_regex(&RE)?;
@@ -280,7 +282,74 @@ mod tests {
     let err = tokenizer.read_one_token(&mut state).unwrap_err();
     assert!(matches!(err, TokenizerError::ParseNumberError(_)));
     assert_eq!(state.current_pos(), SourceOffset(0));
+
+    let mut state = TokenizerState::new("3:-0");
+    let err = tokenizer.read_one_token(&mut state).unwrap_err();
+    assert!(matches!(err, TokenizerError::ParseNumberError(_)));
+    assert_eq!(state.current_pos(), SourceOffset(0));
   }
 
-  ///// tests for reading multiple tokens, and tests for invalid tokens with read_one_token
+  #[test]
+  fn test_invalid_token() {
+    let table = sample_operator_table();
+    let tokenizer = ExprTokenizer::new(&table);
+
+    let mut state = TokenizerState::new("@");
+    let err = tokenizer.read_one_token(&mut state).unwrap_err();
+    assert_eq!(err, TokenizerError::UnexpectedChar('@', SourceOffset(0)));
+    assert_eq!(state.current_pos(), SourceOffset(0));
+  }
+
+  #[test]
+  fn test_token_stream() {
+    let table = sample_operator_table();
+    let tokenizer = ExprTokenizer::new(&table);
+
+    let mut state = TokenizerState::new("1( a() , )");
+    let tokens = tokenizer.read_tokens(&mut state).unwrap();
+    assert_eq!(
+      tokens,
+      vec![
+        Token::new(TokenData::Number(Number::from(1)), span(0, 1)),
+        Token::new(TokenData::LeftParen, span(1, 2)),
+        Token::new(TokenData::FunctionCallStart("a".to_owned()), span(3, 5)),
+        Token::new(TokenData::RightParen, span(5, 6)),
+        Token::new(TokenData::Comma, span(7, 8)),
+        Token::new(TokenData::RightParen, span(9, 10)),
+      ],
+    );
+    assert!(state.is_eof());
+  }
+
+  #[test]
+  fn test_token_stream_with_extra_whitespace() {
+    let table = sample_operator_table();
+    let tokenizer = ExprTokenizer::new(&table);
+
+    let mut state = TokenizerState::new("    1  ( a() , )        ");
+    assert!(tokenizer.read_tokens(&mut state).is_ok());
+    assert!(state.is_eof());
+  }
+
+  #[test]
+  fn test_token_stream_failure_on_bad_char() {
+    let table = sample_operator_table();
+    let tokenizer = ExprTokenizer::new(&table);
+
+    let mut state = TokenizerState::new("1( a() @)");
+    let err = tokenizer.read_tokens(&mut state).unwrap_err();
+    assert_eq!(err, TokenizerError::UnexpectedChar('@', SourceOffset(7)));
+    assert_eq!(state.current_pos(), SourceOffset(0));
+  }
+
+  #[test]
+  fn test_token_stream_failure_on_number_parse() {
+    let table = sample_operator_table();
+    let tokenizer = ExprTokenizer::new(&table);
+
+    let mut state = TokenizerState::new("1( a() 1:0)");
+    let err = tokenizer.read_tokens(&mut state).unwrap_err();
+    assert!(matches!(err, TokenizerError::ParseNumberError(_)));
+    assert_eq!(state.current_pos(), SourceOffset(0));
+  }
 }
