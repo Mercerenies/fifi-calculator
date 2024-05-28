@@ -1,8 +1,10 @@
 
 use super::LanguageMode;
+use crate::error::Error;
 use crate::parsing::operator::{Operator, Precedence, OperatorTable};
 use crate::expr::Expr;
 use crate::expr::atom::Atom;
+use crate::expr::basic_parser::ExprParser;
 
 #[derive(Clone, Debug, Default)]
 pub struct BasicLanguageMode {
@@ -118,6 +120,11 @@ impl BasicLanguageMode {
 impl LanguageMode for BasicLanguageMode {
   fn write_to_html(&self, out: &mut String, expr: &Expr) {
     self.to_html_with_precedence(out, expr, Precedence::MIN)
+  }
+
+  fn parse(&self, text: &str) -> Result<Expr, Error> {
+    let parser = ExprParser::new(&self.known_operators);
+    parser.tokenize_and_parse(text).map_err(Error::custom_error)
   }
 }
 
