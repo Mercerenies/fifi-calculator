@@ -28,6 +28,11 @@ impl ComplexNumber {
     Self { real, imag }
   }
 
+  /// The imaginary constant.
+  pub fn ii() -> Self {
+    Self::new(Number::from(0), Number::from(1))
+  }
+
   pub fn real(&self) -> &Number {
     &self.real
   }
