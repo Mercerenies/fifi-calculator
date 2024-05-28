@@ -223,19 +223,19 @@ mod tests {
   }
 
   fn plus() -> Operator {
-    Operator::new("+", Associativity::FULL, Precedence::new(10))
+    Operator::new("+", Associativity::FULL, Precedence::new(10)).with_function_name("plus")
   }
 
   fn minus() -> Operator {
-    Operator::new("-", Associativity::LEFT, Precedence::new(10))
+    Operator::new("-", Associativity::LEFT, Precedence::new(10)).with_function_name("minus")
   }
 
   fn times() -> Operator {
-    Operator::new("*", Associativity::FULL, Precedence::new(20))
+    Operator::new("*", Associativity::FULL, Precedence::new(20)).with_function_name("times")
   }
 
   fn pow() -> Operator {
-    Operator::new("^", Associativity::RIGHT, Precedence::new(30))
+    Operator::new("^", Associativity::RIGHT, Precedence::new(30)).with_function_name("pow")
   }
 
   fn span(start: usize, end: usize) -> Span {
@@ -256,10 +256,10 @@ mod tests {
       TestExpr::bin_op(
         TestExpr::bin_op(
           TestExpr::Scalar(1),
-          "+",
+          "plus",
           TestExpr::Scalar(2),
         ),
-        "+",
+        "plus",
         TestExpr::Scalar(3),
       ),
       result,
@@ -280,10 +280,10 @@ mod tests {
       TestExpr::bin_op(
         TestExpr::bin_op(
           TestExpr::Scalar(1),
-          "-",
+          "minus",
           TestExpr::Scalar(2),
         ),
-        "-",
+        "minus",
         TestExpr::Scalar(3),
       ),
       result,
@@ -303,10 +303,10 @@ mod tests {
     assert_eq!(
       TestExpr::bin_op(
         TestExpr::Scalar(1),
-        "^",
+        "pow",
         TestExpr::bin_op(
           TestExpr::Scalar(2),
-          "^",
+          "pow",
           TestExpr::Scalar(3),
         ),
       ),
@@ -327,10 +327,10 @@ mod tests {
     assert_eq!(
       TestExpr::bin_op(
         TestExpr::Scalar(1),
-        "+",
+        "plus",
         TestExpr::bin_op(
           TestExpr::Scalar(2),
-          "*",
+          "times",
           TestExpr::Scalar(3),
         ),
       ),
@@ -352,10 +352,10 @@ mod tests {
       TestExpr::bin_op(
         TestExpr::bin_op(
           TestExpr::Scalar(1),
-          "*",
+          "times",
           TestExpr::Scalar(2),
         ),
-        "+",
+        "plus",
         TestExpr::Scalar(3),
       ),
       result,

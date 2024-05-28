@@ -168,10 +168,13 @@ mod tests {
   use crate::parsing::operator::{Precedence, Associativity};
 
   fn sample_operator_table() -> OperatorTable {
+    // Note: These are tokenizer unit tests. They should never use the
+    // `function_name`, but we set it to something distinct from the
+    // display name to make sure we grab the right name value.
     vec![
-      Operator::new("+", Associativity::LEFT, Precedence::new(0)),
-      Operator::new("++", Associativity::LEFT, Precedence::new(0)),
-      Operator::new("*", Associativity::LEFT, Precedence::new(0)),
+      Operator::new("+", Associativity::LEFT, Precedence::new(0)).with_function_name("plus"),
+      Operator::new("++", Associativity::LEFT, Precedence::new(0)).with_function_name("concat"),
+      Operator::new("*", Associativity::LEFT, Precedence::new(0)).with_function_name("times"),
     ].into_iter().collect()
   }
 

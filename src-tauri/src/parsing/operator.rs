@@ -73,6 +73,12 @@ impl OperatorTable {
 }
 
 impl Operator {
+  /// Constructs a new operator with the given properties. By default,
+  /// the operator's `display_name` _and_ `function_name` are both
+  /// equal to `name`. If desired, the caller may override one or the
+  /// other using the builder-style methods
+  /// [`Operator::with_display_name`] or
+  /// [`Operator::with_function_name`].
   pub fn new(name: impl Into<String>, assoc: Associativity, prec: Precedence) -> Operator {
     let name = name.into();
     Operator {
@@ -91,7 +97,7 @@ impl Operator {
 
   /// The name of the operator, as displayed to the user.
   pub fn display_name(&self) -> &str {
-    &self.function_name
+    &self.display_name
   }
 
   /// Operator identical to `self` but with a different
