@@ -96,6 +96,7 @@ impl<'a> ExprTokenizer<'a> {
   }
 
   fn read_char_token(&self, state: &mut TokenizerState<'_>) -> Option<Token> {
+    #[allow(clippy::manual_map)] // Cleaner in an if-else chain
     if let Some(m) = state.read_literal("(") {
       Some(Token::new(TokenData::LeftParen, m.span()))
     } else if let Some(m) = state.read_literal(")") {

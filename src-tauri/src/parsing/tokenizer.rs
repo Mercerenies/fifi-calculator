@@ -35,6 +35,10 @@ impl<'a> TokenizerState<'a> {
     }
   }
 
+  pub fn is_empty(&self) -> bool {
+    self.len() == 0
+  }
+
   pub fn len(&self) -> usize {
     self.input.len() + self.position.0
   }
@@ -123,7 +127,7 @@ impl<'a> TokenizerState<'a> {
   pub fn read_some<T, F>(&mut self, function: F) -> Option<Vec<T>>
   where F: FnMut(&mut Self) -> Option<T> {
     let output = self.read_many(function);
-    (!output.is_empty()).then(|| output)
+    (!output.is_empty()).then_some(output)
   }
 
   pub fn consume_spaces(&mut self) {
@@ -159,6 +163,7 @@ impl<'h> TokenizerCaptures<'h> {
   pub fn get(&self, i: usize) -> Option<&'h str> {
     self.captures.get(i).map(|m| m.as_str())
   }
+  #[allow(clippy::len_without_is_empty)] // Captures object is always non-empty
   pub fn len(&self) -> usize {
     self.captures.len()
   }

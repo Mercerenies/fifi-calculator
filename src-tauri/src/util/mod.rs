@@ -32,11 +32,13 @@ where I : IntoIterator<Item = &'a str>,
   // Put longer elements first, so we always match the longest thing
   // we can.
   let mut options: Vec<_> = options.into_iter().collect();
-  options.sort_by(|a, b| b.len().cmp(&a.len()));
+  options.sort_by_key(|a| a.len());
 
-  let regex_str = options.into_iter().map(|s| escape(s)).collect::<Vec<_>>().join("|");
+  let regex_str = options.into_iter().map(escape).collect::<Vec<_>>().join("|");
   let regex_str = helper(format!("(?:{regex_str})"));
-  Regex::new(&regex_str).expect(&format!("Invalid regular expression: {}", regex_str))
+  Regex::new(&regex_str).unwrap_or_else(|_| {
+    panic!("Invalid regular expression: {}", regex_str);
+  })
 }
 
 pub fn clamp<T: PartialOrd>(val: T, min: T, max: T) -> T {
