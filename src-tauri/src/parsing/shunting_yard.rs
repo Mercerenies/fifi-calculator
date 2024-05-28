@@ -58,6 +58,15 @@ pub trait ShuntingYardDriver<T> {
   ) -> Result<Self::Output, Self::Error>;
 }
 
+impl<T> Token<T> {
+  pub fn scalar(data: T, span: Span) -> Self {
+    Self { data: TokenData::Scalar(data), span }
+  }
+  pub fn operator(data: Operator, span: Span) -> Self {
+    Self { data: TokenData::Operator(data), span }
+  }
+}
+
 impl<T: Display> Display for TokenData<T> {
   fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
     match self {

@@ -10,6 +10,7 @@ pub mod walker;
 use num::{Zero, One};
 
 use std::mem;
+use std::fmt::{self, Display, Formatter};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
@@ -42,6 +43,31 @@ impl Expr {
     let placeholder = Expr::Atom(atom::Atom::Number(0f64.into())); // Ugh... simplest non-allocating value I have
     let original_value = mem::replace(self, placeholder);
     *self = f(original_value);
+  }
+}
+
+/// This is a very simple display impl that doesn't handle situations
+/// such as infix operators and is mainly used for getting reasonable
+/// error output in case of a parse error. For regular program output,
+/// consider using a [language
+/// mode](crate::display::language::LanguageMode) instead.
+impl Display for Expr {
+  fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    match self {
+      Expr::Atom(a) => write!(f, "{a}"),
+      Expr::Call(name, args) => {
+        write!(f, "{name}(")?;
+        let mut first = true;
+        for arg in args {
+          if !first {
+            write!(f, ",")?;
+          }
+          first = false;
+          write!(f, "{arg}")?;
+        }
+        write!(f, ")")
+      }
+    }
   }
 }
 
