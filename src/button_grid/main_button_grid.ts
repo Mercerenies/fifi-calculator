@@ -1,6 +1,6 @@
 
 import { ButtonGrid, GridCell } from "../button_grid.js";
-import { NumericalInputButton, DispatchButton } from './button.js';
+import { NumericalInputButton, AlgebraicInputButton, DispatchButton } from './button.js';
 import { InputBoxManager } from '../input_box.js';
 import { NumericalInputMethod } from '../input_box/numerical_input.js';
 import { KeyEventInput, KeyResponse } from '../keyboard.js';
@@ -57,6 +57,7 @@ export class MainButtonGrid implements ButtonGrid {
         new DispatchButton(swapSvg(), "swap", "Tab"),
         new DispatchButton(dupSvg(), "dup", "Enter"),
         new NumericalInputButton(this.inputManager),
+        new AlgebraicInputButton(this.inputManager),
       ],
     ];
   }
