@@ -8,6 +8,7 @@ pub mod stricteq;
 use regex::{Regex, escape};
 
 use std::convert::Infallible;
+use std::cmp::Reverse;
 
 pub fn unwrap_infallible<T>(res: Result<T, Infallible>) -> T {
   match res {
@@ -32,7 +33,7 @@ where I : IntoIterator<Item = &'a str>,
   // Put longer elements first, so we always match the longest thing
   // we can.
   let mut options: Vec<_> = options.into_iter().collect();
-  options.sort_by_key(|a| a.len());
+  options.sort_by_key(|a| Reverse(a.len()));
 
   let regex_str = options.into_iter().map(escape).collect::<Vec<_>>().join("|");
   let regex_str = helper(format!("(?:{regex_str})"));

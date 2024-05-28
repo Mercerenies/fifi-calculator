@@ -50,6 +50,8 @@ pub enum ParsingError {
 #[non_exhaustive]
 pub struct ExprShuntingYardDriver {}
 
+type IResult<'t, T> = Result<(T, &'t [Token]), ParseError>;
+
 impl<'a> ExprParser<'a> {
   pub fn new(operator_table: &'a OperatorTable) -> Self {
     Self {
@@ -76,7 +78,7 @@ impl<'a> ExprParser<'a> {
     }
   }
 
-  fn parse_expr<'t>(&self, stream: &'t [Token]) -> Result<(Expr, &'t [Token]), ParseError> {
+  fn parse_expr<'t>(&self, stream: &'t [Token]) -> IResult<'t, Expr> {
     let Some(token) = stream.first() else {
       return Err(ParsingError::UnexpectedEOF.into());
     };
@@ -94,7 +96,7 @@ impl<'a> ExprParser<'a> {
     }
   }
 
-  fn parse_operator_chain<'t>(&self, mut stream: &'t [Token]) -> Result<(Expr, &'t [Token]), ParseError> {
+  fn parse_operator_chain<'t>(&self, mut stream: &'t [Token]) -> IResult<'t, Expr> {
     let mut tokens: Vec<shunting_yard::Token<Expr>> = Vec::new();
     // First expression.
     let ((expr, span), tail) = self.parse_atom(stream)?;
@@ -114,7 +116,7 @@ impl<'a> ExprParser<'a> {
     Ok((expr, stream))
   }
 
-  fn parse_operator<'t>(&self, stream: &'t [Token]) -> Result<((Operator, Span), &'t [Token]), ParseError> {
+  fn parse_operator<'t>(&self, stream: &'t [Token]) -> IResult<'t, (Operator, Span)> {
     if let Some(Token { data: TokenData::Operator(op), span }) = stream.first() {
       Ok(((op.clone(), *span), &stream[1..]))
     } else {
@@ -122,7 +124,7 @@ impl<'a> ExprParser<'a> {
     }
   }
 
-  fn parse_atom<'t>(&self, stream: &'t [Token]) -> Result<((Expr, Span), &'t [Token]), ParseError> {
+  fn parse_atom<'t>(&self, stream: &'t [Token]) -> IResult<'t, (Expr, Span)> {
     let Some(token) = stream.first() else {
       return Err(ParsingError::UnexpectedEOF.into());
     };
@@ -164,7 +166,7 @@ impl<'a> ExprParser<'a> {
   }
 
   // Expects and consumes a closing parenthesis at the end.
-  fn parse_function_args<'t>(&self, mut stream: &'t [Token]) -> Result<((Vec<Expr>, SourceOffset), &'t [Token]), ParseError> {
+  fn parse_function_args<'t>(&self, mut stream: &'t [Token]) -> IResult<'t, (Vec<Expr>, SourceOffset)> {
     let close_paren_offset: SourceOffset;
     let mut output = Vec::new();
     loop {
