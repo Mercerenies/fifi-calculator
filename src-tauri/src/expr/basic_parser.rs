@@ -239,4 +239,69 @@ mod tests {
     let expr = parser.tokenize_and_parse("-1:3").unwrap();
     assert_eq!(expr, Expr::from(Number::ratio(-1, 3)));
   }
+
+  #[test]
+  fn test_parenthesized_expression() {
+    let table = OperatorTable::common_operators();
+    let parser = ExprParser::new(&table);
+
+    let expr = parser.tokenize_and_parse("(1)").unwrap();
+    assert_eq!(expr, Expr::from(1));
+
+    let expr = parser.tokenize_and_parse("((((1))))").unwrap();
+    assert_eq!(expr, Expr::from(1));
+  }
+
+  #[test]
+  fn test_complex_number_expr() {
+    let table = OperatorTable::common_operators();
+    let parser = ExprParser::new(&table);
+
+    let expr = parser.tokenize_and_parse("(1, 2)").unwrap();
+    assert_eq!(
+      expr,
+      Expr::call(
+        "+",
+        vec![
+          Expr::from(1),
+          Expr::call("*", vec![Expr::from(2), Expr::from(ComplexNumber::ii())]),
+        ],
+      ),
+    );
+  }
+
+  #[test]
+  fn test_operator_sequence() {
+    let table = OperatorTable::common_operators();
+    let parser = ExprParser::new(&table);
+
+    let expr = parser.tokenize_and_parse("1 + 2 * 3").unwrap();
+    assert_eq!(expr, Expr::call("+", vec![Expr::from(1), Expr::call("*", vec![Expr::from(2), Expr::from(3)])]));
+
+    let expr = parser.tokenize_and_parse("1 * 2 + 3").unwrap();
+    assert_eq!(expr, Expr::call("+", vec![Expr::call("*", vec![Expr::from(1), Expr::from(2)]), Expr::from(3)]));
+  }
+
+  #[test]
+  fn test_operator_sequence_with_parens() {
+    let table = OperatorTable::common_operators();
+    let parser = ExprParser::new(&table);
+
+    let expr = parser.tokenize_and_parse("(1 + 2) * 3").unwrap();
+    assert_eq!(expr, Expr::call("*", vec![Expr::call("+", vec![Expr::from(1), Expr::from(2)]), Expr::from(3)]));
+
+    let expr = parser.tokenize_and_parse("1 + (2 * 3)").unwrap();
+    assert_eq!(expr, Expr::call("+", vec![Expr::from(1), Expr::call("*", vec![Expr::from(2), Expr::from(3)])]));
+  }
+
+  #[test]
+  fn test_function_call() {
+    let table = OperatorTable::common_operators();
+    let parser = ExprParser::new(&table);
+
+    let expr = parser.tokenize_and_parse("foo((1 + 2) * 3)").unwrap();
+    assert_eq!(expr, Expr::call("foo", vec![
+      Expr::call("*", vec![Expr::call("+", vec![Expr::from(1), Expr::from(2)]), Expr::from(3)]),
+    ]));
+  }
 }
