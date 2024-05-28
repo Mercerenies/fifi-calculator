@@ -71,7 +71,7 @@ impl<T: Display> Display for TokenData<T> {
   fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
     match self {
       TokenData::Scalar(s) => s.fmt(f),
-      TokenData::Operator(op) => op.name().fmt(f),
+      TokenData::Operator(op) => op.display_name().fmt(f),
     }
   }
 }
@@ -218,7 +218,7 @@ mod tests {
       op: Operator,
       right: Self::Output,
     ) -> Result<Self::Output, Self::Error> {
-      Ok(TestExpr::bin_op(left, op.name(), right))
+      Ok(TestExpr::bin_op(left, op.function_name(), right))
     }
   }
 

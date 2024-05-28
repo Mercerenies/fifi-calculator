@@ -218,7 +218,7 @@ impl ShuntingYardDriver<Expr> for ExprShuntingYardDriver {
   }
 
   fn compile_bin_op(&mut self, left: Expr, oper: Operator, right: Expr) -> Result<Expr, Infallible> {
-    Ok(Expr::call(oper.name(), vec![left, right]))
+    Ok(Expr::call(oper.function_name(), vec![left, right]))
   }
 }
 

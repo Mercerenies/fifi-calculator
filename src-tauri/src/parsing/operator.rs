@@ -4,13 +4,15 @@ use std::collections::{hash_map, HashMap};
 /// A table of operators, indexed by their name.
 #[derive(Debug, Clone, Default)]
 pub struct OperatorTable {
-  mapping: HashMap<String, Operator>,
+  by_function_name: HashMap<String, Operator>,
+  by_display_name: HashMap<String, Operator>,
 }
 
 /// An operator has a precedence and an associativity.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Operator {
-  name: String,
+  function_name: String,
+  display_name: String,
   assoc: Associativity,
   prec: Precedence,
 }
@@ -33,17 +35,22 @@ impl OperatorTable {
 
   pub fn with_capacity(capacity: usize) -> OperatorTable {
     OperatorTable {
-      mapping: HashMap::with_capacity(capacity),
+      by_function_name: HashMap::with_capacity(capacity),
+      by_display_name: HashMap::with_capacity(capacity),
     }
   }
 
-  pub fn get(&self, name: &str) -> Option<&Operator> {
-    self.mapping.get(name)
+  pub fn get_by_display_name(&self, name: &str) -> Option<&Operator> {
+    self.by_display_name.get(name)
   }
 
-  pub fn insert(&mut self, op: Operator) -> Option<Operator> {
-    let name = op.name().to_owned();
-    self.mapping.insert(name, op)
+  pub fn get_by_function_name(&self, name: &str) -> Option<&Operator> {
+    self.by_function_name.get(name)
+  }
+
+  pub fn insert(&mut self, op: Operator) {
+    self.by_display_name.insert(op.display_name().to_owned(), op.clone());
+    self.by_function_name.insert(op.function_name().to_owned(), op);
   }
 
   pub fn common_operators() -> OperatorTable {
@@ -61,21 +68,44 @@ impl OperatorTable {
   }
 
   pub fn iter(&self) -> impl Iterator<Item = &Operator> {
-    self.mapping.values()
+    self.by_display_name.values()
   }
 }
 
 impl Operator {
   pub fn new(name: impl Into<String>, assoc: Associativity, prec: Precedence) -> Operator {
+    let name = name.into();
     Operator {
-      name: name.into(),
+      function_name: name.clone(),
+      display_name: name,
       assoc,
       prec,
     }
   }
 
-  pub fn name(&self) -> &str {
-    &self.name
+  /// The name of the function used internally to represent this
+  /// operator.
+  pub fn function_name(&self) -> &str {
+    &self.function_name
+  }
+
+  /// The name of the operator, as displayed to the user.
+  pub fn display_name(&self) -> &str {
+    &self.function_name
+  }
+
+  /// Operator identical to `self` but with a different
+  /// `function_name`. This does not affect `display_name`.
+  pub fn with_function_name(mut self, function_name: impl Into<String>) -> Self {
+    self.function_name = function_name.into();
+    self
+  }
+
+  /// Operator identical to `self` but with a different
+  /// `display_name`. This does not affect `function_name`.
+  pub fn with_display_name(mut self, display_name: impl Into<String>) -> Self {
+    self.display_name = display_name.into();
+    self
   }
 
   pub fn associativity(&self) -> Associativity {
@@ -177,7 +207,7 @@ impl IntoIterator for OperatorTable {
   type IntoIter = hash_map::IntoValues<String, Operator>;
 
   fn into_iter(self) -> Self::IntoIter {
-    self.mapping.into_values()
+    self.by_display_name.into_values()
   }
 }
 

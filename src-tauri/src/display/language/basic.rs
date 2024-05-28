@@ -54,7 +54,7 @@ impl BasicLanguageMode {
     }
     self.to_html_with_precedence(out, left_arg, op.left_precedence());
     out.push(' ');
-    out.push_str(op.name());
+    out.push_str(op.display_name());
     out.push(' ');
     self.to_html_with_precedence(out, right_arg, op.right_precedence());
     if needs_parens {
@@ -72,7 +72,7 @@ impl BasicLanguageMode {
     for arg in args {
       if !first {
         out.push(' ');
-        out.push_str(op.name());
+        out.push_str(op.display_name());
         out.push(' ');
       }
       first = false;
@@ -92,7 +92,7 @@ impl BasicLanguageMode {
         out.push_str(&z.to_string());
       }
       Expr::Call(f, args) => {
-        if let Some(op) = self.known_operators.get(f) {
+        if let Some(op) = self.known_operators.get_by_function_name(f) {
           match args.len() {
             0 => {
               // Never write 0-ary functions as infix.

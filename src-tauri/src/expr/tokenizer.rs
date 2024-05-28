@@ -47,7 +47,7 @@ pub enum TokenizerError {
 
 impl<'a> ExprTokenizer<'a> {
   pub fn new(operator_table: &'a OperatorTable) -> Self {
-    let operator_names = operator_table.iter().map(|op| op.name());
+    let operator_names = operator_table.iter().map(|op| op.display_name());
     let operator_regex = regex_opt_with(operator_names, |s| format!("^{s}"));
     Self { operator_table, operator_regex }
   }
@@ -118,7 +118,7 @@ impl<'a> ExprTokenizer<'a> {
 
   fn read_operator(&self, state: &mut TokenizerState<'_>) -> Option<Token> {
     state.read_regex(&self.operator_regex).map(|m| {
-      let operator = self.operator_table.get(m.as_str()).expect("expected operator to exist");
+      let operator = self.operator_table.get_by_display_name(m.as_str()).expect("expected operator to exist");
       Token::new(TokenData::Operator(operator.clone()), m.span())
     })
   }
@@ -153,7 +153,7 @@ impl Display for TokenData {
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
     match self {
       TokenData::Number(n) => write!(f, "{n}"),
-      TokenData::Operator(op) => write!(f, "{}", op.name()),
+      TokenData::Operator(op) => write!(f, "{}", op.display_name()),
       TokenData::FunctionCallStart(name) => write!(f, "{name}("),
       TokenData::LeftParen => write!(f, "("),
       TokenData::Comma => write!(f, ","),
@@ -207,17 +207,17 @@ mod tests {
 
     let mut state = TokenizerState::new("+");
     let token = tokenizer.read_one_token(&mut state).expect("expected token");
-    assert_eq!(token, Token::new(TokenData::Operator(table.get("+").unwrap().clone()), span(0, 1)));
+    assert_eq!(token, Token::new(TokenData::Operator(table.get_by_display_name("+").unwrap().clone()), span(0, 1)));
     assert_eq!(state.current_pos(), SourceOffset(1));
 
     let mut state = TokenizerState::new("++");
     let token = tokenizer.read_one_token(&mut state).expect("expected token");
-    assert_eq!(token, Token::new(TokenData::Operator(table.get("++").unwrap().clone()), span(0, 2)));
+    assert_eq!(token, Token::new(TokenData::Operator(table.get_by_display_name("++").unwrap().clone()), span(0, 2)));
     assert_eq!(state.current_pos(), SourceOffset(2));
 
     let mut state = TokenizerState::new("+++");
     let token = tokenizer.read_one_token(&mut state).expect("expected token");
-    assert_eq!(token, Token::new(TokenData::Operator(table.get("++").unwrap().clone()), span(0, 2)));
+    assert_eq!(token, Token::new(TokenData::Operator(table.get_by_display_name("++").unwrap().clone()), span(0, 2)));
     assert_eq!(state.current_pos(), SourceOffset(2));
   }
 
