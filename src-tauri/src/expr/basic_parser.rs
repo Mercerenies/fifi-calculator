@@ -3,14 +3,34 @@
 //! mode](crate::display::basic::BasicLanguageMode].
 
 use super::Expr;
+use super::tokenizer::ExprTokenizer;
 use crate::parsing::shunting_yard::ShuntingYardDriver;
-use crate::parsing::operator::Operator;
+use crate::parsing::operator::{Operator, OperatorTable};
 
 use std::convert::Infallible;
+
+#[derive(Clone, Debug)]
+pub struct ExprParser<'a> {
+  tokenizer: ExprTokenizer<'a>,
+  operator_table: &'a OperatorTable,
+}
 
 #[derive(Clone, Debug, Default)]
 #[non_exhaustive]
 pub struct ExprShuntingYardDriver {}
+
+impl<'a> ExprParser<'a> {
+  pub fn new(operator_table: &'a OperatorTable) -> Self {
+    Self {
+      tokenizer: ExprTokenizer::new(operator_table),
+      operator_table,
+    }
+  }
+
+  pub fn tokenizer(&self) -> &ExprTokenizer<'a> {
+    &self.tokenizer
+  }
+}
 
 impl ExprShuntingYardDriver {
   pub fn new() -> Self {
