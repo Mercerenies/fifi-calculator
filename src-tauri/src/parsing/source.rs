@@ -15,9 +15,22 @@ pub struct Span {
   pub end: SourceOffset,
 }
 
+/// A type tagged with the span it was found at in the source code.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Spanned<T> {
+  pub item: T,
+  pub span: Span,
+}
+
 impl Span {
   pub fn new(start: SourceOffset, end: SourceOffset) -> Self {
     Self { start, end }
+  }
+}
+
+impl<T> Spanned<T> {
+  pub fn new(item: T, span: Span) -> Self {
+    Self { item, span }
   }
 }
 

@@ -7,7 +7,7 @@ use super::number::ComplexNumber;
 use super::tokenizer::{ExprTokenizer, Token, TokenData, TokenizerError};
 use crate::parsing::shunting_yard::{self, ShuntingYardDriver, ShuntingYardError};
 use crate::parsing::operator::{Operator, OperatorTable};
-use crate::parsing::source::{Span, SourceOffset};
+use crate::parsing::source::{Span, Spanned, SourceOffset};
 use crate::parsing::tokenizer::TokenizerState;
 
 use thiserror::Error;
@@ -99,16 +99,16 @@ impl<'a> ExprParser<'a> {
   fn parse_operator_chain<'t>(&self, mut stream: &'t [Token]) -> IResult<'t, Expr> {
     let mut tokens: Vec<shunting_yard::Token<Expr>> = Vec::new();
     // First expression.
-    let ((expr, span), tail) = self.parse_atom(stream)?;
+    let (spanned, tail) = self.parse_atom(stream)?;
     stream = tail;
-    tokens.push(shunting_yard::Token::scalar(expr, span));
+    tokens.push(shunting_yard::Token::scalar(spanned.item, spanned.span));
     // Rest of operator-expression sequences.
-    while let Ok(((op, span), tail)) = self.parse_operator(stream) {
-      tokens.push(shunting_yard::Token::operator(op, span));
+    while let Ok((spanned, tail)) = self.parse_operator(stream) {
+      tokens.push(shunting_yard::Token::operator(spanned.item, spanned.span));
       stream = tail;
-      let ((expr, span), tail) = self.parse_atom(stream)?;
+      let (spanned, tail) = self.parse_atom(stream)?;
       stream = tail;
-      tokens.push(shunting_yard::Token::scalar(expr, span));
+      tokens.push(shunting_yard::Token::scalar(spanned.item, spanned.span));
     }
     // Now use shunting yard to simplify the vector.
     let mut shunting_yard_driver = ExprShuntingYardDriver::new();
@@ -116,25 +116,25 @@ impl<'a> ExprParser<'a> {
     Ok((expr, stream))
   }
 
-  fn parse_operator<'t>(&self, stream: &'t [Token]) -> IResult<'t, (Operator, Span)> {
+  fn parse_operator<'t>(&self, stream: &'t [Token]) -> IResult<'t, Spanned<Operator>> {
     if let Some(Token { data: TokenData::Operator(op), span }) = stream.first() {
-      Ok(((op.clone(), *span), &stream[1..]))
+      Ok((Spanned::new(op.clone(), *span), &stream[1..]))
     } else {
       Err(ParsingError::ExpectedOperator.into())
     }
   }
 
-  fn parse_atom<'t>(&self, stream: &'t [Token]) -> IResult<'t, (Expr, Span)> {
+  fn parse_atom<'t>(&self, stream: &'t [Token]) -> IResult<'t, Spanned<Expr>> {
     let Some(token) = stream.first() else {
       return Err(ParsingError::UnexpectedEOF.into());
     };
     match &token.data {
       TokenData::Number(n) => {
-        Ok(((Expr::from(n.clone()), token.span), &stream[1..]))
+        Ok((Spanned::new(Expr::from(n.clone()), token.span), &stream[1..]))
       }
       TokenData::FunctionCallStart(f) => {
         let ((args, end), tail) = self.parse_function_args(&stream[1..])?;
-        Ok(((Expr::call(f, args), Span::new(token.span.start, end)), tail))
+        Ok((Spanned::new(Expr::call(f, args), Span::new(token.span.start, end)), tail))
       }
       TokenData::LeftParen => {
         let ((mut args, end), tail) = self.parse_function_args(&stream[1..])?;
@@ -143,7 +143,7 @@ impl<'a> ExprParser<'a> {
           1 => {
             // Parenthesized expression, just return the inside
             let arg = args.pop().unwrap();
-            Ok(((arg, span), tail))
+            Ok((Spanned::new(arg, span), tail))
           }
           2 => {
             // Complex number expression. Right now we write this
@@ -152,7 +152,7 @@ impl<'a> ExprParser<'a> {
             let imag = args.pop().unwrap();
             let real = args.pop().unwrap();
             let expr = Expr::call("+", vec![real, Expr::call("*", vec![imag, Expr::from(ComplexNumber::ii())])]);
-            Ok(((expr, span), tail))
+            Ok((Spanned::new(expr, span), tail))
           }
           _ => {
             Err(ParsingError::ExpectedParensOrComplex(token.span.start).into())
