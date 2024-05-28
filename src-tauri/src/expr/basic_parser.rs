@@ -12,7 +12,6 @@ use std::convert::Infallible;
 #[derive(Clone, Debug)]
 pub struct ExprParser<'a> {
   tokenizer: ExprTokenizer<'a>,
-  operator_table: &'a OperatorTable,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -23,7 +22,6 @@ impl<'a> ExprParser<'a> {
   pub fn new(operator_table: &'a OperatorTable) -> Self {
     Self {
       tokenizer: ExprTokenizer::new(operator_table),
-      operator_table,
     }
   }
 
