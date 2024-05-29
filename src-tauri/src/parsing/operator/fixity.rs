@@ -77,6 +77,18 @@ impl Fixity {
   pub fn postfix_prec(&self) -> Option<Precedence> {
     self.as_postfix
   }
+
+  pub fn is_prefix(&self) -> bool {
+    self.as_infix.is_some()
+  }
+
+  pub fn is_infix(&self) -> bool {
+    self.as_infix.is_some()
+  }
+
+  pub fn is_postfix(&self) -> bool {
+    self.as_postfix.is_some()
+  }
 }
 
 impl EmptyFixity {
