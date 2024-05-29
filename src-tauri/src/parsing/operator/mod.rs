@@ -1,9 +1,11 @@
 
 mod precedence;
 mod associativity;
+mod fixity;
 
 pub use precedence::Precedence;
 pub use associativity::Associativity;
+pub use fixity::{Fixity, EmptyFixity};
 
 use std::collections::{hash_map, HashMap};
 
