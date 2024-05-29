@@ -34,6 +34,10 @@ enum TokenData<T> {
   Scalar(T),
   /// An infix, binary operator.
   InfixOperator(Operator),
+  /// A prefix, unary operator.
+  PrefixOperator(Operator),
+  /// A postfix, unary operator.
+  PostfixOperator(Operator),
 }
 
 #[derive(Debug, Clone)]
@@ -84,6 +88,24 @@ impl<T> Token<T> {
     Self { data: TokenData::InfixOperator(op), span }
   }
 
+  /// Constructs a token representing a prefix operator. Panics if
+  /// `op` is not a prefix operator.
+  pub fn prefix_operator(op: Operator, span: Span) -> Self {
+    if !op.fixity().is_prefix() {
+      panic!("Token::prefix_operator requires a prefix operator, got {:?}", op);
+    }
+    Self { data: TokenData::PrefixOperator(op), span }
+  }
+
+  /// Constructs a token representing a postfix operator. Panics if
+  /// `op` is not a postfix operator.
+  pub fn postfix_operator(op: Operator, span: Span) -> Self {
+    if !op.fixity().is_postfix() {
+      panic!("Token::postfix_operator requires a postfix operator, got {:?}", op);
+    }
+    Self { data: TokenData::PostfixOperator(op), span }
+  }
+
   pub fn span(&self) -> Span {
     self.span
   }
@@ -92,8 +114,10 @@ impl<T> Token<T> {
 impl<T: Display> Display for TokenData<T> {
   fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
     match self {
-      TokenData::Scalar(s) => s.fmt(f),
-      TokenData::InfixOperator(op) => op.operator_name().fmt(f),
+      TokenData::Scalar(s) => write!(f, "{s}"),
+      TokenData::InfixOperator(op) => write!(f, "_{}_", op.operator_name()),
+      TokenData::PrefixOperator(op) => write!(f, "{}_", op.operator_name()),
+      TokenData::PostfixOperator(op) => write!(f, "_{}", op.operator_name()),
     }
   }
 }
@@ -135,6 +159,16 @@ impl<T, E: StdError> From<E> for ShuntingYardError<T, E> {
   }
 }
 
+impl<T> From<OpStackValue> for Token<T> {
+  fn from(op: OpStackValue) -> Self {
+    match op.fixity {
+      FixityType::Infix => Token::infix_operator(op.operator, op.span),
+      FixityType::Prefix => Token::prefix_operator(op.operator, op.span),
+      FixityType::Postfix => Token::postfix_operator(op.operator, op.span),
+    }
+  }
+}
+
 pub fn parse<T, D, I>(
   driver: &mut D,
   input: I
@@ -153,29 +187,29 @@ where T: Clone,
         output_stack.push(OutputWithToken { output, token });
       }
       TokenData::InfixOperator(op) => {
-        // Pop operators until we hit one with higher precedence.
-        while let Some(stack_value) = operator_stack.pop() {
-          if compare_precedence(&stack_value.operator, &op) {
-            let token = Token {
-              data: TokenData::InfixOperator(stack_value.operator.clone()),
-              span: stack_value.span,
-            };
-            let error = ShuntingYardError::UnexpectedToken(token);
-            simplify_operator(driver, &mut output_stack, stack_value, error)?;
-          } else {
-            operator_stack.push(stack_value);
-            break;
-          }
-        }
+        pop_and_simplify_while(driver, &mut output_stack, &mut operator_stack, |stack_value| {
+          compare_precedence(&stack_value.operator, &op)
+        })?;
         operator_stack.push(OpStackValue { operator: op, span: token.span, fixity: FixityType::Infix });
+      }
+      TokenData::PrefixOperator(op) => {
+        pop_and_simplify_while(driver, &mut output_stack, &mut operator_stack, |stack_value| {
+          compare_precedence(&stack_value.operator, &op)
+        })?;
+        operator_stack.push(OpStackValue { operator: op, span: token.span, fixity: FixityType::Prefix });
+      }
+      TokenData::PostfixOperator(op) => {
+        pop_and_simplify_while(driver, &mut output_stack, &mut operator_stack, |stack_value| {
+          compare_precedence(&stack_value.operator, &op)
+        })?;
+        operator_stack.push(OpStackValue { operator: op, span: token.span, fixity: FixityType::Postfix });
       }
     }
   }
 
   // Pop and resolve remaining operators.
-  while let Some(stack_value) = operator_stack.pop() {
-    simplify_operator(driver, &mut output_stack, stack_value, ShuntingYardError::UnexpectedEOF)?;
-  }
+  pop_and_simplify_while(driver, &mut output_stack, &mut operator_stack, |_| true)?;
+  assert!(operator_stack.is_empty(), "Expected no operators left on the stack at end of shunting yard algorithm");
 
   let final_result = output_stack.pop().ok_or(ShuntingYardError::UnexpectedEOF)?;
   if let Some(remaining_value) = output_stack.pop() {
@@ -190,6 +224,27 @@ fn compare_precedence(stack_op: &Operator, current_op: &Operator) -> bool {
   let current_op = current_op.fixity().as_infix().unwrap();
   stack_op.precedence() > current_op.precedence() ||
     (stack_op.precedence() == current_op.precedence() && current_op.associativity().is_left_assoc())
+}
+
+fn pop_and_simplify_while<F, T, D>(
+  driver: &mut D,
+  output_stack: &mut Vec<OutputWithToken<T, D::Output>>,
+  operator_stack: &mut Vec<OpStackValue>,
+  mut continue_condition: F,
+) -> Result<(), ShuntingYardError<T, D::Error>>
+where T: Clone,
+      D: ShuntingYardDriver<T>,
+      F: FnMut(&OpStackValue) -> bool {
+  while let Some(stack_value) = operator_stack.pop() {
+    if continue_condition(&stack_value) {
+      let error = ShuntingYardError::UnexpectedToken(stack_value.clone().into());
+      simplify_operator(driver, output_stack, stack_value, error)?;
+    } else {
+      operator_stack.push(stack_value);
+      break;
+    }
+  }
+  Ok(())
 }
 
 fn simplify_operator<T, D>(
