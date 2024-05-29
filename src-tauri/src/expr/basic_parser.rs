@@ -104,7 +104,7 @@ impl<'a> ExprParser<'a> {
     tokens.push(shunting_yard::Token::scalar(spanned.item, spanned.span));
     // Rest of operator-expression sequences.
     while let Ok((spanned, tail)) = self.parse_operator(stream) {
-      tokens.push(shunting_yard::Token::operator(spanned.item, spanned.span));
+      tokens.push(shunting_yard::Token::infix_operator(spanned.item, spanned.span));
       stream = tail;
       let (spanned, tail) = self.parse_atom(stream)?;
       stream = tail;

@@ -1,5 +1,5 @@
 
-use super::operator::{Operator, InfixProperties};
+use super::operator::{Operator, PrefixProperties, PostfixProperties, InfixProperties};
 use super::source::Span;
 
 use std::error::{Error as StdError};
@@ -8,8 +8,8 @@ use std::fmt::{self, Display, Formatter};
 /// A token, for the purposes of the shunting yard algorithm.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token<T> {
-  pub data: TokenData<T>,
-  pub span: Span,
+  data: TokenData<T>,
+  span: Span,
 }
 
 /// Internal type which tracks an output value together with the first
@@ -26,13 +26,13 @@ struct OpStackValue {
   span: Span,
 }
 
-/// The content of a token.
+/// The contents of a token.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TokenData<T> {
+enum TokenData<T> {
   /// A value in the target language.
   Scalar(T),
   /// An infix, binary operator.
-  Operator(Operator),
+  InfixOperator(Operator, InfixProperties),
 }
 
 #[derive(Debug, Clone)]
@@ -59,11 +59,22 @@ pub trait ShuntingYardDriver<T> {
 }
 
 impl<T> Token<T> {
+
   pub fn scalar(data: T, span: Span) -> Self {
     Self { data: TokenData::Scalar(data), span }
   }
-  pub fn operator(data: Operator, span: Span) -> Self {
-    Self { data: TokenData::Operator(data), span }
+
+  /// Constructs a token representing an infix operator. Panics if
+  /// `op` is not an infix operator.
+  pub fn infix_operator(op: Operator, span: Span) -> Self {
+    let infix_properties = op.fixity().as_infix().unwrap_or_else(|| {
+      panic!("Token::infix_operator requires an infix operator, got {:?}", op);
+    }).to_owned();
+    Self { data: TokenData::InfixOperator(op, infix_properties), span }
+  }
+
+  pub fn span(&self) -> Span {
+    self.span
   }
 }
 
@@ -71,7 +82,7 @@ impl<T: Display> Display for TokenData<T> {
   fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
     match self {
       TokenData::Scalar(s) => s.fmt(f),
-      TokenData::Operator(op) => op.operator_name().fmt(f),
+      TokenData::InfixOperator(op, _) => op.operator_name().fmt(f),
     }
   }
 }
@@ -130,11 +141,11 @@ where T: Clone,
         let token = Token { data: TokenData::Scalar(t), span: token.span };
         output_stack.push(OutputWithToken { output, token });
       }
-      TokenData::Operator(op) => {
+      TokenData::InfixOperator(op, infix) => {
         // Pop operators until we hit one with higher precedence.
         while let Some(OpStackValue { operator: stack_op, span }) = operator_stack.pop() {
           if compare_precedence(&stack_op, &op) {
-            let token = Token { data: TokenData::Operator(op.clone()), span };
+            let token = Token { data: TokenData::InfixOperator(op.clone(), infix.clone()), span };
             let error = ShuntingYardError::UnexpectedToken(token);
             simplify_operator(driver, &mut output_stack, stack_op, error)?;
           } else {
@@ -249,11 +260,11 @@ mod tests {
   #[test]
   fn test_full_assoc_op() {
     let tokens = vec![
-      Token { data: TokenData::Scalar(1), span: span(0, 1) },
-      Token { data: TokenData::Operator(plus()), span: span(1, 2) },
-      Token { data: TokenData::Scalar(2), span: span(2, 3) },
-      Token { data: TokenData::Operator(plus()), span: span(3, 4) },
-      Token { data: TokenData::Scalar(3), span: span(4, 5) },
+      Token::scalar(1, span(0, 1)),
+      Token::infix_operator(plus(), span(1, 2)),
+      Token::scalar(2, span(2, 3)),
+      Token::infix_operator(plus(), span(3, 4)),
+      Token::scalar(3, span(4, 5)),
     ];
     let result = parse(&mut TestDriver, tokens).unwrap();
     assert_eq!(
@@ -273,11 +284,11 @@ mod tests {
   #[test]
   fn test_left_assoc_op() {
     let tokens = vec![
-      Token { data: TokenData::Scalar(1), span: span(0, 1) },
-      Token { data: TokenData::Operator(minus()), span: span(1, 2) },
-      Token { data: TokenData::Scalar(2), span: span(2, 3) },
-      Token { data: TokenData::Operator(minus()), span: span(3, 4) },
-      Token { data: TokenData::Scalar(3), span: span(4, 5) },
+      Token::scalar(1, span(0, 1)),
+      Token::infix_operator(minus(), span(1, 2)),
+      Token::scalar(2, span(2, 3)),
+      Token::infix_operator(minus(), span(3, 4)),
+      Token::scalar(3, span(4, 5)),
     ];
     let result = parse(&mut TestDriver, tokens).unwrap();
     assert_eq!(
@@ -297,11 +308,11 @@ mod tests {
   #[test]
   fn test_right_assoc_op() {
     let tokens = vec![
-      Token { data: TokenData::Scalar(1), span: span(0, 1) },
-      Token { data: TokenData::Operator(pow()), span: span(1, 2) },
-      Token { data: TokenData::Scalar(2), span: span(2, 3) },
-      Token { data: TokenData::Operator(pow()), span: span(3, 4) },
-      Token { data: TokenData::Scalar(3), span: span(4, 5) },
+      Token::scalar(1, span(0, 1)),
+      Token::infix_operator(pow(), span(1, 2)),
+      Token::scalar(2, span(2, 3)),
+      Token::infix_operator(pow(), span(3, 4)),
+      Token::scalar(3, span(4, 5)),
     ];
     let result = parse(&mut TestDriver, tokens).unwrap();
     assert_eq!(
@@ -321,11 +332,11 @@ mod tests {
   #[test]
   fn test_differing_assoc_op_higher_on_right() {
     let tokens = vec![
-      Token { data: TokenData::Scalar(1), span: span(0, 1) },
-      Token { data: TokenData::Operator(plus()), span: span(1, 2) },
-      Token { data: TokenData::Scalar(2), span: span(2, 3) },
-      Token { data: TokenData::Operator(times()), span: span(3, 4) },
-      Token { data: TokenData::Scalar(3), span: span(4, 5) },
+      Token::scalar(1, span(0, 1)),
+      Token::infix_operator(plus(), span(1, 2)),
+      Token::scalar(2, span(2, 3)),
+      Token::infix_operator(times(), span(3, 4)),
+      Token::scalar(3, span(4, 5)),
     ];
     let result = parse(&mut TestDriver, tokens).unwrap();
     assert_eq!(
@@ -345,11 +356,11 @@ mod tests {
   #[test]
   fn test_differing_assoc_op_higher_on_left() {
     let tokens = vec![
-      Token { data: TokenData::Scalar(1), span: span(0, 1) },
-      Token { data: TokenData::Operator(times()), span: span(1, 2) },
-      Token { data: TokenData::Scalar(2), span: span(2, 3) },
-      Token { data: TokenData::Operator(plus()), span: span(3, 4) },
-      Token { data: TokenData::Scalar(3), span: span(4, 5) },
+      Token::scalar(1, span(0, 1)),
+      Token::infix_operator(times(), span(1, 2)),
+      Token::scalar(2, span(2, 3)),
+      Token::infix_operator(plus(), span(3, 4)),
+      Token::scalar(3, span(4, 5)),
     ];
     let result = parse(&mut TestDriver, tokens).unwrap();
     assert_eq!(
