@@ -50,7 +50,7 @@ pub trait ShuntingYardDriver<T> {
   type Error: StdError;
 
   fn compile_scalar(&mut self, scalar: T) -> Result<Self::Output, Self::Error>;
-  fn compile_bin_op(
+  fn compile_infix_op(
     &mut self,
     left: Self::Output,
     infix: &InfixProperties,
@@ -190,7 +190,7 @@ where T: Clone,
     .and_then(|arg2| output_stack.pop().map(|arg1| (arg1, arg2)))
     .ok_or(error)?;
   let infix_properties = operator.fixity().as_infix().unwrap(); // TODO: Assumes infix
-  let output = driver.compile_bin_op(arg1.output, infix_properties, arg2.output)?;
+  let output = driver.compile_infix_op(arg1.output, infix_properties, arg2.output)?;
   output_stack.push(OutputWithToken { output, token: arg1.token });
   Ok(())
 }
@@ -207,15 +207,15 @@ mod tests {
   #[derive(Debug, Clone, PartialEq, Eq)]
   enum TestExpr {
     Scalar(i64),
-    BinOp(Box<TestExpr>, String, Box<TestExpr>),
+    InfixOp(Box<TestExpr>, String, Box<TestExpr>),
   }
 
   #[derive(Clone, Debug)]
   struct TestDriver;
 
   impl TestExpr {
-    fn bin_op(left: TestExpr, op: impl Into<String>, right: TestExpr) -> Self {
-      Self::BinOp(Box::new(left), op.into(), Box::new(right))
+    fn infix_op(left: TestExpr, op: impl Into<String>, right: TestExpr) -> Self {
+      Self::InfixOp(Box::new(left), op.into(), Box::new(right))
     }
   }
 
@@ -227,13 +227,13 @@ mod tests {
       Ok(TestExpr::Scalar(scalar))
     }
 
-    fn compile_bin_op(
+    fn compile_infix_op(
       &mut self,
       left: Self::Output,
       op: &InfixProperties,
       right: Self::Output,
     ) -> Result<Self::Output, Self::Error> {
-      Ok(TestExpr::bin_op(left, op.function_name(), right))
+      Ok(TestExpr::infix_op(left, op.function_name(), right))
     }
   }
 
@@ -268,8 +268,8 @@ mod tests {
     ];
     let result = parse(&mut TestDriver, tokens).unwrap();
     assert_eq!(
-      TestExpr::bin_op(
-        TestExpr::bin_op(
+      TestExpr::infix_op(
+        TestExpr::infix_op(
           TestExpr::Scalar(1),
           "plus",
           TestExpr::Scalar(2),
@@ -292,8 +292,8 @@ mod tests {
     ];
     let result = parse(&mut TestDriver, tokens).unwrap();
     assert_eq!(
-      TestExpr::bin_op(
-        TestExpr::bin_op(
+      TestExpr::infix_op(
+        TestExpr::infix_op(
           TestExpr::Scalar(1),
           "minus",
           TestExpr::Scalar(2),
@@ -316,10 +316,10 @@ mod tests {
     ];
     let result = parse(&mut TestDriver, tokens).unwrap();
     assert_eq!(
-      TestExpr::bin_op(
+      TestExpr::infix_op(
         TestExpr::Scalar(1),
         "pow",
-        TestExpr::bin_op(
+        TestExpr::infix_op(
           TestExpr::Scalar(2),
           "pow",
           TestExpr::Scalar(3),
@@ -340,10 +340,10 @@ mod tests {
     ];
     let result = parse(&mut TestDriver, tokens).unwrap();
     assert_eq!(
-      TestExpr::bin_op(
+      TestExpr::infix_op(
         TestExpr::Scalar(1),
         "plus",
-        TestExpr::bin_op(
+        TestExpr::infix_op(
           TestExpr::Scalar(2),
           "times",
           TestExpr::Scalar(3),
@@ -364,8 +364,8 @@ mod tests {
     ];
     let result = parse(&mut TestDriver, tokens).unwrap();
     assert_eq!(
-      TestExpr::bin_op(
-        TestExpr::bin_op(
+      TestExpr::infix_op(
+        TestExpr::infix_op(
           TestExpr::Scalar(1),
           "times",
           TestExpr::Scalar(2),

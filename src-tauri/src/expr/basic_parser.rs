@@ -217,7 +217,7 @@ impl ShuntingYardDriver<Expr> for ExprShuntingYardDriver {
     Ok(scalar)
   }
 
-  fn compile_bin_op(&mut self, left: Expr, infix: &InfixProperties, right: Expr) -> Result<Expr, Infallible> {
+  fn compile_infix_op(&mut self, left: Expr, infix: &InfixProperties, right: Expr) -> Result<Expr, Infallible> {
     Ok(Expr::call(infix.function_name(), vec![left, right]))
   }
 }
