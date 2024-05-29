@@ -4,6 +4,8 @@
 use super::associativity::Associativity;
 use super::precedence::Precedence;
 
+use bitflags::bitflags;
+
 /// An operator can be infix, prefix, postfix, or any combination
 /// thereof. An operator will always be at least one of prefix,
 /// postfix, or infix.
@@ -22,6 +24,14 @@ pub struct InfixProperties {
   prec: Precedence,
 }
 
+bitflags! {
+  pub struct FixityTypes: u8 {
+    const PREFIX  = 0b0001;
+    const INFIX   = 0b0010;
+    const POSTFIX = 0b0100;
+  }
+}
+
 /// The type of an "empty" fixity structure. This is an intermediate
 /// type which is only used during building of a [`Fixity`]. This type
 /// is used to guarantee the precondition that a `Fixity` structure
@@ -33,6 +43,9 @@ pub struct EmptyFixity {
 }
 
 impl Fixity {
+  // allow: EmptyFixity is conceptually a Fixity, just with some
+  // typechecks. It's intended to be used in a fluent builder style.
+  #[allow(clippy::new_ret_no_self)]
   pub fn new() -> EmptyFixity {
     EmptyFixity {
       data: Fixity {
@@ -88,6 +101,20 @@ impl Fixity {
 
   pub fn is_postfix(&self) -> bool {
     self.as_postfix.is_some()
+  }
+
+  pub fn fixity_types(&self) -> FixityTypes {
+    let mut t = FixityTypes::empty();
+    if self.as_prefix.is_some() {
+      t |= FixityTypes::PREFIX;
+    }
+    if self.as_infix.is_some() {
+      t |= FixityTypes::INFIX;
+    }
+    if self.as_postfix.is_some() {
+      t |= FixityTypes::POSTFIX;
+    }
+    t
   }
 }
 

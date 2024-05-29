@@ -693,6 +693,7 @@ name = "fifi"
 version = "0.0.0"
 dependencies = [
  "approx",
+ "bitflags 2.5.0",
  "num",
  "once_cell",
  "regex",
