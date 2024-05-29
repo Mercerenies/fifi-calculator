@@ -1,7 +1,7 @@
 
 use super::LanguageMode;
 use crate::error::Error;
-use crate::parsing::operator::{Operator, Precedence, OperatorTable};
+use crate::parsing::operator::{Operator, Precedence, OperatorTable, FixityType};
 use crate::expr::Expr;
 use crate::expr::atom::Atom;
 use crate::expr::basic_parser::ExprParser;
@@ -90,7 +90,7 @@ impl BasicLanguageMode {
   }
 
   fn try_prefix_op_to_html(&self, out: &mut String, f: &str, args: &[Expr], prec: Precedence) -> bool {
-    let Some(op) = self.known_operators.get_by_function_name(f) else {
+    let Some(op) = self.known_operators.get_by_function_name(f, FixityType::Prefix) else {
       return false;
     };
     let Some(prefix_props) = op.fixity().as_prefix() else {
@@ -113,7 +113,7 @@ impl BasicLanguageMode {
   }
 
   fn try_postfix_op_to_html(&self, out: &mut String, f: &str, args: &[Expr], prec: Precedence) -> bool {
-    let Some(op) = self.known_operators.get_by_function_name(f) else {
+    let Some(op) = self.known_operators.get_by_function_name(f, FixityType::Postfix) else {
       return false;
     };
     let Some(postfix_props) = op.fixity().as_postfix() else {
@@ -137,7 +137,7 @@ impl BasicLanguageMode {
 
   // Returns true if successful.
   fn try_infix_op_to_html(&self, out: &mut String, f: &str, args: &[Expr], prec: Precedence) -> bool {
-    let Some(op) = self.known_operators.get_by_function_name(f) else {
+    let Some(op) = self.known_operators.get_by_function_name(f, FixityType::Infix) else {
       return false;
     };
     let Some(infix_props) = op.fixity().as_infix() else {

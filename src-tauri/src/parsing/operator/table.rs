@@ -1,6 +1,6 @@
 
 use super::Operator;
-use super::fixity::{Fixity, FixityTypes};
+use super::fixity::{Fixity, FixityType, FixityTypes};
 use super::precedence::Precedence;
 use super::associativity::Associativity;
 
@@ -9,7 +9,9 @@ use std::collections::{hash_map, HashMap};
 /// A table of operators, indexed by their name.
 #[derive(Debug, Clone, Default)]
 pub struct OperatorTable {
-  by_function_name: HashMap<String, Operator>,
+  by_function_name_prefix: HashMap<String, Operator>,
+  by_function_name_infix: HashMap<String, Operator>,
+  by_function_name_postfix: HashMap<String, Operator>,
   by_operator_name: HashMap<String, Operator>,
 }
 
@@ -26,7 +28,9 @@ impl OperatorTable {
 
   pub fn with_capacity(capacity: usize) -> OperatorTable {
     OperatorTable {
-      by_function_name: HashMap::with_capacity(capacity),
+      by_function_name_prefix: HashMap::with_capacity(capacity),
+      by_function_name_infix: HashMap::with_capacity(capacity),
+      by_function_name_postfix: HashMap::with_capacity(capacity),
       by_operator_name: HashMap::with_capacity(capacity),
     }
   }
@@ -35,14 +39,24 @@ impl OperatorTable {
     self.by_operator_name.get(name)
   }
 
-  pub fn get_by_function_name(&self, name: &str) -> Option<&Operator> {
-    self.by_function_name.get(name)
+  pub fn get_by_function_name(&self, name: &str, fixity: FixityType) -> Option<&Operator> {
+    match fixity {
+      FixityType::Prefix => self.by_function_name_prefix.get(name),
+      FixityType::Infix => self.by_function_name_infix.get(name),
+      FixityType::Postfix => self.by_function_name_postfix.get(name),
+    }
   }
 
   pub fn insert(&mut self, op: Operator) {
     self.by_operator_name.insert(op.operator_name().to_owned(), op.clone());
-    for function_name in op.function_names().map(str::to_owned) {
-      self.by_function_name.insert(function_name, op.clone());
+    if let Some(prefix_props) = op.fixity().as_prefix() {
+      self.by_function_name_prefix.insert(prefix_props.function_name().to_owned(), op.clone());
+    }
+    if let Some(infix_props) = op.fixity().as_infix() {
+      self.by_function_name_infix.insert(infix_props.function_name().to_owned(), op.clone());
+    }
+    if let Some(postfix_props) = op.fixity().as_postfix() {
+      self.by_function_name_postfix.insert(postfix_props.function_name().to_owned(), op.clone());
     }
   }
 
@@ -179,17 +193,17 @@ mod tests {
   #[test]
   fn test_get_by_function_name() {
     let table = sample_table();
-    assert_eq!(table.get_by_function_name("infix_plus"), Some(&plus()));
-    assert_eq!(table.get_by_function_name("prefix_plus"), Some(&plus()));
-    assert_eq!(table.get_by_function_name("postfix_plus"), Some(&plus()));
-    assert_eq!(table.get_by_function_name("infix_minus"), Some(&minus()));
-    assert_eq!(table.get_by_function_name("prefix_minus"), Some(&minus()));
-    assert_eq!(table.get_by_function_name("postfix_minus"), Some(&minus()));
-    assert_eq!(table.get_by_function_name("x"), None);
-    assert_eq!(table.get_by_function_name(""), None);
-    assert_eq!(table.get_by_function_name("plus"), None);
-    assert_eq!(table.get_by_function_name("+"), None);
-    assert_eq!(table.get_by_function_name("*"), None);
+    assert_eq!(table.get_by_function_name("infix_plus", FixityType::Infix), Some(&plus()));
+    assert_eq!(table.get_by_function_name("prefix_plus", FixityType::Prefix), Some(&plus()));
+    assert_eq!(table.get_by_function_name("postfix_plus", FixityType::Postfix), Some(&plus()));
+    assert_eq!(table.get_by_function_name("infix_minus", FixityType::Infix), Some(&minus()));
+    assert_eq!(table.get_by_function_name("prefix_minus", FixityType::Prefix), Some(&minus()));
+    assert_eq!(table.get_by_function_name("postfix_minus", FixityType::Postfix), Some(&minus()));
+    assert_eq!(table.get_by_function_name("x", FixityType::Infix), None);
+    assert_eq!(table.get_by_function_name("", FixityType::Infix), None);
+    assert_eq!(table.get_by_function_name("plus", FixityType::Infix), None);
+    assert_eq!(table.get_by_function_name("+", FixityType::Infix), None);
+    assert_eq!(table.get_by_function_name("*", FixityType::Infix), None);
   }
 
   #[test]
@@ -202,16 +216,16 @@ mod tests {
         .with_prefix("XXX", Precedence::new(0)),
     );
 
-    assert_eq!(table.get_by_function_name("infix_plus"), Some(&plus()));
-    assert_eq!(table.get_by_function_name("infix_minus"), Some(&minus()));
-    assert_eq!(table.get_by_function_name("XXX"), None);
+    assert_eq!(table.get_by_function_name("infix_plus", FixityType::Infix), Some(&plus()));
+    assert_eq!(table.get_by_function_name("infix_minus", FixityType::Infix), Some(&minus()));
+    assert_eq!(table.get_by_function_name("XXX", FixityType::Prefix), None);
     assert_eq!(table.get_by_operator_name("&&"), None);
 
     table.insert(new_op.clone());
 
-    assert_eq!(table.get_by_function_name("infix_plus"), Some(&plus()));
-    assert_eq!(table.get_by_function_name("infix_minus"), Some(&new_op));
-    assert_eq!(table.get_by_function_name("XXX"), Some(&new_op));
+    assert_eq!(table.get_by_function_name("infix_plus", FixityType::Infix), Some(&plus()));
+    assert_eq!(table.get_by_function_name("infix_minus", FixityType::Infix), Some(&new_op));
+    assert_eq!(table.get_by_function_name("XXX", FixityType::Prefix), Some(&new_op));
     assert_eq!(table.get_by_operator_name("&&"), Some(&new_op));
   }
 
