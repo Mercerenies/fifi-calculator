@@ -144,8 +144,8 @@ impl BasicLanguageMode {
       return false;
     };
     match args.len() {
-      0 => {
-        // Never write 0-ary functions as infix.
+      0 | 1 => {
+        // Never write 0-ary or 1-ary functions as infix.
         false
       }
       2 => {
@@ -335,4 +335,23 @@ mod tests {
     let expr = Expr::call("^", vec![Expr::from(-1), Expr::from(2)]);
     assert_eq!(mode.to_html(&expr), "(-1) ^ 2");
   }
+
+  #[test]
+  fn test_prefix_ops() {
+    let mode = BasicLanguageMode::from_common_operators();
+    let expr = Expr::call(
+      "negate",
+      vec![Expr::from(1)],
+    );
+    assert_eq!(mode.to_html(&expr), "- 1");
+
+    let expr = Expr::call(
+      "identity",
+      vec![Expr::from(1)],
+    );
+    assert_eq!(mode.to_html(&expr), "+ 1");
+  }
+
+  // TODO Common operators doesn't have any postfix ops right now,
+  // test those when we get them
 }

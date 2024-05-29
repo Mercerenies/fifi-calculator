@@ -57,7 +57,7 @@ impl OperatorTable {
       Operator::new("%", Fixity::new().with_infix("%", Associativity::NONE, Precedence::new(190))),
       Operator::new("+", Fixity::new()
                            .with_infix("+", Associativity::FULL, Precedence::new(180))
-                           .with_prefix("+", Precedence::new(197))),
+                           .with_prefix("identity", Precedence::new(197))),
       Operator::new("-", Fixity::new()
                            .with_infix("-", Associativity::LEFT, Precedence::new(180))
                            .with_prefix("negate", Precedence::new(197))),
