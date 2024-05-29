@@ -89,6 +89,52 @@ impl BasicLanguageMode {
     }
   }
 
+  fn try_prefix_op_to_html(&self, out: &mut String, f: &str, args: &[Expr], prec: Precedence) -> bool {
+    let Some(op) = self.known_operators.get_by_function_name(f) else {
+      return false;
+    };
+    let Some(prefix_props) = op.fixity().as_prefix() else {
+      return false;
+    };
+    if args.len() != 1 {
+      return false;
+    }
+    let needs_parens = prefix_props.precedence() < prec;
+    if needs_parens {
+      out.push('(');
+    }
+    out.push_str(op.operator_name());
+    out.push(' ');
+    self.to_html_with_precedence(out, &args[0], prefix_props.precedence());
+    if needs_parens {
+      out.push(')');
+    }
+    true
+  }
+
+  fn try_postfix_op_to_html(&self, out: &mut String, f: &str, args: &[Expr], prec: Precedence) -> bool {
+    let Some(op) = self.known_operators.get_by_function_name(f) else {
+      return false;
+    };
+    let Some(postfix_props) = op.fixity().as_postfix() else {
+      return false;
+    };
+    if args.len() != 1 {
+      return false;
+    }
+    let needs_parens = postfix_props.precedence() < prec;
+    if needs_parens {
+      out.push('(');
+    }
+    self.to_html_with_precedence(out, &args[0], postfix_props.precedence());
+    out.push(' ');
+    out.push_str(op.operator_name());
+    if needs_parens {
+      out.push(')');
+    }
+    true
+  }
+
   // Returns true if successful.
   fn try_infix_op_to_html(&self, out: &mut String, f: &str, args: &[Expr], prec: Precedence) -> bool {
     let Some(op) = self.known_operators.get_by_function_name(f) else {
@@ -126,8 +172,11 @@ impl BasicLanguageMode {
         out.push_str(&z.to_string());
       }
       Expr::Call(f, args) => {
-        let as_infix = self.try_infix_op_to_html(out, f, args, prec);
-        if !as_infix {
+        let as_op =
+          self.try_infix_op_to_html(out, f, args, prec) ||
+          self.try_prefix_op_to_html(out, f, args, prec) ||
+          self.try_postfix_op_to_html(out, f, args, prec);
+        if !as_op {
           self.fn_call_to_html(out, f, args);
         }
       }
