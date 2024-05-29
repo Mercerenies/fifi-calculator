@@ -1,5 +1,6 @@
 
 use super::Operator;
+use super::fixity::Fixity;
 use super::precedence::Precedence;
 use super::associativity::Associativity;
 
@@ -9,7 +10,7 @@ use std::collections::{hash_map, HashMap};
 #[derive(Debug, Clone, Default)]
 pub struct OperatorTable {
   by_function_name: HashMap<String, Operator>,
-  by_display_name: HashMap<String, Operator>,
+  by_operator_name: HashMap<String, Operator>,
 }
 
 impl OperatorTable {
@@ -20,12 +21,12 @@ impl OperatorTable {
   pub fn with_capacity(capacity: usize) -> OperatorTable {
     OperatorTable {
       by_function_name: HashMap::with_capacity(capacity),
-      by_display_name: HashMap::with_capacity(capacity),
+      by_operator_name: HashMap::with_capacity(capacity),
     }
   }
 
-  pub fn get_by_display_name(&self, name: &str) -> Option<&Operator> {
-    self.by_display_name.get(name)
+  pub fn get_by_operator_name(&self, name: &str) -> Option<&Operator> {
+    self.by_operator_name.get(name)
   }
 
   pub fn get_by_function_name(&self, name: &str) -> Option<&Operator> {
@@ -33,8 +34,10 @@ impl OperatorTable {
   }
 
   pub fn insert(&mut self, op: Operator) {
-    self.by_display_name.insert(op.display_name().to_owned(), op.clone());
-    self.by_function_name.insert(op.function_name().to_owned(), op);
+    self.by_operator_name.insert(op.operator_name().to_owned(), op.clone());
+    for function_name in op.function_names().map(str::to_owned) {
+      self.by_function_name.insert(function_name, op.clone());
+    }
   }
 
   pub fn common_operators() -> OperatorTable {
@@ -42,17 +45,17 @@ impl OperatorTable {
     // when it makes sense to do so. See
     // https://www.gnu.org/software/emacs/manual/html_mono/calc.html#Composition-Basics
     vec![
-      Operator::new("^", Associativity::RIGHT, Precedence::new(200)),
-      Operator::new("*", Associativity::FULL, Precedence::new(195)),
-      Operator::new("/", Associativity::LEFT, Precedence::new(190)),
-      Operator::new("%", Associativity::NONE, Precedence::new(190)),
-      Operator::new("+", Associativity::FULL, Precedence::new(180)),
-      Operator::new("-", Associativity::LEFT, Precedence::new(180)),
+      Operator::new("^", Fixity::new().with_infix("^", Associativity::RIGHT, Precedence::new(200))),
+      Operator::new("*", Fixity::new().with_infix("*", Associativity::FULL, Precedence::new(195))),
+      Operator::new("/", Fixity::new().with_infix("/", Associativity::LEFT, Precedence::new(190))),
+      Operator::new("%", Fixity::new().with_infix("%", Associativity::NONE, Precedence::new(190))),
+      Operator::new("+", Fixity::new().with_infix("+", Associativity::FULL, Precedence::new(180))),
+      Operator::new("-", Fixity::new().with_infix("-", Associativity::LEFT, Precedence::new(180))),
     ].into_iter().collect()
   }
 
   pub fn iter(&self) -> impl Iterator<Item = &Operator> {
-    self.by_display_name.values()
+    self.by_operator_name.values()
   }
 }
 
@@ -61,7 +64,7 @@ impl IntoIterator for OperatorTable {
   type IntoIter = hash_map::IntoValues<String, Operator>;
 
   fn into_iter(self) -> Self::IntoIter {
-    self.by_display_name.into_values()
+    self.by_operator_name.into_values()
   }
 }
 

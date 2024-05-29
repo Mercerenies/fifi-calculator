@@ -9,19 +9,32 @@ use bitflags::bitflags;
 /// An operator can be infix, prefix, postfix, or any combination
 /// thereof. An operator will always be at least one of prefix,
 /// postfix, or infix.
-#[derive(Clone, Debug, PartialEq, Eq, Copy)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Fixity {
-  as_prefix: Option<Precedence>,
+  as_prefix: Option<PrefixProperties>,
   as_infix: Option<InfixProperties>,
-  as_postfix: Option<Precedence>,
+  as_postfix: Option<PostfixProperties>,
 }
 
 /// Unlike prefix and postfix operators, infix operators have both
 /// associativity and precedence.
-#[derive(Clone, Debug, PartialEq, Eq, Copy)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct InfixProperties {
-  assoc: Associativity,
-  prec: Precedence,
+  function_name: String,
+  associativity: Associativity,
+  precedence: Precedence,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PrefixProperties {
+  function_name: String,
+  precedence: Precedence,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PostfixProperties {
+  function_name: String,
+  precedence: Precedence,
 }
 
 bitflags! {
@@ -56,39 +69,34 @@ impl Fixity {
     }
   }
 
-  pub fn with_prefix(mut self, p: Precedence) -> Fixity {
-    self.as_prefix = Some(p);
+  pub fn with_prefix(mut self, function_name: impl Into<String>, p: Precedence) -> Fixity {
+    let function_name = function_name.into();
+    self.as_prefix = Some(PrefixProperties { function_name, precedence: p });
     self
   }
 
-  pub fn with_infix(mut self, a: Associativity, p: Precedence) -> Fixity {
-    self.as_infix = Some(InfixProperties { assoc: a, prec: p });
+  pub fn with_infix(mut self, function_name: impl Into<String>, a: Associativity, p: Precedence) -> Fixity {
+    let function_name = function_name.into();
+    self.as_infix = Some(InfixProperties { function_name, associativity: a, precedence: p });
     self
   }
 
-  pub fn with_postfix(mut self, p: Precedence) -> Fixity {
-    self.as_postfix = Some(p);
+  pub fn with_postfix(mut self, function_name: impl Into<String>, p: Precedence) -> Fixity {
+    let function_name = function_name.into();
+    self.as_postfix = Some(PostfixProperties { function_name, precedence: p });
     self
   }
 
-  pub fn prefix_prec(&self) -> Option<Precedence> {
-    self.as_prefix
+  pub fn as_prefix(&self) -> Option<&PrefixProperties> {
+    self.as_prefix.as_ref()
   }
 
-  pub fn as_infix(&self) -> Option<InfixProperties> {
-    self.as_infix
+  pub fn as_infix(&self) -> Option<&InfixProperties> {
+    self.as_infix.as_ref()
   }
 
-  pub fn infix_prec(&self) -> Option<Precedence> {
-    self.as_infix.map(|i| i.prec)
-  }
-
-  pub fn infix_assoc(&self) -> Option<Associativity> {
-    self.as_infix.map(|i| i.assoc)
-  }
-
-  pub fn postfix_prec(&self) -> Option<Precedence> {
-    self.as_postfix
+  pub fn as_postfix(&self) -> Option<&PostfixProperties> {
+    self.as_postfix.as_ref()
   }
 
   pub fn is_prefix(&self) -> bool {
@@ -118,16 +126,66 @@ impl Fixity {
   }
 }
 
+impl InfixProperties {
+  pub fn function_name(&self) -> &str {
+    &self.function_name
+  }
+
+  pub fn left_precedence(&self) -> Precedence {
+    if self.associativity.is_left_assoc() {
+      self.precedence
+    } else {
+      self.precedence.incremented()
+    }
+  }
+
+  pub fn right_precedence(&self) -> Precedence {
+    if self.associativity.is_right_assoc() {
+      self.precedence
+    } else {
+      self.precedence.incremented()
+    }
+  }
+
+  pub fn precedence(&self) -> Precedence {
+    self.precedence
+  }
+
+  pub fn associativity(&self) -> Associativity {
+    self.associativity
+  }
+}
+
+impl PrefixProperties {
+  pub fn function_name(&self) -> &str {
+    &self.function_name
+  }
+
+  pub fn precedence(&self) -> Precedence {
+    self.precedence
+  }
+}
+
+impl PostfixProperties {
+  pub fn function_name(&self) -> &str {
+    &self.function_name
+  }
+
+  pub fn precedence(&self) -> Precedence {
+    self.precedence
+  }
+}
+
 impl EmptyFixity {
-  pub fn with_prefix(self, p: Precedence) -> Fixity {
-    self.data.with_prefix(p)
+  pub fn with_prefix(self, function_name: impl Into<String>, p: Precedence) -> Fixity {
+    self.data.with_prefix(function_name, p)
   }
 
-  pub fn with_infix(self, a: Associativity, p: Precedence) -> Fixity {
-    self.data.with_infix(a, p)
+  pub fn with_infix(self, function_name: impl Into<String>, a: Associativity, p: Precedence) -> Fixity {
+    self.data.with_infix(function_name, a, p)
   }
 
-  pub fn with_postfix(self, p: Precedence) -> Fixity {
-    self.data.with_postfix(p)
+  pub fn with_postfix(self, function_name: impl Into<String>, p: Precedence) -> Fixity {
+    self.data.with_postfix(function_name, p)
   }
 }

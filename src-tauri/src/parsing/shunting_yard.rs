@@ -1,5 +1,5 @@
 
-use super::operator::Operator;
+use super::operator::{Operator, InfixProperties};
 use super::source::Span;
 
 use std::error::{Error as StdError};
@@ -53,7 +53,7 @@ pub trait ShuntingYardDriver<T> {
   fn compile_bin_op(
     &mut self,
     left: Self::Output,
-    operator: Operator,
+    infix: &InfixProperties,
     right: Self::Output,
   ) -> Result<Self::Output, Self::Error>;
 }
@@ -71,7 +71,7 @@ impl<T: Display> Display for TokenData<T> {
   fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
     match self {
       TokenData::Scalar(s) => s.fmt(f),
-      TokenData::Operator(op) => op.display_name().fmt(f),
+      TokenData::Operator(op) => op.operator_name().fmt(f),
     }
   }
 }
@@ -160,6 +160,9 @@ where T: Clone,
 }
 
 fn compare_precedence(stack_op: &Operator, current_op: &Operator) -> bool {
+  // TODO: Currently we assume infix here, but we'll have to work on that soon.
+  let stack_op = stack_op.fixity().as_infix().unwrap();
+  let current_op = current_op.fixity().as_infix().unwrap();
   stack_op.precedence() > current_op.precedence() ||
     (stack_op.precedence() == current_op.precedence() && current_op.associativity().is_left_assoc())
 }
@@ -175,7 +178,8 @@ where T: Clone,
   let (arg1, arg2) = output_stack.pop()
     .and_then(|arg2| output_stack.pop().map(|arg1| (arg1, arg2)))
     .ok_or(error)?;
-  let output = driver.compile_bin_op(arg1.output, operator, arg2.output)?;
+  let infix_properties = operator.fixity().as_infix().unwrap(); // TODO: Assumes infix
+  let output = driver.compile_bin_op(arg1.output, infix_properties, arg2.output)?;
   output_stack.push(OutputWithToken { output, token: arg1.token });
   Ok(())
 }
@@ -184,7 +188,7 @@ where T: Clone,
 mod tests {
   use super::*;
   use crate::parsing::source::SourceOffset;
-  use crate::parsing::operator::{Precedence, Associativity};
+  use crate::parsing::operator::{Precedence, Associativity, Fixity};
 
   use std::convert::Infallible;
 
@@ -215,7 +219,7 @@ mod tests {
     fn compile_bin_op(
       &mut self,
       left: Self::Output,
-      op: Operator,
+      op: &InfixProperties,
       right: Self::Output,
     ) -> Result<Self::Output, Self::Error> {
       Ok(TestExpr::bin_op(left, op.function_name(), right))
@@ -223,19 +227,19 @@ mod tests {
   }
 
   fn plus() -> Operator {
-    Operator::new("+", Associativity::FULL, Precedence::new(10)).with_function_name("plus")
+    Operator::new("+", Fixity::new().with_infix("plus", Associativity::FULL, Precedence::new(10)))
   }
 
   fn minus() -> Operator {
-    Operator::new("-", Associativity::LEFT, Precedence::new(10)).with_function_name("minus")
+    Operator::new("-", Fixity::new().with_infix("minus", Associativity::LEFT, Precedence::new(10)))
   }
 
   fn times() -> Operator {
-    Operator::new("*", Associativity::FULL, Precedence::new(20)).with_function_name("times")
+    Operator::new("*", Fixity::new().with_infix("times", Associativity::FULL, Precedence::new(20)))
   }
 
   fn pow() -> Operator {
-    Operator::new("^", Associativity::RIGHT, Precedence::new(30)).with_function_name("pow")
+    Operator::new("^", Fixity::new().with_infix("pow", Associativity::RIGHT, Precedence::new(30)))
   }
 
   fn span(start: usize, end: usize) -> Span {

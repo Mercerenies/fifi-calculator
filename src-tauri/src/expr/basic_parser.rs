@@ -6,7 +6,7 @@ use super::Expr;
 use super::number::ComplexNumber;
 use super::tokenizer::{ExprTokenizer, Token, TokenData, TokenizerError};
 use crate::parsing::shunting_yard::{self, ShuntingYardDriver, ShuntingYardError};
-use crate::parsing::operator::{Operator, OperatorTable};
+use crate::parsing::operator::{Operator, OperatorTable, InfixProperties};
 use crate::parsing::source::{Span, Spanned, SourceOffset};
 use crate::parsing::tokenizer::TokenizerState;
 
@@ -217,8 +217,8 @@ impl ShuntingYardDriver<Expr> for ExprShuntingYardDriver {
     Ok(scalar)
   }
 
-  fn compile_bin_op(&mut self, left: Expr, oper: Operator, right: Expr) -> Result<Expr, Infallible> {
-    Ok(Expr::call(oper.function_name(), vec![left, right]))
+  fn compile_bin_op(&mut self, left: Expr, infix: &InfixProperties, right: Expr) -> Result<Expr, Infallible> {
+    Ok(Expr::call(infix.function_name(), vec![left, right]))
   }
 }
 

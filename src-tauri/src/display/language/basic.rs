@@ -40,7 +40,8 @@ impl BasicLanguageMode {
     out.push(')');
   }
 
-  fn bin_op_to_html(
+  // TODO Take InfixProperties directly, in addition to Operator?
+  fn bin_infix_op_to_html(
     &self,
     out: &mut String,
     op: &Operator,
@@ -48,23 +49,28 @@ impl BasicLanguageMode {
     right_arg: &Expr,
     prec: Precedence,
   ) {
-    let needs_parens = op.precedence() < prec;
+    assert!(op.fixity().is_infix(), "Expected an infix operator: {:?}", op);
+    let infix_props = op.fixity().as_infix().unwrap();
+    let needs_parens = infix_props.precedence() < prec;
     if needs_parens {
       out.push('(');
     }
-    self.to_html_with_precedence(out, left_arg, op.left_precedence());
+    self.to_html_with_precedence(out, left_arg, infix_props.left_precedence());
     out.push(' ');
-    out.push_str(op.display_name());
+    out.push_str(op.operator_name());
     out.push(' ');
-    self.to_html_with_precedence(out, right_arg, op.right_precedence());
+    self.to_html_with_precedence(out, right_arg, infix_props.right_precedence());
     if needs_parens {
       out.push(')');
     }
   }
 
-  fn variadic_op_to_html(&self, out: &mut String, op: &Operator, args: &[Expr], prec: Precedence) {
+  // TODO Take InfixProperties directly, in addition to Operator?
+  fn variadic_infix_op_to_html(&self, out: &mut String, op: &Operator, args: &[Expr], prec: Precedence) {
     assert!(!args.is_empty());
-    let needs_parens = op.precedence() < prec;
+    assert!(op.fixity().is_infix(), "Expected an infix operator: {:?}", op);
+    let infix_props = op.fixity().as_infix().unwrap();
+    let needs_parens = infix_props.precedence() < prec;
     if needs_parens {
       out.push('(');
     }
@@ -72,14 +78,42 @@ impl BasicLanguageMode {
     for arg in args {
       if !first {
         out.push(' ');
-        out.push_str(op.display_name());
+        out.push_str(op.operator_name());
         out.push(' ');
       }
       first = false;
-      self.to_html_with_precedence(out, arg, op.precedence());
+      self.to_html_with_precedence(out, arg, infix_props.precedence());
     }
     if needs_parens {
       out.push(')');
+    }
+  }
+
+  // Returns true if successful.
+  fn try_infix_op_to_html(&self, out: &mut String, f: &str, args: &[Expr], prec: Precedence) -> bool {
+    let Some(op) = self.known_operators.get_by_function_name(f) else {
+      return false;
+    };
+    let Some(infix_props) = op.fixity().as_infix() else {
+      return false;
+    };
+    match args.len() {
+      0 => {
+        // Never write 0-ary functions as infix.
+        false
+      }
+      2 => {
+        self.bin_infix_op_to_html(out, op, &args[0], &args[1], prec);
+        true
+      }
+      _ => {
+        if infix_props.associativity().is_fully_assoc() {
+          self.variadic_infix_op_to_html(out, op, args, prec);
+          true
+        } else {
+          false
+        }
+      }
     }
   }
 
@@ -92,24 +126,8 @@ impl BasicLanguageMode {
         out.push_str(&z.to_string());
       }
       Expr::Call(f, args) => {
-        if let Some(op) = self.known_operators.get_by_function_name(f) {
-          match args.len() {
-            0 => {
-              // Never write 0-ary functions as infix.
-              self.fn_call_to_html(out, f, &[]);
-            }
-            2 => {
-              self.bin_op_to_html(out, op, &args[0], &args[1], prec)
-            }
-            _ => {
-              if op.associativity().is_fully_assoc() {
-                self.variadic_op_to_html(out, op, args, prec)
-              } else {
-                self.fn_call_to_html(out, f, args)
-              }
-            }
-          }
-        } else {
+        let as_infix = self.try_infix_op_to_html(out, f, args, prec);
+        if !as_infix {
           self.fn_call_to_html(out, f, args);
         }
       }
