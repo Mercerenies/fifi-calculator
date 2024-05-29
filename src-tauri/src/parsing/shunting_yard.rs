@@ -1,5 +1,5 @@
 
-use super::operator::{Operator, PrefixProperties, PostfixProperties, InfixProperties, FixityType};
+use super::operator::{Operator, Precedence, PrefixProperties, PostfixProperties, InfixProperties, FixityType};
 use super::source::Span;
 
 use std::error::{Error as StdError};
@@ -111,6 +111,24 @@ impl<T> Token<T> {
   }
 }
 
+impl OpStackValue {
+  fn precedence(&self) -> Precedence {
+    match self.fixity {
+      FixityType::Infix => self.operator.fixity().as_infix().unwrap().precedence(),
+      FixityType::Prefix => self.operator.fixity().as_prefix().unwrap().precedence(),
+      FixityType::Postfix => self.operator.fixity().as_postfix().unwrap().precedence(),
+    }
+  }
+
+  fn is_left_assoc(&self) -> bool {
+    match self.fixity {
+      FixityType::Infix => self.operator.fixity().as_infix().unwrap().associativity().is_left_assoc(),
+      FixityType::Prefix => false,
+      FixityType::Postfix => true,
+    }
+  }
+}
+
 impl<T: Display> Display for TokenData<T> {
   fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
     match self {
@@ -187,22 +205,25 @@ where T: Clone,
         output_stack.push(OutputWithToken { output, token });
       }
       TokenData::InfixOperator(op) => {
+        let current_value = OpStackValue { operator: op, span: token.span, fixity: FixityType::Infix };
         pop_and_simplify_while(driver, &mut output_stack, &mut operator_stack, |stack_value| {
-          compare_precedence(&stack_value.operator, &op)
+          compare_precedence(stack_value, &current_value)
         })?;
-        operator_stack.push(OpStackValue { operator: op, span: token.span, fixity: FixityType::Infix });
+        operator_stack.push(current_value);
       }
       TokenData::PrefixOperator(op) => {
+        let current_value = OpStackValue { operator: op, span: token.span, fixity: FixityType::Prefix };
         pop_and_simplify_while(driver, &mut output_stack, &mut operator_stack, |stack_value| {
-          compare_precedence(&stack_value.operator, &op)
+          compare_precedence(stack_value, &current_value)
         })?;
-        operator_stack.push(OpStackValue { operator: op, span: token.span, fixity: FixityType::Prefix });
+        operator_stack.push(current_value);
       }
       TokenData::PostfixOperator(op) => {
+        let current_value = OpStackValue { operator: op, span: token.span, fixity: FixityType::Postfix };
         pop_and_simplify_while(driver, &mut output_stack, &mut operator_stack, |stack_value| {
-          compare_precedence(&stack_value.operator, &op)
+          compare_precedence(stack_value, &current_value)
         })?;
-        operator_stack.push(OpStackValue { operator: op, span: token.span, fixity: FixityType::Postfix });
+        operator_stack.push(current_value);
       }
     }
   }
@@ -218,12 +239,9 @@ where T: Clone,
   Ok(final_result.output)
 }
 
-fn compare_precedence(stack_op: &Operator, current_op: &Operator) -> bool {
-  // TODO: Currently we assume infix here, but we'll have to work on that soon.
-  let stack_op = stack_op.fixity().as_infix().unwrap();
-  let current_op = current_op.fixity().as_infix().unwrap();
-  stack_op.precedence() > current_op.precedence() ||
-    (stack_op.precedence() == current_op.precedence() && current_op.associativity().is_left_assoc())
+fn compare_precedence(stack_value: &OpStackValue, current_value: &OpStackValue) -> bool {
+  stack_value.precedence() > current_value.precedence() ||
+    (stack_value.precedence() == current_value.precedence() && current_value.is_left_assoc())
 }
 
 fn pop_and_simplify_while<F, T, D>(
