@@ -38,6 +38,7 @@ pub struct PostfixProperties {
 }
 
 bitflags! {
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
   pub struct FixityTypes: u8 {
     const PREFIX  = 0b0001;
     const INFIX   = 0b0010;
