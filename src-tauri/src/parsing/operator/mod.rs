@@ -6,7 +6,8 @@ mod table;
 
 pub use precedence::Precedence;
 pub use associativity::Associativity;
-pub use fixity::{Fixity, FixityTypes, EmptyFixity, InfixProperties, PrefixProperties, PostfixProperties};
+pub use fixity::{Fixity, FixityTypes, FixityType, EmptyFixity,
+                 InfixProperties, PrefixProperties, PostfixProperties};
 pub use table::OperatorTable;
 
 /// An operator has a precedence and an associativity.

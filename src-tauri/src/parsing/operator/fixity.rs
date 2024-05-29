@@ -46,6 +46,13 @@ bitflags! {
   }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FixityType {
+  Prefix,
+  Infix,
+  Postfix,
+}
+
 /// The type of an "empty" fixity structure. This is an intermediate
 /// type which is only used during building of a [`Fixity`]. This type
 /// is used to guarantee the precondition that a `Fixity` structure
@@ -188,5 +195,15 @@ impl EmptyFixity {
 
   pub fn with_postfix(self, function_name: impl Into<String>, p: Precedence) -> Fixity {
     self.data.with_postfix(function_name, p)
+  }
+}
+
+impl From<FixityType> for FixityTypes {
+  fn from(f: FixityType) -> FixityTypes {
+    match f {
+      FixityType::Prefix => FixityTypes::PREFIX,
+      FixityType::Infix => FixityTypes::INFIX,
+      FixityType::Postfix => FixityTypes::POSTFIX,
+    }
   }
 }
