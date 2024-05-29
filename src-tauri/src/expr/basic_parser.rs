@@ -6,7 +6,7 @@ use super::Expr;
 use super::number::ComplexNumber;
 use super::tokenizer::{ExprTokenizer, Token, TokenData, TokenizerError};
 use crate::parsing::shunting_yard::{self, ShuntingYardDriver, ShuntingYardError};
-use crate::parsing::operator::{Operator, OperatorTable, InfixProperties};
+use crate::parsing::operator::{Operator, OperatorTable, InfixProperties, PrefixProperties, PostfixProperties};
 use crate::parsing::source::{Span, Spanned, SourceOffset};
 use crate::parsing::tokenizer::TokenizerState;
 
@@ -219,6 +219,14 @@ impl ShuntingYardDriver<Expr> for ExprShuntingYardDriver {
 
   fn compile_infix_op(&mut self, left: Expr, infix: &InfixProperties, right: Expr) -> Result<Expr, Infallible> {
     Ok(Expr::call(infix.function_name(), vec![left, right]))
+  }
+
+  fn compile_prefix_op(&mut self, prefix: &PrefixProperties, right: Expr) -> Result<Expr, Infallible> {
+    Ok(Expr::call(prefix.function_name(), vec![right]))
+  }
+
+  fn compile_postfix_op(&mut self, left: Expr, postfix: &PostfixProperties) -> Result<Expr, Infallible> {
+    Ok(Expr::call(postfix.function_name(), vec![left]))
   }
 }
 
