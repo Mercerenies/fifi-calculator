@@ -21,7 +21,7 @@ pub fn arithmetic_functions() -> HashMap<String, Function> {
   functions.insert("^".to_string(), power());
   functions.insert("%".to_string(), modulo());
   functions.insert("div".to_string(), floor_division());
-  functions.insert("neg".to_string(), arithmetic_negate());
+  functions.insert("negate".to_string(), arithmetic_negate());
   functions
 }
 

@@ -96,6 +96,7 @@ fn parse_and_push_expr(
   let language_mode = &state.display_settings().language_mode;
   let expr = language_mode.parse(string)?;
   let expr = simplifier.simplify_expr(expr, &mut errors);
+  dbg!(&expr);
   state.undo_stack_mut().push_cut();
   state.main_stack_mut().push(expr);
 

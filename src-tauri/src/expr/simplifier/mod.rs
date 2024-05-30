@@ -9,7 +9,6 @@ pub use base::Simplifier;
 use evaluator::FunctionEvaluator;
 use evaluator::arithmetic::arithmetic_functions;
 use evaluator::basic::basic_functions;
-use evaluator::function::Function;
 
 use std::collections::HashMap;
 
