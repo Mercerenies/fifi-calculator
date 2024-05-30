@@ -456,7 +456,6 @@ impl ops::Neg for &Number {
   }
 }
 
-
 impl Zero for Number {
   fn zero() -> Number {
     Number::from(0i64)

@@ -219,6 +219,22 @@ impl ops::Div for &ComplexNumber {
   }
 }
 
+impl ops::Neg for ComplexNumber {
+  type Output = ComplexNumber;
+
+  fn neg(self) -> ComplexNumber {
+    ComplexNumber { real: - self.real, imag: - self.imag }
+  }
+}
+
+impl ops::Neg for &ComplexNumber {
+  type Output = ComplexNumber;
+
+  fn neg(self) -> ComplexNumber {
+    (*self).clone().neg()
+  }
+}
+
 impl Zero for ComplexNumber {
   fn zero() -> Self {
     Self::new(Number::zero(), Number::zero())
