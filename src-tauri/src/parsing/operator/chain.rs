@@ -1,8 +1,7 @@
 
 use super::{Operator, OperWithFixity};
 use super::fixity::FixityType;
-use crate::parsing::source::{Span, Spanned};
-use crate::parsing::shunting_yard::{Token as ShuntingYardToken};
+use crate::parsing::source::Spanned;
 use crate::util::{count_prefix, count_suffix};
 
 use thiserror::Error;
@@ -25,9 +24,15 @@ pub struct ChainParseError {
 }
 
 #[derive(Clone, Debug)]
-pub enum ChainToken<T> {
-  Scalar(T, Span),
-  Operator(Operator, Span),
+pub enum Token<T> {
+  Scalar(T),
+  Operator(Operator),
+}
+
+#[derive(Clone, Debug)]
+pub enum TaggedToken<T> {
+  Scalar(T),
+  Operator(OperWithFixity),
 }
 
 /// Alternating sequence of operators, then a term, then operators,
@@ -45,15 +50,6 @@ struct AlternatingChainElem<T> {
   term: Spanned<T>,
 }
 
-impl<T> ChainToken<T> {
-  pub fn span(&self) -> Span {
-    match self {
-      ChainToken::Scalar(_, span) => *span,
-      ChainToken::Operator(_, span) => *span,
-    }
-  }
-}
-
 /// Given a chain of operators and expressions freely intermixed,
 /// parses the operators and terms to produce tokens compatible with
 /// the shunting yard algorithm.
@@ -63,7 +59,9 @@ impl<T> ChainToken<T> {
 /// between terms will be parsed with [`tag_operators_in_chain`].
 /// Adjacent terms juxtaposed with no operators in between are not
 /// permitted.
-pub fn tag_chain_sequence<T>(tokens: Vec<ChainToken<T>>) -> Result<Vec<ShuntingYardToken<T>>, OperatorChainError<T>> {
+pub fn tag_chain_sequence<T>(
+  tokens: Vec<Spanned<Token<T>>>,
+) -> Result<Vec<Spanned<TaggedToken<T>>>, OperatorChainError<T>> {
   let chain_seq = parse_chain_sequence(tokens)?;
   let mut tokens = Vec::new();
 
@@ -72,35 +70,40 @@ pub fn tag_chain_sequence<T>(tokens: Vec<ChainToken<T>>) -> Result<Vec<ShuntingY
     if first {
       // Sequence of prefix operators.
       let prefix_ops = require_fixity_for_chain(elem.operators_before, FixityType::Prefix)?;
-      tokens.extend(prefix_ops.into_iter().map(|op| ShuntingYardToken::operator(op.item, op.span)));
-      tokens.push(ShuntingYardToken::scalar(elem.term.item, elem.term.span));
+      tokens.extend(prefix_ops.into_iter().map(|op| op.map(TaggedToken::Operator)));
+      tokens.push(elem.term.map(TaggedToken::Scalar));
       first = false;
     } else {
       // Sequence between two terms.
       let ops = tag_operators_in_chain(elem.operators_before)?;
-      tokens.extend(ops.into_iter().map(|op| ShuntingYardToken::operator(op.item, op.span)));
-      tokens.push(ShuntingYardToken::scalar(elem.term.item, elem.term.span));
+      tokens.extend(ops.into_iter().map(|op| op.map(TaggedToken::Operator)));
+      tokens.push(elem.term.map(TaggedToken::Scalar));
     }
   }
 
   // Sequence of trailing postfix operators.
   let postfix_ops = require_fixity_for_chain(chain_seq.operators_after, FixityType::Postfix)?;
-  tokens.extend(postfix_ops.into_iter().map(|op| ShuntingYardToken::operator(op.item, op.span)));
+  tokens.extend(postfix_ops.into_iter().map(|op| op.map(TaggedToken::Operator)));
 
   Ok(tokens)
 }
 
-fn parse_chain_sequence<T>(tokens: Vec<ChainToken<T>>) -> Result<AlternatingChainSeq<T>, OperatorChainError<T>> {
+fn parse_chain_sequence<T>(
+  tokens: Vec<Spanned<Token<T>>>,
+) -> Result<AlternatingChainSeq<T>, OperatorChainError<T>> {
   let mut chain_elements: Vec<AlternatingChainElem<T>> = Vec::new();
   let mut current_seq: Vec<Spanned<Operator>> = Vec::new();
   for chain_token in tokens {
-    match chain_token {
-      ChainToken::Scalar(term, span) => {
-        chain_elements.push(AlternatingChainElem { operators_before: current_seq, term: Spanned::new(term, span) });
+    match chain_token.item {
+      Token::Scalar(term) => {
+        chain_elements.push(AlternatingChainElem {
+          operators_before: current_seq,
+          term: Spanned::new(term, chain_token.span),
+        });
         current_seq = Vec::new();
       }
-      ChainToken::Operator(op, span) => {
-        current_seq.push(Spanned::new(op, span));
+      Token::Operator(op) => {
+        current_seq.push(Spanned::new(op, chain_token.span));
       }
     }
   }
@@ -191,6 +194,18 @@ fn require_fixity_for_chain(
   }).collect())
 }
 
+impl<T> TaggedToken<T> {
+  pub fn infix_operator(operator: Operator) -> Self {
+    TaggedToken::Operator(OperWithFixity::infix(operator))
+  }
+  pub fn postfix_operator(operator: Operator) -> Self {
+    TaggedToken::Operator(OperWithFixity::postfix(operator))
+  }
+  pub fn prefix_operator(operator: Operator) -> Self {
+    TaggedToken::Operator(OperWithFixity::prefix(operator))
+  }
+}
+
 impl Display for ChainParseError {
   fn fmt(&self, f: &mut Formatter) -> fmt::Result {
     let operators = self.failing_chain.iter().map(|op| op.to_string()).collect::<Vec<_>>().join(" ");
@@ -200,9 +215,40 @@ impl Display for ChainParseError {
 
 impl StdError for ChainParseError {}
 
+impl<T: Display> Display for Token<T> {
+  fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    match self {
+      Token::Scalar(s) => write!(f, "{}", s),
+      Token::Operator(o) => write!(f, "{}", o),
+    }
+  }
+}
+
+impl<T: Display> Display for TaggedToken<T> {
+  fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    match self {
+      TaggedToken::Scalar(s) => write!(f, "{}", s),
+      TaggedToken::Operator(o) => write!(f, "{}", o),
+    }
+  }
+}
+
+impl<T> From<OperWithFixity> for TaggedToken<T> {
+  fn from(op: OperWithFixity) -> Self {
+    TaggedToken::Operator(op)
+  }
+}
+
+impl<T> From<Operator> for Token<T> {
+  fn from(op: Operator) -> Self {
+    Token::Operator(op)
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::parsing::source::Span;
   use crate::parsing::operator::{Fixity, Associativity, Precedence};
 
   fn spanned<T>(t: T) -> Spanned<T> {
@@ -250,7 +296,6 @@ mod tests {
         .with_postfix(name.to_owned(), Precedence::new(0)),
     )
   }
-
 
   fn prefix_postfix(name: &str) -> Operator {
     Operator::new(
@@ -432,5 +477,15 @@ mod tests {
     tag_operators_in_chain(ops).unwrap_err();
   }
 
-  ///// more tests
+/*
+  #[test]
+  fn test_tag_chain_sequence_simple_infix() {
+    let tokens: Vec<ChainToken<i64>> = vec![
+      scalar(10),
+      operator(infix("+")),
+      scalar(20),
+    ];
+    let 
+  }
+   */
 }

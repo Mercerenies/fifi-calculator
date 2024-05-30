@@ -6,7 +6,8 @@ use super::Expr;
 use super::number::ComplexNumber;
 use super::tokenizer::{ExprTokenizer, Token, TokenData, TokenizerError};
 use crate::parsing::shunting_yard::{self, ShuntingYardDriver, ShuntingYardError};
-use crate::parsing::operator::{Operator, OperatorTable, InfixProperties, PrefixProperties, PostfixProperties};
+use crate::parsing::operator::{Operator, OperatorTable, TaggedToken,
+                               InfixProperties, PrefixProperties, PostfixProperties};
 use crate::parsing::source::{Span, Spanned, SourceOffset};
 use crate::parsing::tokenizer::TokenizerState;
 
@@ -97,18 +98,18 @@ impl<'a> ExprParser<'a> {
   }
 
   fn parse_operator_chain<'t>(&self, mut stream: &'t [Token]) -> IResult<'t, Expr> {
-    let mut tokens: Vec<shunting_yard::Token<Expr>> = Vec::new();
+    let mut tokens: Vec<Spanned<TaggedToken<Expr>>> = Vec::new();
     // First expression.
     let (spanned, tail) = self.parse_atom(stream)?;
     stream = tail;
-    tokens.push(shunting_yard::Token::scalar(spanned.item, spanned.span));
+    tokens.push(spanned.map(TaggedToken::Scalar));
     // Rest of operator-expression sequences.
     while let Ok((spanned, tail)) = self.parse_operator(stream) {
-      tokens.push(shunting_yard::Token::infix_operator(spanned.item, spanned.span));
+      tokens.push(spanned.map(TaggedToken::infix_operator));
       stream = tail;
       let (spanned, tail) = self.parse_atom(stream)?;
       stream = tail;
-      tokens.push(shunting_yard::Token::scalar(spanned.item, spanned.span));
+      tokens.push(spanned.map(TaggedToken::Scalar));
     }
     // Now use shunting yard to simplify the vector.
     let mut shunting_yard_driver = ExprShuntingYardDriver::new();

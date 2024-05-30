@@ -1,4 +1,6 @@
 
+// TODO This has gotten too big to be a single export; where can we draw a line?
+
 mod associativity;
 mod chain;
 mod fixity;
@@ -10,7 +12,7 @@ pub use associativity::Associativity;
 pub use fixity::{Fixity, FixityTypes, FixityType, EmptyFixity,
                  InfixProperties, PrefixProperties, PostfixProperties};
 pub use table::OperatorTable;
-pub use chain::{tag_chain_sequence, OperatorChainError, ChainParseError, ChainToken};
+pub use chain::{tag_chain_sequence, OperatorChainError, ChainParseError, Token, TaggedToken};
 
 use std::fmt::{self, Formatter, Display};
 use std::error::{Error as StdError};
@@ -26,7 +28,7 @@ pub struct Operator {
 /// as. An `OperWithFixity` is always guaranteed to be coherent, in
 /// the sense that the operator will always support the used fixity.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct OperWithFixity {
+pub struct OperWithFixity { // TODO: Rename to "TaggedOperator", for consistency with token naming
   operator: Operator,
   fixity_type: FixityType,
 }

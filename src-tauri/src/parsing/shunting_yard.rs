@@ -1,38 +1,17 @@
 
-use super::operator::{Operator, OperWithFixity, PrefixProperties, PostfixProperties, InfixProperties, FixityType};
-use super::source::Span;
+use super::operator::{OperWithFixity, TaggedToken,
+                      PrefixProperties, PostfixProperties, InfixProperties, FixityType};
+use super::source::Spanned;
 
 use std::error::{Error as StdError};
 use std::fmt::{self, Display, Formatter};
-
-/// A token, for the purposes of the shunting yard algorithm.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Token<T> {
-  data: TokenData<T>,
-  span: Span,
-}
 
 /// Internal type which tracks an output value together with the first
 /// token that produced it. Used to produce better error messages.
 #[derive(Debug, Clone)]
 struct OutputWithToken<T, O> {
   output: O,
-  token: Token<T>,
-}
-
-#[derive(Clone, Debug)]
-struct OpStackValue {
-  oper: OperWithFixity,
-  span: Span,
-}
-
-/// The contents of a token.
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum TokenData<T> {
-  /// A value in the target language.
-  Scalar(T),
-  /// An operator being applied.
-  Operator(OperWithFixity),
+  token: Spanned<TaggedToken<T>>,
 }
 
 #[derive(Debug, Clone)]
@@ -40,7 +19,7 @@ enum TokenData<T> {
 pub enum ShuntingYardError<T, E: StdError> {
   CustomError(E),
   UnexpectedEOF,
-  UnexpectedToken(Token<T>),
+  UnexpectedToken(Spanned<TaggedToken<T>>),
 }
 
 /// A type implementing this trait is capable of driving the shunting
@@ -68,54 +47,6 @@ pub trait ShuntingYardDriver<T> {
   ) -> Result<Self::Output, Self::Error>;
 }
 
-impl<T> Token<T> {
-
-  pub fn scalar(data: T, span: Span) -> Self {
-    Self { data: TokenData::Scalar(data), span }
-  }
-
-  pub fn operator(op_with_fixity: OperWithFixity, span: Span) -> Self {
-    Self { data: TokenData::Operator(op_with_fixity), span }
-  }
-
-  /// Constructs a token representing an infix operator. Panics if
-  /// `op` is not an infix operator.
-  pub fn infix_operator(op: Operator, span: Span) -> Self {
-    Self { data: TokenData::Operator(OperWithFixity::infix(op)), span }
-  }
-
-  /// Constructs a token representing a prefix operator. Panics if
-  /// `op` is not a prefix operator.
-  pub fn prefix_operator(op: Operator, span: Span) -> Self {
-    Self { data: TokenData::Operator(OperWithFixity::prefix(op)), span }
-  }
-
-  /// Constructs a token representing a postfix operator. Panics if
-  /// `op` is not a postfix operator.
-  pub fn postfix_operator(op: Operator, span: Span) -> Self {
-    Self { data: TokenData::Operator(OperWithFixity::postfix(op)), span }
-  }
-
-  pub fn span(&self) -> Span {
-    self.span
-  }
-}
-
-impl<T: Display> Display for TokenData<T> {
-  fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
-    match self {
-      TokenData::Scalar(s) => write!(f, "{s}"),
-      TokenData::Operator(op) => write!(f, "{op}"),
-    }
-  }
-}
-
-impl<T: Display> Display for Token<T> {
-  fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
-    write!(f, "{}", self.data)
-  }
-}
-
 impl<T: Display, E: StdError> Display for ShuntingYardError<T, E> {
   fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
     match self {
@@ -124,7 +55,7 @@ impl<T: Display, E: StdError> Display for ShuntingYardError<T, E> {
       ShuntingYardError::UnexpectedEOF =>
         write!(f, "unexpected end of file"),
       ShuntingYardError::UnexpectedToken(t) =>
-        write!(f, "unexpected token {} at position {}", t.data, t.span),
+        write!(f, "unexpected token {} at position {}", t.item, t.span),
     }
   }
 }
@@ -147,37 +78,27 @@ impl<T, E: StdError> From<E> for ShuntingYardError<T, E> {
   }
 }
 
-impl<T> From<OpStackValue> for Token<T> {
-  fn from(op: OpStackValue) -> Self {
-    match op.oper.fixity_type() {
-      FixityType::Infix => Token::infix_operator(op.oper.into_operator(), op.span),
-      FixityType::Prefix => Token::prefix_operator(op.oper.into_operator(), op.span),
-      FixityType::Postfix => Token::postfix_operator(op.oper.into_operator(), op.span),
-    }
-  }
-}
-
 pub fn parse<T, D, I>(
   driver: &mut D,
   input: I
 ) -> Result<D::Output, ShuntingYardError<T, D::Error>>
 where T: Clone,
       D: ShuntingYardDriver<T>,
-      I: IntoIterator<Item = Token<T>> {
-  let mut operator_stack: Vec<OpStackValue> = Vec::new();
+      I: IntoIterator<Item = Spanned<TaggedToken<T>>> {
+  let mut operator_stack: Vec<Spanned<OperWithFixity>> = Vec::new();
   let mut output_stack: Vec<OutputWithToken<T, D::Output>> = Vec::new();
   for token in input {
     // Handle the current token.
-    match token.data {
-      TokenData::Scalar(t) => {
+    match token.item {
+      TaggedToken::Scalar(t) => {
         let output = driver.compile_scalar(t.clone())?;
-        let token = Token { data: TokenData::Scalar(t), span: token.span };
+        let token = Spanned::new(TaggedToken::Scalar(t), token.span);
         output_stack.push(OutputWithToken { output, token });
       }
-      TokenData::Operator(oper) => {
-        let current_value = OpStackValue { oper, span: token.span };
+      TaggedToken::Operator(oper) => {
+        let current_value = Spanned::new(oper, token.span);
         pop_and_simplify_while(driver, &mut output_stack, &mut operator_stack, |stack_value| {
-          compare_precedence(&stack_value.oper, &current_value.oper)
+          compare_precedence(&stack_value.item, &current_value.item)
         })?;
         operator_stack.push(current_value);
       }
@@ -203,15 +124,15 @@ fn compare_precedence(stack_value: &OperWithFixity, current_value: &OperWithFixi
 fn pop_and_simplify_while<F, T, D>(
   driver: &mut D,
   output_stack: &mut Vec<OutputWithToken<T, D::Output>>,
-  operator_stack: &mut Vec<OpStackValue>,
+  operator_stack: &mut Vec<Spanned<OperWithFixity>>,
   mut continue_condition: F,
 ) -> Result<(), ShuntingYardError<T, D::Error>>
 where T: Clone,
       D: ShuntingYardDriver<T>,
-      F: FnMut(&OpStackValue) -> bool {
+      F: FnMut(&Spanned<OperWithFixity>) -> bool {
   while let Some(stack_value) = operator_stack.pop() {
     if continue_condition(&stack_value) {
-      let error = ShuntingYardError::UnexpectedToken(stack_value.clone().into());
+      let error = ShuntingYardError::UnexpectedToken(stack_value.clone().map(TaggedToken::from));
       simplify_operator(driver, output_stack, stack_value, error)?;
     } else {
       operator_stack.push(stack_value);
@@ -224,13 +145,13 @@ where T: Clone,
 fn simplify_operator<T, D>(
   driver: &mut D,
   output_stack: &mut Vec<OutputWithToken<T, D::Output>>,
-  stack_value: OpStackValue,
+  stack_value: Spanned<OperWithFixity>,
   error: ShuntingYardError<T, D::Error>,
 ) -> Result<(), ShuntingYardError<T, D::Error>>
 where T: Clone,
       D: ShuntingYardDriver<T> {
-  let fixity_type = stack_value.oper.fixity_type();
-  let operator = &stack_value.oper.into_operator();
+  let fixity_type = stack_value.item.fixity_type();
+  let operator = &stack_value.item.into_operator();
   match fixity_type {
     FixityType::Infix => {
       let (arg1, arg2) = output_stack.pop()
@@ -259,8 +180,8 @@ where T: Clone,
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::parsing::source::SourceOffset;
-  use crate::parsing::operator::{Precedence, Associativity, Fixity};
+  use crate::parsing::source::{SourceOffset, Span};
+  use crate::parsing::operator::{Operator, Precedence, Associativity, Fixity};
 
   use std::convert::Infallible;
 
@@ -334,14 +255,22 @@ mod tests {
     Span::new(SourceOffset(start), SourceOffset(end))
   }
 
+  fn scalar(value: i64, span: Span) -> Spanned<TaggedToken<i64>> {
+    Spanned::new(TaggedToken::Scalar(value), span)
+  }
+
+  fn infix_operator(op: Operator, span: Span) -> Spanned<TaggedToken<i64>> {
+    Spanned::new(TaggedToken::Operator(OperWithFixity::infix(op)), span)
+  }
+
   #[test]
   fn test_full_assoc_op() {
     let tokens = vec![
-      Token::scalar(1, span(0, 1)),
-      Token::infix_operator(plus(), span(1, 2)),
-      Token::scalar(2, span(2, 3)),
-      Token::infix_operator(plus(), span(3, 4)),
-      Token::scalar(3, span(4, 5)),
+      scalar(1, span(0, 1)),
+      infix_operator(plus(), span(1, 2)),
+      scalar(2, span(2, 3)),
+      infix_operator(plus(), span(3, 4)),
+      scalar(3, span(4, 5)),
     ];
     let result = parse(&mut TestDriver, tokens).unwrap();
     assert_eq!(
@@ -361,11 +290,11 @@ mod tests {
   #[test]
   fn test_left_assoc_op() {
     let tokens = vec![
-      Token::scalar(1, span(0, 1)),
-      Token::infix_operator(minus(), span(1, 2)),
-      Token::scalar(2, span(2, 3)),
-      Token::infix_operator(minus(), span(3, 4)),
-      Token::scalar(3, span(4, 5)),
+      scalar(1, span(0, 1)),
+      infix_operator(minus(), span(1, 2)),
+      scalar(2, span(2, 3)),
+      infix_operator(minus(), span(3, 4)),
+      scalar(3, span(4, 5)),
     ];
     let result = parse(&mut TestDriver, tokens).unwrap();
     assert_eq!(
@@ -385,11 +314,11 @@ mod tests {
   #[test]
   fn test_right_assoc_op() {
     let tokens = vec![
-      Token::scalar(1, span(0, 1)),
-      Token::infix_operator(pow(), span(1, 2)),
-      Token::scalar(2, span(2, 3)),
-      Token::infix_operator(pow(), span(3, 4)),
-      Token::scalar(3, span(4, 5)),
+      scalar(1, span(0, 1)),
+      infix_operator(pow(), span(1, 2)),
+      scalar(2, span(2, 3)),
+      infix_operator(pow(), span(3, 4)),
+      scalar(3, span(4, 5)),
     ];
     let result = parse(&mut TestDriver, tokens).unwrap();
     assert_eq!(
@@ -409,11 +338,11 @@ mod tests {
   #[test]
   fn test_differing_assoc_op_higher_on_right() {
     let tokens = vec![
-      Token::scalar(1, span(0, 1)),
-      Token::infix_operator(plus(), span(1, 2)),
-      Token::scalar(2, span(2, 3)),
-      Token::infix_operator(times(), span(3, 4)),
-      Token::scalar(3, span(4, 5)),
+      scalar(1, span(0, 1)),
+      infix_operator(plus(), span(1, 2)),
+      scalar(2, span(2, 3)),
+      infix_operator(times(), span(3, 4)),
+      scalar(3, span(4, 5)),
     ];
     let result = parse(&mut TestDriver, tokens).unwrap();
     assert_eq!(
@@ -433,11 +362,11 @@ mod tests {
   #[test]
   fn test_differing_assoc_op_higher_on_left() {
     let tokens = vec![
-      Token::scalar(1, span(0, 1)),
-      Token::infix_operator(times(), span(1, 2)),
-      Token::scalar(2, span(2, 3)),
-      Token::infix_operator(plus(), span(3, 4)),
-      Token::scalar(3, span(4, 5)),
+      scalar(1, span(0, 1)),
+      infix_operator(times(), span(1, 2)),
+      scalar(2, span(2, 3)),
+      infix_operator(plus(), span(3, 4)),
+      scalar(3, span(4, 5)),
     ];
     let result = parse(&mut TestDriver, tokens).unwrap();
     assert_eq!(
