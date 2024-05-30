@@ -116,7 +116,7 @@ impl Fixity {
   }
 
   pub fn is_prefix(&self) -> bool {
-    self.as_infix.is_some()
+    self.as_prefix.is_some()
   }
 
   pub fn is_infix(&self) -> bool {

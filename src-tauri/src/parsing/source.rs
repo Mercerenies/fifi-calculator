@@ -9,7 +9,7 @@ pub struct SourceOffset(pub usize);
 
 /// A span of source offsets. Spans should be considered half-open
 /// intervals, with `start` being included and `end` being excluded.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Span {
   pub start: SourceOffset,
   pub end: SourceOffset,
@@ -31,6 +31,14 @@ impl Span {
 impl<T> Spanned<T> {
   pub fn new(item: T, span: Span) -> Self {
     Self { item, span }
+  }
+
+  pub fn map<U, F>(self, f: F) -> Spanned<U>
+  where F: FnOnce(T) -> U {
+    Spanned {
+      item: f(self.item),
+      span: self.span,
+    }
   }
 }
 
@@ -69,5 +77,11 @@ impl AddAssign<usize> for SourceOffset {
 impl Display for Span {
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
     write!(f, "{}-{}", self.start, self.end)
+  }
+}
+
+impl<T: Display> Display for Spanned<T> {
+  fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    write!(f, "{} at {}", self.item, self.span)
   }
 }

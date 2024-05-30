@@ -10,7 +10,7 @@ pub use associativity::Associativity;
 pub use fixity::{Fixity, FixityTypes, FixityType, EmptyFixity,
                  InfixProperties, PrefixProperties, PostfixProperties};
 pub use table::OperatorTable;
-pub use chain::{tag_operators_in_chain, require_fixity_for_chain, OperatorChainError, ChainParseError, ChainToken};
+pub use chain::{tag_chain_sequence, OperatorChainError, ChainParseError, ChainToken};
 
 use std::fmt::{self, Formatter, Display};
 use std::error::{Error as StdError};
@@ -69,26 +69,10 @@ impl OperWithFixity {
   /// type. Returns `None` if the operator cannot be used with the
   /// given fixity.
   pub fn try_new(operator: Operator, fixity_type: FixityType) -> Result<Self, OperWithFixityError> {
-    match fixity_type {
-      FixityType::Prefix => {
-        if !operator.fixity().is_prefix() {
-          return Err(OperWithFixityError { expected_fixity: FixityType::Prefix, operator });
-        }
-        Ok(OperWithFixity { operator, fixity_type })
-      }
-      FixityType::Infix => {
-        if !operator.fixity().is_infix() {
-          return Err(OperWithFixityError { expected_fixity: FixityType::Infix, operator });
-        }
-        Ok(OperWithFixity { operator, fixity_type })
-      }
-      FixityType::Postfix => {
-        if !operator.fixity().is_postfix() {
-          return Err(OperWithFixityError { expected_fixity: FixityType::Postfix, operator });
-        }
-        Ok(OperWithFixity { operator, fixity_type })
-      }
+    if !operator.fixity().supports(fixity_type) {
+      return Err(OperWithFixityError { expected_fixity: fixity_type, operator });
     }
+    Ok(OperWithFixity { operator, fixity_type })
   }
 
   /// Constructs an `OperWithFixity` for the given operator and fixity
