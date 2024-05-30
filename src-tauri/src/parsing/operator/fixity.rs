@@ -107,6 +107,14 @@ impl Fixity {
     self.as_postfix.as_ref()
   }
 
+  pub fn supports(&self, fixity_type: FixityType) -> bool {
+    match fixity_type {
+      FixityType::Prefix => self.as_prefix.is_some(),
+      FixityType::Infix => self.as_infix.is_some(),
+      FixityType::Postfix => self.as_postfix.is_some(),
+    }
+  }
+
   pub fn is_prefix(&self) -> bool {
     self.as_infix.is_some()
   }

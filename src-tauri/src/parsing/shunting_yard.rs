@@ -74,6 +74,10 @@ impl<T> Token<T> {
     Self { data: TokenData::Scalar(data), span }
   }
 
+  pub fn operator(op_with_fixity: OperWithFixity, span: Span) -> Self {
+    Self { data: TokenData::Operator(op_with_fixity), span }
+  }
+
   /// Constructs a token representing an infix operator. Panics if
   /// `op` is not an infix operator.
   pub fn infix_operator(op: Operator, span: Span) -> Self {

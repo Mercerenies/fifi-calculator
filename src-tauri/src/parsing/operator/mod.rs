@@ -1,7 +1,8 @@
 
-mod precedence;
 mod associativity;
+mod chain;
 mod fixity;
+mod precedence;
 mod table;
 
 pub use precedence::Precedence;
@@ -9,6 +10,7 @@ pub use associativity::Associativity;
 pub use fixity::{Fixity, FixityTypes, FixityType, EmptyFixity,
                  InfixProperties, PrefixProperties, PostfixProperties};
 pub use table::OperatorTable;
+pub use chain::{tag_operators_in_chain, require_fixity_for_chain, OperatorChainError};
 
 use std::fmt::{self, Formatter, Display};
 use std::error::{Error as StdError};
@@ -29,7 +31,7 @@ pub struct OperWithFixity {
   fixity_type: FixityType,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct OperWithFixityError {
   expected_fixity: FixityType,
   operator: Operator,
@@ -159,12 +161,18 @@ impl OperWithFixity {
   }
 }
 
+impl Display for Operator {
+  fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.operator_name())
+  }
+}
+
 impl Display for OperWithFixity {
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
     match self.fixity_type {
-      FixityType::Infix => write!(f, "_{}_", self.operator.operator_name()),
-      FixityType::Prefix => write!(f, "{}_", self.operator.operator_name()),
-      FixityType::Postfix => write!(f, "_{}", self.operator.operator_name()),
+      FixityType::Infix => write!(f, "_{}_", self.operator),
+      FixityType::Prefix => write!(f, "{}_", self.operator),
+      FixityType::Postfix => write!(f, "_{}", self.operator),
     }
   }
 }
@@ -227,10 +235,8 @@ mod tests {
     assert_eq!(op_with_fixity.operator(), &op);
 
     let err = OperWithFixity::try_new(op.clone(), FixityType::Postfix).unwrap_err();
-    assert_eq!(
-      err,
-      OperWithFixityError { operator: op.clone(), expected_fixity: FixityType::Postfix },
-    );
+    assert_eq!(&err.operator, &op);
+    assert_eq!(err.expected_fixity, FixityType::Postfix);
   }
 
   #[test]
