@@ -2,22 +2,54 @@
 use super::{Operator, OperWithFixity};
 use super::fixity::FixityType;
 use crate::parsing::source::Span;
+use crate::parsing::shunting_yard::{Token as ShuntingYardToken};
 use crate::util::{count_prefix, count_suffix};
+
+use thiserror::Error;
 
 use std::error::{Error as StdError};
 use std::fmt::{self, Display, Formatter};
 use std::cmp::Ordering;
 
-#[derive(Clone, Debug)]
-pub struct OperatorChainError {
-  implementation: OperatorChainErrorImpl,
+#[derive(Clone, Debug, Error)]
+pub enum OperatorChainError<T> {
+  #[error("{0}")]
+  ChainParseError(#[from] ChainParseError),
+  #[error("Adjacent terms not permitted: {0} and {1}")]
+  AdjacentTermsNotPermitted(T, T),
 }
 
 #[derive(Clone, Debug)]
-enum OperatorChainErrorImpl {
-  CouldNotParseChain {
-    failing_chain: Vec<Operator>,
+pub struct ChainParseError {
+  failing_chain: Vec<Operator>,
+}
+
+#[derive(Clone, Debug)]
+pub enum ChainToken<T> {
+  Scalar(T, Span),
+  Operator(Operator, Span),
+}
+
+impl<T> ChainToken<T> {
+  pub fn span(&self) -> Span {
+    match self {
+      ChainToken::Scalar(_, span) => *span,
+      ChainToken::Operator(_, span) => *span,
+    }
   }
+}
+
+/// Given a chain of operators and expressions freely intermixed,
+/// parses the operators and terms to produce tokens compatible with
+/// the shunting yard algorithm.
+///
+/// Any operators before the first term must be prefix, any operators
+/// after the last term must be postfix, and operators intermixed
+/// between terms will be parsed with [`tag_operators_in_chain`].
+/// Adjacent terms juxtaposed with no operators in between are not
+/// permitted.
+pub fn tag_chain_sequence<T>(tokens: Vec<ChainToken<T>>) -> Result<Vec<ShuntingYardToken<T>>, OperatorChainError<T>> {
+  todo!()
 }
 
 /// Given a chain of one or more operators between two terms in the
@@ -35,7 +67,7 @@ enum OperatorChainErrorImpl {
 /// then the returned tagging (if one exists) is guaranteed to be
 /// unique. If the table contains ambiguities, then one valid tagging
 /// will be returned, but no guarantees are made as to which one.
-pub fn tag_operators_in_chain(operator_chain: Vec<Operator>) -> Result<Vec<OperWithFixity>, OperatorChainError> {
+pub fn tag_operators_in_chain(operator_chain: Vec<Operator>) -> Result<Vec<OperWithFixity>, ChainParseError> {
   // Identify the longest prefix of our chain which consists of
   // postfix-compatible operators. Then identify the longest suffix of
   // our chain which consists of prefix-compatible operators.
@@ -58,7 +90,7 @@ pub fn tag_operators_in_chain(operator_chain: Vec<Operator>) -> Result<Vec<OperW
       return Ok(tagged_chain);
     }
   }
-  Err(OperatorChainError::could_not_parse_chain(operator_chain))
+  Err(ChainParseError { failing_chain: operator_chain })
 }
 
 /// Converts a sequence of [`Operator`] into a sequence of
@@ -67,10 +99,10 @@ pub fn tag_operators_in_chain(operator_chain: Vec<Operator>) -> Result<Vec<OperW
 pub fn require_fixity_for_chain(
   operator_chain: Vec<Operator>,
   fixity: FixityType,
-) -> Result<Vec<OperWithFixity>, OperatorChainError> {
+) -> Result<Vec<OperWithFixity>, ChainParseError> {
   for op in &operator_chain {
     if !op.fixity().supports(fixity) {
-      return Err(OperatorChainError::could_not_parse_chain(operator_chain));
+      return Err(ChainParseError { failing_chain: operator_chain });
     }
   }
   Ok(operator_chain.into_iter().map(|op| {
@@ -80,31 +112,11 @@ pub fn require_fixity_for_chain(
   }).collect())
 }
 
-impl OperatorChainError {
-  fn could_not_parse_chain(chain: Vec<Operator>) -> OperatorChainError {
-    OperatorChainError {
-      implementation: OperatorChainErrorImpl::CouldNotParseChain { failing_chain: chain },
-    }
-  }
-}
-
-impl Display for OperatorChainError {
+impl Display for ChainParseError {
   fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-    self.implementation.fmt(f)
+    let operators = self.failing_chain.iter().map(|op| op.to_string()).collect::<Vec<_>>().join(" ");
+    write!(f, "Failed to parse operator chain: {}", operators)
   }
 }
 
-impl StdError for OperatorChainError {}
-
-impl Display for OperatorChainErrorImpl {
-  fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-    match self {
-      OperatorChainErrorImpl::CouldNotParseChain { failing_chain } => {
-        let operators = failing_chain.iter().map(|op| op.to_string()).collect::<Vec<_>>().join(" ");
-        write!(f, "Failed to parse operator chain: {}", operators)
-      }
-    }
-  }
-}
-
-impl StdError for OperatorChainErrorImpl {}
+impl StdError for ChainParseError {}

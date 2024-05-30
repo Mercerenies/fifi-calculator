@@ -10,7 +10,7 @@ pub use associativity::Associativity;
 pub use fixity::{Fixity, FixityTypes, FixityType, EmptyFixity,
                  InfixProperties, PrefixProperties, PostfixProperties};
 pub use table::OperatorTable;
-pub use chain::{tag_operators_in_chain, require_fixity_for_chain, OperatorChainError};
+pub use chain::{tag_operators_in_chain, require_fixity_for_chain, OperatorChainError, ChainParseError, ChainToken};
 
 use std::fmt::{self, Formatter, Display};
 use std::error::{Error as StdError};
