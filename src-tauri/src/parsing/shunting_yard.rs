@@ -1,6 +1,7 @@
 
-use super::operator::{TaggedOperator, TaggedToken,
-                      PrefixProperties, PostfixProperties, InfixProperties, FixityType};
+use super::operator::TaggedOperator;
+use super::operator::chain::TaggedToken;
+use super::operator::fixity::{PrefixProperties, PostfixProperties, InfixProperties, FixityType};
 use super::source::Spanned;
 
 use std::error::{Error as StdError};
@@ -181,7 +182,8 @@ where T: Clone,
 mod tests {
   use super::*;
   use crate::parsing::source::{SourceOffset, Span};
-  use crate::parsing::operator::{Operator, Precedence, Associativity, Fixity};
+  use crate::parsing::operator::{Operator, Precedence, Associativity};
+  use crate::parsing::operator::fixity::Fixity;
 
   use std::convert::Infallible;
 

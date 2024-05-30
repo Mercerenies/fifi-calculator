@@ -165,7 +165,8 @@ impl Display for TokenData {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::parsing::operator::{Precedence, Associativity, Fixity};
+  use crate::parsing::operator::{Precedence, Associativity};
+  use crate::parsing::operator::fixity::Fixity;
 
   fn sample_operator_table() -> OperatorTable {
     // Note: These are tokenizer unit tests. They should never use the

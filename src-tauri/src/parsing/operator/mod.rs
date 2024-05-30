@@ -1,18 +1,14 @@
 
-// TODO This has gotten too big to be a single export; where can we draw a line?
-
 mod associativity;
-mod chain;
-mod fixity;
+pub mod chain;
+pub mod fixity;
 mod precedence;
 mod table;
 
 pub use precedence::Precedence;
 pub use associativity::Associativity;
-pub use fixity::{Fixity, FixityTypes, FixityType, EmptyFixity,
-                 InfixProperties, PrefixProperties, PostfixProperties};
+use fixity::{Fixity, FixityType};
 pub use table::OperatorTable;
-pub use chain::{tag_chain_sequence, OperatorChainError, ChainParseError, Token, TaggedToken};
 
 use std::fmt::{self, Formatter, Display};
 use std::error::{Error as StdError};

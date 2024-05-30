@@ -1,7 +1,8 @@
 
 use super::LanguageMode;
 use crate::error::Error;
-use crate::parsing::operator::{Operator, Precedence, OperatorTable, FixityType};
+use crate::parsing::operator::{Operator, Precedence, OperatorTable};
+use crate::parsing::operator::fixity::FixityType;
 use crate::expr::Expr;
 use crate::expr::atom::Atom;
 use crate::expr::basic_parser::ExprParser;

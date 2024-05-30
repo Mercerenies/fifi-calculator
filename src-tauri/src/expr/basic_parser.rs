@@ -6,8 +6,9 @@ use super::Expr;
 use super::number::ComplexNumber;
 use super::tokenizer::{ExprTokenizer, Token, TokenData, TokenizerError};
 use crate::parsing::shunting_yard::{self, ShuntingYardDriver, ShuntingYardError};
-use crate::parsing::operator::{Operator, OperatorTable, TaggedToken,
-                               InfixProperties, PrefixProperties, PostfixProperties};
+use crate::parsing::operator::{Operator, OperatorTable};
+use crate::parsing::operator::chain::TaggedToken;
+use crate::parsing::operator::fixity::{InfixProperties, PrefixProperties, PostfixProperties};
 use crate::parsing::source::{Span, Spanned, SourceOffset};
 use crate::parsing::tokenizer::TokenizerState;
 
