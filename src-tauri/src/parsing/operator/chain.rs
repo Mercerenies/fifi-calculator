@@ -1,5 +1,5 @@
 
-use super::{Operator, OperWithFixity};
+use super::{Operator, TaggedOperator};
 use super::fixity::FixityType;
 use crate::parsing::source::Spanned;
 use crate::util::{count_prefix, count_suffix};
@@ -23,16 +23,19 @@ pub struct ChainParseError {
   failing_chain: Vec<Spanned<Operator>>,
 }
 
+/// A token, for the purposes of operator chain resolution, is either
+/// a scalar value or an operator.
 #[derive(Clone, Debug)]
 pub enum Token<T> {
   Scalar(T),
   Operator(Operator),
 }
 
+/// A token, tagged with operator fixity information.
 #[derive(Clone, Debug)]
 pub enum TaggedToken<T> {
   Scalar(T),
-  Operator(OperWithFixity),
+  Operator(TaggedOperator),
 }
 
 /// Alternating sequence of operators, then a term, then operators,
@@ -147,7 +150,7 @@ fn find_consecutive_terms<T>(seq: &[AlternatingChainElem<T>]) -> Option<usize> {
 /// will be returned, but no guarantees are made as to which one.
 fn tag_operators_in_chain(
   operator_chain: Vec<Spanned<Operator>>,
-) -> Result<Vec<Spanned<OperWithFixity>>, ChainParseError> {
+) -> Result<Vec<Spanned<TaggedOperator>>, ChainParseError> {
   // Identify the longest prefix of our chain which consists of
   // postfix-compatible operators. Then identify the longest suffix of
   // our chain which consists of prefix-compatible operators.
@@ -167,7 +170,7 @@ fn tag_operators_in_chain(
           Ordering::Equal => FixityType::Infix,
           Ordering::Greater => FixityType::Prefix,
         };
-        op.map(|op| OperWithFixity::new(op, target_fixity))
+        op.map(|op| TaggedOperator::new(op, target_fixity))
       }).collect();
       return Ok(tagged_chain);
     }
@@ -176,12 +179,12 @@ fn tag_operators_in_chain(
 }
 
 /// Converts a sequence of [`Operator`] into a sequence of
-/// [`OperWithFixity`] with the chosen fixity. If any operator does
+/// [`TaggedOperator`] with the chosen fixity. If any operator does
 /// not support the given fixity, produces an error.
 fn require_fixity_for_chain(
   operator_chain: Vec<Spanned<Operator>>,
   fixity: FixityType,
-) -> Result<Vec<Spanned<OperWithFixity>>, ChainParseError> {
+) -> Result<Vec<Spanned<TaggedOperator>>, ChainParseError> {
   for op in &operator_chain {
     if !op.item.fixity().supports(fixity) {
       return Err(ChainParseError { failing_chain: operator_chain });
@@ -190,19 +193,19 @@ fn require_fixity_for_chain(
   Ok(operator_chain.into_iter().map(|op| {
     // safety: We already checked that all of the operators were good
     // for this fixity.
-    op.map(|op| OperWithFixity::new(op, fixity))
+    op.map(|op| TaggedOperator::new(op, fixity))
   }).collect())
 }
 
 impl<T> TaggedToken<T> {
   pub fn infix_operator(operator: Operator) -> Self {
-    TaggedToken::Operator(OperWithFixity::infix(operator))
+    TaggedToken::Operator(TaggedOperator::infix(operator))
   }
   pub fn postfix_operator(operator: Operator) -> Self {
-    TaggedToken::Operator(OperWithFixity::postfix(operator))
+    TaggedToken::Operator(TaggedOperator::postfix(operator))
   }
   pub fn prefix_operator(operator: Operator) -> Self {
-    TaggedToken::Operator(OperWithFixity::prefix(operator))
+    TaggedToken::Operator(TaggedOperator::prefix(operator))
   }
 }
 
@@ -233,8 +236,8 @@ impl<T: Display> Display for TaggedToken<T> {
   }
 }
 
-impl<T> From<OperWithFixity> for TaggedToken<T> {
-  fn from(op: OperWithFixity) -> Self {
+impl<T> From<TaggedOperator> for TaggedToken<T> {
+  fn from(op: TaggedOperator) -> Self {
     TaggedToken::Operator(op)
   }
 }
@@ -378,7 +381,7 @@ mod tests {
     assert_eq!(
       result,
       vec![
-        spanned(OperWithFixity::infix(infix("a"))),
+        spanned(TaggedOperator::infix(infix("a"))),
       ],
     );
   }
@@ -395,10 +398,10 @@ mod tests {
     assert_eq!(
       result,
       vec![
-        spanned(OperWithFixity::postfix(postfix("post1"))),
-        spanned(OperWithFixity::postfix(infix_prefix_postfix("post2"))),
-        spanned(OperWithFixity::postfix(infix_postfix("post3"))),
-        spanned(OperWithFixity::infix(infix("a"))),
+        spanned(TaggedOperator::postfix(postfix("post1"))),
+        spanned(TaggedOperator::postfix(infix_prefix_postfix("post2"))),
+        spanned(TaggedOperator::postfix(infix_postfix("post3"))),
+        spanned(TaggedOperator::infix(infix("a"))),
       ],
     );
   }
@@ -415,10 +418,10 @@ mod tests {
     assert_eq!(
       result,
       vec![
-        spanned(OperWithFixity::infix(infix("a"))),
-        spanned(OperWithFixity::prefix(infix_prefix_postfix("pre1"))),
-        spanned(OperWithFixity::prefix(infix_prefix("pre2"))),
-        spanned(OperWithFixity::prefix(prefix("pre3"))),
+        spanned(TaggedOperator::infix(infix("a"))),
+        spanned(TaggedOperator::prefix(infix_prefix_postfix("pre1"))),
+        spanned(TaggedOperator::prefix(infix_prefix("pre2"))),
+        spanned(TaggedOperator::prefix(prefix("pre3"))),
       ],
     );
   }
@@ -434,9 +437,9 @@ mod tests {
     assert_eq!(
       result,
       vec![
-        spanned(OperWithFixity::postfix(infix_prefix_postfix("post1"))),
-        spanned(OperWithFixity::infix(infix("a"))),
-        spanned(OperWithFixity::prefix(infix_prefix_postfix("pre1"))),
+        spanned(TaggedOperator::postfix(infix_prefix_postfix("post1"))),
+        spanned(TaggedOperator::infix(infix("a"))),
+        spanned(TaggedOperator::prefix(infix_prefix_postfix("pre1"))),
       ],
     );
   }

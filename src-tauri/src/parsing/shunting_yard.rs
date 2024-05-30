@@ -1,5 +1,5 @@
 
-use super::operator::{OperWithFixity, TaggedToken,
+use super::operator::{TaggedOperator, TaggedToken,
                       PrefixProperties, PostfixProperties, InfixProperties, FixityType};
 use super::source::Spanned;
 
@@ -85,7 +85,7 @@ pub fn parse<T, D, I>(
 where T: Clone,
       D: ShuntingYardDriver<T>,
       I: IntoIterator<Item = Spanned<TaggedToken<T>>> {
-  let mut operator_stack: Vec<Spanned<OperWithFixity>> = Vec::new();
+  let mut operator_stack: Vec<Spanned<TaggedOperator>> = Vec::new();
   let mut output_stack: Vec<OutputWithToken<T, D::Output>> = Vec::new();
   for token in input {
     // Handle the current token.
@@ -116,7 +116,7 @@ where T: Clone,
   Ok(final_result.output)
 }
 
-fn compare_precedence(stack_value: &OperWithFixity, current_value: &OperWithFixity) -> bool {
+fn compare_precedence(stack_value: &TaggedOperator, current_value: &TaggedOperator) -> bool {
   stack_value.precedence() > current_value.precedence() ||
     (stack_value.precedence() == current_value.precedence() && current_value.is_left_assoc())
 }
@@ -124,12 +124,12 @@ fn compare_precedence(stack_value: &OperWithFixity, current_value: &OperWithFixi
 fn pop_and_simplify_while<F, T, D>(
   driver: &mut D,
   output_stack: &mut Vec<OutputWithToken<T, D::Output>>,
-  operator_stack: &mut Vec<Spanned<OperWithFixity>>,
+  operator_stack: &mut Vec<Spanned<TaggedOperator>>,
   mut continue_condition: F,
 ) -> Result<(), ShuntingYardError<T, D::Error>>
 where T: Clone,
       D: ShuntingYardDriver<T>,
-      F: FnMut(&Spanned<OperWithFixity>) -> bool {
+      F: FnMut(&Spanned<TaggedOperator>) -> bool {
   while let Some(stack_value) = operator_stack.pop() {
     if continue_condition(&stack_value) {
       let error = ShuntingYardError::UnexpectedToken(stack_value.clone().map(TaggedToken::from));
@@ -145,7 +145,7 @@ where T: Clone,
 fn simplify_operator<T, D>(
   driver: &mut D,
   output_stack: &mut Vec<OutputWithToken<T, D::Output>>,
-  stack_value: Spanned<OperWithFixity>,
+  stack_value: Spanned<TaggedOperator>,
   error: ShuntingYardError<T, D::Error>,
 ) -> Result<(), ShuntingYardError<T, D::Error>>
 where T: Clone,
@@ -260,7 +260,7 @@ mod tests {
   }
 
   fn infix_operator(op: Operator, span: Span) -> Spanned<TaggedToken<i64>> {
-    Spanned::new(TaggedToken::Operator(OperWithFixity::infix(op)), span)
+    Spanned::new(TaggedToken::Operator(TaggedOperator::infix(op)), span)
   }
 
   #[test]

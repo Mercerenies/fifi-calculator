@@ -25,16 +25,16 @@ pub struct Operator {
 }
 
 /// An operator, together with the fixity it's currently being used
-/// as. An `OperWithFixity` is always guaranteed to be coherent, in
+/// as. An `TaggedOperator` is always guaranteed to be coherent, in
 /// the sense that the operator will always support the used fixity.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct OperWithFixity { // TODO: Rename to "TaggedOperator", for consistency with token naming
+pub struct TaggedOperator {
   operator: Operator,
   fixity_type: FixityType,
 }
 
 #[derive(Debug, Clone)]
-pub struct OperWithFixityError {
+pub struct TaggedOperatorError {
   expected_fixity: FixityType,
   operator: Operator,
 }
@@ -66,20 +66,20 @@ impl Operator {
   }
 }
 
-impl OperWithFixity {
-  /// Constructs an `OperWithFixity` for the given operator and fixity
+impl TaggedOperator {
+  /// Constructs an `TaggedOperator` for the given operator and fixity
   /// type. Returns `None` if the operator cannot be used with the
   /// given fixity.
-  pub fn try_new(operator: Operator, fixity_type: FixityType) -> Result<Self, OperWithFixityError> {
+  pub fn try_new(operator: Operator, fixity_type: FixityType) -> Result<Self, TaggedOperatorError> {
     if !operator.fixity().supports(fixity_type) {
-      return Err(OperWithFixityError { expected_fixity: fixity_type, operator });
+      return Err(TaggedOperatorError { expected_fixity: fixity_type, operator });
     }
-    Ok(OperWithFixity { operator, fixity_type })
+    Ok(TaggedOperator { operator, fixity_type })
   }
 
-  /// Constructs an `OperWithFixity` for the given operator and fixity
+  /// Constructs an `TaggedOperator` for the given operator and fixity
   /// type. Panics if the operator cannot be used with the given
-  /// fixity. See [`try_new`](OperWithFixity::try_new) for a
+  /// fixity. See [`try_new`](TaggedOperator::try_new) for a
   /// non-panicking variant.
   pub fn new(operator: Operator, fixity_type: FixityType) -> Self {
     Self::try_new(operator, fixity_type)
@@ -153,7 +153,7 @@ impl Display for Operator {
   }
 }
 
-impl Display for OperWithFixity {
+impl Display for TaggedOperator {
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
     match self.fixity_type {
       FixityType::Infix => write!(f, "_{}_", self.operator),
@@ -163,13 +163,13 @@ impl Display for OperWithFixity {
   }
 }
 
-impl Display for OperWithFixityError {
+impl Display for TaggedOperatorError {
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
     write!(f, "Expected fixity {:?} for operator {:?}", self.expected_fixity, self.operator)
   }
 }
 
-impl StdError for OperWithFixityError {}
+impl StdError for TaggedOperatorError {}
 
 #[cfg(test)]
 mod tests {
@@ -212,15 +212,15 @@ mod tests {
         .with_infix("#", Associativity::LEFT, Precedence::new(2)),
     );
 
-    let op_with_fixity = OperWithFixity::try_new(op.clone(), FixityType::Prefix).unwrap();
+    let op_with_fixity = TaggedOperator::try_new(op.clone(), FixityType::Prefix).unwrap();
     assert_eq!(op_with_fixity.fixity_type(), FixityType::Prefix);
     assert_eq!(op_with_fixity.operator(), &op);
 
-    let op_with_fixity = OperWithFixity::try_new(op.clone(), FixityType::Infix).unwrap();
+    let op_with_fixity = TaggedOperator::try_new(op.clone(), FixityType::Infix).unwrap();
     assert_eq!(op_with_fixity.fixity_type(), FixityType::Infix);
     assert_eq!(op_with_fixity.operator(), &op);
 
-    let err = OperWithFixity::try_new(op.clone(), FixityType::Postfix).unwrap_err();
+    let err = TaggedOperator::try_new(op.clone(), FixityType::Postfix).unwrap_err();
     assert_eq!(&err.operator, &op);
     assert_eq!(err.expected_fixity, FixityType::Postfix);
   }
@@ -234,11 +234,11 @@ mod tests {
         .with_infix("#", Associativity::LEFT, Precedence::new(2)),
     );
 
-    let op_with_fixity = OperWithFixity::new(op.clone(), FixityType::Prefix);
+    let op_with_fixity = TaggedOperator::new(op.clone(), FixityType::Prefix);
     assert_eq!(op_with_fixity.fixity_type(), FixityType::Prefix);
     assert_eq!(op_with_fixity.operator(), &op);
 
-    let op_with_fixity = OperWithFixity::new(op.clone(), FixityType::Infix);
+    let op_with_fixity = TaggedOperator::new(op.clone(), FixityType::Infix);
     assert_eq!(op_with_fixity.fixity_type(), FixityType::Infix);
     assert_eq!(op_with_fixity.operator(), &op);
   }
@@ -252,6 +252,6 @@ mod tests {
         .with_prefix("#", Precedence::new(1))
         .with_infix("#", Associativity::LEFT, Precedence::new(2)),
     );
-    OperWithFixity::new(op.clone(), FixityType::Postfix);
+    TaggedOperator::new(op.clone(), FixityType::Postfix);
   }
 }
