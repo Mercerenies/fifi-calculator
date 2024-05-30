@@ -1,5 +1,5 @@
 
-use super::operator::{Operator, Precedence, PrefixProperties, PostfixProperties, InfixProperties, FixityType};
+use super::operator::{Operator, OperWithFixity, PrefixProperties, PostfixProperties, InfixProperties, FixityType};
 use super::source::Span;
 
 use std::error::{Error as StdError};
@@ -22,8 +22,7 @@ struct OutputWithToken<T, O> {
 
 #[derive(Clone, Debug)]
 struct OpStackValue {
-  operator: Operator,
-  fixity: FixityType,
+  oper: OperWithFixity,
   span: Span,
 }
 
@@ -32,12 +31,8 @@ struct OpStackValue {
 enum TokenData<T> {
   /// A value in the target language.
   Scalar(T),
-  /// An infix, binary operator.
-  InfixOperator(Operator),
-  /// A prefix, unary operator.
-  PrefixOperator(Operator),
-  /// A postfix, unary operator.
-  PostfixOperator(Operator),
+  /// An operator being applied.
+  Operator(OperWithFixity),
 }
 
 #[derive(Debug, Clone)]
@@ -82,28 +77,19 @@ impl<T> Token<T> {
   /// Constructs a token representing an infix operator. Panics if
   /// `op` is not an infix operator.
   pub fn infix_operator(op: Operator, span: Span) -> Self {
-    if !op.fixity().is_infix() {
-      panic!("Token::infix_operator requires an infix operator, got {:?}", op);
-    }
-    Self { data: TokenData::InfixOperator(op), span }
+    Self { data: TokenData::Operator(OperWithFixity::infix(op)), span }
   }
 
   /// Constructs a token representing a prefix operator. Panics if
   /// `op` is not a prefix operator.
   pub fn prefix_operator(op: Operator, span: Span) -> Self {
-    if !op.fixity().is_prefix() {
-      panic!("Token::prefix_operator requires a prefix operator, got {:?}", op);
-    }
-    Self { data: TokenData::PrefixOperator(op), span }
+    Self { data: TokenData::Operator(OperWithFixity::prefix(op)), span }
   }
 
   /// Constructs a token representing a postfix operator. Panics if
   /// `op` is not a postfix operator.
   pub fn postfix_operator(op: Operator, span: Span) -> Self {
-    if !op.fixity().is_postfix() {
-      panic!("Token::postfix_operator requires a postfix operator, got {:?}", op);
-    }
-    Self { data: TokenData::PostfixOperator(op), span }
+    Self { data: TokenData::Operator(OperWithFixity::postfix(op)), span }
   }
 
   pub fn span(&self) -> Span {
@@ -111,31 +97,11 @@ impl<T> Token<T> {
   }
 }
 
-impl OpStackValue {
-  fn precedence(&self) -> Precedence {
-    match self.fixity {
-      FixityType::Infix => self.operator.fixity().as_infix().unwrap().precedence(),
-      FixityType::Prefix => self.operator.fixity().as_prefix().unwrap().precedence(),
-      FixityType::Postfix => self.operator.fixity().as_postfix().unwrap().precedence(),
-    }
-  }
-
-  fn is_left_assoc(&self) -> bool {
-    match self.fixity {
-      FixityType::Infix => self.operator.fixity().as_infix().unwrap().associativity().is_left_assoc(),
-      FixityType::Prefix => false,
-      FixityType::Postfix => true,
-    }
-  }
-}
-
 impl<T: Display> Display for TokenData<T> {
   fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
     match self {
       TokenData::Scalar(s) => write!(f, "{s}"),
-      TokenData::InfixOperator(op) => write!(f, "_{}_", op.operator_name()),
-      TokenData::PrefixOperator(op) => write!(f, "{}_", op.operator_name()),
-      TokenData::PostfixOperator(op) => write!(f, "_{}", op.operator_name()),
+      TokenData::Operator(op) => write!(f, "{op}"),
     }
   }
 }
@@ -179,10 +145,10 @@ impl<T, E: StdError> From<E> for ShuntingYardError<T, E> {
 
 impl<T> From<OpStackValue> for Token<T> {
   fn from(op: OpStackValue) -> Self {
-    match op.fixity {
-      FixityType::Infix => Token::infix_operator(op.operator, op.span),
-      FixityType::Prefix => Token::prefix_operator(op.operator, op.span),
-      FixityType::Postfix => Token::postfix_operator(op.operator, op.span),
+    match op.oper.fixity_type() {
+      FixityType::Infix => Token::infix_operator(op.oper.into_operator(), op.span),
+      FixityType::Prefix => Token::prefix_operator(op.oper.into_operator(), op.span),
+      FixityType::Postfix => Token::postfix_operator(op.oper.into_operator(), op.span),
     }
   }
 }
@@ -204,24 +170,10 @@ where T: Clone,
         let token = Token { data: TokenData::Scalar(t), span: token.span };
         output_stack.push(OutputWithToken { output, token });
       }
-      TokenData::InfixOperator(op) => {
-        let current_value = OpStackValue { operator: op, span: token.span, fixity: FixityType::Infix };
+      TokenData::Operator(oper) => {
+        let current_value = OpStackValue { oper, span: token.span };
         pop_and_simplify_while(driver, &mut output_stack, &mut operator_stack, |stack_value| {
-          compare_precedence(stack_value, &current_value)
-        })?;
-        operator_stack.push(current_value);
-      }
-      TokenData::PrefixOperator(op) => {
-        let current_value = OpStackValue { operator: op, span: token.span, fixity: FixityType::Prefix };
-        pop_and_simplify_while(driver, &mut output_stack, &mut operator_stack, |stack_value| {
-          compare_precedence(stack_value, &current_value)
-        })?;
-        operator_stack.push(current_value);
-      }
-      TokenData::PostfixOperator(op) => {
-        let current_value = OpStackValue { operator: op, span: token.span, fixity: FixityType::Postfix };
-        pop_and_simplify_while(driver, &mut output_stack, &mut operator_stack, |stack_value| {
-          compare_precedence(stack_value, &current_value)
+          compare_precedence(&stack_value.oper, &current_value.oper)
         })?;
         operator_stack.push(current_value);
       }
@@ -239,7 +191,7 @@ where T: Clone,
   Ok(final_result.output)
 }
 
-fn compare_precedence(stack_value: &OpStackValue, current_value: &OpStackValue) -> bool {
+fn compare_precedence(stack_value: &OperWithFixity, current_value: &OperWithFixity) -> bool {
   stack_value.precedence() > current_value.precedence() ||
     (stack_value.precedence() == current_value.precedence() && current_value.is_left_assoc())
 }
@@ -273,8 +225,9 @@ fn simplify_operator<T, D>(
 ) -> Result<(), ShuntingYardError<T, D::Error>>
 where T: Clone,
       D: ShuntingYardDriver<T> {
-  let operator = &stack_value.operator;
-  match stack_value.fixity {
+  let fixity_type = stack_value.oper.fixity_type();
+  let operator = &stack_value.oper.into_operator();
+  match fixity_type {
     FixityType::Infix => {
       let (arg1, arg2) = output_stack.pop()
         .and_then(|arg2| output_stack.pop().map(|arg1| (arg1, arg2)))
@@ -284,10 +237,16 @@ where T: Clone,
       output_stack.push(OutputWithToken { output, token: arg1.token });
     }
     FixityType::Prefix => {
-      todo!()
+      let arg = output_stack.pop().ok_or(error)?;
+      let prefix_properties = operator.fixity().as_prefix().unwrap();
+      let output = driver.compile_prefix_op(prefix_properties, arg.output)?;
+      output_stack.push(OutputWithToken { output, token: arg.token });
     }
     FixityType::Postfix => {
-      todo!()
+      let arg = output_stack.pop().ok_or(error)?;
+      let postfix_properties = operator.fixity().as_postfix().unwrap();
+      let output = driver.compile_postfix_op(arg.output, postfix_properties)?;
+      output_stack.push(OutputWithToken { output, token: arg.token });
     }
   }
   Ok(())

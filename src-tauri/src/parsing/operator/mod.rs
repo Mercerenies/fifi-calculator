@@ -98,6 +98,24 @@ impl OperWithFixity {
       .unwrap_or_else(|err| panic!("{}", err))
   }
 
+  /// Returns an operator being used in infix form. Panics if the
+  /// operator is not infix.
+  pub fn infix(operator: Operator) -> Self {
+    Self::new(operator, FixityType::Infix)
+  }
+
+  /// Returns an operator being used in postfix form. Panics if the
+  /// operator is not postfix.
+  pub fn postfix(operator: Operator) -> Self {
+    Self::new(operator, FixityType::Postfix)
+  }
+
+  /// Returns an operator being used in prefix form. Panics if the
+  /// operator is not prefix.
+  pub fn prefix(operator: Operator) -> Self {
+    Self::new(operator, FixityType::Prefix)
+  }
+
   pub fn operator(&self) -> &Operator {
     &self.operator
   }
@@ -108,6 +126,46 @@ impl OperWithFixity {
 
   pub fn into_operator(self) -> Operator {
     self.operator
+  }
+
+  pub fn precedence(&self) -> Precedence {
+    // unwrap safety: Our constructors guarantee that the operator is
+    // always good for the given fixity type.
+    match self.fixity_type {
+      FixityType::Prefix => self.operator.fixity().as_prefix().unwrap().precedence(),
+      FixityType::Infix => self.operator.fixity().as_infix().unwrap().precedence(),
+      FixityType::Postfix => self.operator.fixity().as_postfix().unwrap().precedence(),
+    }
+  }
+
+  pub fn is_left_assoc(&self) -> bool {
+    // unwrap safety: Our constructors guarantee that the operator is
+    // always good for the given fixity type.
+    match self.fixity_type {
+      FixityType::Infix => self.operator.fixity().as_infix().unwrap().associativity().is_left_assoc(),
+      FixityType::Prefix => false,
+      FixityType::Postfix => true,
+    }
+  }
+
+  pub fn is_right_assoc(&self) -> bool {
+    // unwrap safety: Our constructors guarantee that the operator is
+    // always good for the given fixity type.
+    match self.fixity_type {
+      FixityType::Infix => self.operator.fixity().as_infix().unwrap().associativity().is_right_assoc(),
+      FixityType::Prefix => true,
+      FixityType::Postfix => false,
+    }
+  }
+}
+
+impl Display for OperWithFixity {
+  fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    match self.fixity_type {
+      FixityType::Infix => write!(f, "_{}_", self.operator.operator_name()),
+      FixityType::Prefix => write!(f, "{}_", self.operator.operator_name()),
+      FixityType::Postfix => write!(f, "_{}", self.operator.operator_name()),
+    }
   }
 }
 
