@@ -7,7 +7,7 @@ use super::number::ComplexNumber;
 use super::tokenizer::{ExprTokenizer, Token, TokenData, TokenizerError};
 use crate::parsing::shunting_yard::{self, ShuntingYardDriver, ShuntingYardError};
 use crate::parsing::operator::{Operator, OperatorTable};
-use crate::parsing::operator::chain::TaggedToken;
+use crate::parsing::operator::chain::{self, Token as ChainToken, TaggedToken, OperatorChainError};
 use crate::parsing::operator::fixity::{InfixProperties, PrefixProperties, PostfixProperties};
 use crate::parsing::source::{Span, Spanned, SourceOffset};
 use crate::parsing::tokenizer::TokenizerState;
@@ -29,6 +29,8 @@ pub enum ParseError {
   ParsingError(#[from] ParsingError),
   #[error("Operator precedence error: {0}")]
   ShuntingYardError(#[from] ShuntingYardError<Expr, Infallible>),
+  #[error("Operator parsing error: {0}")]
+  OperatorChainError(#[from] OperatorChainError<Expr>),
 }
 
 #[derive(Clone, Debug, Error)]
@@ -85,36 +87,46 @@ impl<'a> ExprParser<'a> {
       return Err(ParsingError::UnexpectedEOF.into());
     };
     match &token.data {
-      TokenData::Operator(_) | TokenData::Comma | TokenData::RightParen => {
-        // Note: If we ever write any prefix operators, then
-        // TokenData::Operator needs to start an operator chain, not
-        // be an error. Right now we only have infix operators, so
-        // it's a parse error.
+      TokenData::Comma | TokenData::RightParen => {
         Err(ParsingError::ExpectedStartOfExpr(token.span.start).into())
       }
-      TokenData::FunctionCallStart(_) | TokenData::LeftParen | TokenData::Number(_) => {
+      TokenData::Operator(_) | TokenData::FunctionCallStart(_) | TokenData::LeftParen | TokenData::Number(_) => {
         self.parse_operator_chain(stream)
       }
     }
   }
 
   fn parse_operator_chain<'t>(&self, mut stream: &'t [Token]) -> IResult<'t, Expr> {
-    let mut tokens: Vec<Spanned<TaggedToken<Expr>>> = Vec::new();
-    // First expression.
-    let (spanned, tail) = self.parse_atom(stream)?;
-    stream = tail;
-    tokens.push(spanned.map(TaggedToken::Scalar));
-    // Rest of operator-expression sequences.
-    while let Ok((spanned, tail)) = self.parse_operator(stream) {
-      tokens.push(spanned.map(TaggedToken::infix_operator));
-      stream = tail;
-      let (spanned, tail) = self.parse_atom(stream)?;
-      stream = tail;
-      tokens.push(spanned.map(TaggedToken::Scalar));
+    let mut tokens: Vec<Spanned<ChainToken<Expr>>> = Vec::new();
+    // Read a sequence of operators or expressions, arbitrarily
+    // intertwined.
+    loop {
+      match stream.first().map(|x| &x.data) {
+        Some(TokenData::Operator(_)) => {
+          // Read operator
+          let (spanned, tail) = self.parse_operator(stream)?;
+          tokens.push(spanned.map(ChainToken::Operator));
+          stream = tail;
+        }
+        Some(TokenData::FunctionCallStart(_) | TokenData::LeftParen | TokenData::Number(_)) => {
+          // Read atomic expression
+          let (spanned, tail) = self.parse_atom(stream)?;
+          tokens.push(spanned.map(ChainToken::Scalar));
+          stream = tail;
+        }
+        _ => {
+          // End of operator chain
+          break;
+        }
+      }
     }
+
+    // Identify which operators should be treated as infix/postfix/prefix.
+    let tagged_tokens: Vec<Spanned<TaggedToken<Expr>>> = chain::tag_chain_sequence(tokens)?;
+
     // Now use shunting yard to simplify the vector.
     let mut shunting_yard_driver = ExprShuntingYardDriver::new();
-    let expr = shunting_yard::parse(&mut shunting_yard_driver, tokens)?;
+    let expr = shunting_yard::parse(&mut shunting_yard_driver, tagged_tokens)?;
     Ok((expr, stream))
   }
 
@@ -249,7 +261,7 @@ mod tests {
     assert_eq!(expr, Expr::from(Number::from(1.5)));
 
     let expr = parser.tokenize_and_parse("-1:3").unwrap();
-    assert_eq!(expr, Expr::from(Number::ratio(-1, 3)));
+    assert_eq!(expr, Expr::call("negate", vec![Expr::from(Number::ratio(1, 3))]));
   }
 
   #[test]
@@ -315,5 +327,54 @@ mod tests {
     assert_eq!(expr, Expr::call("foo", vec![
       Expr::call("*", vec![Expr::call("+", vec![Expr::from(1), Expr::from(2)]), Expr::from(3)]),
     ]));
+  }
+
+  #[test]
+  fn test_prefix_ops() {
+    let table = OperatorTable::common_operators();
+    let parser = ExprParser::new(&table);
+
+    let expr = parser.tokenize_and_parse("+ + - 3").unwrap();
+    assert_eq!(expr, Expr::call(
+      "identity",
+      vec![
+        Expr::call(
+          "identity",
+          vec![
+            Expr::call("negate", vec![Expr::from(3)]),
+          ],
+        ),
+      ],
+    ));
+  }
+
+  #[test]
+  fn test_prefix_ops_with_infix() {
+    let table = OperatorTable::common_operators();
+    let parser = ExprParser::new(&table);
+
+    let expr = parser.tokenize_and_parse("2 - - 3").unwrap();
+    assert_eq!(expr, Expr::call(
+      "-",
+      vec![
+        Expr::from(2),
+        Expr::call("negate", vec![Expr::from(3)]),
+      ],
+    ));
+  }
+
+  #[test]
+  fn test_prefix_ops_with_infix_and_at_beginning() {
+    let table = OperatorTable::common_operators();
+    let parser = ExprParser::new(&table);
+
+    let expr = parser.tokenize_and_parse("- 2 - - 3").unwrap();
+    assert_eq!(expr, Expr::call(
+      "-",
+      vec![
+        Expr::call("negate", vec![Expr::from(2)]),
+        Expr::call("negate", vec![Expr::from(3)]),
+      ],
+    ));
   }
 }

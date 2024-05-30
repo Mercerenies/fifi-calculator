@@ -125,8 +125,8 @@ impl<'a> ExprTokenizer<'a> {
 
   fn read_number_literal(&self, state: &mut TokenizerState<'_>) -> Option<Result<Token, TokenizerError>> {
     static RE: Lazy<Regex> = Lazy::new(|| {
-      let ratio_re = r"[+-]?[0-9]+:[+-]?[0-9]+";
-      let int_float_re = r"[+-]?[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?";
+      let ratio_re = r"[0-9]+:[0-9]+";
+      let int_float_re = r"[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?";
       Regex::new(&format!("^(?:{ratio_re}|{int_float_re})")).unwrap()
     });
     let reset_pos = state.current_pos();
@@ -245,16 +245,6 @@ mod tests {
     let token = tokenizer.read_one_token(&mut state).expect("expected token");
     assert_eq!(token, Token::new(TokenData::Number(Number::from(99)), span(0, 2)));
     assert_eq!(state.current_pos(), SourceOffset(2));
-
-    let mut state = TokenizerState::new("-321");
-    let token = tokenizer.read_one_token(&mut state).expect("expected token");
-    assert_eq!(token, Token::new(TokenData::Number(Number::from(-321)), span(0, 4)));
-    assert_eq!(state.current_pos(), SourceOffset(4));
-
-    let mut state = TokenizerState::new("+321");
-    let token = tokenizer.read_one_token(&mut state).expect("expected token");
-    assert_eq!(token, Token::new(TokenData::Number(Number::from(321)), span(0, 4)));
-    assert_eq!(state.current_pos(), SourceOffset(4));
   }
 
   #[test]
@@ -266,16 +256,6 @@ mod tests {
     let token = tokenizer.read_one_token(&mut state).expect("expected token");
     assert_eq!(token, Token::new(TokenData::Number(Number::ratio(3, 2)), span(0, 3)));
     assert_eq!(state.current_pos(), SourceOffset(3));
-
-    let mut state = TokenizerState::new("-9:2");
-    let token = tokenizer.read_one_token(&mut state).expect("expected token");
-    assert_eq!(token, Token::new(TokenData::Number(Number::ratio(-9, 2)), span(0, 4)));
-    assert_eq!(state.current_pos(), SourceOffset(4));
-
-    let mut state = TokenizerState::new("9:-11");
-    let token = tokenizer.read_one_token(&mut state).expect("expected token");
-    assert_eq!(token, Token::new(TokenData::Number(Number::ratio(-9, 11)), span(0, 5)));
-    assert_eq!(state.current_pos(), SourceOffset(5));
   }
 
   #[test]
@@ -284,11 +264,6 @@ mod tests {
     let tokenizer = ExprTokenizer::new(&table);
 
     let mut state = TokenizerState::new("3:0");
-    let err = tokenizer.read_one_token(&mut state).unwrap_err();
-    assert!(matches!(err, TokenizerError::ParseNumberError(_)));
-    assert_eq!(state.current_pos(), SourceOffset(0));
-
-    let mut state = TokenizerState::new("3:-0");
     let err = tokenizer.read_one_token(&mut state).unwrap_err();
     assert!(matches!(err, TokenizerError::ParseNumberError(_)));
     assert_eq!(state.current_pos(), SourceOffset(0));
