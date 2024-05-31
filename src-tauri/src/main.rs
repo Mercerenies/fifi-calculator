@@ -118,7 +118,7 @@ fn run_math_command(
 ) -> Result<(), Error> {
   let command = table.get(command_name)?;
   let context = CommandContext {
-    opts: CommandOptions { argument: prefix_argument },
+    opts: CommandOptions { argument: prefix_argument, keep_modifier: false }, // TODO: keep_modifier
     simplifier: default_simplifier(),
   };
   let output = command.run_command(state, &context)?;

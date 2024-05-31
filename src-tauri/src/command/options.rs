@@ -17,6 +17,10 @@ impl CommandOptions {
     Self::default()
   }
 
+  pub fn numerical(argument: i64) -> Self {
+    Self::new().with_argument(argument)
+  }
+
   pub fn with_argument(mut self, argument: i64) -> Self {
     self.argument = Some(argument);
     self

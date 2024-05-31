@@ -44,6 +44,7 @@ fn times_minus_one(expr: Expr) -> Expr {
 pub(crate) mod test_utils {
   use super::*;
   use crate::expr::Expr;
+  use crate::command::options::CommandOptions;
   use crate::state::test_utils::state_for_stack;
   use crate::stack::test_utils::stack_of;
   use crate::stack::{Stack, StackError};
@@ -51,10 +52,10 @@ pub(crate) mod test_utils {
 
   /// Tests the operation on the given input stack, expecting a
   /// success.
-  pub fn act_on_stack(command: &impl Command, arg: Option<i64>, input_stack: Vec<i64>) -> Stack<Expr> {
+  pub fn act_on_stack(command: &impl Command, opts: CommandOptions, input_stack: Vec<i64>) -> Stack<Expr> {
     let mut state = state_for_stack(input_stack);
     let mut context = CommandContext::default();
-    context.opts.argument = arg;
+    context.opts = opts;
     let output = command.run_command(&mut state, &context).unwrap();
     assert!(output.errors.is_empty());
     state.into_main_stack()
@@ -62,10 +63,10 @@ pub(crate) mod test_utils {
 
   /// Tests the operation on the given input stack. Expects a failure.
   /// Asserts that the stack is unchanged and returns the error.
-  pub fn act_on_stack_err(command: &impl Command, arg: Option<i64>, input_stack: Vec<i64>) -> StackError {
+  pub fn act_on_stack_err(command: &impl Command, opts: CommandOptions, input_stack: Vec<i64>) -> StackError {
     let mut state = state_for_stack(input_stack.clone());
     let mut context = CommandContext::default();
-    context.opts.argument = arg;
+    context.opts = opts;
     let err = command.run_command(&mut state, &context).unwrap_err();
     let Error::StackError(err) = err else {
       panic!("Expected StackError, got {:?}", err)

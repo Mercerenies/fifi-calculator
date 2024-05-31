@@ -115,18 +115,19 @@ impl Command for DupCommand {
 mod tests {
   use super::*;
   use crate::command::test_utils::{act_on_stack, act_on_stack_err};
+  use crate::command::options::CommandOptions;
   use crate::stack::test_utils::stack_of;
   use crate::stack::StackError;
 
   #[test]
   fn test_simple_pop() {
-    let output_stack = act_on_stack(&PopCommand, None, vec![10, 20, 30]);
+    let output_stack = act_on_stack(&PopCommand, CommandOptions::default(), vec![10, 20, 30]);
     assert_eq!(output_stack, stack_of(vec![10, 20]));
   }
 
   #[test]
   fn test_simple_pop_on_empty_stack() {
-    let err = act_on_stack_err(&PopCommand, None, vec![]);
+    let err = act_on_stack_err(&PopCommand, CommandOptions::default(), vec![]);
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 1, actual: 0 },
@@ -135,19 +136,19 @@ mod tests {
 
   #[test]
   fn test_multiple_pop() {
-    let output_stack = act_on_stack(&PopCommand, Some(3), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(3), vec![10, 20, 30, 40, 50]);
     assert_eq!(output_stack, stack_of(vec![10, 20]));
   }
 
   #[test]
   fn test_multiple_pop_all_stack_elements() {
-    let output_stack = act_on_stack(&PopCommand, Some(4), vec![10, 20, 30, 40]);
+    let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(4), vec![10, 20, 30, 40]);
     assert_eq!(output_stack, stack_of(vec![]));
   }
 
   #[test]
   fn test_multiple_pop_on_empty_stack() {
-    let err = act_on_stack_err(&PopCommand, Some(3), vec![]);
+    let err = act_on_stack_err(&PopCommand, CommandOptions::numerical(3), vec![]);
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 3, actual: 0 },
@@ -156,7 +157,7 @@ mod tests {
 
   #[test]
   fn test_multiple_pop_on_stack_thats_too_small() {
-    let err = act_on_stack_err(&PopCommand, Some(4), vec![10, 20, 30]);
+    let err = act_on_stack_err(&PopCommand, CommandOptions::numerical(4), vec![10, 20, 30]);
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 4, actual: 3 },
@@ -165,25 +166,25 @@ mod tests {
 
   #[test]
   fn test_pop_with_argument_zero() {
-    let output_stack = act_on_stack(&PopCommand, Some(0), vec![10, 20, 30]);
+    let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(0), vec![10, 20, 30]);
     assert_eq!(output_stack, stack_of(vec![]));
   }
 
   #[test]
   fn test_pop_with_argument_zero_on_empty_stack() {
-    let output_stack = act_on_stack(&PopCommand, Some(0), vec![]);
+    let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(0), vec![]);
     assert_eq!(output_stack, stack_of(vec![]));
   }
 
   #[test]
   fn test_pop_with_negative_one_argument() {
-    let output_stack = act_on_stack(&PopCommand, Some(-1), vec![10, 20, 30, 40]);
+    let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(-1), vec![10, 20, 30, 40]);
     assert_eq!(output_stack, stack_of(vec![10, 20, 30]));
   }
 
   #[test]
   fn test_pop_with_negative_one_argument_and_empty_stack() {
-    let err = act_on_stack_err(&PopCommand, Some(-1), vec![]);
+    let err = act_on_stack_err(&PopCommand, CommandOptions::numerical(-1), vec![]);
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 1, actual: 0 },
@@ -192,13 +193,13 @@ mod tests {
 
   #[test]
   fn test_pop_with_negative_argument() {
-    let output_stack = act_on_stack(&PopCommand, Some(-3), vec![10, 20, 30, 40]);
+    let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(-3), vec![10, 20, 30, 40]);
     assert_eq!(output_stack, stack_of(vec![10, 30, 40]));
   }
 
   #[test]
   fn test_pop_with_negative_argument_and_empty_stack() {
-    let err = act_on_stack_err(&PopCommand, Some(-3), vec![]);
+    let err = act_on_stack_err(&PopCommand, CommandOptions::numerical(-3), vec![]);
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 3, actual: 0 },
@@ -207,7 +208,7 @@ mod tests {
 
   #[test]
   fn test_pop_with_negative_argument_and_too_small_stack() {
-    let err = act_on_stack_err(&PopCommand, Some(-3), vec![10, 20]);
+    let err = act_on_stack_err(&PopCommand, CommandOptions::numerical(-3), vec![10, 20]);
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 3, actual: 2 },
@@ -216,25 +217,25 @@ mod tests {
 
   #[test]
   fn test_pop_with_negative_argument_at_bottom_of_stack() {
-    let output_stack = act_on_stack(&PopCommand, Some(-4), vec![10, 20, 30, 40]);
+    let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(-4), vec![10, 20, 30, 40]);
     assert_eq!(output_stack, stack_of(vec![20, 30, 40]));
   }
 
   #[test]
   fn test_swap() {
-    let output_stack = act_on_stack(&SwapCommand, None, vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&SwapCommand, CommandOptions::default(), vec![10, 20, 30, 40, 50]);
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 50, 40]));
   }
 
   #[test]
   fn test_swap_on_stack_size_two() {
-    let output_stack = act_on_stack(&SwapCommand, None, vec![10, 20]);
+    let output_stack = act_on_stack(&SwapCommand, CommandOptions::default(), vec![10, 20]);
     assert_eq!(output_stack, stack_of(vec![20, 10]));
   }
 
   #[test]
   fn test_swap_on_stack_size_one() {
-    let err = act_on_stack_err(&SwapCommand, None, vec![10]);
+    let err = act_on_stack_err(&SwapCommand, CommandOptions::default(), vec![10]);
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 2, actual: 1 },
@@ -243,7 +244,7 @@ mod tests {
 
   #[test]
   fn test_swap_on_empty_stack() {
-    let err = act_on_stack_err(&SwapCommand, None, vec![]);
+    let err = act_on_stack_err(&SwapCommand, CommandOptions::default(), vec![]);
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 2, actual: 0 },
@@ -252,19 +253,19 @@ mod tests {
 
   #[test]
   fn test_swap_positive_arg() {
-    let output_stack = act_on_stack(&SwapCommand, Some(4), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(4), vec![10, 20, 30, 40, 50]);
     assert_eq!(output_stack, stack_of(vec![10, 50, 20, 30, 40]));
   }
 
   #[test]
   fn test_swap_positive_arg_equal_to_stack_size() {
-    let output_stack = act_on_stack(&SwapCommand, Some(3), vec![10, 20, 30]);
+    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(3), vec![10, 20, 30]);
     assert_eq!(output_stack, stack_of(vec![30, 10, 20]));
   }
 
   #[test]
   fn test_swap_with_positive_arg_and_too_small_stack() {
-    let err = act_on_stack_err(&SwapCommand, Some(3), vec![10, 20]);
+    let err = act_on_stack_err(&SwapCommand, CommandOptions::numerical(3), vec![10, 20]);
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 3, actual: 2 },
@@ -273,7 +274,7 @@ mod tests {
 
   #[test]
   fn test_swap_with_positive_arg_on_empty_stack() {
-    let err = act_on_stack_err(&SwapCommand, Some(4), vec![]);
+    let err = act_on_stack_err(&SwapCommand, CommandOptions::numerical(4), vec![]);
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 4, actual: 0 },
@@ -282,13 +283,13 @@ mod tests {
 
   #[test]
   fn test_swap_arg_of_one() {
-    let output_stack = act_on_stack(&SwapCommand, Some(1), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(1), vec![10, 20, 30, 40, 50]);
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50]));
   }
 
   #[test]
   fn test_swap_arg_of_one_on_empty_stack() {
-    let err = act_on_stack_err(&SwapCommand, Some(1), vec![]);
+    let err = act_on_stack_err(&SwapCommand, CommandOptions::numerical(1), vec![]);
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 1, actual: 0 },
@@ -297,37 +298,37 @@ mod tests {
 
   #[test]
   fn test_swap_argument_zero() {
-    let output_stack = act_on_stack(&SwapCommand, Some(0), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(0), vec![10, 20, 30, 40, 50]);
     assert_eq!(output_stack, stack_of(vec![50, 40, 30, 20, 10]));
   }
 
   #[test]
   fn test_swap_argument_zero_on_stack_size_one() {
-    let output_stack = act_on_stack(&SwapCommand, Some(0), vec![10]);
+    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(0), vec![10]);
     assert_eq!(output_stack, stack_of(vec![10]));
   }
 
   #[test]
   fn test_swap_argument_zero_on_empty_stack() {
-    let output_stack = act_on_stack(&SwapCommand, Some(0), vec![]);
+    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(0), vec![]);
     assert_eq!(output_stack, stack_of(vec![]));
   }
 
   #[test]
   fn test_swap_with_negative_one_arg() {
-    let output_stack = act_on_stack(&SwapCommand, Some(-1), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(-1), vec![10, 20, 30, 40, 50]);
     assert_eq!(output_stack, stack_of(vec![50, 10, 20, 30, 40]));
   }
 
   #[test]
   fn test_swap_with_negative_one_arg_on_stack_size_one() {
-    let output_stack = act_on_stack(&SwapCommand, Some(-1), vec![10]);
+    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(-1), vec![10]);
     assert_eq!(output_stack, stack_of(vec![10]));
   }
 
   #[test]
   fn test_swap_with_negative_one_arg_on_empty_stack() {
-    let err = act_on_stack_err(&SwapCommand, Some(-1), vec![]);
+    let err = act_on_stack_err(&SwapCommand, CommandOptions::numerical(-1), vec![]);
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 1, actual: 0 },
@@ -336,19 +337,19 @@ mod tests {
 
   #[test]
   fn test_swap_with_negative_arg() {
-    let output_stack = act_on_stack(&SwapCommand, Some(-3), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(-3), vec![10, 20, 30, 40, 50]);
     assert_eq!(output_stack, stack_of(vec![30, 40, 50, 10, 20]));
   }
 
   #[test]
   fn test_swap_with_negative_arg_whole_stack() {
-    let output_stack = act_on_stack(&SwapCommand, Some(-5), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(-5), vec![10, 20, 30, 40, 50]);
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50]));
   }
 
   #[test]
   fn test_swap_with_negative_arg_and_too_small_stack() {
-    let err = act_on_stack_err(&SwapCommand, Some(-3), vec![10, 20]);
+    let err = act_on_stack_err(&SwapCommand, CommandOptions::numerical(-3), vec![10, 20]);
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 3, actual: 2 },
@@ -357,7 +358,7 @@ mod tests {
 
   #[test]
   fn test_swap_with_negative_arg_and_empty_stack() {
-    let err = act_on_stack_err(&SwapCommand, Some(-3), vec![]);
+    let err = act_on_stack_err(&SwapCommand, CommandOptions::numerical(-3), vec![]);
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 3, actual: 0 },
@@ -366,19 +367,19 @@ mod tests {
 
   #[test]
   fn test_dup() {
-    let output_stack = act_on_stack(&DupCommand, None, vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&DupCommand, CommandOptions::default(), vec![10, 20, 30, 40, 50]);
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 50]));
   }
 
   #[test]
   fn test_dup_on_stack_size_one() {
-    let output_stack = act_on_stack(&DupCommand, None, vec![10]);
+    let output_stack = act_on_stack(&DupCommand, CommandOptions::default(), vec![10]);
     assert_eq!(output_stack, stack_of(vec![10, 10]));
   }
 
   #[test]
   fn test_dup_on_empty_stack() {
-    let err = act_on_stack_err(&DupCommand, None, vec![]);
+    let err = act_on_stack_err(&DupCommand, CommandOptions::default(), vec![]);
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 1, actual: 0 },
@@ -387,19 +388,19 @@ mod tests {
 
   #[test]
   fn test_dup_positive_arg() {
-    let output_stack = act_on_stack(&DupCommand, Some(2), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(2), vec![10, 20, 30, 40, 50]);
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 40, 50]));
   }
 
   #[test]
   fn test_dup_positive_arg_equal_to_stack_size() {
-    let output_stack = act_on_stack(&DupCommand, Some(3), vec![10, 20, 30]);
+    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(3), vec![10, 20, 30]);
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 10, 20, 30]));
   }
 
   #[test]
   fn test_dup_with_positive_arg_and_too_small_stack() {
-    let err = act_on_stack_err(&DupCommand, Some(3), vec![10, 20]);
+    let err = act_on_stack_err(&DupCommand, CommandOptions::numerical(3), vec![10, 20]);
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 3, actual: 2 },
@@ -408,7 +409,7 @@ mod tests {
 
   #[test]
   fn test_dup_with_positive_arg_on_empty_stack() {
-    let err = act_on_stack_err(&DupCommand, Some(2), vec![]);
+    let err = act_on_stack_err(&DupCommand, CommandOptions::numerical(2), vec![]);
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 2, actual: 0 },
@@ -417,13 +418,13 @@ mod tests {
 
   #[test]
   fn test_dup_with_argument_one() {
-    let output_stack = act_on_stack(&DupCommand, Some(1), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(1), vec![10, 20, 30, 40, 50]);
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 50]));
   }
 
   #[test]
   fn test_dup_with_argument_one_empty_stack() {
-    let err = act_on_stack_err(&DupCommand, Some(1), vec![]);
+    let err = act_on_stack_err(&DupCommand, CommandOptions::numerical(1), vec![]);
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 1, actual: 0 },
@@ -432,31 +433,31 @@ mod tests {
 
   #[test]
   fn test_dup_with_argument_zero() {
-    let output_stack = act_on_stack(&DupCommand, Some(0), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(0), vec![10, 20, 30, 40, 50]);
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 10, 20, 30, 40, 50]));
   }
 
   #[test]
   fn test_dup_argument_zero_on_empty_stack() {
-    let output_stack = act_on_stack(&DupCommand, Some(0), vec![]);
+    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(0), vec![]);
     assert_eq!(output_stack, stack_of(vec![]));
   }
 
   #[test]
   fn test_dup_with_negative_one_arg() {
-    let output_stack = act_on_stack(&DupCommand, Some(-1), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(-1), vec![10, 20, 30, 40, 50]);
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 50]));
   }
 
   #[test]
   fn test_dup_with_negative_one_arg_on_stack_size_one() {
-    let output_stack = act_on_stack(&DupCommand, Some(-1), vec![10]);
+    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(-1), vec![10]);
     assert_eq!(output_stack, stack_of(vec![10, 10]));
   }
 
   #[test]
   fn test_dup_with_negative_one_arg_on_empty_stack() {
-    let err = act_on_stack_err(&DupCommand, Some(-1), vec![]);
+    let err = act_on_stack_err(&DupCommand, CommandOptions::numerical(-1), vec![]);
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 1, actual: 0 },
@@ -465,19 +466,19 @@ mod tests {
 
   #[test]
   fn test_dup_with_negative_arg() {
-    let output_stack = act_on_stack(&DupCommand, Some(-3), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(-3), vec![10, 20, 30, 40, 50]);
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 30]));
   }
 
   #[test]
   fn test_dup_with_negative_arg_at_bottom_of_stack() {
-    let output_stack = act_on_stack(&DupCommand, Some(-4), vec![10, 20, 30, 40]);
+    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(-4), vec![10, 20, 30, 40]);
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 10]));
   }
 
   #[test]
   fn test_dup_with_negative_arg_and_too_small_stack() {
-    let err = act_on_stack_err(&DupCommand, Some(-3), vec![10, 20]);
+    let err = act_on_stack_err(&DupCommand, CommandOptions::numerical(-3), vec![10, 20]);
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 3, actual: 2 },
@@ -486,7 +487,7 @@ mod tests {
 
   #[test]
   fn test_dup_with_negative_arg_and_empty_stack() {
-    let err = act_on_stack_err(&DupCommand, Some(-3), vec![]);
+    let err = act_on_stack_err(&DupCommand, CommandOptions::numerical(-3), vec![]);
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 3, actual: 0 },
