@@ -2,6 +2,8 @@
 // Manager class for the button grid that shows up on-screen and for
 // keyboard shortcuts to said grid.
 
+///// add checkbox for keep modifier
+
 import { KeyEventInput, KeyResponse } from './keyboard.js';
 import { ModifierDelegate } from './button_grid/modifier_delegate.js';
 
