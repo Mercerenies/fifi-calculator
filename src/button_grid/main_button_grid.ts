@@ -45,6 +45,7 @@ export class MainButtonGrid implements ButtonGrid {
       [
         new DispatchButton("<math><mo>&times;</mo></math>", "*", "*"),
         new DispatchButton("<math><mo>&times;</mo><mi>i</mi></math>", "*i", null),
+        new DispatchButton("<math><mo>&plusmn;</mo></math>", "negate", "n"),
         new DispatchButton("<math><msup><mi>x</mi><mi>y</mi></msup></math>", "^", "^"),
       ],
       [

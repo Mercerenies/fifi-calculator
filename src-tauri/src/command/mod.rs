@@ -10,9 +10,7 @@ pub use base::{Command, CommandContext, CommandOutput};
 use functional::{UnaryFunctionCommand, BinaryFunctionCommand};
 use dispatch::CommandDispatchTable;
 use crate::expr::Expr;
-use crate::expr::number::{Number, ComplexNumber};
-
-use num::One;
+use crate::expr::number::ComplexNumber;
 
 use std::collections::HashMap;
 
@@ -26,6 +24,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("div".to_string(), Box::new(BinaryFunctionCommand::named("div")));
   map.insert("^".to_string(), Box::new(BinaryFunctionCommand::named("^")));
   map.insert("*i".to_string(), Box::new(UnaryFunctionCommand::new(times_i)));
+  map.insert("negate".to_string(), Box::new(UnaryFunctionCommand::new(times_minus_one)));
   map.insert("pop".to_string(), Box::new(shuffle::PopCommand));
   map.insert("swap".to_string(), Box::new(shuffle::SwapCommand));
   map.insert("dup".to_string(), Box::new(shuffle::DupCommand));
@@ -33,8 +32,12 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
 }
 
 fn times_i(expr: Expr) -> Expr {
-  let ii = ComplexNumber::from_imag(Number::one());
+  let ii = ComplexNumber::ii();
   Expr::Call("*".to_string(), vec![expr, Expr::from(ii)])
+}
+
+fn times_minus_one(expr: Expr) -> Expr {
+  Expr::Call("*".to_string(), vec![expr, Expr::from(-1)])
 }
 
 #[cfg(test)]
