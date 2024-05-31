@@ -3,6 +3,7 @@
 
 use super::base::{Command, CommandContext, CommandOutput};
 use crate::state::ApplicationState;
+use crate::stack::keepable::KeepableStack;
 use crate::stack::base::{StackLike, RandomAccessStackLike};
 use crate::error::Error;
 
@@ -22,20 +23,24 @@ pub struct DupCommand;
 
 impl Command for PopCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
+    // Note: PopCommand explicitly ignores the keep_modifier, as it
+    // would always be a no-op.
     state.undo_stack_mut().push_cut();
+    let mut stack = state.main_stack_mut();
+
     let arg = ctx.opts.argument.unwrap_or(1);
     match arg.cmp(&0) {
       Ordering::Greater => {
         // Pop N elements
-        let _ = state.main_stack_mut().pop_several(arg as usize)?;
+        let _ = stack.pop_several(arg as usize)?;
       }
       Ordering::Less => {
         // Pop a single specific element
-        let _ = state.main_stack_mut().pop_nth((- arg - 1) as usize)?;
+        let _ = stack.pop_nth((- arg - 1) as usize)?;
       }
       Ordering::Equal => {
         // Pop all elements
-        state.main_stack_mut().pop_all();
+        stack.pop_all();
       }
     }
     Ok(CommandOutput::success())
@@ -45,26 +50,29 @@ impl Command for PopCommand {
 impl Command for SwapCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
     state.undo_stack_mut().push_cut();
+    let mut stack = state.main_stack_mut();
+    let mut stack = KeepableStack::new(&mut stack, ctx.opts.keep_modifier);
+
     let arg = ctx.opts.argument.unwrap_or(2);
     match arg.cmp(&0) {
       Ordering::Greater => {
         // Bury top element N deep.
-        let mut elements = state.main_stack_mut().pop_several(arg as usize)?;
-        state.main_stack_mut().push(elements.pop().unwrap()); // unwrap: arg > 0 so elements is non-empty.
-        state.main_stack_mut().push_several(elements);
+        let mut elements = stack.pop_several(arg as usize)?;
+        stack.push(elements.pop().unwrap()); // unwrap: arg > 0 so elements is non-empty.
+        stack.push_several(elements);
       }
       Ordering::Less => {
         // Bury top N elements at bottom.
-        let elements_to_bury = state.main_stack_mut().pop_several((- arg) as usize)?;
-        let rest_of_elements = state.main_stack_mut().pop_all();
-        state.main_stack_mut().push_several(elements_to_bury);
-        state.main_stack_mut().push_several(rest_of_elements);
+        let elements_to_bury = stack.pop_several((- arg) as usize)?;
+        let rest_of_elements = stack.pop_all();
+        stack.push_several(elements_to_bury);
+        stack.push_several(rest_of_elements);
       }
       Ordering::Equal => {
         // Reverse stack.
-        let mut elements = state.main_stack_mut().pop_all();
+        let mut elements = stack.pop_all();
         elements.reverse();
-        state.main_stack_mut().push_several(elements);
+        stack.push_several(elements);
       }
     }
     Ok(CommandOutput::success())
@@ -73,25 +81,30 @@ impl Command for SwapCommand {
 
 impl Command for DupCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
+    // Note: DupCommand explicitly ignores the keep_modifier, as its
+    // behavior would be quite unintuitive (especially with negative
+    // numerical arg).
     state.undo_stack_mut().push_cut();
+    let mut stack = state.main_stack_mut();
+
     let arg = ctx.opts.argument.unwrap_or(1);
     match arg.cmp(&0) {
       Ordering::Greater => {
         // Duplicate top N arguments.
-        let elements = state.main_stack_mut().pop_several(arg as usize)?;
-        state.main_stack_mut().push_several(elements.clone());
-        state.main_stack_mut().push_several(elements);
+        let elements = stack.pop_several(arg as usize)?;
+        stack.push_several(elements.clone());
+        stack.push_several(elements);
       }
       Ordering::Less => {
         // Duplicate specific element N down.
-        let element = state.main_stack().get(- arg - 1)?.clone();
-        state.main_stack_mut().push(element);
+        let element = stack.get(- arg - 1)?.clone();
+        stack.push(element);
       }
       Ordering::Equal => {
         // Duplicate entire stack.
-        let elements = state.main_stack_mut().pop_all();
-        state.main_stack_mut().push_several(elements.clone());
-        state.main_stack_mut().push_several(elements);
+        let elements = stack.pop_all();
+        stack.push_several(elements.clone());
+        stack.push_several(elements);
       }
     }
     Ok(CommandOutput::success())
