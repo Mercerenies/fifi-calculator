@@ -123,6 +123,7 @@ impl Command for UnaryFunctionCommand {
     match arg.cmp(&0) {
       Ordering::Greater => {
         // Apply to top N elements.
+        let mut stack = KeepableStack::new(&mut stack, ctx.opts.keep_modifier);
         let values = stack.pop_several(arg as usize)?;
         let values = values.into_iter().map(|e| {
           ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors)
@@ -131,11 +132,21 @@ impl Command for UnaryFunctionCommand {
       }
       Ordering::Less => {
         // Apply to single element N down on the stack.
-        let mut e = stack.get_mut(- arg - 1)?;
-        e.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors));
+        let mut expr = stack.get_mut(- arg - 1)?;
+        if ctx.opts.keep_modifier {
+          let original_expr = expr.clone();
+          expr.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors));
+          drop(expr);
+          // expect safety: We know there's a value at - arg - 1, so
+          // inserting just before that value is safe.
+          stack.insert((- arg - 1) as usize, original_expr).expect("Stack was too small for re-insert");
+        } else {
+          expr.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors));
+        }
       }
       Ordering::Equal => {
         // Apply to all elements.
+        let mut stack = KeepableStack::new(&mut stack, ctx.opts.keep_modifier);
         let mut whole_stack = stack.pop_all();
         for elem in &mut whole_stack {
           elem.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors));
@@ -150,37 +161,40 @@ impl Command for UnaryFunctionCommand {
 impl Command for BinaryFunctionCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
     state.undo_stack_mut().push_cut();
+    let mut stack = state.main_stack_mut();
+    let mut stack = KeepableStack::new(&mut stack, ctx.opts.keep_modifier);
+
     let mut errors = ErrorList::new();
     let arg = ctx.opts.argument.unwrap_or(2);
     match arg.cmp(&0) {
       Ordering::Greater => {
         // Perform reduction on top N elements.
-        let values = state.main_stack_mut().pop_several(arg as usize)?;
+        let values = stack.pop_several(arg as usize)?;
         let result = values.into_iter().reduce(|a, b| {
           self.wrap_exprs(a, b)
         }).expect("Empty stack"); // expect safety: We popped at least one element off the stack
         let result = ctx.simplifier.simplify_expr(result, &mut errors);
-        state.main_stack_mut().push(result);
+        stack.push(result);
       }
       Ordering::Less => {
         // Apply top to next N elements.
-        let mut values = state.main_stack_mut().pop_several((- arg + 1) as usize)?;
+        let mut values = stack.pop_several((- arg + 1) as usize)?;
         // expect safety: We popped at least two values, so removing one is safe.
         let second_argument = values.pop().expect("Empty stack");
         for e in values.iter_mut() {
           e.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_exprs(e, second_argument.clone()), &mut errors));
         }
-        state.main_stack_mut().push_several(values);
+        stack.push_several(values);
       }
       Ordering::Equal => {
         // Reduce entire stack.
-        state.main_stack().check_stack_size(1)?;
-        let values = state.main_stack_mut().pop_all();
+        stack.check_stack_size(1)?;
+        let values = stack.pop_all();
         let result = values.into_iter().reduce(|a, b| {
           self.wrap_exprs(a, b)
         }).expect("Empty stack"); // expect safety: We just checked that the stack was non-empty
         let result = ctx.simplifier.simplify_expr(result, &mut errors);
-        state.main_stack_mut().push(result);
+        stack.push(result);
       }
     }
     Ok(CommandOutput::from_errors(errors))
