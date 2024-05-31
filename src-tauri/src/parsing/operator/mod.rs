@@ -12,10 +12,23 @@ pub use table::OperatorTable;
 
 use std::fmt::{self, Formatter, Display};
 use std::error::{Error as StdError};
+use std::sync::Arc;
 
 /// An operator has a precedence and an associativity.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Operator {
+  // Fixity is actually quite a large structure, and we store
+  // Operators in all kinds of places, including error objects, token
+  // objects, etc. So I want Operator to be relatively cheap-to-copy
+  // and not take up a ton of space in its enclosing structure. Hide
+  // it behind an Arc. We have to use Arc (not Rc) so that
+  // OperatorTable can be passed in the Tauri global application
+  // state.
+  data: Arc<OperatorImpl>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct OperatorImpl {
   operator_name: String,
   fixity: Fixity,
 }
@@ -38,26 +51,27 @@ pub struct TaggedOperatorError {
 impl Operator {
   /// Constructs a new operator with the given properties.
   pub fn new(name: impl Into<String>, fixity: Fixity) -> Self {
-    Operator {
+    let data = OperatorImpl {
       operator_name: name.into(),
       fixity,
-    }
+    };
+    Operator { data: Arc::new(data) }
   }
 
   /// The name of the operator, as displayed to the user.
   pub fn operator_name(&self) -> &str {
-    &self.operator_name
+    &self.data.operator_name
   }
 
   pub fn fixity(&self) -> &Fixity {
-    &self.fixity
+    &self.data.fixity
   }
 
   pub fn function_names(&self) -> impl Iterator<Item = &str> {
     vec![
-      self.fixity.as_prefix().map(|props| props.function_name()),
-      self.fixity.as_infix().map(|props| props.function_name()),
-      self.fixity.as_postfix().map(|props| props.function_name()),
+      self.data.fixity.as_prefix().map(|props| props.function_name()),
+      self.data.fixity.as_infix().map(|props| props.function_name()),
+      self.data.fixity.as_postfix().map(|props| props.function_name()),
     ].into_iter().flatten()
   }
 }

@@ -95,7 +95,7 @@ impl OperatorTable {
     let left_conflict = FixityTypes::POSTFIX | FixityTypes::INFIX;
     let right_conflict = FixityTypes::PREFIX | FixityTypes::INFIX;
     for op in self.iter() {
-      let fixity_types = op.fixity.fixity_types();
+      let fixity_types = op.fixity().fixity_types();
       if fixity_types.contains(left_conflict) {
         left.push(op);
       }
