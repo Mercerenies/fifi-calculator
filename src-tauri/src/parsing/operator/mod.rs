@@ -3,7 +3,7 @@ mod associativity;
 pub mod chain;
 pub mod fixity;
 mod precedence;
-mod table;
+pub mod table;
 
 pub use precedence::Precedence;
 pub use associativity::Associativity;

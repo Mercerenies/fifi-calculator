@@ -29,9 +29,9 @@ pub trait StackLike<T> {
     }
   }
 
-  /// As [`Stack::pop`], but with no result value. Use this function
-  /// if you don't plan to use the result and don't care if the `pop`
-  /// call fails due to an empty stack.
+  /// As [`StackLike::pop`], but with no result value. Use this
+  /// function if you don't plan to use the result and don't care if
+  /// the `pop` call fails due to an empty stack.
   fn pop_and_discard(&mut self) {
     let _ = self.pop();
   }
@@ -100,11 +100,9 @@ pub trait RandomAccessStackLike<T>: StackLike<T> {
   /// Modifies the value at the given position, using the given
   /// function.
   ///
-  /// On [`Stack`], this is equivalent to simply calling
-  /// [`get_mut`](Stack::get_mut) and making the modification
-  /// directly. But a similar method is also exposed on
-  /// [`DelegatingStack`](super::delegate::DelegatingStack), which
-  /// tracks the modification as well.
+  /// By default, this is equivalent to simply calling
+  /// [`get_mut`](RandomAccessStackLike::get_mut) and making the
+  /// modification directly, but this may be overridden if desired.
   fn mutate<F>(&mut self, index: i64, f: F) -> Result<(), StackError>
   where F: FnOnce(&mut T) {
     let mut value = self.get_mut(index)?;

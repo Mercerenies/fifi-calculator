@@ -148,7 +148,7 @@ fn find_consecutive_terms<T>(seq: &[AlternatingChainElem<T>]) -> Option<usize> {
 /// then the returned tagging (if one exists) is guaranteed to be
 /// unique. If the table contains ambiguities, then one valid tagging
 /// will be returned, but no guarantees are made as to which one.
-fn tag_operators_in_chain(
+pub fn tag_operators_in_chain(
   operator_chain: Vec<Spanned<Operator>>,
 ) -> Result<Vec<Spanned<TaggedOperator>>, ChainParseError> {
   // Identify the longest prefix of our chain which consists of
