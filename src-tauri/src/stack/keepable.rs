@@ -124,6 +124,9 @@ where S: StackLike<T>,
   }
 }
 
+/// Random access to a [`KeepableStack`] delegates to the underlying
+/// stack and never utilizes any "keep" semantics, regardless of the
+/// value of [`KeepableStack::keep_semantics`].
 impl<'a, S, T> RandomAccessStackLike<T> for KeepableStack<'a, S, T>
 where S: RandomAccessStackLike<T>,
       T: Clone {
