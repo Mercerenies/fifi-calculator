@@ -2,6 +2,7 @@
 pub mod base;
 mod delegate;
 mod error;
+pub mod keepable;
 mod structure;
 
 pub use delegate::{DelegatingStack, StackDelegate};

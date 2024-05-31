@@ -134,7 +134,6 @@ where D: StackDelegate<T>,
     self.stack.get(index)
   }
 
-  // TODO: Would be nice to get rid of the T: Clone, actually
   fn get_mut(&mut self, index: i64) -> Result<RefMut<'_, T, S::Mut<'_>, D>, StackError> {
     let value = self.stack.get_mut(index)?;
     Ok(RefMut {
