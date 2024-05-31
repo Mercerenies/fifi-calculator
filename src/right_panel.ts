@@ -2,12 +2,10 @@
 // Right panel of the screen.
 
 import { ButtonGridManager, ButtonGrid } from "./button_grid.js";
-import { KeyEventInput } from "./keyboard.js";
 import { PrefixArgStateMachine } from "./prefix_argument.js";
 import { PrefixArgumentDelegate } from "./prefix_argument/prefix_delegate.js";
 import { PrefixArgumentDisplay } from "./prefix_argument/display.js";
 import { UndoManager } from './undo_manager.js';
-import { KeyResponse } from './keyboard.js';
 
 export class RightPanelManager {
   readonly prefixArgStateMachine: PrefixArgStateMachine;

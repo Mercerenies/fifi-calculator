@@ -11,6 +11,7 @@ export const ElementIds = {
   NOTIFICATION_BOX_TEXT: 'notification-box-text',
   BUTTON_GRID_CONTAINER: 'button-grid-container',
   PREFIX_ARG_PANEL: 'prefix-arg-panel',
+  MODIFIER_ARG_PANEL: 'modifier-arg-panel',
   UNDO_BUTTON: 'undo-button',
   REDO_BUTTON: 'redo-button',
 };
@@ -58,6 +59,10 @@ export function getButtonGridContainer(): HTMLElement {
 
 export function getPrefixArgPanel(): HTMLElement {
   return getElement(ElementIds.PREFIX_ARG_PANEL);
+}
+
+export function getModifierArgPanel(): HTMLElement {
+  return getElement(ElementIds.MODIFIER_ARG_PANEL);
 }
 
 export function getUndoButton(): HTMLButtonElement {
