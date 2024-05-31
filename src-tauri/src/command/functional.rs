@@ -10,6 +10,7 @@ use crate::error::Error;
 use crate::expr::Expr;
 use crate::errorlist::ErrorList;
 use crate::stack::base::{StackLike, RandomAccessStackLike};
+use crate::stack::keepable::KeepableStack;
 
 use std::cmp::Ordering;
 
@@ -101,6 +102,8 @@ impl BinaryFunctionCommand {
 
 impl Command for PushConstantCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
+    // Note: keep_modifier has no effect on this command (since there
+    // are no pops), so we don't construct a KeepableStack.
     state.undo_stack_mut().push_cut();
     let arg = ctx.opts.argument.unwrap_or(1).max(0);
     let mut errors = ErrorList::new();

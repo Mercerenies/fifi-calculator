@@ -4,12 +4,14 @@
 
 use crate::undo::UndoableChange;
 use crate::expr::Expr;
-use crate::stack::base::{StackLike, RandomAccessStackLike};
+use crate::stack::base::RandomAccessStackLike;
 use super::UndoableState;
 
-/// `UndoableChange` that pushes a single value onto the stack.
+/// `UndoableChange` that pushes a single value onto the stack at the
+/// given position.
 #[derive(Clone, Debug)]
 pub struct PushExprChange {
+  index: usize,
   expr: Expr,
 }
 
@@ -31,8 +33,8 @@ pub struct ReplaceExprChange {
 }
 
 impl PushExprChange {
-  pub fn new(expr: Expr) -> Self {
-    Self { expr }
+  pub fn new(index: usize, expr: Expr) -> Self {
+    Self { index, expr }
   }
 }
 
@@ -50,11 +52,11 @@ impl ReplaceExprChange {
 
 impl UndoableChange<UndoableState> for PushExprChange {
   fn play_forward(&self, state: &mut UndoableState) {
-    state.main_stack_mut().push(self.expr.clone());
+    let _ = state.main_stack_mut().insert(self.index, self.expr.clone());
   }
 
   fn play_backward(&self, state: &mut UndoableState) {
-    state.main_stack_mut().pop_and_discard();
+    let _ = state.main_stack_mut().pop_nth(self.index);
   }
 
   fn undo_summary(&self) -> String {

@@ -16,7 +16,7 @@ pub trait StackDelegate<T> {
   /// If several values are pushed at once, this method may be called
   /// before each one or several before any are pushed, but it will be
   /// called in the right order.
-  fn on_push(&mut self, new_value: &T);
+  fn on_push(&mut self, index: usize, new_value: &T);
 
   /// Called after a value is popped off the stack.
   ///
@@ -68,6 +68,14 @@ where D: StackDelegate<T> {
     Ok(value)
   }
 
+  pub fn insert(&mut self, index: usize, element: T) -> Result<(), StackError> {
+    // Check stack size before calling the delegate, so the delegate
+    // only sees valid pushes.
+    self.check_stack_size(index)?;
+    self.delegate.on_push(index, &element);
+    self.stack.insert(index, element)
+  }
+
   /// Iterates from the bottom of the stack.
   pub fn iter(&self) -> impl DoubleEndedIterator<Item = &T> {
     self.stack.iter()
@@ -93,7 +101,7 @@ where D: StackDelegate<T>,
   }
 
   fn push(&mut self, element: T) {
-    self.delegate.on_push(&element);
+    self.delegate.on_push(0, &element);
     self.stack.push(element);
   }
 
@@ -182,7 +190,7 @@ impl<'a, S: Hash, T, D> Hash for DelegatingStack<'a, S, T, D> {
 }
 
 impl<T> StackDelegate<T> for NullStackDelegate {
-  fn on_push(&mut self, _: &T) {}
+  fn on_push(&mut self, _: usize, _: &T) {}
   fn on_pop(&mut self, _: usize, _: &T) {}
   fn on_mutate(&mut self, _: i64, _: &T, _: &T) {}
 }
@@ -193,14 +201,14 @@ mod tests {
 
   #[derive(Default, Debug, PartialEq, Eq)]
   struct TestDelegate {
-    pushes: Vec<i32>,
+    pushes: Vec<(usize, i32)>,
     pops: Vec<(usize, i32)>,
     mutations: Vec<(i64, i32, i32)>,
   }
 
   impl StackDelegate<i32> for TestDelegate {
-    fn on_push(&mut self, value: &i32) {
-      self.pushes.push(*value);
+    fn on_push(&mut self, index: usize, value: &i32) {
+      self.pushes.push((index, *value));
     }
 
     fn on_pop(&mut self, index: usize, value: &i32) {
@@ -221,7 +229,7 @@ mod tests {
     stack.push(3);
     assert_eq!(stack.len(), 3);
     assert_eq!(stack.delegate, TestDelegate {
-      pushes: vec![1, 2, 3],
+      pushes: vec![(0, 1), (0, 2), (0, 3)],
       pops: vec![],
       mutations: vec![],
     });
@@ -234,10 +242,49 @@ mod tests {
     stack.push_several([1, 2, 3]);
     assert_eq!(stack.len(), 3);
     assert_eq!(stack.delegate, TestDelegate {
-      pushes: vec![1, 2, 3],
+      pushes: vec![(0, 1), (0, 2), (0, 3)],
       pops: vec![],
       mutations: vec![],
     });
+  }
+
+  #[test]
+  fn test_insert() {
+    let mut stack = Stack::new();
+    {
+      let mut stack = DelegatingStack::new(&mut stack, TestDelegate::default());
+      stack.insert(0, 100).unwrap();
+      stack.insert(0, 200).unwrap();
+      stack.insert(1, 300).unwrap();
+      assert_eq!(stack.len(), 3);
+      assert_eq!(stack.delegate, TestDelegate {
+        pushes: vec![(0, 100), (0, 200), (1, 300)],
+        pops: vec![],
+        mutations: vec![],
+      });
+    }
+    assert_eq!(stack.into_iter().collect::<Vec<_>>(), vec![100, 300, 200]);
+  }
+
+  #[test]
+  fn test_insert_with_out_of_bounds() {
+    let mut stack = Stack::new();
+    {
+      let mut stack = DelegatingStack::new(&mut stack, TestDelegate::default());
+      stack.insert(0, 100).unwrap();
+      stack.insert(0, 200).unwrap();
+      stack.insert(1, 300).unwrap();
+      stack.insert(2, 400).unwrap();
+      stack.insert(4, 500).unwrap();
+      stack.insert(6, 600).unwrap_err(); // This one fails and should NOT be reported to the delegate
+      assert_eq!(stack.len(), 5);
+      assert_eq!(stack.delegate, TestDelegate {
+        pushes: vec![(0, 100), (0, 200), (1, 300), (2, 400), (4, 500)],
+        pops: vec![],
+        mutations: vec![],
+      });
+    }
+    assert_eq!(stack.into_iter().collect::<Vec<_>>(), vec![500, 100, 400, 300, 200]);
   }
 
   #[test]
