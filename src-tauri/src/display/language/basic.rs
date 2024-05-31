@@ -4,8 +4,11 @@ use crate::error::Error;
 use crate::parsing::operator::{Operator, Precedence, OperatorTable};
 use crate::parsing::operator::fixity::FixityType;
 use crate::expr::Expr;
+use crate::expr::number::Number;
 use crate::expr::atom::Atom;
 use crate::expr::basic_parser::ExprParser;
+
+use num::Zero;
 
 #[derive(Clone, Debug, Default)]
 pub struct BasicLanguageMode {
@@ -164,10 +167,26 @@ impl BasicLanguageMode {
     }
   }
 
+  fn number_needs_parens(&self, number: &Number, prec: Precedence) -> bool {
+    let negation_precedence = self.known_operators
+      .get_by_operator_name("-")
+      .and_then(|op| op.fixity().as_prefix())
+      .map(|op| op.precedence())
+      .unwrap_or(Precedence::MIN);
+    number < &Number::zero() && negation_precedence < prec
+  }
+
   fn to_html_with_precedence(&self, out: &mut String, expr: &Expr, prec: Precedence) {
     match expr {
       Expr::Atom(Atom::Number(n)) => {
+        let needs_parens = self.number_needs_parens(n, prec);
+        if needs_parens {
+          out.push('(');
+        }
         out.push_str(&n.to_string());
+        if needs_parens {
+          out.push(')');
+        }
       }
       Expr::Atom(Atom::Complex(z)) => {
         out.push_str(&z.to_string());
@@ -330,7 +349,6 @@ mod tests {
   }
 
   #[test]
-  #[ignore = "Known bug, see Issue #16"]
   fn test_power_with_negative_base() {
     let mode = BasicLanguageMode::from_common_operators();
     let expr = Expr::call("^", vec![Expr::from(-1), Expr::from(2)]);
