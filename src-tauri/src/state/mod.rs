@@ -97,7 +97,7 @@ impl ApplicationState {
     &mut self.undoable_state.main_stack
   }
 
-  pub fn main_stack_mut(&mut self) -> DelegatingStack<'_, Expr, UndoingDelegate<'_>> {
+  pub fn main_stack_mut(&mut self) -> DelegatingStack<'_, Stack<Expr>, Expr, UndoingDelegate<'_>> {
     DelegatingStack::new(
       self.undoable_state.main_stack_mut(),
       UndoingDelegate::new(&mut self.undo_stack),
