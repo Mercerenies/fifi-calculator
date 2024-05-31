@@ -74,7 +74,8 @@ pub struct KeepableStack<'a, S, T> {
   _marker: PhantomData<T>,
 }
 
-impl<'a, S, T> KeepableStack<'a, S, T> {
+impl<'a, S, T> KeepableStack<'a, S, T>
+where S: StackLike<T> {
   pub fn new(stack: &'a mut S, keep_semantics: bool) -> Self {
     Self {
       stack,
