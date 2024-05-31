@@ -1,5 +1,6 @@
 
 use super::error::StackError;
+use super::base::{StackLike, RandomAccessStackLike};
 
 use std::slice;
 
@@ -11,48 +12,8 @@ pub struct Stack<T> {
 }
 
 impl<T> Stack<T> {
-
   pub fn new() -> Self {
     Self::default()
-  }
-
-  /// Asserts that the stack has size at least `expected` but does not
-  /// pop anything.
-  pub fn check_stack_size(&self, expected: usize) -> Result<(), StackError> {
-    if self.len() < expected {
-      Err(StackError::NotEnoughElements { expected, actual: self.len() })
-    } else {
-      Ok(())
-    }
-  }
-
-  pub fn push(&mut self, element: T) {
-    self.elements.push(element);
-  }
-
-  /// Push in the order we see them, so that the last element in the
-  /// iterable is at the top of the resulting stack.
-  pub fn push_several(&mut self, elements: impl IntoIterator<Item = T>) {
-    self.elements.extend(elements);
-  }
-
-  pub fn pop(&mut self) -> Result<T, StackError> {
-    self.elements.pop().ok_or(StackError::NotEnoughElements { expected: 1, actual: 0 })
-  }
-
-  /// As [`Stack::pop`], but with no result value. Use this function
-  /// if you don't plan to use the result and don't care if the `pop`
-  /// call fails due to an empty stack.
-  pub fn pop_and_discard(&mut self) {
-    let _ = self.elements.pop();
-  }
-
-  /// Pops `count` elements off the stack and returns those elements,
-  /// with the former top of the stack at the end of the vector. In
-  /// case of a [`StackError`], `self` will NOT be modified.
-  pub fn pop_several(&mut self, count: usize) -> Result<Vec<T>, StackError> {
-    self.check_stack_size(count)?;
-    Ok(self.elements.split_off(self.len() - count))
   }
 
   /// Pops the nth element (0-indexed and counting from the top) and
@@ -72,18 +33,6 @@ impl<T> Stack<T> {
     self.check_stack_size(index)?;
     self.elements.insert(self.len() - index, element);
     Ok(())
-  }
-
-  pub fn pop_all(&mut self) -> Vec<T> {
-    self.elements.drain(..).collect()
-  }
-
-  pub fn len(&self) -> usize {
-    self.elements.len()
-  }
-
-  pub fn is_empty(&self) -> bool {
-    self.elements.is_empty()
   }
 
   /// Returns either an index into the internal vector (as an `Ok`) or
@@ -107,34 +56,6 @@ impl<T> Stack<T> {
     }
   }
 
-  /// Stacks index from the top of the stack, so index zero is always
-  /// the very top. Negative indices can be used to index from the
-  /// bottom.
-  pub fn get(&self, index: i64) -> Result<&T, StackError> {
-    let index = self.to_vec_index(index)?;
-    Ok(&self.elements[index])
-  }
-
-  pub fn get_mut(&mut self, index: i64) -> Result<&mut T, StackError> {
-    let index = self.to_vec_index(index)?;
-    Ok(&mut self.elements[index])
-  }
-
-  /// Modifies the value at the given position, using the given
-  /// function.
-  ///
-  /// On [`Stack`], this is equivalent to simply calling
-  /// [`get_mut`](Stack::get_mut) and making the modification
-  /// directly. But a similar method is also exposed on
-  /// [`DelegatingStack`](super::delegate::DelegatingStack), which
-  /// tracks the modification as well.
-  pub fn mutate<F>(&mut self, index: i64, f: F) -> Result<(), StackError>
-  where F: FnOnce(&mut T) {
-    let value = self.get_mut(index)?;
-    f(value);
-    Ok(())
-  }
-
   /// Iterates from the bottom of the stack.
   pub fn iter(&self) -> slice::Iter<'_, T> {
     self.elements.iter()
@@ -145,6 +66,53 @@ impl<T> Stack<T> {
     self.elements.iter_mut()
   }
 
+}
+
+impl<T> StackLike<T> for Stack<T> {
+  fn pop_all(&mut self) -> Vec<T> {
+    self.elements.drain(..).collect()
+  }
+
+  fn len(&self) -> usize {
+    self.elements.len()
+  }
+
+  fn push(&mut self, element: T) {
+    self.elements.push(element);
+  }
+
+  /// Push in the order we see them, so that the last element in the
+  /// iterable is at the top of the resulting stack.
+  fn push_several(&mut self, elements: impl IntoIterator<Item = T>) {
+    self.elements.extend(elements);
+  }
+
+  fn pop(&mut self) -> Result<T, StackError> {
+    self.elements.pop().ok_or(StackError::NotEnoughElements { expected: 1, actual: 0 })
+  }
+
+  /// Pops `count` elements off the stack and returns those elements,
+  /// with the former top of the stack at the end of the vector. In
+  /// case of a [`StackError`], `self` will NOT be modified.
+  fn pop_several(&mut self, count: usize) -> Result<Vec<T>, StackError> {
+    self.check_stack_size(count)?;
+    Ok(self.elements.split_off(self.len() - count))
+  }
+}
+
+impl<T> RandomAccessStackLike<T> for Stack<T> {
+  type Ref<'a> = &'a T where Self: 'a;
+  type Mut<'a> = &'a mut T where Self: 'a;
+
+  fn get(&self, index: i64) -> Result<&T, StackError> {
+    let index = self.to_vec_index(index)?;
+    Ok(&self.elements[index])
+  }
+
+  fn get_mut(&mut self, index: i64) -> Result<&mut T, StackError> {
+    let index = self.to_vec_index(index)?;
+    Ok(&mut self.elements[index])
+  }
 }
 
 impl<T> IntoIterator for Stack<T> {
@@ -166,13 +134,11 @@ impl<T> From<Vec<T>> for Stack<T> {
 }
 
 impl<T> Default for Stack<T> {
-
   fn default() -> Self {
     Self {
       elements: Vec::with_capacity(10),
     }
   }
-
 }
 
 #[cfg(test)]

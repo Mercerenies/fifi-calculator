@@ -4,6 +4,7 @@
 
 use crate::undo::UndoableChange;
 use crate::expr::Expr;
+use crate::stack::base::{StackLike, RandomAccessStackLike};
 use super::UndoableState;
 
 /// `UndoableChange` that pushes a single value onto the stack.

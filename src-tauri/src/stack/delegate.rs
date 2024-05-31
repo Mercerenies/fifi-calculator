@@ -4,6 +4,7 @@
 
 use super::structure::Stack;
 use super::error::StackError;
+use super::base::{StackLike, RandomAccessStackLike};
 
 use std::hash::{Hash, Hasher};
 use std::ops::{Deref, DerefMut};
@@ -51,95 +52,10 @@ where D: StackDelegate<T> {
     DelegatingStack { stack, delegate }
   }
 
-  pub fn check_stack_size(&self, expected: usize) -> Result<(), StackError> {
-    self.stack.check_stack_size(expected)
-  }
-
-  pub fn push(&mut self, element: T) {
-    self.delegate.on_push(&element);
-    self.stack.push(element);
-  }
-
-  pub fn push_several(&mut self, elements: impl IntoIterator<Item = T>) {
-    for element in elements {
-      self.push(element);
-    }
-  }
-
-  pub fn pop(&mut self) -> Result<T, StackError> {
-    let value = self.stack.pop()?;
-    self.delegate.on_pop(0, &value);
-    Ok(value)
-  }
-
   pub fn pop_nth(&mut self, index: usize) -> Result<T, StackError> {
     let value = self.stack.pop_nth(index)?;
     self.delegate.on_pop(index, &value);
     Ok(value)
-  }
-
-  pub fn pop_and_discard(&mut self) {
-    let _ = self.pop();
-  }
-
-  pub fn pop_several(&mut self, count: usize) -> Result<Vec<T>, StackError> {
-    let values = self.stack.pop_several(count)?;
-    for value in values.iter().rev() {
-      self.delegate.on_pop(0, value);
-    }
-    Ok(values)
-  }
-
-  pub fn pop_all(&mut self) -> Vec<T> {
-    let values = self.stack.pop_all();
-    for value in values.iter().rev() {
-      self.delegate.on_pop(0, value);
-    }
-    values
-  }
-
-  pub fn len(&self) -> usize {
-    self.stack.len()
-  }
-
-  pub fn is_empty(&self) -> bool {
-    self.stack.is_empty()
-  }
-
-  /// Gets a value from the stack. Nonnegative indices index from the
-  /// top of the stack (with index 0 being the top), while negative
-  /// indices index from the bottom (with index -1 being the very
-  /// bottom).
-  pub fn get(&self, index: i64) -> Result<&T, StackError> {
-    self.stack.get(index)
-  }
-
-  /// Gets a mutable reference from the stack. When this reference is
-  /// dropped, the mutation will be logged to the delegate, which
-  /// requires `T: Clone` in order to be fully implemented correctly.
-  pub fn get_mut(&mut self, index: i64) -> Result<RefMut<'_, T, D>, StackError>
-  where T: Clone {
-    let value = self.stack.get_mut(index)?;
-    Ok(RefMut {
-      index,
-      delegate: &mut self.delegate,
-      original_value: value.clone(),
-      value,
-    })
-  }
-
-  /// Modifies the value at the given position, using the given
-  /// function. In order to properly invoke the delegate, `T` must be
-  /// `Clone`, so that the delegate can be called with both the old
-  /// and new values.
-  pub fn mutate<F>(&mut self, index: i64, f: F) -> Result<(), StackError>
-  where F: FnOnce(&mut T),
-        T: Clone {
-    let value = self.stack.get_mut(index)?;
-    let old_value = value.clone();
-    f(value);
-    self.delegate.on_mutate(index, &old_value, value);
-    Ok(())
   }
 
   /// Iterates from the bottom of the stack.
@@ -156,6 +72,62 @@ where D: StackDelegate<T> {
       f(elem);
       self.delegate.on_mutate((len - i - 1) as i64, &original_elem, elem);
     }
+  }
+}
+
+impl<'a, T, D: StackDelegate<T>> StackLike<T> for DelegatingStack<'a, T, D> {
+  fn len(&self) -> usize {
+    self.stack.len()
+  }
+
+  fn push(&mut self, element: T) {
+    self.delegate.on_push(&element);
+    self.stack.push(element);
+  }
+
+  fn pop(&mut self) -> Result<T, StackError> {
+    let value = self.stack.pop()?;
+    self.delegate.on_pop(0, &value);
+    Ok(value)
+  }
+
+  fn pop_several(&mut self, count: usize) -> Result<Vec<T>, StackError> {
+    let values = self.stack.pop_several(count)?;
+    for value in values.iter().rev() {
+      self.delegate.on_pop(0, value);
+    }
+    Ok(values)
+  }
+
+  fn pop_all(&mut self) -> Vec<T> {
+    let values = self.stack.pop_all();
+    for value in values.iter().rev() {
+      self.delegate.on_pop(0, value);
+    }
+    values
+  }
+}
+
+/// The `RandomAccessStackLike` impl for `DelegatingStack` requires
+/// `T: Clone` to be able to properly audit elements of the stack
+/// after-the-fact.
+impl<'a, T: Clone, D: StackDelegate<T>> RandomAccessStackLike<T> for DelegatingStack<'a, T, D> {
+  type Ref<'b> = &'b T where Self: 'b;
+  type Mut<'b> = RefMut<'b, T, D> where Self: 'b;
+
+  fn get(&self, index: i64) -> Result<&T, StackError> {
+    self.stack.get(index)
+  }
+
+  // TODO: Would be nice to get rid of the T: Clone, actually
+  fn get_mut(&mut self, index: i64) -> Result<RefMut<'_, T, D>, StackError> {
+    let value = self.stack.get_mut(index)?;
+    Ok(RefMut {
+      index,
+      delegate: &mut self.delegate,
+      original_value: value.clone(),
+      value,
+    })
   }
 }
 

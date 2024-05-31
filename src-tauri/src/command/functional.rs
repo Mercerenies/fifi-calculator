@@ -7,6 +7,7 @@ use crate::state::ApplicationState;
 use crate::error::Error;
 use crate::expr::Expr;
 use crate::errorlist::ErrorList;
+use crate::stack::base::{StackLike, RandomAccessStackLike};
 
 use std::cmp::Ordering;
 

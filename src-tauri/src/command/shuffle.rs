@@ -3,6 +3,7 @@
 
 use super::base::{Command, CommandContext, CommandOutput};
 use crate::state::ApplicationState;
+use crate::stack::base::{StackLike, RandomAccessStackLike};
 use crate::error::Error;
 
 use std::cmp::Ordering;
