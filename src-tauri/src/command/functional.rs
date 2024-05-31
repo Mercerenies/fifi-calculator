@@ -130,9 +130,11 @@ impl Command for UnaryFunctionCommand {
       }
       Ordering::Equal => {
         // Apply to all elements.
-        stack.foreach_mut(|e| {
-          e.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors));
-        });
+        let mut whole_stack = stack.pop_all();
+        for elem in &mut whole_stack {
+          elem.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors));
+        }
+        stack.push_several(whole_stack);
       }
     }
     Ok(CommandOutput::from_errors(errors))
