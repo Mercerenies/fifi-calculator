@@ -1,6 +1,9 @@
 
+use serde::{Serialize, Deserialize};
+
 /// Options passed in addition to a command.
-#[derive(Default, Clone, Debug, PartialEq, Eq)]
+#[derive(Default, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CommandOptions {
   /// The optional numerical argument for the command. This often
   /// indicates where on the stack to apply the command, or to how

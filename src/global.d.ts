@@ -13,8 +13,13 @@ interface TauriFunctions {
 
 interface TauriInvoke {
   (command: 'submit_number' | 'submit_expr', args: { value: string }): Promise<void>;
-  (command: 'math_command', args: { commandName: string, prefixArgument: number | null }): Promise<void>;
+  (command: 'math_command', args: { commandName: string, opts: CommandOptions }): Promise<void>;
   (command: 'perform_undo_action', args: { direction: "undo" | "redo" }): Promise<void>;
+}
+
+interface CommandOptions {
+  argument: number | null,
+  keepModifier: boolean,
 }
 
 interface OsFunctions {

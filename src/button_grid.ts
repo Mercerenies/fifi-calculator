@@ -43,8 +43,14 @@ export class ButtonGridManager {
   }
 
   async invokeMathCommand(commandName: string): Promise<void> {
-    const prefixArgument = this.modifierDelegate.getModifiers().prefixArgument;
-    await tauri.invoke('math_command', { commandName, prefixArgument });
+    const argument = this.modifierDelegate.getModifiers().prefixArgument;
+    await tauri.invoke('math_command', {
+      commandName,
+      opts: {
+        argument,
+        keepModifier: false, // TODO: keepModifier
+      },
+    });
   }
 
   private loadButtonShortcuts(): void {

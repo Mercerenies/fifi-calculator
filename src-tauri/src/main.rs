@@ -46,12 +46,12 @@ fn math_command(
   app_state: tauri::State<TauriApplicationState>,
   app_handle: tauri::AppHandle,
   command_name: &str,
-  prefix_argument: Option<i64>,
+  opts: CommandOptions,
 ) -> Result<(), tauri::Error> {
   let mut state = app_state.state.lock().expect("poisoned mutex");
   handle_non_tauri_errors(
     &app_handle,
-    run_math_command(&app_handle, &mut state, &app_state.command_table, command_name, prefix_argument),
+    run_math_command(&app_handle, &mut state, &app_state.command_table, command_name, opts),
   )?;
   state.send_refresh_stack_event(&app_handle)?;
   state.send_undo_buttons_event(&app_handle)?;
@@ -114,11 +114,11 @@ fn run_math_command(
   state: &mut ApplicationState,
   table: &CommandDispatchTable,
   command_name: &str,
-  prefix_argument: Option<i64>,
+  opts: CommandOptions,
 ) -> Result<(), Error> {
   let command = table.get(command_name)?;
   let context = CommandContext {
-    opts: CommandOptions { argument: prefix_argument, keep_modifier: false }, // TODO: keep_modifier
+    opts,
     simplifier: default_simplifier(),
   };
   let output = command.run_command(state, &context)?;
