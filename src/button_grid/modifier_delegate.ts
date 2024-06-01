@@ -12,7 +12,7 @@ export interface ModifierDelegate {
 
 export const NULL_DELEGATE: ModifierDelegate = {
   getModifiers() {
-    return { prefixArgument: null };
+    return defaultModifiers();
   },
   resetModifiers() {
     // No action; NULL_DELEGATE does not store any state.
@@ -24,4 +24,12 @@ export const NULL_DELEGATE: ModifierDelegate = {
 
 export interface ButtonModifiers {
   prefixArgument: number | null;
+  keepModifier: boolean;
+}
+
+export function defaultModifiers(): ButtonModifiers {
+  return {
+    prefixArgument: null,
+    keepModifier: false,
+  };
 }
