@@ -1,6 +1,6 @@
 
 import { KeyEventInput, KeyResponse } from '../keyboard.js';
-import { ModifierDelegate, ButtonModifiers } from '../button_grid/modifier_delegate.js';
+import { ModifierDelegate, ButtonModifiers, defaultModifiers } from '../button_grid/modifier_delegate.js';
 import { PrefixArgStateMachine, StateTransition, DEFAULT_STATE } from '../prefix_argument.js';
 
 // Modifier delegate that handles prefix arguments.
@@ -12,9 +12,9 @@ export class PrefixArgumentDelegate implements ModifierDelegate {
   }
 
   getModifiers(): ButtonModifiers {
-    return {
+    return Object.assign(defaultModifiers(), {
       prefixArgument: this.stateMachine.prefixArgument,
-    };
+    });
   }
 
   resetModifiers(): void {

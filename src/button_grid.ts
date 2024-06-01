@@ -45,7 +45,7 @@ export class ButtonGridManager {
   }
 
   async invokeMathCommand(commandName: string): Promise<void> {
-    const argument = this.modifierDelegate.getModifiers().prefixArgument;
+    const argument = this.modifierDelegate.getModifiers().prefixArgument ?? null;
     await tauri.invoke('math_command', {
       commandName,
       opts: {
