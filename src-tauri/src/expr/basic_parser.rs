@@ -334,6 +334,32 @@ mod tests {
   }
 
   #[test]
+  fn test_var() {
+    let table = OperatorTable::common_operators();
+    let parser = ExprParser::new(&table);
+
+    let expr = parser.tokenize_and_parse("a + b").unwrap();
+    assert_eq!(expr, Expr::call("+", vec![
+      Expr::var("a").unwrap(),
+      Expr::var("b").unwrap(),
+    ]));
+  }
+
+  #[test]
+  fn test_function_call_and_var() {
+    let table = OperatorTable::common_operators();
+    let parser = ExprParser::new(&table);
+
+    let expr = parser.tokenize_and_parse("foo((1 + 2) * a')").unwrap();
+    assert_eq!(expr, Expr::call("foo", vec![
+      Expr::call("*", vec![
+        Expr::call("+", vec![Expr::from(1), Expr::from(2)]),
+        Expr::var("a'").unwrap(),
+      ]),
+    ]));
+  }
+
+  #[test]
   fn test_prefix_ops() {
     let table = OperatorTable::common_operators();
     let parser = ExprParser::new(&table);
