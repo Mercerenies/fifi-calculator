@@ -131,7 +131,7 @@ impl<'a> TokenizerState<'a> {
   }
 
   pub fn consume_spaces(&mut self) {
-    static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\s*").unwrap());
+    static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\s*").unwrap());
     self.read_regex(&RE).expect("regex should not fail");
   }
 }
