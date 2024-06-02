@@ -16,6 +16,7 @@ export default tseslint.config(
     rules: {
       "@typescript-eslint/no-inferrable-types": ["error", {
         "ignoreParameters": true,
+        "ignoreProperties": true,
       }],
     },
   },
