@@ -48,6 +48,7 @@ export class PrefixArgumentDisplay {
   uninitListeners(): void {
     if (this.signalListener) {
       this.stateMachine.stateChangedSignal.removeListener(this.signalListener);
+      this.signalListener = undefined;
     }
   }
 

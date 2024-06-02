@@ -2,9 +2,11 @@
 // Right panel of the screen.
 
 import { ButtonGridManager, ButtonGrid } from "./button_grid.js";
+import { delegates } from './button_grid/modifier_delegate.js';
 import { PrefixArgStateMachine } from "./prefix_argument.js";
 import { PrefixArgumentDelegate } from "./prefix_argument/prefix_delegate.js";
 import { PrefixArgumentDisplay } from "./prefix_argument/display.js";
+import { ModifierArgPanel, ModifierArgumentsManager } from "./modifier_arg_panel.js";
 import { UndoManager } from './undo_manager.js';
 
 export class RightPanelManager {
@@ -12,13 +14,22 @@ export class RightPanelManager {
   readonly buttonGrid: ButtonGridManager;
   readonly prefixArgDisplay: PrefixArgumentDisplay;
   readonly undoManager: UndoManager;
+  readonly modifierArgManager: ModifierArgumentsManager;
+  readonly modifierArgPanel: ModifierArgPanel;
 
   constructor(args: RightPanelArguments) {
     this.prefixArgStateMachine = new PrefixArgStateMachine();
+    this.modifierArgManager = new ModifierArgumentsManager();
+
+    const modifierDelegate = delegates([
+      new PrefixArgumentDelegate(this.prefixArgStateMachine),
+      this.modifierArgManager.delegate,
+    ]);
+
     this.buttonGrid = new ButtonGridManager(
       args.buttonGrid,
       args.initialGrid,
-      new PrefixArgumentDelegate(this.prefixArgStateMachine),
+      modifierDelegate,
     );
     this.prefixArgDisplay = new PrefixArgumentDisplay(
       args.prefixPanel,
@@ -26,11 +37,15 @@ export class RightPanelManager {
       args,
     );
     this.undoManager = new UndoManager(args);
+    this.modifierArgPanel = new ModifierArgPanel(
+      Object.assign({ modifierArgumentsManager: this.modifierArgManager }, args),
+    );
   }
 
   initListeners() {
     this.buttonGrid.initListeners();
     this.prefixArgDisplay.initListeners();
+    this.modifierArgPanel.initListeners();
     this.undoManager.initListeners();
   }
 }
@@ -38,6 +53,7 @@ export class RightPanelManager {
 export interface RightPanelArguments {
   buttonGrid: HTMLElement,
   prefixPanel: HTMLElement,
+  keepModifierCheckbox: HTMLInputElement,
   initialGrid: ButtonGrid,
   undoButton: HTMLButtonElement,
   redoButton: HTMLButtonElement,

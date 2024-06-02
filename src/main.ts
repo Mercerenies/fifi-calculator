@@ -3,7 +3,7 @@ import * as Page from './page.js';
 import { InputBoxManager } from './input_box.js';
 import { NotificationManager } from './notifications.js';
 import { MainButtonGrid } from './button_grid/main_button_grid.js';
-import { KeyInput, KeyResponse } from './keyboard.js';
+import { KeyInput } from './keyboard.js';
 import * as KeyDispatcher from './keyboard/dispatcher.js';
 import { RightPanelManager } from './right_panel.js';
 
@@ -28,6 +28,7 @@ class UiManager {
     this.rightPanelManager = new RightPanelManager({
       buttonGrid: Page.getButtonGridContainer(),
       prefixPanel: Page.getPrefixArgPanel(),
+      keepModifierCheckbox: Page.getModifierArgKeepArgCheckbox(),
       initialGrid: new MainButtonGrid(this.inputManager, this.notificationManager),
       undoButton: Page.getUndoButton(),
       redoButton: Page.getRedoButton(),

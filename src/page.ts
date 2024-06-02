@@ -12,6 +12,7 @@ export const ElementIds = {
   BUTTON_GRID_CONTAINER: 'button-grid-container',
   PREFIX_ARG_PANEL: 'prefix-arg-panel',
   MODIFIER_ARG_PANEL: 'modifier-arg-panel',
+  MODIFIER_ARG_KEEP_ARG_CHECKBOX: 'modifier-arg-keep-arg',
   UNDO_BUTTON: 'undo-button',
   REDO_BUTTON: 'redo-button',
 };
@@ -63,6 +64,10 @@ export function getPrefixArgPanel(): HTMLElement {
 
 export function getModifierArgPanel(): HTMLElement {
   return getElement(ElementIds.MODIFIER_ARG_PANEL);
+}
+
+export function getModifierArgKeepArgCheckbox(): HTMLInputElement {
+  return getElement(ElementIds.MODIFIER_ARG_KEEP_ARG_CHECKBOX) as HTMLInputElement;
 }
 
 export function getUndoButton(): HTMLButtonElement {
