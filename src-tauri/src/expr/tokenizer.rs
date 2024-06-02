@@ -77,9 +77,9 @@ impl<'a> ExprTokenizer<'a> {
   pub fn read_one_token(&self, state: &mut TokenizerState<'_>) -> Result<Token, TokenizerError> {
     if let Some(tok) = self.read_char_token(state) {
       Ok(tok)
-    } else if let Some(tok) = self.read_variable_token(state) {
-      Ok(tok)
     } else if let Some(tok) = self.read_function_call_token(state) {
+      Ok(tok)
+    } else if let Some(tok) = self.read_variable_token(state) {
       Ok(tok)
     } else if let Some(res) = self.read_number_literal(state) {
       res
@@ -309,6 +309,29 @@ mod tests {
         Token::new(TokenData::RightParen, span(5, 6)),
         Token::new(TokenData::Comma, span(7, 8)),
         Token::new(TokenData::RightParen, span(9, 10)),
+      ],
+    );
+    assert!(state.is_eof());
+  }
+
+  fn test_token_stream_with_var() {
+    let table = sample_operator_table();
+    let tokenizer = ExprTokenizer::new(&table);
+
+    let mut state = TokenizerState::new("1( a() , z z) z'");
+    let tokens = tokenizer.read_tokens(&mut state).unwrap();
+    assert_eq!(
+      tokens,
+      vec![
+        Token::new(TokenData::Number(Number::from(1)), span(0, 1)),
+        Token::new(TokenData::LeftParen, span(1, 2)),
+        Token::new(TokenData::FunctionCallStart("a".to_owned()), span(3, 5)),
+        Token::new(TokenData::RightParen, span(5, 6)),
+        Token::new(TokenData::Comma, span(7, 8)),
+        Token::new(TokenData::Var(Var::new("z").unwrap()), span(9, 10)),
+        Token::new(TokenData::Var(Var::new("z").unwrap()), span(11, 12)),
+        Token::new(TokenData::RightParen, span(12, 13)),
+        Token::new(TokenData::Var(Var::new("z'").unwrap()), span(13, 15)),
       ],
     );
     assert!(state.is_eof());
