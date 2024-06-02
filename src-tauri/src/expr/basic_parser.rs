@@ -90,7 +90,8 @@ impl<'a> ExprParser<'a> {
       TokenData::Comma | TokenData::RightParen => {
         Err(ParsingError::ExpectedStartOfExpr(token.span.start).into())
       }
-      TokenData::Operator(_) | TokenData::FunctionCallStart(_) | TokenData::LeftParen | TokenData::Number(_) => {
+      TokenData::Var(_) | TokenData::Operator(_) | TokenData::FunctionCallStart(_) |
+      TokenData::LeftParen | TokenData::Number(_) => {
         self.parse_operator_chain(stream)
       }
     }
@@ -108,7 +109,7 @@ impl<'a> ExprParser<'a> {
           tokens.push(spanned.map(ChainToken::Operator));
           stream = tail;
         }
-        Some(TokenData::FunctionCallStart(_) | TokenData::LeftParen | TokenData::Number(_)) => {
+        Some(TokenData::Var(_) | TokenData::FunctionCallStart(_) | TokenData::LeftParen | TokenData::Number(_)) => {
           // Read atomic expression
           let (spanned, tail) = self.parse_atom(stream)?;
           tokens.push(spanned.map(ChainToken::Scalar));
@@ -145,6 +146,9 @@ impl<'a> ExprParser<'a> {
     match &token.data {
       TokenData::Number(n) => {
         Ok((Spanned::new(Expr::from(n.clone()), token.span), &stream[1..]))
+      }
+      TokenData::Var(v) => {
+        Ok((Spanned::new(Expr::from(v.clone()), token.span), &stream[1..]))
       }
       TokenData::FunctionCallStart(f) => {
         let ((args, end), tail) = self.parse_function_args(&stream[1..])?;

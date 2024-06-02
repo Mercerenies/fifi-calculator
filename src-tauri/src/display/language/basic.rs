@@ -191,6 +191,9 @@ impl BasicLanguageMode {
       Expr::Atom(Atom::Complex(z)) => {
         out.push_str(&z.to_string());
       }
+      Expr::Atom(Atom::Var(v)) => {
+        out.push_str(&v.to_string());
+      }
       Expr::Call(f, args) => {
         let as_op =
           self.try_infix_op_to_html(out, f, args, prec) ||

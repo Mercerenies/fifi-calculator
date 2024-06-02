@@ -1,5 +1,6 @@
 
 use super::number::{Number, ComplexNumber};
+use super::var::Var;
 
 use std::fmt::{self, Display, Formatter};
 
@@ -7,11 +8,18 @@ use std::fmt::{self, Display, Formatter};
 pub enum Atom {
   Number(Number),
   Complex(ComplexNumber),
+  Var(Var),
 }
 
 impl From<Number> for Atom {
   fn from(n: Number) -> Self {
     Self::Number(n)
+  }
+}
+
+impl From<Var> for Atom {
+  fn from(v: Var) -> Self {
+    Self::Var(v)
   }
 }
 
@@ -32,6 +40,7 @@ impl Display for Atom {
     match self {
       Atom::Number(n) => write!(f, "{n}"),
       Atom::Complex(n) => write!(f, "{n}"),
+      Atom::Var(v) => write!(f, "{v}"),
     }
   }
 }

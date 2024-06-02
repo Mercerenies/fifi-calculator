@@ -78,6 +78,12 @@ impl From<atom::Atom> for Expr {
   }
 }
 
+impl From<var::Var> for Expr {
+  fn from(v: var::Var) -> Expr {
+    Expr::Atom(v.into())
+  }
+}
+
 impl From<number::Number> for Expr {
   fn from(n: number::Number) -> Expr {
     Expr::Atom(n.into())

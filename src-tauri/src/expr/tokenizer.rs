@@ -1,5 +1,6 @@
 
 use super::number::{Number, ParseNumberError};
+use super::var::Var;
 use crate::parsing::operator::{Operator, OperatorTable};
 use crate::parsing::source::{Span, SourceOffset};
 use crate::parsing::tokenizer::TokenizerState;
@@ -27,6 +28,7 @@ pub struct Token {
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenData {
   Number(Number),
+  Var(Var),
   Operator(Operator),
   FunctionCallStart(String),
   LeftParen,
@@ -75,6 +77,8 @@ impl<'a> ExprTokenizer<'a> {
   pub fn read_one_token(&self, state: &mut TokenizerState<'_>) -> Result<Token, TokenizerError> {
     if let Some(tok) = self.read_char_token(state) {
       Ok(tok)
+    } else if let Some(tok) = self.read_variable_token(state) {
+      Ok(tok)
     } else if let Some(tok) = self.read_function_call_token(state) {
       Ok(tok)
     } else if let Some(res) = self.read_number_literal(state) {
@@ -116,6 +120,14 @@ impl<'a> ExprTokenizer<'a> {
     })
   }
 
+  fn read_variable_token(&self, state: &mut TokenizerState<'_>) -> Option<Token> {
+    static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[a-zA-Z][a-zA-Z0-9']*").unwrap());
+    state.read_regex(&RE).map(|m| {
+      let var = Var::new(m.as_str()).expect("expected valid variable name from tokenizer");
+      Token::new(TokenData::Var(var), m.span())
+    })
+  }
+
   fn read_operator(&self, state: &mut TokenizerState<'_>) -> Option<Token> {
     state.read_regex(&self.operator_regex).map(|m| {
       let operator = self.operator_table.get_by_operator_name(m.as_str()).expect("expected operator to exist");
@@ -153,6 +165,7 @@ impl Display for TokenData {
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
     match self {
       TokenData::Number(n) => write!(f, "{n}"),
+      TokenData::Var(v) => write!(f, "{v}"),
       TokenData::Operator(op) => write!(f, "{}", op.operator_name()),
       TokenData::FunctionCallStart(name) => write!(f, "{name}("),
       TokenData::LeftParen => write!(f, "("),
