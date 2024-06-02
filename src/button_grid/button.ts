@@ -34,6 +34,6 @@ export class DispatchButton extends Button {
 
   async fire(manager: ButtonGridManager): Promise<void> {
     manager.invokeMathCommand(this.commandName);
-    manager.resetModifiers();
+    manager.resetState();
   }
 }

@@ -17,7 +17,7 @@ export abstract class InputButton extends Button {
 
   async fire(manager: ButtonGridManager): Promise<void> {
     this.inputManager.show(this.getInputMethod(), "");
-    manager.resetModifiers();
+    manager.resetState();
   }
 }
 

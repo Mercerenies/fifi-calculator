@@ -17,12 +17,14 @@ const GRID_ROWS = 6;
 
 export class ButtonGridManager {
   private domElement: HTMLElement;
+  private rootGrid: ButtonGrid;
   private activeGrid: ButtonGrid;
   private buttonsByKey: Record<string, GridCell> = {};
   private modifierDelegate: ModifierDelegate;
 
   constructor(domElement: HTMLElement, initialGrid: ButtonGrid, modifierDelegate: ModifierDelegate) {
     this.domElement = domElement;
+    this.rootGrid = initialGrid;
     this.activeGrid = initialGrid;
     this.modifierDelegate = modifierDelegate;
     this.setActiveGrid(initialGrid); // Initialize the grid
@@ -30,6 +32,11 @@ export class ButtonGridManager {
 
   initListeners(): void {
     // No listeners to initialize for right now.
+  }
+
+  resetState(): void {
+    this.setActiveGrid(this.rootGrid);
+    this.resetModifiers();
   }
 
   resetModifiers(): void {
