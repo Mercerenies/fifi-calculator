@@ -1,8 +1,5 @@
 
 import { ButtonGridManager, GridCell } from "../button_grid.js";
-import { InputBoxManager } from '../input_box.js';
-import { NumericalInputMethod } from '../input_box/numerical_input.js';
-import { AlgebraicInputMethod } from '../input_box/algebraic_input.js';
 
 export abstract class Button implements GridCell {
   readonly label: string | HTMLElement;
@@ -37,34 +34,6 @@ export class DispatchButton extends Button {
 
   async fire(manager: ButtonGridManager): Promise<void> {
     manager.invokeMathCommand(this.commandName);
-    manager.resetModifiers();
-  }
-}
-
-export class NumericalInputButton extends Button {
-  private inputManager: InputBoxManager;
-
-  constructor(inputManager: InputBoxManager) {
-    super("<span class='mathy-text'>#</span>", null);
-    this.inputManager = inputManager;
-  }
-
-  async fire(manager: ButtonGridManager): Promise<void> {
-    this.inputManager.show(new NumericalInputMethod(), "");
-    manager.resetModifiers();
-  }
-}
-
-export class AlgebraicInputButton extends Button {
-  private inputManager: InputBoxManager;
-
-  constructor(inputManager: InputBoxManager) {
-    super("<math><mi>f</mi></math>", "'");
-    this.inputManager = inputManager;
-  }
-
-  async fire(manager: ButtonGridManager): Promise<void> {
-    this.inputManager.show(new AlgebraicInputMethod(), "");
     manager.resetModifiers();
   }
 }
