@@ -28,6 +28,10 @@ export class NotificationManager {
   hide(): void {
     this.notificationBox.style.display = "none";
   }
+
+  isVisible(): boolean {
+    return this.notificationBox.style.display !== "none";
+  }
 }
 
 const CLOSE_BUTTON_CSS_CLASS = "notification-box-close-button";
