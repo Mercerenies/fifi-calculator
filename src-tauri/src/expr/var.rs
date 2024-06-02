@@ -1,0 +1,108 @@
+
+use regex::Regex;
+use once_cell::sync::Lazy;
+
+use std::error::{Error as StdError};
+use std::fmt::{self, Display, Formatter};
+use std::marker::PhantomData;
+
+/// A variable in an equation, left intentionally un-evaluated.
+///
+/// Variables are identified by strings. A variable's name must begin
+/// with a letter, followed by zero or more letters, digits, or
+/// apostrophes. This structure enforces these constraints.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct Var(String);
+
+#[derive(Clone, Debug)]
+pub struct TryFromStringError {
+  _private: PhantomData<()>,
+}
+
+pub static VALID_NAME_RE: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"^[a-zA-Z][a-zA-Z0-9']*$").unwrap()
+});
+
+impl Var {
+  pub fn new(name: impl Into<String>) -> Option<Self> {
+    Self::try_from(name.into()).ok()
+  }
+
+  pub fn as_str(&self) -> &str {
+    &self.0
+  }
+}
+
+impl TryFrom<String> for Var {
+  type Error = TryFromStringError;
+
+  fn try_from(name: String) -> Result<Self, Self::Error> {
+    if VALID_NAME_RE.is_match(&name) {
+      Ok(Self(name))
+    } else {
+      Err(TryFromStringError { _private: PhantomData })
+    }
+  }
+}
+
+impl From<Var> for String {
+  fn from(v: Var) -> Self {
+    v.0
+  }
+}
+
+impl Display for Var {
+  fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    write!(f, "{}", &self.0)
+  }
+}
+
+impl Display for TryFromStringError {
+  fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    write!(f, "Invalid variable name")
+  }
+}
+
+impl StdError for TryFromStringError {}
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  #[test]
+  fn test_valid_variable_names() {
+    Var::new("abc").unwrap();
+    Var::new("q0").unwrap();
+    Var::new("q999").unwrap();
+    Var::new("e0e0e0").unwrap();
+    Var::new("x1234567890").unwrap();
+    Var::new("AaAaAa").unwrap();
+    Var::new("aBCd").unwrap();
+    Var::new("abc'").unwrap();
+    Var::new("abc''''").unwrap();
+    Var::new("a''''A").unwrap();
+    Var::new("A''''A").unwrap();
+    Var::new("A''''a").unwrap();
+    Var::new("r0'0").unwrap();
+    Var::new("W''9''W").unwrap();
+  }
+
+  #[test]
+  fn test_invalid_variable_names() {
+    assert_eq!(Var::new(""), None);
+    assert_eq!(Var::new("0"), None);
+    assert_eq!(Var::new("0a"), None);
+    assert_eq!(Var::new("'"), None);
+    assert_eq!(Var::new("'1"), None);
+    assert_eq!(Var::new("2'"), None);
+    assert_eq!(Var::new("a b"), None);
+    assert_eq!(Var::new(" "), None);
+    assert_eq!(Var::new("\t"), None);
+    assert_eq!(Var::new("c-d"), None);
+    assert_eq!(Var::new("@"), None);
+    assert_eq!(Var::new("abc "), None);
+    assert_eq!(Var::new(" abc"), None);
+    assert_eq!(Var::new("3''2"), None);
+    assert_eq!(Var::new("'''''''"), None);
+  }
+}
