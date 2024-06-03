@@ -1,6 +1,7 @@
 
 import { ButtonGrid, GridCell } from "../button_grid.js";
 import { KeyResponse } from '../keyboard.js';
+import { backButton } from './button.js';
 
 export class AlgebraButtonGrid implements ButtonGrid {
   readonly rows: readonly (readonly GridCell[])[];
@@ -19,7 +20,9 @@ export class AlgebraButtonGrid implements ButtonGrid {
       [],
       [],
       [],
-      [],
+      [
+        backButton(this.rootGrid),
+      ],
     ];
   }
 

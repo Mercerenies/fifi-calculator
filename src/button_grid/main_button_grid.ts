@@ -1,6 +1,7 @@
 
 import { ButtonGrid, GridCell } from "../button_grid.js";
-import { DispatchButton } from './button.js';
+import { AlgebraButtonGrid } from "./algebra_button_grid.js";
+import { DispatchButton, GotoButton } from './button.js';
 import { NumericalInputButton, AlgebraicInputButton } from './button/input.js';
 import { InputBoxManager } from '../input_box.js';
 import { NumericalInputMethod } from '../input_box/numerical_input.js';
@@ -41,8 +42,12 @@ export class MainButtonGrid implements ButtonGrid {
 
   private initRows(): GridCell[][] {
     return [
-      [new DispatchButton("+", "+", "+")],
-      [new DispatchButton("-", "-", "-")],
+      [
+        new DispatchButton("+", "+", "+"),
+      ],
+      [
+        new DispatchButton("-", "-", "-"),
+      ],
       [
         new DispatchButton("<math><mo>&times;</mo></math>", "*", "*"),
         new DispatchButton("<math><mo>&times;</mo><mi>i</mi></math>", "*i", null),
@@ -60,6 +65,9 @@ export class MainButtonGrid implements ButtonGrid {
         new DispatchButton(dupSvg(), "dup", "Enter"),
         new NumericalInputButton(this.inputManager),
         new AlgebraicInputButton(this.inputManager),
+      ],
+      [
+        new GotoButton("<math><mi>x</mi></math>", "a", () => new AlgebraButtonGrid(this)),
       ],
     ];
   }
