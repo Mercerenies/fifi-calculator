@@ -314,6 +314,7 @@ mod tests {
     assert!(state.is_eof());
   }
 
+  #[test]
   fn test_token_stream_with_var() {
     let table = sample_operator_table();
     let tokenizer = ExprTokenizer::new(&table);
@@ -331,7 +332,7 @@ mod tests {
         Token::new(TokenData::Var(Var::new("z").unwrap()), span(9, 10)),
         Token::new(TokenData::Var(Var::new("z").unwrap()), span(11, 12)),
         Token::new(TokenData::RightParen, span(12, 13)),
-        Token::new(TokenData::Var(Var::new("z'").unwrap()), span(13, 15)),
+        Token::new(TokenData::Var(Var::new("z'").unwrap()), span(14, 16)),
       ],
     );
     assert!(state.is_eof());

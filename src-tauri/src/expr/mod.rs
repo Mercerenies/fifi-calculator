@@ -138,18 +138,21 @@ impl TryFrom<Expr> for number::Number {
 mod tests {
   use super::*;
 
+  #[test]
   fn test_var_substitute_with_no_variables() {
     let expr = Expr::call("+", vec![Expr::from(1), Expr::from(2)]);
     let new_expr = expr.clone().substitute_var(Var::new("x").unwrap(), Expr::from(999));
     assert_eq!(new_expr, expr);
   }
 
+  #[test]
   fn test_var_substitute_with_non_matching_var() {
     let expr = Expr::call("+", vec![Expr::var("y").unwrap(), Expr::from(2)]);
     let new_expr = expr.clone().substitute_var(Var::new("x").unwrap(), Expr::from(999));
     assert_eq!(new_expr, expr);
   }
 
+  #[test]
   fn test_var_substitute_with_non_matching_vars() {
     let expr = Expr::call(
       "+",
@@ -162,6 +165,7 @@ mod tests {
     assert_eq!(new_expr, expr);
   }
 
+  #[test]
   fn test_var_substitute_with_vars() {
     let expr = Expr::call("+", vec![Expr::var("y").unwrap(), Expr::var("x").unwrap()]);
     let new_expr = expr.substitute_var(Var::new("x").unwrap(), Expr::from(999));
@@ -171,6 +175,7 @@ mod tests {
     );
   }
 
+  #[test]
   fn test_var_substitute_with_same_var_twice() {
     let expr = Expr::call("+", vec![Expr::var("x").unwrap(), Expr::var("x").unwrap()]);
     let new_expr = expr.substitute_var(Var::new("x").unwrap(), Expr::from(999));
