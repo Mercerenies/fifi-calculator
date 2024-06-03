@@ -4,6 +4,7 @@
 pub mod delegate;
 pub mod events;
 pub mod undo;
+pub mod validation;
 
 use events::{RefreshStackPayload, UndoAvailabilityPayload};
 use delegate::UndoingDelegate;
