@@ -85,13 +85,13 @@ fn validate_stack_size(
   app_state: tauri::State<TauriApplicationState>,
   app_handle: tauri::AppHandle,
   expected: usize,
-) -> Result<(), tauri::Error> {
+) -> Result<bool, tauri::Error> {
   let mut state = app_state.state.lock().expect("poisoned mutex");
-  handle_non_tauri_errors(
-    &app_handle,
-    state.main_stack_mut().check_stack_size(expected).map_err(Error::from),
-  )?;
-  Ok(())
+  let validation_result =
+    state.main_stack_mut().check_stack_size(expected).map_err(Error::from);
+  let validation_passed = validation_result.is_ok();
+  handle_non_tauri_errors(&app_handle, validation_result)?;
+  Ok(validation_passed)
 }
 
 #[tauri::command]
@@ -99,12 +99,13 @@ fn validate_value(
   app_handle: tauri::AppHandle,
   value: &str,
   validator: Validator,
-) -> Result<(), tauri::Error> {
+) -> Result<bool, tauri::Error> {
   let validation_result =
     validate(validator, value.to_owned())
     .map_err(Error::custom_error);
+  let validation_passed = validation_result.is_ok();
   handle_non_tauri_errors(&app_handle, validation_result)?;
-  Ok(())
+  Ok(validation_passed)
 }
 
 fn parse_and_push_number(state: &mut ApplicationState, string: &str) -> Result<(), Error> {
