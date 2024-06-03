@@ -67,7 +67,7 @@ export class MainButtonGrid implements ButtonGrid {
         new AlgebraicInputButton(this.inputManager),
       ],
       [
-        new GotoButton("<math><mi>x</mi></math>", "a", () => new AlgebraButtonGrid(this)),
+        new GotoButton("<math><mi>x</mi></math>", "a", () => new AlgebraButtonGrid(this, this.inputManager)),
       ],
     ];
   }

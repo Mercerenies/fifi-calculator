@@ -12,6 +12,7 @@ use fifi::command::dispatch::CommandDispatchTable;
 use fifi::stack::base::StackLike;
 use fifi::expr::simplifier::default_simplifier;
 use fifi::expr::Expr;
+use fifi::expr::var::Var;
 use fifi::expr::number::Number;
 
 use std::str::FromStr;
@@ -108,6 +109,23 @@ fn validate_value(
   Ok(validation_passed)
 }
 
+#[tauri::command]
+fn substitute_variable(
+  app_state: tauri::State<TauriApplicationState>,
+  app_handle: tauri::AppHandle,
+  variable_name: &str,
+  new_value: &str,
+) -> Result<(), tauri::Error> {
+  let mut state = app_state.state.lock().expect("poisoned mutex");
+  handle_non_tauri_errors(
+    &app_handle,
+    do_substitute_variable(&app_handle, &mut state, variable_name, new_value),
+  )?;
+  state.send_refresh_stack_event(&app_handle)?;
+  state.send_undo_buttons_event(&app_handle)?;
+  Ok(())
+}
+
 fn parse_and_push_number(state: &mut ApplicationState, string: &str) -> Result<(), Error> {
   let number = Number::from_str(string)?;
   let expr = Expr::from(number);
@@ -159,6 +177,33 @@ fn run_math_command(
   Ok(())
 }
 
+#[tauri::command]
+fn do_substitute_variable(
+  app_handle: &tauri::AppHandle,
+  state: &mut ApplicationState,
+  variable_name: &str,
+  new_value: &str,
+) -> Result<(), Error> {
+  let mut errors = ErrorList::new();
+  state.undo_stack_mut().push_cut();
+  let language_mode = &state.display_settings().language_mode;
+  let variable_name = Var::try_from(variable_name.to_owned()).map_err(Error::custom_error)?;
+  let new_value = language_mode.parse(new_value)?;
+
+  let simplifier = default_simplifier();
+  let mut stack = state.main_stack_mut();
+  let expr = stack.pop()?;
+  let expr = expr.substitute_var(variable_name, new_value);
+  let expr = simplifier.simplify_expr(expr, &mut errors);
+  stack.push(expr);
+  if !errors.is_empty() {
+    // For now, for brevity, just show the first simplifier error and
+    // drop the others. We might revise this later.
+    show_error(app_handle, format!("Error: {}", errors.into_vec()[0]))?;
+  }
+  Ok(())
+}
+
 fn handle_non_tauri_errors(app_handle: &tauri::AppHandle, err: Result<(), Error>) -> Result<(), tauri::Error> {
   match err {
     Ok(()) => Ok(()),
@@ -174,7 +219,7 @@ fn main() {
   tauri::Builder::default()
     .manage(TauriApplicationState::with_default_command_table())
     .invoke_handler(tauri::generate_handler![submit_number, submit_expr, math_command, perform_undo_action,
-                                             validate_stack_size, validate_value])
+                                             validate_stack_size, validate_value, substitute_variable])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }
