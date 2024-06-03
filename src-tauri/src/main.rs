@@ -5,6 +5,7 @@ use fifi::error::Error;
 use fifi::errorlist::ErrorList;
 use fifi::state::{TauriApplicationState, ApplicationState, UndoDirection};
 use fifi::state::events::show_error;
+use fifi::state::validation::{Validator, validate};
 use fifi::command::CommandContext;
 use fifi::command::options::CommandOptions;
 use fifi::command::dispatch::CommandDispatchTable;
@@ -79,6 +80,33 @@ fn perform_undo_action(
   Ok(())
 }
 
+#[tauri::command]
+fn validate_stack_size(
+  app_state: tauri::State<TauriApplicationState>,
+  app_handle: tauri::AppHandle,
+  expected: usize,
+) -> Result<(), tauri::Error> {
+  let mut state = app_state.state.lock().expect("poisoned mutex");
+  handle_non_tauri_errors(
+    &app_handle,
+    state.main_stack_mut().check_stack_size(expected).map_err(Error::from),
+  )?;
+  Ok(())
+}
+
+#[tauri::command]
+fn validate_value(
+  app_handle: tauri::AppHandle,
+  value: &str,
+  validator: Validator,
+) -> Result<(), tauri::Error> {
+  let validation_result =
+    validate(validator, value.to_owned())
+    .map_err(Error::custom_error);
+  handle_non_tauri_errors(&app_handle, validation_result)?;
+  Ok(())
+}
+
 fn parse_and_push_number(state: &mut ApplicationState, string: &str) -> Result<(), Error> {
   let number = Number::from_str(string)?;
   let expr = Expr::from(number);
@@ -144,7 +172,8 @@ fn handle_non_tauri_errors(app_handle: &tauri::AppHandle, err: Result<(), Error>
 fn main() {
   tauri::Builder::default()
     .manage(TauriApplicationState::with_default_command_table())
-    .invoke_handler(tauri::generate_handler![submit_number, submit_expr, math_command, perform_undo_action])
+    .invoke_handler(tauri::generate_handler![submit_number, submit_expr, math_command, perform_undo_action,
+                                             validate_stack_size, validate_value])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }
