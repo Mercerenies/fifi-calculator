@@ -1,38 +1,30 @@
 
-import { InputMethod, InputBoxManager } from '../input_box.js';
+import { InputMethod, InputBoxSession, InputBoxManager } from '../input_box.js';
 import { KeyResponse, KeyEventInput } from '../keyboard.js';
 
 const tauri = window.__TAURI__.tauri;
 
 // Input method that accepts numerical input.
-export class NumericalInputMethod extends InputMethod {
+export class NumericalInputMethod implements InputMethod {
   // TODO Get this from somewhere automated.
   static AUTO_SUBMIT_KEYS = new Set(["*", "/", "^"]);
 
-  getLabelHTML() { return "#:"; }
+  labelHtml: string = "#:";
 
-  private async submit(manager: InputBoxManager): Promise<void> {
-    const text = manager.getTextBoxValue();
-    if (text !== "") {
-      await tauri.invoke('submit_number', { value: text });
-    }
-    manager.hide();
-  }
-
-  async onKeyDown(input: KeyEventInput, manager: InputBoxManager): Promise<KeyResponse> {
+  async onKeyDown(input: KeyEventInput, session: InputBoxSession): Promise<KeyResponse> {
     const key = input.toEmacsSyntax();
     if (key === "Escape") {
       // Abort the input.
       input.event.preventDefault();
-      manager.hide();
+      session.cancel();
       return KeyResponse.BLOCK;
     } else if (key === "Enter") {
       input.event.preventDefault();
-      await this.submit(manager);
+      session.submit();
       return KeyResponse.BLOCK;
-    } else if (this.shouldAutoSubmit(key, manager)) {
+    } else if (this.shouldAutoSubmit(key, session)) {
       // Submit and perform a top-level command.
-      await this.submit(manager);
+      session.submit();
       return KeyResponse.PASS;
     } else {
       // Absorb the input into the textbox.
@@ -40,7 +32,7 @@ export class NumericalInputMethod extends InputMethod {
     }
   }
 
-  private shouldAutoSubmit(key: string, manager: InputBoxManager): boolean {
+  private shouldAutoSubmit(key: string, session: InputBoxSession): boolean {
     if (NumericalInputMethod.AUTO_SUBMIT_KEYS.has(key)) {
       return true;
     }
@@ -48,8 +40,15 @@ export class NumericalInputMethod extends InputMethod {
     // unless we're currently entering a number in scientific notation
     // (in which case, they're valid inputs in the text box).
     if ((key == '+') || (key == '-')) {
-      return !manager.getTextBoxValue().endsWith("e");
+      return !session.getText().endsWith("e");
     }
     return false;
+  }
+}
+
+export async function numericalInputToStack(manager: InputBoxManager, initialInput: string = ""): Promise<void> {
+  const text = await manager.show(new NumericalInputMethod(), initialInput);
+  if (text) {
+    await tauri.invoke('submit_number', { value: text });
   }
 }

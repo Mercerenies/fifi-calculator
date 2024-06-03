@@ -60,5 +60,5 @@ export class GotoButton extends Button {
 
 export function backButton(gridFactory: ButtonGrid | (() => ButtonGrid)): GotoButton {
   const image = svg('assets/back.svg', {alt: 'back'});
-  return new GotoButton(image, "ESC", gridFactory);
+  return new GotoButton(image, "Escape", gridFactory);
 }

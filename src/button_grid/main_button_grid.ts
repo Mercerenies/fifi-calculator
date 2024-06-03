@@ -4,7 +4,7 @@ import { AlgebraButtonGrid } from "./algebra_button_grid.js";
 import { DispatchButton, GotoButton } from './button.js';
 import { NumericalInputButton, AlgebraicInputButton } from './button/input.js';
 import { InputBoxManager } from '../input_box.js';
-import { NumericalInputMethod } from '../input_box/numerical_input.js';
+import { numericalInputToStack } from '../input_box/numerical_input.js';
 import { KeyEventInput, KeyResponse } from '../keyboard.js';
 import { svg } from '../util.js';
 
@@ -77,7 +77,7 @@ export class MainButtonGrid implements ButtonGrid {
     if (MainButtonGrid.NUMERICAL_INPUT_START_KEYS.has(key)) {
       // Start numerical input
       input.event.preventDefault();
-      this.inputManager.show(new NumericalInputMethod(), this.translateInitialInput(key));
+      numericalInputToStack(this.inputManager, this.translateInitialInput(key)); // Fire-and-forget promise
       return KeyResponse.BLOCK;
     } else if (key === "Escape") {
       this.onEscapeDismissable.hide();

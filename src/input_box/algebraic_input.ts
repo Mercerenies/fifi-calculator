@@ -1,32 +1,14 @@
 
-import { InputMethod, InputBoxManager } from '../input_box.js';
-import { KeyResponse, KeyEventInput } from '../keyboard.js';
+import { InputBoxManager } from '../input_box.js';
+import { FreeformInputMethod } from './freeform_input.js';
 
 const tauri = window.__TAURI__.tauri;
 
-// Input method that accepts expression-based input.
-export class AlgebraicInputMethod extends InputMethod {
+const ALGEBRAIC_INPUT_PROMPT = "Alg:";
 
-  getLabelHTML() { return "Alg:"; }
-
-  private async submit(manager: InputBoxManager): Promise<void> {
-    const text = manager.getTextBoxValue();
-    if (text !== "") {
-      await tauri.invoke('submit_expr', { value: text });
-    }
-    manager.hide();
-  }
-
-  async onKeyDown(input: KeyEventInput, manager: InputBoxManager): Promise<KeyResponse> {
-    const key = input.toEmacsSyntax();
-    if (key === "Escape") {
-      // Abort the input.
-      input.event.preventDefault();
-      manager.hide();
-    } else if (key === "Enter") {
-      input.event.preventDefault();
-      await this.submit(manager);
-    }
-    return KeyResponse.BLOCK;
+export async function algebraicInputToStack(manager: InputBoxManager, initialInput: string = ""): Promise<void> {
+  const text = await manager.show(new FreeformInputMethod(ALGEBRAIC_INPUT_PROMPT), initialInput);
+  if (text) {
+    await tauri.invoke('submit_expr', { value: text });
   }
 }
