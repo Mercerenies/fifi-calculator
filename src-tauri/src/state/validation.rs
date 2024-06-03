@@ -4,8 +4,17 @@
 
 use crate::expr::var::Var;
 
+use serde::{Serialize, Deserialize};
+
 use std::fmt::{self, Display, Formatter};
 use std::error::{Error as StdError};
+
+/// Types of validations that can be requested of the backend.
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Validator {
+  Variable,
+}
 
 #[derive(Debug)]
 pub struct ValidationError {
@@ -29,6 +38,12 @@ impl Display for ValidationError {
 impl StdError for ValidationError {
   fn source(&self) -> Option<&(dyn StdError + 'static)> {
     Some(&*self.inner)
+  }
+}
+
+pub fn validate(validator: Validator, payload: String) -> Result<(), ValidationError> {
+  match validator {
+    Validator::Variable => validate_var(payload).map(|_| ())
   }
 }
 
