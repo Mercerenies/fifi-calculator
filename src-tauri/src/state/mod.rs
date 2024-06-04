@@ -3,6 +3,7 @@
 
 pub mod delegate;
 pub mod events;
+pub mod tauri_command;
 pub mod undo;
 pub mod validation;
 
@@ -73,6 +74,12 @@ impl ApplicationState {
       has_redos: self.undo_stack.has_redos(),
     };
     app_handle.emit_all(UndoAvailabilityPayload::EVENT_NAME, payload)
+  }
+
+  pub fn send_all_updates(&self, app_handle: &tauri::AppHandle) -> tauri::Result<()> {
+    self.send_refresh_stack_event(app_handle)?;
+    self.send_undo_buttons_event(app_handle)?;
+    Ok(())
   }
 
   pub fn display_settings(&self) -> &DisplaySettings {
