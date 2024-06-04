@@ -56,6 +56,10 @@ export class VariableSubstituteButton extends Button {
   }
 
   private async readAndSubstitute(): Promise<void> {
+    const isValid = await tauri.invoke('validate_stack_size', { expected: 1 });
+    if (!isValid) {
+      return;
+    }
     const variableName = await variableNameInput(this.inputManager);
     if (!variableName) {
       return;
