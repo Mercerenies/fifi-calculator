@@ -45,6 +45,13 @@ export interface ButtonModifiers {
   keepModifier: boolean;
 }
 
+export function modifiersToRustArgs(modifiers: ButtonModifiers): CommandOptions {
+  return {
+    argument: modifiers.prefixArgument ?? null,
+    keepModifier: modifiers.keepModifier,
+  };
+}
+
 export function defaultModifiers(): ButtonModifiers {
   return {
     prefixArgument: undefined,

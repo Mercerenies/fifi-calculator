@@ -1,5 +1,6 @@
 
 import { ButtonGridManager, ButtonGrid, GridCell } from "../button_grid.js";
+import { modifiersToRustArgs } from './modifier_delegate.js';
 import { KeyResponse } from '../keyboard.js';
 import { backButton, Button } from './button.js';
 import { variableNameInput } from '../input_box/algebraic_input.js';
@@ -51,11 +52,12 @@ export class VariableSubstituteButton extends Button {
   async fire(manager: ButtonGridManager): Promise<void> {
     // Fire-and-forget a new promise that gets user input, so we don't
     // hold up the existing input.
-    this.readAndSubstitute();
+    this.readAndSubstitute(manager);
     manager.resetState();
   }
 
-  private async readAndSubstitute(): Promise<void> {
+  private async readAndSubstitute(manager: ButtonGridManager): Promise<void> {
+    const opts = modifiersToRustArgs(manager.getModifiers());
     const isValid = await tauri.invoke('validate_stack_size', { expected: 1 });
     if (!isValid) {
       return;
@@ -68,6 +70,6 @@ export class VariableSubstituteButton extends Button {
     if (!newValue) {
       return;
     }
-    await tauri.invoke('substitute_variable', { variableName, newValue });
+    await tauri.invoke('substitute_variable', { variableName, newValue, opts });
   }
 }

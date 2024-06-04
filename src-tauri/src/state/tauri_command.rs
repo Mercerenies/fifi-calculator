@@ -14,6 +14,7 @@ use crate::expr::var::Var;
 use crate::expr::simplifier::default_simplifier;
 use crate::expr::number::Number;
 use crate::stack::base::StackLike;
+use crate::stack::keepable::KeepableStack;
 
 use std::str::FromStr;
 use std::fmt::Display;
@@ -138,6 +139,7 @@ pub fn substitute_variable(
   app_handle: &tauri::AppHandle,
   variable_name: String,
   new_value: &str,
+  opts: CommandOptions,
 ) -> Result<(), Error> {
   let mut errors = ErrorList::new();
   state.undo_stack_mut().push_cut();
@@ -148,6 +150,7 @@ pub fn substitute_variable(
 
   let simplifier = default_simplifier();
   let mut stack = state.main_stack_mut();
+  let mut stack = KeepableStack::new(&mut stack, opts.keep_modifier);
   let expr = stack.pop()?;
   let expr = expr.substitute_var(variable_name, new_value);
   let expr = simplifier.simplify_expr(expr, &mut errors);

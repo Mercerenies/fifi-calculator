@@ -85,11 +85,12 @@ fn substitute_variable(
   app_handle: tauri::AppHandle,
   variable_name: &str,
   new_value: &str,
+  opts: CommandOptions,
 ) -> Result<(), tauri::Error> {
   let mut state = app_state.state.lock().expect("poisoned mutex");
   handle_non_tauri_errors(
     &app_handle,
-    tauri_command::substitute_variable(&mut state, &app_handle, variable_name.to_owned(), new_value),
+    tauri_command::substitute_variable(&mut state, &app_handle, variable_name.to_owned(), new_value, opts),
   )
 }
 

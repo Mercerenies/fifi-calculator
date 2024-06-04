@@ -3,7 +3,7 @@
 // keyboard shortcuts to said grid.
 
 import { KeyEventInput, KeyResponse } from './keyboard.js';
-import { ModifierDelegate } from './button_grid/modifier_delegate.js';
+import { ModifierDelegate, ButtonModifiers, modifiersToRustArgs } from './button_grid/modifier_delegate.js';
 
 const tauri = window.__TAURI__.tauri;
 
@@ -43,6 +43,10 @@ export class ButtonGridManager {
     this.modifierDelegate.resetModifiers();
   }
 
+  getModifiers(): ButtonModifiers {
+    return this.modifierDelegate.getModifiers();
+  }
+
   setActiveGrid(grid: ButtonGrid): void {
     this.activeGrid = grid;
     this.loadButtonShortcuts();
@@ -50,14 +54,10 @@ export class ButtonGridManager {
   }
 
   async invokeMathCommand(commandName: string): Promise<void> {
-    const modifiers = this.modifierDelegate.getModifiers();
-    const argument = modifiers.prefixArgument ?? null;
+    const modifiers = this.getModifiers();
     await tauri.invoke('math_command', {
       commandName,
-      opts: {
-        argument,
-        keepModifier: modifiers.keepModifier,
-      },
+      opts: modifiersToRustArgs(modifiers),
     });
   }
 
