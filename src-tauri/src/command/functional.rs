@@ -36,7 +36,7 @@ pub struct PushConstantCommand {
 /// argument of -2 applies the function to the element just below the
 /// top of the stack.
 pub struct UnaryFunctionCommand {
-  function: Box<dyn Fn(Expr) -> Expr + Send + Sync>,
+  function: Box<dyn Fn(Expr, &ApplicationState) -> Expr + Send + Sync>,
 }
 
 /// A command that applies an arbitrary function to the top two
@@ -65,6 +65,11 @@ impl PushConstantCommand {
 impl UnaryFunctionCommand {
   pub fn new<F>(function: F) -> UnaryFunctionCommand
   where F: Fn(Expr) -> Expr + Send + Sync + 'static {
+    UnaryFunctionCommand::with_state(move |arg, _| function(arg))
+  }
+
+  pub fn with_state<F>(function: F) -> UnaryFunctionCommand
+  where F: Fn(Expr, &ApplicationState) -> Expr + Send + Sync + 'static {
     UnaryFunctionCommand { function: Box::new(function) }
   }
 
@@ -75,8 +80,8 @@ impl UnaryFunctionCommand {
     })
   }
 
-  fn wrap_expr(&self, arg: Expr) -> Expr {
-    (self.function)(arg)
+  fn wrap_expr(&self, arg: Expr, state: &ApplicationState) -> Expr {
+    (self.function)(arg, state)
   }
 
   fn apply_to_top(
@@ -90,9 +95,9 @@ impl UnaryFunctionCommand {
       let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
       stack.pop_several(element_count as usize)?
     };
-    let values = values.into_iter().map(|e| {
-      ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors)
-    });
+    let values: Vec<_> = values.into_iter().map(|e| {
+      ctx.simplifier.simplify_expr(self.wrap_expr(e, state), &mut errors)
+    }).collect();
     state.main_stack_mut().push_several(values);
     Ok(CommandOutput::from_errors(errors))
   }
@@ -110,7 +115,7 @@ impl UnaryFunctionCommand {
       // it's safe to re-insert.
       state.main_stack_mut().insert(element_index, expr.clone()).expect("Stack was too small for re-insert");
     }
-    expr.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors));
+    expr.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_expr(e, state), &mut errors));
     // expect safety: We just popped a value from that position, so
     // it's safe to re-insert.
     state.main_stack_mut().insert(element_index, expr).expect("Stack was too small for re-insert");
