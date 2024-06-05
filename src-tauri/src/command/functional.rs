@@ -7,7 +7,7 @@ use crate::state::ApplicationState;
 use crate::error::Error;
 use crate::expr::Expr;
 use crate::errorlist::ErrorList;
-use crate::stack::base::{StackLike, RandomAccessStackLike};
+use crate::stack::base::StackLike;
 use crate::stack::keepable::KeepableStack;
 
 use std::cmp::Ordering;
@@ -78,6 +78,44 @@ impl UnaryFunctionCommand {
   fn wrap_expr(&self, arg: Expr) -> Expr {
     (self.function)(arg)
   }
+
+  fn apply_to_top(
+    &self,
+    state: &mut ApplicationState,
+    element_count: usize,
+    ctx: &CommandContext,
+  ) -> Result<CommandOutput, Error> {
+    let mut errors = ErrorList::new();
+    let values = {
+      let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
+      stack.pop_several(element_count as usize)?
+    };
+    let values = values.into_iter().map(|e| {
+      ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors)
+    });
+    state.main_stack_mut().push_several(values);
+    Ok(CommandOutput::from_errors(errors))
+  }
+
+  fn apply_to_single_element(
+    &self,
+    state: &mut ApplicationState,
+    element_index: usize,
+    ctx: &CommandContext,
+  ) -> Result<CommandOutput, Error> {
+    let mut errors = ErrorList::new();
+    let mut expr = state.main_stack_mut().pop_nth(element_index)?;
+    if ctx.opts.keep_modifier {
+      // expect safety: We just popped a value from that position, so
+      // it's safe to re-insert.
+      state.main_stack_mut().insert(element_index, expr.clone()).expect("Stack was too small for re-insert");
+    }
+    expr.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors));
+    // expect safety: We just popped a value from that position, so
+    // it's safe to re-insert.
+    state.main_stack_mut().insert(element_index, expr).expect("Stack was too small for re-insert");
+    Ok(CommandOutput::from_errors(errors))
+  }
 }
 
 impl BinaryFunctionCommand {
@@ -115,52 +153,29 @@ impl Command for PushConstantCommand {
 impl Command for UnaryFunctionCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
     state.undo_stack_mut().push_cut();
-    let mut errors = ErrorList::new();
     let arg = ctx.opts.argument.unwrap_or(1);
-    let mut stack = state.main_stack_mut();
     match arg.cmp(&0) {
       Ordering::Greater => {
         // Apply to top N elements.
-        let mut stack = KeepableStack::new(stack, ctx.opts.keep_modifier);
-        let values = stack.pop_several(arg as usize)?;
-        let values = values.into_iter().map(|e| {
-          ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors)
-        });
-        stack.push_several(values);
+        self.apply_to_top(state, arg as usize, ctx)
       }
       Ordering::Less => {
         // Apply to single element N down on the stack.
-        let mut expr = stack.get_mut(- arg - 1)?;
-        if ctx.opts.keep_modifier {
-          let original_expr = expr.clone();
-          expr.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors));
-          drop(expr);
-          // expect safety: We know there's a value at - arg - 1, so
-          // inserting just below that value is safe.
-          stack.insert((- arg) as usize, original_expr).expect("Stack was too small for re-insert");
-        } else {
-          expr.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors));
-        }
+        self.apply_to_single_element(state, (- arg - 1) as usize, ctx)
       }
       Ordering::Equal => {
         // Apply to all elements.
-        let mut stack = KeepableStack::new(stack, ctx.opts.keep_modifier);
-        let mut whole_stack = stack.pop_all();
-        for elem in &mut whole_stack {
-          elem.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors));
-        }
-        stack.push_several(whole_stack);
+        let stack_len = state.main_stack_mut().len();
+        self.apply_to_top(state, stack_len, ctx)
       }
     }
-    Ok(CommandOutput::from_errors(errors))
   }
 }
 
 impl Command for BinaryFunctionCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
     state.undo_stack_mut().push_cut();
-    let mut stack = state.main_stack_mut();
-    let mut stack = KeepableStack::new(stack, ctx.opts.keep_modifier);
+    let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
 
     let mut errors = ErrorList::new();
     let arg = ctx.opts.argument.unwrap_or(2);
