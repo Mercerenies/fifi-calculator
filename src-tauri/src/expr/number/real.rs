@@ -785,4 +785,18 @@ mod tests {
     assert_abs_diff_eq!(Number::from(3).powf(2.0), 9.0);
     assert_abs_diff_eq!(Number::from(3).powf(2.5), 15.5884572, epsilon = 0.001);
   }
+
+  #[test]
+  fn test_number_eq() {
+    assert_eq!(Number::from(0), Number::from(0));
+    assert_eq!(Number::from(0), Number::from(0.0));
+    assert_eq!(Number::ratio(1, 2), Number::from(0.5));
+    assert_ne!(Number::ratio(1, 3), Number::from(0.5));
+  }
+
+  #[test]
+  fn test_number_stricteq() {
+    assert!(Number::from(0).strict_eq(&Number::from(0)));
+    assert!(!Number::from(0).strict_eq(&Number::from(0.0)));
+  }
 }
