@@ -11,6 +11,7 @@ use functional::{UnaryFunctionCommand, BinaryFunctionCommand};
 use dispatch::CommandDispatchTable;
 use crate::expr::Expr;
 use crate::expr::number::ComplexNumber;
+use crate::state::ApplicationState;
 
 use std::collections::HashMap;
 
@@ -28,6 +29,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("pop".to_string(), Box::new(shuffle::PopCommand));
   map.insert("swap".to_string(), Box::new(shuffle::SwapCommand));
   map.insert("dup".to_string(), Box::new(shuffle::DupCommand));
+  map.insert("substitute_vars".to_string(), Box::new(UnaryFunctionCommand::with_state(substitute_vars)));
   CommandDispatchTable::from_hash_map(map)
 }
 
@@ -38,6 +40,11 @@ fn times_i(expr: Expr) -> Expr {
 
 fn times_minus_one(expr: Expr) -> Expr {
   Expr::Call("*".to_string(), vec![expr, Expr::from(-1)])
+}
+
+fn substitute_vars(expr: Expr, state: &ApplicationState) -> Expr {
+  let var_table = state.variable_table();
+  expr.substitute_vars(var_table)
 }
 
 #[cfg(test)]

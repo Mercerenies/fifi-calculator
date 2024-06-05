@@ -11,6 +11,7 @@ use events::{RefreshStackPayload, UndoAvailabilityPayload};
 use delegate::UndoingDelegate;
 use crate::stack::{Stack, DelegatingStack};
 use crate::expr::Expr;
+use crate::expr::var::table::VarTable;
 use crate::command::default_dispatch_table;
 use crate::command::dispatch::CommandDispatchTable;
 use crate::display::DisplaySettings;
@@ -37,6 +38,7 @@ pub struct ApplicationState {
 pub struct UndoableState {
   main_stack: Stack<Expr>,
   display_settings: DisplaySettings,
+  variables: VarTable<Expr>,
 }
 
 /// Direction of an undo command issued to Tauri.
@@ -90,6 +92,14 @@ impl ApplicationState {
     &mut self.undoable_state.display_settings
   }
 
+  pub fn variable_table(&self) -> &VarTable<Expr> {
+    &self.undoable_state.variables
+  }
+
+  pub fn variable_table_mut(&mut self) -> &mut VarTable<Expr> {
+    &mut self.undoable_state.variables
+  }
+
   pub fn main_stack(&self) -> &Stack<Expr> {
     &self.undoable_state.main_stack
   }
@@ -140,6 +150,22 @@ impl UndoableState {
 
   pub fn main_stack_mut(&mut self) -> &mut Stack<Expr> {
     &mut self.main_stack
+  }
+
+  pub fn display_settings(&self) -> &DisplaySettings {
+    &self.display_settings
+  }
+
+  pub fn display_settings_mut(&mut self) -> &mut DisplaySettings {
+    &mut self.display_settings
+  }
+
+  pub fn variable_table(&self) -> &VarTable<Expr> {
+    &self.variables
+  }
+
+  pub fn variable_table_mut(&mut self) -> &mut VarTable<Expr> {
+    &mut self.variables
   }
 }
 
