@@ -66,8 +66,8 @@ fn validate_stack_size(
   app_handle: tauri::AppHandle,
   expected: usize,
 ) -> Result<bool, tauri::Error> {
-  let mut state = app_state.state.lock().expect("poisoned mutex");
-  tauri_command::validate_stack_size(&mut state, &app_handle, expected)
+  let state = app_state.state.lock().expect("poisoned mutex");
+  tauri_command::validate_stack_size(&state, &app_handle, expected)
 }
 
 #[tauri::command]

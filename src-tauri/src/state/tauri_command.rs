@@ -30,7 +30,7 @@ pub fn submit_number(
   state.undo_stack_mut().push_cut();
   state.main_stack_mut().push(Expr::from(number));
 
-  state.send_all_updates(&app_handle)?;
+  state.send_all_updates(app_handle)?;
   Ok(())
 }
 
@@ -49,7 +49,7 @@ pub fn submit_expr(
   state.undo_stack_mut().push_cut();
   state.main_stack_mut().push(expr);
 
-  state.send_all_updates(&app_handle)?;
+  state.send_all_updates(app_handle)?;
   Ok(())
 }
 
@@ -70,7 +70,7 @@ pub fn run_math_command(
   let output = command.run_command(state, &context)?;
   handle_command_output(app_handle, &output)?;
 
-  state.send_all_updates(&app_handle)?;
+  state.send_all_updates(app_handle)?;
   Ok(())
 }
 
@@ -90,7 +90,7 @@ pub fn perform_undo_action(
     UndoDirection::Redo => state.redo(),
   };
 
-  state.send_all_updates(&app_handle)?;
+  state.send_all_updates(app_handle)?;
   Ok(())
 }
 
@@ -157,7 +157,7 @@ pub fn substitute_variable(
   stack.push(expr);
 
   handle_error_list(app_handle, errors)?;
-  state.send_all_updates(&app_handle)?;
+  state.send_all_updates(app_handle)?;
   Ok(())
 }
 
