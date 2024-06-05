@@ -8,7 +8,6 @@ use super::base::{StackLike, RandomAccessStackLike};
 
 use std::hash::{Hash, Hasher};
 use std::ops::{Deref, DerefMut};
-use std::marker::PhantomData;
 
 pub trait StackDelegate<T> {
   /// Called before a new value is pushed onto the stack.
@@ -35,10 +34,9 @@ pub trait StackDelegate<T> {
 pub struct NullStackDelegate;
 
 #[derive(Debug)]
-pub struct DelegatingStack<'a, S, T, D> {
+pub struct DelegatingStack<'a, S, D> {
   stack: &'a mut S,
   delegate: D,
-  _marker: PhantomData<T>,
 }
 
 pub struct RefMut<'a, T, R, D>
@@ -50,17 +48,17 @@ where D: StackDelegate<T>,
   value: R,
 }
 
-impl<'a, S, T, D> DelegatingStack<'a, S, T, D>
-where D: StackDelegate<T>,
-      S: StackLike<T> {
+impl<'a, S, D> DelegatingStack<'a, S, D>
+where S: StackLike,
+      D: StackDelegate<S::Elem> {
   pub fn new(stack: &'a mut S, delegate: D) -> Self {
-    DelegatingStack { stack, delegate, _marker: PhantomData }
+    DelegatingStack { stack, delegate }
   }
 }
 
 // TODO: Eventually, I'd like to abstract out these methods in some
 // form as well, rather than special-casing them to Stack<T>.
-impl<'a, T, D> DelegatingStack<'a, Stack<T>, T, D>
+impl<'a, T, D> DelegatingStack<'a, Stack<T>, D>
 where D: StackDelegate<T> {
   pub fn pop_nth(&mut self, index: usize) -> Result<T, StackError> {
     let value = self.stack.pop_nth(index)?;
@@ -93,25 +91,27 @@ where D: StackDelegate<T> {
   }
 }
 
-impl<'a, S, T, D> StackLike<T> for DelegatingStack<'a, S, T, D>
-where D: StackDelegate<T>,
-      S: StackLike<T> {
+impl<'a, S, D> StackLike for DelegatingStack<'a, S, D>
+where S: StackLike,
+      D: StackDelegate<S::Elem> {
+  type Elem = S::Elem;
+
   fn len(&self) -> usize {
     self.stack.len()
   }
 
-  fn push(&mut self, element: T) {
+  fn push(&mut self, element: S::Elem) {
     self.delegate.on_push(0, &element);
     self.stack.push(element);
   }
 
-  fn pop(&mut self) -> Result<T, StackError> {
+  fn pop(&mut self) -> Result<S::Elem, StackError> {
     let value = self.stack.pop()?;
     self.delegate.on_pop(0, &value);
     Ok(value)
   }
 
-  fn pop_several(&mut self, count: usize) -> Result<Vec<T>, StackError> {
+  fn pop_several(&mut self, count: usize) -> Result<Vec<S::Elem>, StackError> {
     let values = self.stack.pop_several(count)?;
     for value in values.iter().rev() {
       self.delegate.on_pop(0, value);
@@ -119,7 +119,7 @@ where D: StackDelegate<T>,
     Ok(values)
   }
 
-  fn pop_all(&mut self) -> Vec<T> {
+  fn pop_all(&mut self) -> Vec<S::Elem> {
     let values = self.stack.pop_all();
     for value in values.iter().rev() {
       self.delegate.on_pop(0, value);
@@ -131,18 +131,18 @@ where D: StackDelegate<T>,
 /// The `RandomAccessStackLike` impl for `DelegatingStack` requires
 /// `T: Clone` to be able to properly audit elements of the stack
 /// after-the-fact.
-impl<'a, S, T, D> RandomAccessStackLike<T> for DelegatingStack<'a, S, T, D>
-where D: StackDelegate<T>,
-      S: RandomAccessStackLike<T>,
-      T: Clone {
+impl<'a, S, D> RandomAccessStackLike for DelegatingStack<'a, S, D>
+where S: RandomAccessStackLike,
+      D: StackDelegate<S::Elem>,
+      S::Elem: Clone {
   type Ref<'b> = S::Ref<'b> where Self: 'b;
-  type Mut<'b> = RefMut<'b, T, S::Mut<'b>, D> where Self: 'b;
+  type Mut<'b> = RefMut<'b, S::Elem, S::Mut<'b>, D> where Self: 'b;
 
   fn get(&self, index: i64) -> Result<S::Ref<'_>, StackError> {
     self.stack.get(index)
   }
 
-  fn get_mut(&mut self, index: i64) -> Result<RefMut<'_, T, S::Mut<'_>, D>, StackError> {
+  fn get_mut(&mut self, index: i64) -> Result<RefMut<'_, S::Elem, S::Mut<'_>, D>, StackError> {
     let value = self.stack.get_mut(index)?;
     Ok(RefMut {
       index,
@@ -175,15 +175,15 @@ impl<'a, T, R: DerefMut<Target = T>, D: StackDelegate<T>> Drop for RefMut<'a, T,
 
 /// Comparisons on a `DelegatingStack` simply compare the stacks and
 /// ignore the delegates.
-impl<'a, S: PartialEq, T, D> PartialEq for DelegatingStack<'a, S, T, D> {
+impl<'a, S: PartialEq, D> PartialEq for DelegatingStack<'a, S, D> {
   fn eq(&self, other: &Self) -> bool {
     self.stack == other.stack
   }
 }
 
-impl<'a, S: Eq, T, D> Eq for DelegatingStack<'a, S, T, D> {}
+impl<'a, S: Eq, D> Eq for DelegatingStack<'a, S, D> {}
 
-impl<'a, S: Hash, T, D> Hash for DelegatingStack<'a, S, T, D> {
+impl<'a, S: Hash, D> Hash for DelegatingStack<'a, S, D> {
   fn hash<H: Hasher>(&self, state: &mut H) {
     self.stack.hash(state);
   }

@@ -68,7 +68,9 @@ impl<T> Stack<T> {
 
 }
 
-impl<T> StackLike<T> for Stack<T> {
+impl<T> StackLike for Stack<T> {
+  type Elem = T;
+
   fn pop_all(&mut self) -> Vec<T> {
     self.elements.drain(..).collect()
   }
@@ -100,7 +102,7 @@ impl<T> StackLike<T> for Stack<T> {
   }
 }
 
-impl<T> RandomAccessStackLike<T> for Stack<T> {
+impl<T> RandomAccessStackLike for Stack<T> {
   type Ref<'a> = &'a T where Self: 'a;
   type Mut<'a> = &'a mut T where Self: 'a;
 

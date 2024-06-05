@@ -2,8 +2,6 @@
 use super::base::{StackLike, RandomAccessStackLike};
 use super::error::StackError;
 
-use std::marker::PhantomData;
-
 /// A `KeepableStack` is a stack implementation that optionally
 /// implements "keep" semantics. These semantics are enabled with a
 /// Boolean flag.
@@ -30,7 +28,7 @@ use std::marker::PhantomData;
 /// # use fifi::stack::Stack;
 /// # use fifi::stack::base::StackLike;
 /// # let mut stack: Stack<i64> = Stack::new();
-/// /// `stack` is a regular `Stack<i64>`.
+/// // `stack` is a regular `Stack<i64>`.
 /// stack.push_several(vec![10, 20, 30, 40]);
 /// assert_eq!(stack.pop(), Ok(40));
 /// assert_eq!(stack.pop(), Ok(30));
@@ -45,7 +43,7 @@ use std::marker::PhantomData;
 /// # use fifi::stack::base::StackLike;
 /// # use fifi::stack::keepable::KeepableStack;
 /// # let mut stack = KeepableStack::new(Stack::new(), true);
-/// /// `stack` is a `KeepableStack<'_, _, i64`.
+/// // `stack` is a `KeepableStack`.
 /// stack.push_several(vec![10, 20, 30, 40]);
 /// assert_eq!(stack.pop(), Ok(40));
 /// assert_eq!(stack.pop(), Ok(40));
@@ -60,25 +58,22 @@ use std::marker::PhantomData;
 /// # use fifi::stack::base::StackLike;
 /// # use fifi::stack::keepable::KeepableStack;
 /// # let mut stack = KeepableStack::new(Stack::new(), true);
-/// /// `stack` is a `KeepableStack<_, i64>`.
+/// /// `stack` is a `KeepableStack`.
 /// stack.push_several(vec![10, 20, 30, 40]);
 /// assert_eq!(stack.pop_several(2), Ok(vec![30, 40]));
 /// assert_eq!(stack.len(), 4);
 /// ```
 #[derive(Debug)]
-pub struct KeepableStack<S, T> {
+pub struct KeepableStack<S> {
   stack: S,
   keep_semantics: bool,
-  _marker: PhantomData<T>,
 }
 
-impl<S, T> KeepableStack<S, T>
-where S: StackLike<T> {
+impl<S> KeepableStack<S> where S: StackLike {
   pub fn new(stack: S, keep_semantics: bool) -> Self {
     Self {
       stack,
       keep_semantics,
-      _marker: PhantomData,
     }
   }
 
@@ -95,22 +90,24 @@ where S: StackLike<T> {
   }
 }
 
-impl<S, T> StackLike<T> for KeepableStack<S, T>
-where S: StackLike<T>,
-      T: Clone {
+impl<S> StackLike for KeepableStack<S>
+where S: StackLike,
+      S::Elem: Clone {
+  type Elem = S::Elem;
+
   fn len(&self) -> usize {
     self.stack.len()
   }
 
-  fn push(&mut self, element: T) {
+  fn push(&mut self, element: S::Elem) {
     self.stack.push(element);
   }
 
-  fn push_several(&mut self, elements: impl IntoIterator<Item = T>) {
+  fn push_several(&mut self, elements: impl IntoIterator<Item = S::Elem>) {
     self.stack.push_several(elements);
   }
 
-  fn pop(&mut self) -> Result<T, StackError> {
+  fn pop(&mut self) -> Result<S::Elem, StackError> {
     let value = self.stack.pop()?;
     if self.keep_semantics {
       self.stack.push(value.clone());
@@ -118,7 +115,7 @@ where S: StackLike<T>,
     Ok(value)
   }
 
-  fn pop_several(&mut self, count: usize) -> Result<Vec<T>, StackError> {
+  fn pop_several(&mut self, count: usize) -> Result<Vec<S::Elem>, StackError> {
     let values = self.stack.pop_several(count)?;
     if self.keep_semantics {
       self.stack.push_several(values.clone());
@@ -130,9 +127,9 @@ where S: StackLike<T>,
 /// Random access to a [`KeepableStack`] delegates to the underlying
 /// stack and never utilizes any "keep" semantics, regardless of the
 /// value of [`KeepableStack::keep_semantics`].
-impl<S, T> RandomAccessStackLike<T> for KeepableStack<S, T>
-where S: RandomAccessStackLike<T>,
-      T: Clone {
+impl<S> RandomAccessStackLike for KeepableStack<S>
+where S: RandomAccessStackLike,
+      S::Elem: Clone {
   type Ref<'a> = S::Ref<'a> where Self: 'a;
   type Mut<'a> = S::Mut<'a> where Self: 'a;
 

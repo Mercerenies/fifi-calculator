@@ -5,16 +5,18 @@ use std::ops::{Deref, DerefMut};
 
 /// A stack-like structure, capable of pushing and popping elements
 /// from the top.
-pub trait StackLike<T> {
+pub trait StackLike {
+  type Elem;
+
   /// Returns the length of the stack, in elements.
   fn len(&self) -> usize;
 
   /// Pushes a single element onto the top of the stack.
-  fn push(&mut self, element: T);
+  fn push(&mut self, element: Self::Elem);
 
   /// Pops a single element from the stack. Returns an appropriate
   /// [`StackError`] if the stack is empty.
-  fn pop(&mut self) -> Result<T, StackError>;
+  fn pop(&mut self) -> Result<Self::Elem, StackError>;
 
   /// Pushes several elements onto the stack in the order we see them
   /// in the iterable. That is, the final element of the iterable will
@@ -23,7 +25,7 @@ pub trait StackLike<T> {
   /// The default implementation merely pushes the elements in order,
   /// but a more efficient alternative can be provided by
   /// implementors.
-  fn push_several(&mut self, elements: impl IntoIterator<Item = T>) {
+  fn push_several(&mut self, elements: impl IntoIterator<Item = Self::Elem>) {
     for element in elements {
       self.push(element);
     }
@@ -42,7 +44,7 @@ pub trait StackLike<T> {
   ///
   /// The default implementation pops the elements one at a time, but
   /// a more efficient version can be provided by implementing types.
-  fn pop_several(&mut self, count: usize) -> Result<Vec<T>, StackError> {
+  fn pop_several(&mut self, count: usize) -> Result<Vec<Self::Elem>, StackError> {
     self.check_stack_size(count)?;
     let mut result = Vec::new();
     for _ in 0..count {
@@ -53,7 +55,7 @@ pub trait StackLike<T> {
   }
 
   /// Pops all elements off the stack and returns them.
-  fn pop_all(&mut self) -> Vec<T> {
+  fn pop_all(&mut self) -> Vec<Self::Elem> {
     // unwrap: We're popping exactly as many elements as the stack contains.
     self.pop_several(self.len()).unwrap()
   }
@@ -77,12 +79,12 @@ pub trait StackLike<T> {
 
 /// A stack-like structure that provides random access to its
 /// elements.
-pub trait RandomAccessStackLike<T>: StackLike<T> {
+pub trait RandomAccessStackLike: StackLike {
   /// The type of immutable references to stack elements.
-  type Ref<'a>: Deref<Target = T> where Self: 'a;
+  type Ref<'a>: Deref<Target = Self::Elem> where Self: 'a;
 
   /// The type of mutable references to stack elements.
-  type Mut<'a>: DerefMut<Target = T> where Self: 'a;
+  type Mut<'a>: DerefMut<Target = Self::Elem> where Self: 'a;
 
   /// Returns a reference to the value at the given position on the
   /// stack, or a [`StackError`] if out of bounds.
@@ -104,7 +106,7 @@ pub trait RandomAccessStackLike<T>: StackLike<T> {
   /// [`get_mut`](RandomAccessStackLike::get_mut) and making the
   /// modification directly, but this may be overridden if desired.
   fn mutate<F>(&mut self, index: i64, f: F) -> Result<(), StackError>
-  where F: FnOnce(&mut T) {
+  where F: FnOnce(&mut Self::Elem) {
     let mut value = self.get_mut(index)?;
     f(value.deref_mut());
     Ok(())
