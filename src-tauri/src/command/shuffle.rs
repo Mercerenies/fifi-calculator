@@ -50,8 +50,7 @@ impl Command for PopCommand {
 impl Command for SwapCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
     state.undo_stack_mut().push_cut();
-    let mut stack = state.main_stack_mut();
-    let mut stack = KeepableStack::new(&mut stack, ctx.opts.keep_modifier);
+    let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
 
     let arg = ctx.opts.argument.unwrap_or(2);
     match arg.cmp(&0) {

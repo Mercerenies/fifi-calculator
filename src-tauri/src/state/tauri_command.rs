@@ -149,8 +149,7 @@ pub fn substitute_variable(
   let new_value = language_mode.parse(new_value)?;
 
   let simplifier = default_simplifier();
-  let mut stack = state.main_stack_mut();
-  let mut stack = KeepableStack::new(&mut stack, opts.keep_modifier);
+  let mut stack = KeepableStack::new(state.main_stack_mut(), opts.keep_modifier);
   let expr = stack.pop()?;
   let expr = expr.substitute_var(variable_name, new_value);
   let expr = simplifier.simplify_expr(expr, &mut errors);

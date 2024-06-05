@@ -121,7 +121,7 @@ impl Command for UnaryFunctionCommand {
     match arg.cmp(&0) {
       Ordering::Greater => {
         // Apply to top N elements.
-        let mut stack = KeepableStack::new(&mut stack, ctx.opts.keep_modifier);
+        let mut stack = KeepableStack::new(stack, ctx.opts.keep_modifier);
         let values = stack.pop_several(arg as usize)?;
         let values = values.into_iter().map(|e| {
           ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors)
@@ -144,7 +144,7 @@ impl Command for UnaryFunctionCommand {
       }
       Ordering::Equal => {
         // Apply to all elements.
-        let mut stack = KeepableStack::new(&mut stack, ctx.opts.keep_modifier);
+        let mut stack = KeepableStack::new(stack, ctx.opts.keep_modifier);
         let mut whole_stack = stack.pop_all();
         for elem in &mut whole_stack {
           elem.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_expr(e), &mut errors));
@@ -160,7 +160,7 @@ impl Command for BinaryFunctionCommand {
   fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
     state.undo_stack_mut().push_cut();
     let mut stack = state.main_stack_mut();
-    let mut stack = KeepableStack::new(&mut stack, ctx.opts.keep_modifier);
+    let mut stack = KeepableStack::new(stack, ctx.opts.keep_modifier);
 
     let mut errors = ErrorList::new();
     let arg = ctx.opts.argument.unwrap_or(2);

@@ -44,9 +44,8 @@ use std::marker::PhantomData;
 /// # use fifi::stack::Stack;
 /// # use fifi::stack::base::StackLike;
 /// # use fifi::stack::keepable::KeepableStack;
-/// # let mut stack: Stack<i64> = Stack::new();
-/// # let mut stack = KeepableStack::new(&mut stack, true);
-/// /// `stack` is a regular `KeepableStack<'_, _, i64`.
+/// # let mut stack = KeepableStack::new(Stack::new(), true);
+/// /// `stack` is a `KeepableStack<'_, _, i64`.
 /// stack.push_several(vec![10, 20, 30, 40]);
 /// assert_eq!(stack.pop(), Ok(40));
 /// assert_eq!(stack.pop(), Ok(40));
@@ -60,23 +59,22 @@ use std::marker::PhantomData;
 /// # use fifi::stack::Stack;
 /// # use fifi::stack::base::StackLike;
 /// # use fifi::stack::keepable::KeepableStack;
-/// # let mut stack: Stack<i64> = Stack::new();
-/// # let mut stack = KeepableStack::new(&mut stack, true);
-/// /// `stack` is a regular `KeepableStack<'_, _, i64`.
+/// # let mut stack = KeepableStack::new(Stack::new(), true);
+/// /// `stack` is a `KeepableStack<_, i64>`.
 /// stack.push_several(vec![10, 20, 30, 40]);
 /// assert_eq!(stack.pop_several(2), Ok(vec![30, 40]));
 /// assert_eq!(stack.len(), 4);
 /// ```
 #[derive(Debug)]
-pub struct KeepableStack<'a, S, T> {
-  stack: &'a mut S,
+pub struct KeepableStack<S, T> {
+  stack: S,
   keep_semantics: bool,
   _marker: PhantomData<T>,
 }
 
-impl<'a, S, T> KeepableStack<'a, S, T>
+impl<S, T> KeepableStack<S, T>
 where S: StackLike<T> {
-  pub fn new(stack: &'a mut S, keep_semantics: bool) -> Self {
+  pub fn new(stack: S, keep_semantics: bool) -> Self {
     Self {
       stack,
       keep_semantics,
@@ -85,6 +83,10 @@ where S: StackLike<T> {
   }
 
   pub fn get_inner_mut(&mut self) -> &mut S {
+    &mut self.stack
+  }
+
+  pub fn into_inner(self) -> S {
     self.stack
   }
 
@@ -93,7 +95,7 @@ where S: StackLike<T> {
   }
 }
 
-impl<'a, S, T> StackLike<T> for KeepableStack<'a, S, T>
+impl<S, T> StackLike<T> for KeepableStack<S, T>
 where S: StackLike<T>,
       T: Clone {
   fn len(&self) -> usize {
@@ -128,11 +130,11 @@ where S: StackLike<T>,
 /// Random access to a [`KeepableStack`] delegates to the underlying
 /// stack and never utilizes any "keep" semantics, regardless of the
 /// value of [`KeepableStack::keep_semantics`].
-impl<'a, S, T> RandomAccessStackLike<T> for KeepableStack<'a, S, T>
+impl<S, T> RandomAccessStackLike<T> for KeepableStack<S, T>
 where S: RandomAccessStackLike<T>,
       T: Clone {
-  type Ref<'b> = S::Ref<'b> where Self: 'b;
-  type Mut<'b> = S::Mut<'b> where Self: 'b;
+  type Ref<'a> = S::Ref<'a> where Self: 'a;
+  type Mut<'a> = S::Mut<'a> where Self: 'a;
 
   fn get(&self, index: i64) -> Result<S::Ref<'_>, StackError> {
     self.stack.get(index)
@@ -150,8 +152,7 @@ mod tests {
 
   #[test]
   fn test_push_pop_with_no_keep_semantics() {
-    let mut stack = Stack::from(vec![0, 10]);
-    let mut stack = KeepableStack::new(&mut stack, false);
+    let mut stack = KeepableStack::new(Stack::from(vec![0, 10]), false);
     stack.push(20);
     assert_eq!(stack.pop(), Ok(20));
     assert_eq!(stack.pop(), Ok(10));
@@ -161,52 +162,45 @@ mod tests {
 
   #[test]
   fn test_push_pop_with_active_keep_semantics() {
-    let mut stack = Stack::from(vec![0, 10]);
-    {
-      let mut stack = KeepableStack::new(&mut stack, true);
-      stack.push(20);
-      stack.push(30);
-      assert_eq!(stack.len(), 4);
-      assert_eq!(stack.pop(), Ok(30));
-      assert_eq!(stack.pop(), Ok(30));
-      assert_eq!(stack.pop(), Ok(30));
-      assert_eq!(stack.pop(), Ok(30));
-      assert_eq!(stack.pop(), Ok(30));
-      assert_eq!(stack.len(), 4);
-      stack.push(40);
-      assert_eq!(stack.pop(), Ok(40));
-      assert_eq!(stack.pop(), Ok(40));
-      assert_eq!(stack.len(), 5);
-    }
-    assert_eq!(stack.into_iter().collect::<Vec<_>>(), vec![0, 10, 20, 30, 40]);
+    let mut stack = KeepableStack::new(Stack::from(vec![0, 10]), true);
+    stack.push(20);
+    stack.push(30);
+    assert_eq!(stack.len(), 4);
+    assert_eq!(stack.pop(), Ok(30));
+    assert_eq!(stack.pop(), Ok(30));
+    assert_eq!(stack.pop(), Ok(30));
+    assert_eq!(stack.pop(), Ok(30));
+    assert_eq!(stack.pop(), Ok(30));
+    assert_eq!(stack.len(), 4);
+    stack.push(40);
+    assert_eq!(stack.pop(), Ok(40));
+    assert_eq!(stack.pop(), Ok(40));
+    assert_eq!(stack.len(), 5);
+    assert_eq!(stack.into_inner().into_iter().collect::<Vec<_>>(), vec![0, 10, 20, 30, 40]);
   }
 
   #[test]
   fn test_push_several_with_no_keep_semantics() {
-    let mut stack = Stack::from(vec![0, 10, 20, 30, 40]);
-    {
-      let mut stack = KeepableStack::new(&mut stack, false);
-      stack.push_several(vec![50, 60, 70]);
-    }
-    let elements = stack.into_iter().collect::<Vec<_>>();
+    let stack = Stack::from(vec![0, 10, 20, 30, 40]);
+    let mut stack = KeepableStack::new(stack, false);
+    stack.push_several(vec![50, 60, 70]);
+    let elements = stack.into_inner().into_iter().collect::<Vec<_>>();
     assert_eq!(elements, vec![0, 10, 20, 30, 40, 50, 60, 70]);
   }
 
   #[test]
   fn test_push_several_with_keep_semantics() {
-    let mut stack = Stack::from(vec![0, 10, 20, 30, 40]);
-    {
-      let mut stack = KeepableStack::new(&mut stack, true);
-      stack.push_several(vec![50, 60, 70]);
-    }
-    let elements = stack.into_iter().collect::<Vec<_>>();
+    let stack = Stack::from(vec![0, 10, 20, 30, 40]);
+    let mut stack = KeepableStack::new(stack, true);
+    stack.push_several(vec![50, 60, 70]);
+    let elements = stack.into_inner().into_iter().collect::<Vec<_>>();
     assert_eq!(elements, vec![0, 10, 20, 30, 40, 50, 60, 70]);
   }
 
   #[test]
   fn test_pop_several_with_no_keep_semantics() {
-    let mut stack = Stack::from(vec![0, 10, 20, 30, 40]);
-    let mut stack = KeepableStack::new(&mut stack, false);
+    let stack = Stack::from(vec![0, 10, 20, 30, 40]);
+    let mut stack = KeepableStack::new(stack, false);
     assert_eq!(stack.pop_several(3), Ok(vec![20, 30, 40]));
     assert_eq!(stack.len(), 2);
     assert_eq!(stack.pop_several(3), Err(StackError::NotEnoughElements { expected: 3, actual: 2 }));
@@ -218,8 +212,8 @@ mod tests {
 
   #[test]
   fn test_pop_several_with_active_keep_semantics() {
-    let mut stack = Stack::from(vec![0, 10, 20, 30, 40]);
-    let mut stack = KeepableStack::new(&mut stack, true);
+    let stack = Stack::from(vec![0, 10, 20, 30, 40]);
+    let mut stack = KeepableStack::new(stack, true);
     assert_eq!(stack.pop_several(1), Ok(vec![40]));
     assert_eq!(stack.len(), 5);
     assert_eq!(stack.pop_several(2), Ok(vec![30, 40]));
@@ -238,35 +232,33 @@ mod tests {
 
   #[test]
   fn test_len() {
-    let mut stack = Stack::new();
-    {
-      let mut stack = KeepableStack::new(&mut stack, false);
-      assert_eq!(stack.len(), 0);
-      stack.push(0);
-      assert_eq!(stack.len(), 1);
-      stack.push(0);
-      stack.push(0);
-      assert_eq!(stack.len(), 3);
-      let _ = stack.pop();
-      assert_eq!(stack.len(), 2);
-    }
-    {
-      let mut stack = KeepableStack::new(&mut stack, true);
-      assert_eq!(stack.len(), 2);
-      stack.push(0);
-      assert_eq!(stack.len(), 3);
-      stack.push(0);
-      stack.push(0);
-      assert_eq!(stack.len(), 5);
-      let _ = stack.pop(); // Doesn't actually pop, since the stack is kept!
-      assert_eq!(stack.len(), 5);
-    }
+    let mut stack = KeepableStack::new(Stack::new(), false);
+    assert_eq!(stack.len(), 0);
+    stack.push(0);
+    assert_eq!(stack.len(), 1);
+    stack.push(0);
+    stack.push(0);
+    assert_eq!(stack.len(), 3);
+    let _ = stack.pop();
+    assert_eq!(stack.len(), 2);
+
+    let stack = stack.into_inner();
+    let mut stack = KeepableStack::new(stack, true);
+    assert_eq!(stack.len(), 2);
+    stack.push(0);
+    assert_eq!(stack.len(), 3);
+    stack.push(0);
+    stack.push(0);
+    assert_eq!(stack.len(), 5);
+    let _ = stack.pop(); // Doesn't actually pop, since the stack is kept!
+    assert_eq!(stack.len(), 5);
+    assert_eq!(stack.into_inner().len(), 5);
   }
 
   #[test]
   fn test_is_empty_without_keep_semantics() {
-    let mut stack = Stack::new();
-    let mut stack = KeepableStack::new(&mut stack, false);
+    let stack = Stack::new();
+    let mut stack = KeepableStack::new(stack, false);
     assert!(stack.is_empty());
     stack.push(0);
     assert!(!stack.is_empty());
@@ -280,8 +272,8 @@ mod tests {
 
   #[test]
   fn test_is_empty_with_keep_semantics() {
-    let mut stack = Stack::new();
-    let mut stack = KeepableStack::new(&mut stack, true);
+    let stack = Stack::new();
+    let mut stack = KeepableStack::new(stack, true);
     assert!(stack.is_empty());
     stack.push(0);
     assert_eq!(stack.pop().unwrap(), 0);
