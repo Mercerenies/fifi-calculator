@@ -152,6 +152,10 @@ impl TryFrom<Expr> for number::Number {
 mod tests {
   use super::*;
 
+  fn var(name: &str) -> Expr {
+    Expr::var(name).unwrap()
+  }
+
   #[test]
   fn test_var_substitute_with_no_variables() {
     let expr = Expr::call("+", vec![Expr::from(1), Expr::from(2)]);
@@ -161,7 +165,7 @@ mod tests {
 
   #[test]
   fn test_var_substitute_with_non_matching_var() {
-    let expr = Expr::call("+", vec![Expr::var("y").unwrap(), Expr::from(2)]);
+    let expr = Expr::call("+", vec![var("y"), Expr::from(2)]);
     let new_expr = expr.clone().substitute_var(Var::new("x").unwrap(), Expr::from(999));
     assert_eq!(new_expr, expr);
   }
@@ -171,8 +175,8 @@ mod tests {
     let expr = Expr::call(
       "+",
       vec![
-        Expr::var("y").unwrap(),
-        Expr::call("*", vec![Expr::var("z").unwrap(), Expr::var("x1").unwrap()]),
+        var("y"),
+        Expr::call("*", vec![var("z"), var("x1")]),
       ],
     );
     let new_expr = expr.clone().substitute_var(Var::new("x").unwrap(), Expr::from(999));
@@ -181,30 +185,30 @@ mod tests {
 
   #[test]
   fn test_var_substitute_with_vars() {
-    let expr = Expr::call("+", vec![Expr::var("y").unwrap(), Expr::var("x").unwrap()]);
+    let expr = Expr::call("+", vec![var("y"), var("x")]);
     let new_expr = expr.substitute_var(Var::new("x").unwrap(), Expr::from(999));
     assert_eq!(
       new_expr,
-      Expr::call("+", vec![Expr::var("y").unwrap(), Expr::from(999)]),
+      Expr::call("+", vec![var("y"), Expr::from(999)]),
     );
   }
 
   #[test]
   fn test_var_substitute_with_var_containing_itself() {
-    let expr = Expr::call("+", vec![Expr::var("x").unwrap(), Expr::from(1)]);
+    let expr = Expr::call("+", vec![var("x"), Expr::from(1)]);
     let new_expr = expr.substitute_var(
       Var::new("x").unwrap(),
-      Expr::call("+", vec![Expr::var("x").unwrap(), Expr::from(2)]),
+      Expr::call("+", vec![var("x"), Expr::from(2)]),
     );
     assert_eq!(
       new_expr,
-      Expr::call("+", vec![Expr::call("+", vec![Expr::var("x").unwrap(), Expr::from(2)]), Expr::from(1)]),
+      Expr::call("+", vec![Expr::call("+", vec![var("x"), Expr::from(2)]), Expr::from(1)]),
     );
   }
 
   #[test]
   fn test_var_substitute_with_same_var_twice() {
-    let expr = Expr::call("+", vec![Expr::var("x").unwrap(), Expr::var("x").unwrap()]);
+    let expr = Expr::call("+", vec![var("x"), var("x")]);
     let new_expr = expr.substitute_var(Var::new("x").unwrap(), Expr::from(999));
     assert_eq!(
       new_expr,
@@ -218,7 +222,7 @@ mod tests {
     vars.insert(Var::new("x").unwrap(), Expr::from(1));
     vars.insert(Var::new("y").unwrap(), Expr::from(2));
 
-    let expr = Expr::call("+", vec![Expr::var("y").unwrap(), Expr::var("x").unwrap()]);
+    let expr = Expr::call("+", vec![var("y"), var("x")]);
     let new_expr = expr.substitute_vars(&vars);
     assert_eq!(
       new_expr,
