@@ -1,4 +1,6 @@
 
+pub mod table;
+
 use regex::Regex;
 use once_cell::sync::Lazy;
 

@@ -10,6 +10,7 @@ pub mod walker;
 
 use atom::Atom;
 use var::Var;
+use var::table::VarTable;
 
 use num::{Zero, One};
 
@@ -60,6 +61,19 @@ impl Expr {
           value.clone()
         } else {
           Expr::Atom(Atom::Var(v))
+        }
+      } else {
+        expr
+      }
+    })
+  }
+
+  pub fn substitute_vars(self, vars: &VarTable<Expr>) -> Self {
+    walker::postorder_walk_ok(self, |expr| {
+      if let Expr::Atom(Atom::Var(v)) = expr {
+        match vars.get(&v) {
+          None => Expr::Atom(Atom::Var(v)),
+          Some(value) => value.clone(),
         }
       } else {
         expr
@@ -176,6 +190,19 @@ mod tests {
   }
 
   #[test]
+  fn test_var_substitute_with_var_containing_itself() {
+    let expr = Expr::call("+", vec![Expr::var("x").unwrap(), Expr::from(1)]);
+    let new_expr = expr.substitute_var(
+      Var::new("x").unwrap(),
+      Expr::call("+", vec![Expr::var("x").unwrap(), Expr::from(2)]),
+    );
+    assert_eq!(
+      new_expr,
+      Expr::call("+", vec![Expr::call("+", vec![Expr::var("x").unwrap(), Expr::from(2)]), Expr::from(1)]),
+    );
+  }
+
+  #[test]
   fn test_var_substitute_with_same_var_twice() {
     let expr = Expr::call("+", vec![Expr::var("x").unwrap(), Expr::var("x").unwrap()]);
     let new_expr = expr.substitute_var(Var::new("x").unwrap(), Expr::from(999));
@@ -185,4 +212,17 @@ mod tests {
     );
   }
 
+  #[test]
+  fn test_multi_var_substitute() {
+    let mut vars = VarTable::new();
+    vars.insert(Var::new("x").unwrap(), Expr::from(1));
+    vars.insert(Var::new("y").unwrap(), Expr::from(2));
+
+    let expr = Expr::call("+", vec![Expr::var("y").unwrap(), Expr::var("x").unwrap()]);
+    let new_expr = expr.substitute_vars(&vars);
+    assert_eq!(
+      new_expr,
+      Expr::call("+", vec![Expr::from(2), Expr::from(1)]),
+    );
+  }
 }
