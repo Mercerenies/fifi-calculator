@@ -229,4 +229,21 @@ mod tests {
       Expr::call("+", vec![Expr::from(2), Expr::from(1)]),
     );
   }
+
+  #[test]
+  fn test_multi_var_substitute_as_each_other() {
+    let mut vars = VarTable::new();
+    vars.insert(Var::new("x").unwrap(), Expr::call("+", vec![var("y"), Expr::from(1)]));
+    vars.insert(Var::new("y").unwrap(), Expr::call("+", vec![var("x"), Expr::from(2)]));
+
+    let expr = Expr::call("+", vec![var("y"), var("x")]);
+    let new_expr = expr.substitute_vars(&vars);
+    assert_eq!(
+      new_expr,
+      Expr::call("+", vec![
+        Expr::call("+", vec![var("x"), Expr::from(2)]),
+        Expr::call("+", vec![var("y"), Expr::from(1)]),
+      ]),
+    );
+  }
 }
