@@ -11,6 +11,7 @@ pub mod input;
 pub use base::{Command, CommandContext, CommandOutput};
 use functional::{UnaryFunctionCommand, BinaryFunctionCommand};
 use dispatch::CommandDispatchTable;
+use input::{push_number_command, push_expr_command};
 use crate::expr::Expr;
 use crate::expr::number::ComplexNumber;
 use crate::state::ApplicationState;
@@ -19,6 +20,8 @@ use std::collections::HashMap;
 
 pub fn default_dispatch_table() -> CommandDispatchTable {
   let mut map: HashMap<String, Box<dyn Command + Send + Sync>> = HashMap::new();
+
+  // Nullary commands
   map.insert("+".to_string(), Box::new(BinaryFunctionCommand::named("+")));
   map.insert("-".to_string(), Box::new(BinaryFunctionCommand::named("-")));
   map.insert("*".to_string(), Box::new(BinaryFunctionCommand::named("*")));
@@ -32,6 +35,11 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("swap".to_string(), Box::new(shuffle::SwapCommand));
   map.insert("dup".to_string(), Box::new(shuffle::DupCommand));
   map.insert("substitute_vars".to_string(), Box::new(UnaryFunctionCommand::with_state(substitute_vars)));
+
+  // Commands which accept a single string.
+  map.insert("push_number".to_string(), Box::new(push_number_command()));
+  map.insert("push_expr".to_string(), Box::new(push_expr_command()));
+
   CommandDispatchTable::from_hash_map(map)
 }
 

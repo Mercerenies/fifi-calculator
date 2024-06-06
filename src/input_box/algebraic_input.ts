@@ -1,6 +1,7 @@
 
 import { InputBoxManager } from '../input_box.js';
 import { FreeformInputMethod } from './freeform_input.js';
+import { defaultCommandOptions } from '../button_grid/modifier_delegate.js';
 
 const tauri = window.__TAURI__.tauri;
 
@@ -10,7 +11,11 @@ const VARIABLE_NAME_INPUT_PROMPT = "Var:";
 export async function algebraicInputToStack(manager: InputBoxManager, initialInput: string = ""): Promise<void> {
   const text = await manager.show(new FreeformInputMethod(ALGEBRAIC_INPUT_PROMPT), initialInput);
   if (text) {
-    await tauri.invoke('submit_expr', { value: text });
+    await tauri.invoke('run_math_command', {
+      commandName: 'push_expr',
+      args: [text],
+      opts: defaultCommandOptions(),
+    });
   }
 }
 

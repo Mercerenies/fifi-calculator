@@ -12,7 +12,6 @@ interface TauriFunctions {
 }
 
 interface TauriInvoke {
-  (command: 'submit_number' | 'submit_expr', args: { value: string }): Promise<void>;
   (command: 'run_math_command', args: { commandName: string, args: string[], opts: CommandOptions }): Promise<void>;
   (command: 'perform_undo_action', args: { direction: "undo" | "redo" }): Promise<void>;
   (command: 'validate_stack_size', args: { expected: number }): Promise<boolean>;

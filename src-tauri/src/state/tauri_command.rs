@@ -9,49 +9,12 @@ use crate::command::dispatch::CommandDispatchTable;
 use crate::command::options::CommandOptions;
 use crate::error::Error;
 use crate::errorlist::ErrorList;
-use crate::expr::Expr;
 use crate::expr::var::Var;
 use crate::expr::simplifier::default_simplifier;
-use crate::expr::number::Number;
 use crate::stack::base::StackLike;
 use crate::stack::keepable::KeepableStack;
 
-use std::str::FromStr;
 use std::fmt::Display;
-
-/// Parses the argument as a real number and pushes it onto the main
-/// stack. In case of parse error, the stack is unchanged.
-pub fn submit_number(
-  state: &mut ApplicationState,
-  app_handle: &tauri::AppHandle,
-  value: &str,
-) -> Result<(), Error> {
-  let number = Number::from_str(value)?;
-  state.undo_stack_mut().push_cut();
-  state.main_stack_mut().push(Expr::from(number));
-
-  state.send_all_updates(app_handle)?;
-  Ok(())
-}
-
-/// Parses the argument as an arbitrary [`Expr`] and pushes it onto
-/// the main stack. In case of parse error, the stack is unchanged.
-pub fn submit_expr(
-  state: &mut ApplicationState,
-  app_handle: &tauri::AppHandle,
-  value: &str,
-) -> Result<(), Error> {
-  let mut errors = ErrorList::new();
-  let simplifier = default_simplifier();
-  let language_mode = &state.display_settings().language_mode;
-  let expr = language_mode.parse(value)?;
-  let expr = simplifier.simplify_expr(expr, &mut errors);
-  state.undo_stack_mut().push_cut();
-  state.main_stack_mut().push(expr);
-
-  state.send_all_updates(app_handle)?;
-  Ok(())
-}
 
 /// Runs the given (nullary) math command from the command dispatch
 /// table.

@@ -1,6 +1,7 @@
 
 import { InputMethod, InputBoxSession, InputBoxManager } from '../input_box.js';
 import { KeyResponse, KeyEventInput } from '../keyboard.js';
+import { defaultCommandOptions } from '../button_grid/modifier_delegate.js';
 
 const tauri = window.__TAURI__.tauri;
 
@@ -49,6 +50,10 @@ export class NumericalInputMethod implements InputMethod {
 export async function numericalInputToStack(manager: InputBoxManager, initialInput: string = ""): Promise<void> {
   const text = await manager.show(new NumericalInputMethod(), initialInput);
   if (text) {
-    await tauri.invoke('submit_number', { value: text });
+    await tauri.invoke('run_math_command', {
+      commandName: 'push_number',
+      args: [text],
+      opts: defaultCommandOptions(),
+    });
   }
 }

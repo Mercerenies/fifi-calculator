@@ -7,32 +7,6 @@ use fifi::state::tauri_command::{self, handle_non_tauri_errors};
 use fifi::command::options::CommandOptions;
 
 #[tauri::command]
-fn submit_number(
-  app_state: tauri::State<TauriApplicationState>,
-  app_handle: tauri::AppHandle,
-  value: &str,
-) -> Result<(), tauri::Error> {
-  let mut state = app_state.state.lock().expect("poisoned mutex");
-  handle_non_tauri_errors(
-    &app_handle,
-    tauri_command::submit_number(&mut state, &app_handle, value),
-  )
-}
-
-#[tauri::command]
-fn submit_expr(
-  app_state: tauri::State<TauriApplicationState>,
-  app_handle: tauri::AppHandle,
-  value: &str,
-) -> Result<(), tauri::Error> {
-  let mut state = app_state.state.lock().expect("poisoned mutex");
-  handle_non_tauri_errors(
-    &app_handle,
-    tauri_command::submit_expr(&mut state, &app_handle, value),
-  )
-}
-
-#[tauri::command]
 fn run_math_command(
   app_state: tauri::State<TauriApplicationState>,
   app_handle: tauri::AppHandle,
@@ -98,7 +72,7 @@ fn substitute_variable(
 fn main() {
   tauri::Builder::default()
     .manage(TauriApplicationState::with_default_command_table())
-    .invoke_handler(tauri::generate_handler![submit_number, submit_expr, run_math_command, perform_undo_action,
+    .invoke_handler(tauri::generate_handler![run_math_command, perform_undo_action,
                                              validate_stack_size, validate_value, substitute_variable])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

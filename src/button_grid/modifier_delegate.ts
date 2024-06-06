@@ -52,6 +52,10 @@ export function modifiersToRustArgs(modifiers: ButtonModifiers): CommandOptions 
   };
 }
 
+export function defaultCommandOptions(): CommandOptions {
+  return modifiersToRustArgs(defaultModifiers());
+}
+
 export function defaultModifiers(): ButtonModifiers {
   return {
     prefixArgument: undefined,
