@@ -60,6 +60,7 @@ pub fn run_math_command(
   app_handle: &tauri::AppHandle,
   command_table: &CommandDispatchTable,
   command_name: &str,
+  args: Vec<String>,
   opts: CommandOptions,
 ) -> Result<(), Error> {
   let command = command_table.get(command_name)?;
@@ -67,7 +68,7 @@ pub fn run_math_command(
     opts,
     simplifier: default_simplifier(),
   };
-  let output = command.run_command(state, vec![], &context)?; // TODO: Args
+  let output = command.run_command(state, args, &context)?;
   handle_command_output(app_handle, &output)?;
 
   state.send_all_updates(app_handle)?;

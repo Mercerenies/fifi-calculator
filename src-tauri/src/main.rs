@@ -33,17 +33,18 @@ fn submit_expr(
 }
 
 #[tauri::command]
-fn math_command(
+fn run_math_command(
   app_state: tauri::State<TauriApplicationState>,
   app_handle: tauri::AppHandle,
   command_name: &str,
+  args: Vec<String>,
   opts: CommandOptions,
 ) -> Result<(), tauri::Error> {
   let mut state = app_state.state.lock().expect("poisoned mutex");
   let command_table = &app_state.command_table;
   handle_non_tauri_errors(
     &app_handle,
-    tauri_command::run_math_command(&mut state, &app_handle, command_table, command_name, opts),
+    tauri_command::run_math_command(&mut state, &app_handle, command_table, command_name, args, opts),
   )
 }
 
@@ -97,7 +98,7 @@ fn substitute_variable(
 fn main() {
   tauri::Builder::default()
     .manage(TauriApplicationState::with_default_command_table())
-    .invoke_handler(tauri::generate_handler![submit_number, submit_expr, math_command, perform_undo_action,
+    .invoke_handler(tauri::generate_handler![submit_number, submit_expr, run_math_command, perform_undo_action,
                                              validate_stack_size, validate_value, substitute_variable])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

@@ -53,10 +53,11 @@ export class ButtonGridManager {
     this.loadHtml();
   }
 
-  async invokeMathCommand(commandName: string): Promise<void> {
+  async invokeMathCommand(commandName: string, args: string[] = []): Promise<void> {
     const modifiers = this.getModifiers();
-    await tauri.invoke('math_command', {
+    await tauri.invoke('run_math_command', {
       commandName,
+      args,
       opts: modifiersToRustArgs(modifiers),
     });
   }
