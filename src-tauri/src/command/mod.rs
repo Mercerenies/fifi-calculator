@@ -64,7 +64,7 @@ pub(crate) mod test_utils {
     let mut state = state_for_stack(input_stack);
     let mut context = CommandContext::default();
     context.opts = opts;
-    let output = command.run_command(&mut state, &context).unwrap();
+    let output = command.run_command(&mut state, vec![], &context).unwrap();
     assert!(output.errors.is_empty());
     state.into_main_stack()
   }
@@ -75,7 +75,7 @@ pub(crate) mod test_utils {
     let mut state = state_for_stack(input_stack.clone());
     let mut context = CommandContext::default();
     context.opts = opts;
-    let err = command.run_command(&mut state, &context).unwrap_err();
+    let err = command.run_command(&mut state, vec![], &context).unwrap_err();
     let Error::StackError(err) = err else {
       panic!("Expected StackError, got {:?}", err)
     };

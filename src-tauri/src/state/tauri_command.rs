@@ -67,7 +67,7 @@ pub fn run_math_command(
     opts,
     simplifier: default_simplifier(),
   };
-  let output = command.run_command(state, &context)?;
+  let output = command.run_command(state, vec![], &context)?; // TODO: Args
   handle_command_output(app_handle, &output)?;
 
   state.send_all_updates(app_handle)?;

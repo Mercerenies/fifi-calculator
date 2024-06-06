@@ -10,7 +10,7 @@ pub struct GeneralCommand<F> {
 }
 
 impl<F> GeneralCommand<F>
-where F: Fn(&mut ApplicationState, &CommandContext) -> Result<CommandOutput, Error> {
+where F: Fn(&mut ApplicationState, Vec<String>, &CommandContext) -> Result<CommandOutput, Error> {
   pub fn new(body: F) -> GeneralCommand<F> {
     GeneralCommand {
       body
@@ -19,9 +19,14 @@ where F: Fn(&mut ApplicationState, &CommandContext) -> Result<CommandOutput, Err
 }
 
 impl<F> Command for GeneralCommand<F>
-where F: Fn(&mut ApplicationState, &CommandContext) -> Result<CommandOutput, Error> {
-  fn run_command(&self, state: &mut ApplicationState, context: &CommandContext) -> Result<CommandOutput, Error> {
-    (self.body)(state, context)
+where F: Fn(&mut ApplicationState, Vec<String>, &CommandContext) -> Result<CommandOutput, Error> {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    context: &CommandContext,
+  ) -> Result<CommandOutput, Error> {
+    (self.body)(state, args, context)
   }
 }
 
@@ -31,10 +36,10 @@ mod tests {
 
   #[test]
   fn command_delegates_to_inner() {
-    let command = GeneralCommand::new(|_, _| {
+    let command = GeneralCommand::new(|_, _, _| {
       Ok(CommandOutput::from_errors(vec!["A", "B"]))
     });
-    let result = command.run_command(&mut ApplicationState::new(), &mut CommandContext::default()).unwrap();
+    let result = command.run_command(&mut ApplicationState::new(), vec![], &mut CommandContext::default()).unwrap();
     assert_eq!(result.errors, vec!["A", "B"]);
   }
 }

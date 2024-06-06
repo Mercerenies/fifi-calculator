@@ -11,7 +11,12 @@ pub trait Command {
   /// command executes, then an `Ok` should be returned, possibly
   /// reporting zero or more non-fatal errors using the
   /// [`CommandOutput`] object.
-  fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error>;
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    ctx: &CommandContext,
+  ) -> Result<CommandOutput, Error>;
 }
 
 pub struct CommandContext {

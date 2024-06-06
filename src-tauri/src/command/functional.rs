@@ -3,6 +3,7 @@
 //! arguments from the existing stack.
 
 use super::base::{Command, CommandContext, CommandOutput};
+use super::arguments::{NullaryArgumentSchema, validate_schema};
 use crate::state::ApplicationState;
 use crate::error::Error;
 use crate::expr::Expr;
@@ -142,9 +143,15 @@ impl BinaryFunctionCommand {
 }
 
 impl Command for PushConstantCommand {
-  fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    ctx: &CommandContext,
+  ) -> Result<CommandOutput, Error> {
     // Note: keep_modifier has no effect on this command (since there
     // are no pops), so we don't construct a KeepableStack.
+    validate_schema(NullaryArgumentSchema::new(), args)?;
     state.undo_stack_mut().push_cut();
     let arg = ctx.opts.argument.unwrap_or(1).max(0);
     let mut errors = ErrorList::new();
@@ -156,7 +163,13 @@ impl Command for PushConstantCommand {
 }
 
 impl Command for UnaryFunctionCommand {
-  fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    ctx: &CommandContext,
+  ) -> Result<CommandOutput, Error> {
+    validate_schema(NullaryArgumentSchema::new(), args)?;
     state.undo_stack_mut().push_cut();
     let arg = ctx.opts.argument.unwrap_or(1);
     match arg.cmp(&0) {
@@ -178,7 +191,13 @@ impl Command for UnaryFunctionCommand {
 }
 
 impl Command for BinaryFunctionCommand {
-  fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    ctx: &CommandContext,
+  ) -> Result<CommandOutput, Error> {
+    validate_schema(NullaryArgumentSchema::new(), args)?;
     state.undo_stack_mut().push_cut();
     let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
 

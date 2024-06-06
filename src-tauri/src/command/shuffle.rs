@@ -2,6 +2,7 @@
 //! Commands for shuffling the stack.
 
 use super::base::{Command, CommandContext, CommandOutput};
+use super::arguments::{NullaryArgumentSchema, validate_schema};
 use crate::state::ApplicationState;
 use crate::stack::keepable::KeepableStack;
 use crate::stack::base::{StackLike, RandomAccessStackLike};
@@ -22,9 +23,15 @@ pub struct SwapCommand;
 pub struct DupCommand;
 
 impl Command for PopCommand {
-  fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    ctx: &CommandContext,
+  ) -> Result<CommandOutput, Error> {
     // Note: PopCommand explicitly ignores the keep_modifier, as it
     // would always be a no-op.
+    validate_schema(NullaryArgumentSchema::new(), args)?;
     state.undo_stack_mut().push_cut();
     let mut stack = state.main_stack_mut();
 
@@ -48,7 +55,13 @@ impl Command for PopCommand {
 }
 
 impl Command for SwapCommand {
-  fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    ctx: &CommandContext,
+  ) -> Result<CommandOutput, Error> {
+    validate_schema(NullaryArgumentSchema::new(), args)?;
     state.undo_stack_mut().push_cut();
     let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
 
@@ -79,10 +92,16 @@ impl Command for SwapCommand {
 }
 
 impl Command for DupCommand {
-  fn run_command(&self, state: &mut ApplicationState, ctx: &CommandContext) -> Result<CommandOutput, Error> {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    ctx: &CommandContext,
+  ) -> Result<CommandOutput, Error> {
     // Note: DupCommand explicitly ignores the keep_modifier, as its
     // behavior would be quite unintuitive (especially with negative
     // numerical arg).
+    validate_schema(NullaryArgumentSchema::new(), args)?;
     state.undo_stack_mut().push_cut();
     let mut stack = state.main_stack_mut();
 
