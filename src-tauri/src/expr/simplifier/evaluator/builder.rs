@@ -39,7 +39,7 @@ pub enum FunctionCaseResult {
 /// [`Identity`].
 pub struct OneArgumentMatcher<C, Down> {
   arg_prism: C,
-  _phantom: PhantomData<Down>,
+  _phantom: PhantomData<fn() -> Down>,
 }
 
 /// Matcher that requires exactly two arguments in order to match. The
@@ -47,7 +47,7 @@ pub struct OneArgumentMatcher<C, Down> {
 pub struct TwoArgumentMatcher<C1, C2, Down1, Down2> {
   first_arg_prism: C1,
   second_arg_prism: C2,
-  _phantom: PhantomData<(Down1, Down2)>,
+  _phantom: PhantomData<fn() -> (Down1, Down2)>,
 }
 
 /// Matcher that accepts a variable number of arguments, possibly with
@@ -57,7 +57,7 @@ pub struct VecMatcher<C, Down> {
   arg_prism: C,
   min_length: usize,
   max_length: usize,
-  _phantom: PhantomData<Down>,
+  _phantom: PhantomData<fn() -> Down>,
 }
 
 impl FunctionBuilder {

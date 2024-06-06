@@ -47,7 +47,7 @@ pub struct Identity {
 pub struct Composed<X, Y, B> {
   left: X,
   right: Y,
-  _phantom: PhantomData<B>,
+  _phantom: PhantomData<fn() -> B>,
 }
 
 /// Lift a type-checker into each element of a `Vec`.
