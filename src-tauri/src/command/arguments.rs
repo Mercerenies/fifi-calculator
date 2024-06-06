@@ -11,6 +11,8 @@
 //! _before_ passing it to the schema. If a bad variable name makes it
 //! as far as the schema, then that's a bug in this application.
 
+use crate::util::prism::Prism;
+
 use thiserror::Error;
 
 use std::error::{Error as StdError};
@@ -28,6 +30,22 @@ pub trait ArgumentSchema {
 #[derive(Clone, Debug, Default)]
 pub struct NullaryArgumentSchema {
   _priv: PhantomData<()>,
+}
+
+#[derive(Clone, Debug)]
+pub struct UnaryArgumentSchema<P, T> {
+  expected: String,
+  prism: P,
+  _phantom: PhantomData<fn() -> T>,
+}
+
+#[derive(Clone, Debug)]
+pub struct BinaryArgumentSchema<P1, T1, P2, T2> {
+  first_expected: String,
+  first_prism: P1,
+  second_expected: String,
+  second_prism: P2,
+  _phantom: PhantomData<fn() -> (T1, T2)>,
 }
 
 /// An error occurring during validation of an argument list schema.
@@ -54,6 +72,31 @@ impl NullaryArgumentSchema {
   }
 }
 
+impl<P, T> UnaryArgumentSchema<P, T>
+where P: Prism<String, T> {
+  pub fn new(expected: String, prism: P) -> Self {
+    Self {
+      expected,
+      prism,
+      _phantom: PhantomData,
+    }
+  }
+}
+
+impl<P1, T1, P2, T2> BinaryArgumentSchema<P1, T1, P2, T2>
+where P1: Prism<String, T1>,
+      P2: Prism<String, T2> {
+  pub fn new(first_expected: String, first_prism: P1, second_expected: String, second_prism: P2) -> Self {
+    Self {
+      first_expected,
+      first_prism,
+      second_expected,
+      second_prism,
+      _phantom: PhantomData,
+    }
+  }
+}
+
 impl ArgumentSchemaError {
   pub fn from_error(body: impl StdError + Send + Sync + 'static) -> Self {
     Self {
@@ -67,6 +110,50 @@ impl ArgumentSchema for NullaryArgumentSchema {
 
   fn validate(&self, args: Vec<String>) -> Result<(), ArgumentSchemaError> {
     check_arity(&args, 0)
+  }
+}
+
+impl<P, T> ArgumentSchema for UnaryArgumentSchema<P, T>
+where P: Prism<String, T> {
+  type Output = T;
+
+  fn validate(&self, mut args: Vec<String>) -> Result<T, ArgumentSchemaError> {
+    check_arity(&args, 1)?;
+    let arg = args.pop().unwrap(); // unwrap: Just checked the arity.
+    self.prism.narrow_type(arg).map_err(|arg| {
+      ArgumentSchemaError::from_error(ArgumentSchemaErrorImpl::TypeError {
+        expected: self.expected.clone(),
+        actual: arg,
+      })
+    })
+  }
+}
+
+impl<P1, T1, P2, T2> ArgumentSchema for BinaryArgumentSchema<P1, T1, P2, T2>
+where P1: Prism<String, T1>,
+      P2: Prism<String, T2> {
+  type Output = (T1, T2);
+
+  fn validate(&self, mut args: Vec<String>) -> Result<(T1, T2), ArgumentSchemaError> {
+    check_arity(&args, 2)?;
+
+    // unwrap: Just checked the arity.
+    let arg2 = args.pop().unwrap();
+    let arg1 = args.pop().unwrap();
+
+    let arg1 = self.first_prism.narrow_type(arg1).map_err(|arg| {
+      ArgumentSchemaError::from_error(ArgumentSchemaErrorImpl::TypeError {
+        expected: self.first_expected.clone(),
+        actual: arg,
+      })
+    })?;
+    let arg2 = self.second_prism.narrow_type(arg2).map_err(|arg| {
+      ArgumentSchemaError::from_error(ArgumentSchemaErrorImpl::TypeError {
+        expected: self.second_expected.clone(),
+        actual: arg,
+      })
+    })?;
+    Ok((arg1, arg2))
   }
 }
 
