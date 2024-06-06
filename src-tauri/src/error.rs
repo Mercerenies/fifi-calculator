@@ -8,8 +8,6 @@ use thiserror::Error;
 
 use std::error::{Error as StdError};
 
-// TODO The only one we actually need here is TauriError (and
-// CustomError). Remove the others and add From instances by hand.
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum Error {
@@ -19,10 +17,6 @@ pub enum Error {
   TauriError(#[from] tauri::Error),
   #[error("{0}")]
   StackError(#[from] StackError),
-  #[error("{0}")]
-  NoSuchCommandError(#[from] NoSuchCommandError),
-  #[error("{0}")]
-  ParseNumberError(#[from] ParseNumberError),
 }
 
 impl Error {
@@ -33,6 +27,18 @@ impl Error {
 
 impl From<UserFacingSchemaError> for Error {
   fn from(err: UserFacingSchemaError) -> Self {
+    Self::custom_error(err)
+  }
+}
+
+impl From<NoSuchCommandError> for Error {
+  fn from(err: NoSuchCommandError) -> Self {
+    Self::custom_error(err)
+  }
+}
+
+impl From<ParseNumberError> for Error {
+  fn from(err: ParseNumberError) -> Self {
     Self::custom_error(err)
   }
 }
