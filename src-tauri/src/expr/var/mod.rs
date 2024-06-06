@@ -128,4 +128,25 @@ mod test {
     assert_eq!(Var::new("3''2"), None);
     assert_eq!(Var::new("'''''''"), None);
   }
+
+  #[test]
+  fn test_widen_var_prism() {
+    let prism = StringToVar;
+    let var = Var::new("abc").unwrap();
+    assert_eq!(prism.widen_type(var), "abc");
+  }
+
+  #[test]
+  fn test_narrow_var_prism_success() {
+    let prism = StringToVar;
+    let s = "abc";
+    assert_eq!(prism.narrow_type(s.to_owned()).unwrap(), Var::new(s).unwrap());
+  }
+
+  #[test]
+  fn test_narrow_var_prism_failure() {
+    let prism = StringToVar;
+    let s = "00";
+    assert_eq!(prism.narrow_type(s.to_owned()).unwrap_err(), "00");
+  }
 }

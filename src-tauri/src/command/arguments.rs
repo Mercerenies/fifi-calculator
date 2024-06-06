@@ -182,3 +182,162 @@ pub fn check_arity<T>(args: &[T], expected: usize) -> Result<(), ArgumentSchemaE
     Ok(())
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::util::prism::Identity;
+
+  /// Test prism that only accepts strings of length 1.
+  struct StringToChar;
+
+  /// Test prism that only accepts the empty string.
+  struct StringToUnit;
+
+  impl Prism<String, char> for StringToChar {
+    fn narrow_type(&self, arg: String) -> Result<char, String> {
+      if arg.len() == 1 {
+        Ok(arg.chars().next().unwrap())
+      } else {
+        Err(arg)
+      }
+    }
+    fn widen_type(&self, arg: char) -> String {
+      arg.to_string()
+    }
+  }
+
+  impl Prism<String, ()> for StringToUnit {
+    fn narrow_type(&self, arg: String) -> Result<(), String> {
+      if arg.is_empty() {
+        Ok(())
+      } else {
+        Err(arg)
+      }
+    }
+    fn widen_type(&self, _: ()) -> String {
+      "".to_string()
+    }
+  }
+
+  #[test]
+  fn test_check_arity_success() {
+    check_arity::<()>(&[], 0).unwrap();
+    check_arity(&[()], 1).unwrap();
+    check_arity(&[(), ()], 2).unwrap();
+    check_arity(&[(), (), (), (), (), ()], 6).unwrap();
+  }
+
+  #[test]
+  fn test_check_arity_failure_zero() {
+    let err = check_arity(&[()], 0).unwrap_err();
+    assert_eq!(err.to_string(), "expected 0 argument(s), got 1");
+  }
+
+  #[test]
+  fn test_check_arity_failure_two() {
+    let err = check_arity(&[()], 2).unwrap_err();
+    assert_eq!(err.to_string(), "expected 2 argument(s), got 1");
+  }
+
+  #[test]
+  fn test_nullary_argument_schema_success() {
+    let args = vec![];
+    NullaryArgumentSchema::new().validate(args).unwrap();
+  }
+
+  #[test]
+  fn test_nullary_argument_schema_failure() {
+    let args = vec![String::from("foo")];
+    let err = NullaryArgumentSchema::new().validate(args).unwrap_err();
+    assert_eq!(err.to_string(), "expected 0 argument(s), got 1");
+  }
+
+  #[test]
+  fn test_unary_argument_schema_identity_prism() {
+    let schema = UnaryArgumentSchema::new("any".to_owned(), Identity::new());
+
+    // Successes
+    schema.validate(vec![String::from("xyz")]).unwrap();
+    schema.validate(vec![String::from("0")]).unwrap();
+    schema.validate(vec![String::from("")]).unwrap();
+
+    // Failures
+    let err = schema.validate(vec![]).unwrap_err();
+    assert_eq!(err.to_string(), "expected 1 argument(s), got 0");
+    let err = schema.validate(vec![String::from("a"), String::from("b")]).unwrap_err();
+    assert_eq!(err.to_string(), "expected 1 argument(s), got 2");
+  }
+
+  #[test]
+  fn test_unary_argument_schema_specific_prism() {
+    let schema = UnaryArgumentSchema::new("one character".to_owned(), StringToChar);
+
+    // Successes
+    assert_eq!(schema.validate(vec![String::from("a")]).unwrap(), 'a');
+    assert_eq!(schema.validate(vec![String::from("0")]).unwrap(), '0');
+    assert_eq!(schema.validate(vec![String::from("_")]).unwrap(), '_');
+
+    // Failures (by length)
+    let err = schema.validate(vec![]).unwrap_err();
+    assert_eq!(err.to_string(), "expected 1 argument(s), got 0");
+    let err = schema.validate(vec![String::from("a"), String::from("b")]).unwrap_err();
+    assert_eq!(err.to_string(), "expected 1 argument(s), got 2");
+    let err = schema.validate(vec![String::from("xyzXYZ"), String::from("100")]).unwrap_err();
+    assert_eq!(err.to_string(), "expected 1 argument(s), got 2");
+
+    // Failures (by type)
+    let err = schema.validate(vec![String::from("")]).unwrap_err();
+    assert_eq!(err.to_string(), "expected one character, got \"\"");
+    let err = schema.validate(vec![String::from("foo")]).unwrap_err();
+    assert_eq!(err.to_string(), "expected one character, got \"foo\"");
+  }
+
+  #[test]
+  fn test_binary_argument_schema_identity_prism() {
+    let schema = BinaryArgumentSchema::new("any".to_owned(), Identity::new(), "any".to_owned(), Identity::new());
+
+    // Successes
+    schema.validate(vec![String::from("xyz"), String::from("9")]).unwrap();
+    schema.validate(vec![String::from("0"), String::from("0")]).unwrap();
+    schema.validate(vec![String::from(""), String::from("potato")]).unwrap();
+
+    // Failures
+    let err = schema.validate(vec![]).unwrap_err();
+    assert_eq!(err.to_string(), "expected 2 argument(s), got 0");
+    let err = schema.validate(vec![String::from("foobarbaz")]).unwrap_err();
+    assert_eq!(err.to_string(), "expected 2 argument(s), got 1");
+    let err = schema.validate(vec![String::from("a"), String::from("b"), String::from("c")]).unwrap_err();
+    assert_eq!(err.to_string(), "expected 2 argument(s), got 3");
+  }
+
+  #[test]
+  fn test_binary_argument_schema_specific_prisms() {
+    let schema = BinaryArgumentSchema::new(
+      "one character".to_owned(),
+      StringToChar,
+      "empty string".to_owned(),
+      StringToUnit,
+    );
+
+    // Successes
+    assert_eq!(schema.validate(vec![String::from("a"), String::from("")]).unwrap(), ('a', ()));
+    assert_eq!(schema.validate(vec![String::from("0"), String::from("")]).unwrap(), ('0', ()));
+
+    // Failures (by length)
+    let err = schema.validate(vec![]).unwrap_err();
+    assert_eq!(err.to_string(), "expected 2 argument(s), got 0");
+    let err = schema.validate(vec![String::from("xyzXYZ"), String::from("100"), String::from("9")]).unwrap_err();
+    assert_eq!(err.to_string(), "expected 2 argument(s), got 3");
+
+    // Failures (by first type)
+    let err = schema.validate(vec![String::from(""), String::from("")]).unwrap_err();
+    assert_eq!(err.to_string(), "expected one character, got \"\"");
+    let err = schema.validate(vec![String::from(""), String::from("abcd")]).unwrap_err();
+    assert_eq!(err.to_string(), "expected one character, got \"\"");
+
+    // Failures (by second type)
+    let err = schema.validate(vec![String::from("e"), String::from("0")]).unwrap_err();
+    assert_eq!(err.to_string(), "expected empty string, got \"0\"");
+  }
+}
