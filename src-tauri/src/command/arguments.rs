@@ -11,7 +11,7 @@
 //! _before_ passing it to the schema. If a bad variable name makes it
 //! as far as the schema, then that's a bug in this application.
 
-use crate::util::prism::Prism;
+use crate::util::prism::{Prism, Identity};
 
 use thiserror::Error;
 
@@ -89,6 +89,14 @@ where P: Prism<String, T> {
       prism,
       _phantom: PhantomData,
     }
+  }
+}
+
+impl UnaryArgumentSchema<Identity, String> {
+  /// Helper function for a unary argument schema which accepts any
+  /// one argument.
+  pub fn any() -> Self {
+    Self::new("any".to_owned(), Identity::new())
   }
 }
 
@@ -223,7 +231,6 @@ pub fn validate_schema<S: ArgumentSchema>(
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::util::prism::Identity;
 
   /// Test prism that only accepts strings of length 1.
   struct StringToChar;

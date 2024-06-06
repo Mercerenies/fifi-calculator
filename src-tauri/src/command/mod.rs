@@ -6,6 +6,7 @@ pub mod functional;
 pub mod general;
 pub mod options;
 pub mod shuffle;
+pub mod input;
 
 pub use base::{Command, CommandContext, CommandOutput};
 use functional::{UnaryFunctionCommand, BinaryFunctionCommand};
