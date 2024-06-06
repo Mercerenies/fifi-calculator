@@ -60,23 +60,50 @@ pub(crate) mod test_utils {
   use crate::error::Error;
 
   /// Tests the operation on the given input stack, expecting a
-  /// success.
+  /// success. Passes no string arguments.
   pub fn act_on_stack(command: &impl Command, opts: CommandOptions, input_stack: Vec<i64>) -> Stack<Expr> {
+    let args = Vec::<String>::new();
+    act_on_stack_with_args(command, args, opts, input_stack)
+  }
+
+  /// Tests the operation on the given input stack. Expects a failure.
+  /// Passes no string arguments. Asserts that the stack is unchanged
+  /// and returns the error.
+  pub fn act_on_stack_err(command: &impl Command, opts: CommandOptions, input_stack: Vec<i64>) -> StackError {
+    let args = Vec::<String>::new();
+    act_on_stack_with_args_err(command, args, opts, input_stack)
+  }
+
+  /// Tests the operation on the given input stack, expecting a
+  /// success.
+  pub fn act_on_stack_with_args(
+    command: &impl Command,
+    args: Vec<impl Into<String>>,
+    opts: CommandOptions,
+    input_stack: Vec<i64>,
+  ) -> Stack<Expr> {
+    let args = args.into_iter().map(|s| s.into()).collect();
     let mut state = state_for_stack(input_stack);
     let mut context = CommandContext::default();
     context.opts = opts;
-    let output = command.run_command(&mut state, vec![], &context).unwrap();
+    let output = command.run_command(&mut state, args, &context).unwrap();
     assert!(output.errors.is_empty());
     state.into_main_stack()
   }
 
   /// Tests the operation on the given input stack. Expects a failure.
   /// Asserts that the stack is unchanged and returns the error.
-  pub fn act_on_stack_err(command: &impl Command, opts: CommandOptions, input_stack: Vec<i64>) -> StackError {
+  pub fn act_on_stack_with_args_err(
+    command: &impl Command,
+    args: Vec<impl Into<String>>,
+    opts: CommandOptions,
+    input_stack: Vec<i64>,
+  ) -> StackError {
+    let args = args.into_iter().map(|s| s.into()).collect();
     let mut state = state_for_stack(input_stack.clone());
     let mut context = CommandContext::default();
     context.opts = opts;
-    let err = command.run_command(&mut state, vec![], &context).unwrap_err();
+    let err = command.run_command(&mut state, args, &context).unwrap_err();
     let Error::StackError(err) = err else {
       panic!("Expected StackError, got {:?}", err)
     };
