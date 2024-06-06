@@ -54,6 +54,15 @@ pub struct ArgumentSchemaError {
   body: Box<dyn StdError + Send + Sync + 'static>,
 }
 
+/// This error type displays only as a generic error message, intended
+/// to be shown to the user in case of schema failure. This error is
+/// produced by the [`validate_schema`] function, which also dumps
+/// more error details to the console.
+#[derive(Debug, Clone)]
+pub struct UserFacingSchemaError {
+  _priv: PhantomData<()>,
+}
+
 /// Private implementation of some of the specific errors used inside
 /// [`ArgumentSchemaError`] by this module.
 #[derive(Error, Debug, Clone)]
@@ -169,6 +178,14 @@ impl StdError for ArgumentSchemaError {
   }
 }
 
+impl Display for UserFacingSchemaError {
+  fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
+    write!(f, "An error occurred in the Tauri command schema; please report this as a bug!")
+  }
+}
+
+impl StdError for UserFacingSchemaError {}
+
 /// If the length of `args` is equal to `expected`, returns `Ok`.
 /// Otherwise, returns an appropriate error.
 pub fn check_arity<T>(args: &[T], expected: usize) -> Result<(), ArgumentSchemaError> {
@@ -180,6 +197,26 @@ pub fn check_arity<T>(args: &[T], expected: usize) -> Result<(), ArgumentSchemaE
     }))
   } else {
     Ok(())
+  }
+}
+
+/// Validates the schema. In case of schema failure, this function
+/// prints out the error to stderr and returns a generic error,
+/// suitable for displaying to the user.
+///
+/// If you want the actual error object directly, rather than a
+/// generic user-facing error, use [`ArgumentSchema::validate`]
+/// directly.
+pub fn validate_schema<S: ArgumentSchema>(
+  schema: S,
+  args: Vec<String>,
+) -> Result<S::Output, UserFacingSchemaError> {
+  match schema.validate(args) {
+    Ok(output) => Ok(output),
+    Err(e) => {
+      eprintln!("Argument schema error: {}", e);
+      Err(UserFacingSchemaError { _priv: PhantomData })
+    }
   }
 }
 
