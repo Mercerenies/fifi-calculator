@@ -4,6 +4,9 @@ use super::atom::Atom;
 use super::number::{Number, ComplexLike};
 use crate::util::prism::Prism;
 
+// Re-export some useful expression-adjacent prisms.
+pub use super::var::StringToVar;
+
 /// Prism which downcasts an [`Expr`] to a contained [`Number`].
 #[derive(Debug, Clone, Copy, Default)]
 pub struct ExprToNumber;

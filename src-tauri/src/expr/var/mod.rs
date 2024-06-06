@@ -1,12 +1,13 @@
 
 pub mod table;
 
+use crate::util::prism::Prism;
+
 use regex::Regex;
 use once_cell::sync::Lazy;
 
 use std::error::{Error as StdError};
 use std::fmt::{self, Display, Formatter};
-use std::marker::PhantomData;
 
 /// A variable in an equation, left intentionally un-evaluated.
 ///
@@ -16,9 +17,13 @@ use std::marker::PhantomData;
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Var(String);
 
+/// A prism which parses a string as a variable.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct StringToVar;
+
 #[derive(Clone, Debug)]
 pub struct TryFromStringError {
-  _private: PhantomData<()>,
+  original_string: String,
 }
 
 pub static VALID_NAME_RE: Lazy<Regex> = Lazy::new(|| {
@@ -35,6 +40,12 @@ impl Var {
   }
 }
 
+impl StringToVar {
+  pub fn new() -> Self {
+    Self::default()
+  }
+}
+
 impl TryFrom<String> for Var {
   type Error = TryFromStringError;
 
@@ -42,13 +53,23 @@ impl TryFrom<String> for Var {
     if VALID_NAME_RE.is_match(&name) {
       Ok(Self(name))
     } else {
-      Err(TryFromStringError { _private: PhantomData })
+      Err(TryFromStringError { original_string: name })
     }
   }
 }
 
 impl From<Var> for String {
   fn from(v: Var) -> Self {
+    v.0
+  }
+}
+
+impl Prism<String, Var> for StringToVar {
+  fn narrow_type(&self, s: String) -> Result<Var, String> {
+    Var::try_from(s.to_owned()).map_err(|e| e.original_string)
+  }
+
+  fn widen_type(&self, v: Var) -> String {
     v.0
   }
 }
