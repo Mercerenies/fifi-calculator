@@ -29,6 +29,12 @@ impl From<i64> for Atom {
   }
 }
 
+impl From<f64> for Atom {
+  fn from(n: f64) -> Self {
+    Self::Number(Number::from(n))
+  }
+}
+
 impl From<ComplexNumber> for Atom {
   fn from(n: ComplexNumber) -> Self {
     Self::Complex(n)

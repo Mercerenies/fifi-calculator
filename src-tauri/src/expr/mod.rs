@@ -137,6 +137,12 @@ impl From<i64> for Expr {
   }
 }
 
+impl From<f64> for Expr {
+  fn from(f: f64) -> Expr {
+    Expr::Atom(f.into())
+  }
+}
+
 impl TryFrom<Expr> for number::Number {
   type Error = TryFromExprError;
 
