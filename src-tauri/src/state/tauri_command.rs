@@ -9,10 +9,8 @@ use crate::command::dispatch::CommandDispatchTable;
 use crate::command::options::CommandOptions;
 use crate::error::Error;
 use crate::errorlist::ErrorList;
-use crate::expr::var::Var;
 use crate::expr::simplifier::default_simplifier;
 use crate::stack::base::StackLike;
-use crate::stack::keepable::KeepableStack;
 
 use std::fmt::Display;
 
@@ -96,34 +94,6 @@ pub fn validate_value(
   };
   Ok(validation_passed)
 }
-
-/// Performs a variable substitution on the top stack element.
-pub fn substitute_variable(
-  state: &mut ApplicationState,
-  app_handle: &tauri::AppHandle,
-  variable_name: String,
-  new_value: &str,
-  opts: CommandOptions,
-) -> Result<(), Error> {
-  let mut errors = ErrorList::new();
-  state.undo_stack_mut().push_cut();
-
-  let language_mode = &state.display_settings().language_mode;
-  let variable_name = Var::try_from(variable_name).map_err(Error::custom_error)?;
-  let new_value = language_mode.parse(new_value)?;
-
-  let simplifier = default_simplifier();
-  let mut stack = KeepableStack::new(state.main_stack_mut(), opts.keep_modifier);
-  let expr = stack.pop()?;
-  let expr = expr.substitute_var(variable_name, new_value);
-  let expr = simplifier.simplify_expr(expr, &mut errors);
-  stack.push(expr);
-
-  handle_error_list(app_handle, errors)?;
-  state.send_all_updates(app_handle)?;
-  Ok(())
-}
-
 
 /// Handles errors from the referenced [`ErrorList`] by communicating
 /// them to the user.

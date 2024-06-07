@@ -54,26 +54,11 @@ fn validate_value(
   tauri_command::validate_value(&app_handle, value.to_owned(), validator)
 }
 
-#[tauri::command]
-fn substitute_variable(
-  app_state: tauri::State<TauriApplicationState>,
-  app_handle: tauri::AppHandle,
-  variable_name: &str,
-  new_value: &str,
-  opts: CommandOptions,
-) -> Result<(), tauri::Error> {
-  let mut state = app_state.state.lock().expect("poisoned mutex");
-  handle_non_tauri_errors(
-    &app_handle,
-    tauri_command::substitute_variable(&mut state, &app_handle, variable_name.to_owned(), new_value, opts),
-  )
-}
-
 fn main() {
   tauri::Builder::default()
     .manage(TauriApplicationState::with_default_command_table())
     .invoke_handler(tauri::generate_handler![run_math_command, perform_undo_action,
-                                             validate_stack_size, validate_value, substitute_variable])
+                                             validate_stack_size, validate_value])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }

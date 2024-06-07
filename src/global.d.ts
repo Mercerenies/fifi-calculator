@@ -16,7 +16,6 @@ interface TauriInvoke {
   (command: 'perform_undo_action', args: { direction: "undo" | "redo" }): Promise<void>;
   (command: 'validate_stack_size', args: { expected: number }): Promise<boolean>;
   (command: 'validate_value', args: { value: string, validator: Validator }): Promise<boolean>;
-  (command: 'substitute_variable', args: { variableName: string, newValue: string, opts: CommandOptions }): Promise<void>;
 }
 
 type Validator = "variable";

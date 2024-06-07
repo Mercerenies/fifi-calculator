@@ -7,6 +7,7 @@ pub mod general;
 pub mod options;
 pub mod shuffle;
 pub mod input;
+pub mod variables;
 
 pub use base::{Command, CommandContext, CommandOutput};
 use functional::{UnaryFunctionCommand, BinaryFunctionCommand};
@@ -39,6 +40,9 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   // Commands which accept a single string.
   map.insert("push_number".to_string(), Box::new(push_number_command()));
   map.insert("push_expr".to_string(), Box::new(push_expr_command()));
+
+  // Variable-related commands
+  map.insert("manual_substitute".to_string(), Box::new(variables::SubstituteVarCommand::new()));
 
   CommandDispatchTable::from_hash_map(map)
 }
