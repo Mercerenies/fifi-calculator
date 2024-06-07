@@ -42,7 +42,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("push_expr".to_string(), Box::new(push_expr_command()));
 
   // Variable-related commands
-  map.insert("manual_substitute".to_string(), Box::new(variables::SubstituteVarCommand::new()));
+  map.insert("manual_substitute".to_string(), Box::new(variables::SubstituteVarCommand::new())); // TODO: Reify as function?
   map.insert("store_var".to_string(), Box::new(variables::StoreVarCommand::new()));
 
   CommandDispatchTable::from_hash_map(map)
