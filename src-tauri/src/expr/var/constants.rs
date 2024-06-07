@@ -31,11 +31,11 @@ pub struct NameIsReservedError {
 
 /// The Euler-Mascheroni constant. The std::f64::consts constant is
 /// nightly-only.
-const GAMMA: f64 = 0.57721566490153286060651209008240243104215933593992_f64;
+const GAMMA: f64 = 0.577_215_664_901_532_9_f64;
 
 /// The golden ratio. The std::f64::consts constant is
 /// nightly-only.
-const PHI: f64 = 1.61803398874989484820458683436563811772030917980576_f64;
+const PHI: f64 = 1.618_033_988_749_895_f64;
 
 /// Binds the well-known constants in the given variable table.
 pub fn bind_constants(table: &mut VarTable<Expr>) {

@@ -36,8 +36,10 @@ pub struct PushConstantCommand {
 /// argument of -2 applies the function to the element just below the
 /// top of the stack.
 pub struct UnaryFunctionCommand {
-  function: Box<dyn Fn(Expr, &ApplicationState) -> Expr + Send + Sync>,
+  function: Box<UnaryFunction>,
 }
+
+type UnaryFunction = dyn Fn(Expr, &ApplicationState) -> Expr + Send + Sync;
 
 /// A command that applies an arbitrary function to the top two
 /// elements of the stack, with the second-from-the-top element of the
@@ -93,7 +95,7 @@ impl UnaryFunctionCommand {
     let mut errors = ErrorList::new();
     let values = {
       let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
-      stack.pop_several(element_count as usize)?
+      stack.pop_several(element_count)?
     };
     let values: Vec<_> = values.into_iter().map(|e| {
       ctx.simplifier.simplify_expr(self.wrap_expr(e, state), &mut errors)

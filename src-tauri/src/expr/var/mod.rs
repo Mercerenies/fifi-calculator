@@ -43,7 +43,7 @@ impl Var {
 
 impl StringToVar {
   pub fn new() -> Self {
-    Self::default()
+    Self
   }
 }
 
