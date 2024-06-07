@@ -216,7 +216,7 @@ pub fn check_arity<T>(args: &[T], expected: usize) -> Result<(), ArgumentSchemaE
 /// generic user-facing error, use [`ArgumentSchema::validate`]
 /// directly.
 pub fn validate_schema<S: ArgumentSchema>(
-  schema: S,
+  schema: &S,
   args: Vec<String>,
 ) -> Result<S::Output, UserFacingSchemaError> {
   match schema.validate(args) {

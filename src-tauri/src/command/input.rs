@@ -42,8 +42,7 @@ where F: Fn(String, &dyn LanguageMode) -> Result<Expr, Error> {
     args: Vec<String>,
     context: &CommandContext,
   ) -> Result<CommandOutput, Error> {
-    let schema = argument_schema();
-    let arg = validate_schema(schema, args)?;
+    let arg = validate_schema(&argument_schema(), args)?;
     let mut errors = ErrorList::new();
 
     state.undo_stack_mut().push_cut();

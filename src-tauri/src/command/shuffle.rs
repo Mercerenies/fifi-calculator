@@ -31,7 +31,7 @@ impl Command for PopCommand {
   ) -> Result<CommandOutput, Error> {
     // Note: PopCommand explicitly ignores the keep_modifier, as it
     // would always be a no-op.
-    validate_schema(NullaryArgumentSchema::new(), args)?;
+    validate_schema(&NullaryArgumentSchema::new(), args)?;
     state.undo_stack_mut().push_cut();
     let mut stack = state.main_stack_mut();
 
@@ -61,7 +61,7 @@ impl Command for SwapCommand {
     args: Vec<String>,
     ctx: &CommandContext,
   ) -> Result<CommandOutput, Error> {
-    validate_schema(NullaryArgumentSchema::new(), args)?;
+    validate_schema(&NullaryArgumentSchema::new(), args)?;
     state.undo_stack_mut().push_cut();
     let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
 
@@ -101,7 +101,7 @@ impl Command for DupCommand {
     // Note: DupCommand explicitly ignores the keep_modifier, as its
     // behavior would be quite unintuitive (especially with negative
     // numerical arg).
-    validate_schema(NullaryArgumentSchema::new(), args)?;
+    validate_schema(&NullaryArgumentSchema::new(), args)?;
     state.undo_stack_mut().push_cut();
     let mut stack = state.main_stack_mut();
 

@@ -151,7 +151,7 @@ impl Command for PushConstantCommand {
   ) -> Result<CommandOutput, Error> {
     // Note: keep_modifier has no effect on this command (since there
     // are no pops), so we don't construct a KeepableStack.
-    validate_schema(NullaryArgumentSchema::new(), args)?;
+    validate_schema(&NullaryArgumentSchema::new(), args)?;
     state.undo_stack_mut().push_cut();
     let arg = ctx.opts.argument.unwrap_or(1).max(0);
     let mut errors = ErrorList::new();
@@ -169,7 +169,7 @@ impl Command for UnaryFunctionCommand {
     args: Vec<String>,
     ctx: &CommandContext,
   ) -> Result<CommandOutput, Error> {
-    validate_schema(NullaryArgumentSchema::new(), args)?;
+    validate_schema(&NullaryArgumentSchema::new(), args)?;
     state.undo_stack_mut().push_cut();
     let arg = ctx.opts.argument.unwrap_or(1);
     match arg.cmp(&0) {
@@ -197,7 +197,7 @@ impl Command for BinaryFunctionCommand {
     args: Vec<String>,
     ctx: &CommandContext,
   ) -> Result<CommandOutput, Error> {
-    validate_schema(NullaryArgumentSchema::new(), args)?;
+    validate_schema(&NullaryArgumentSchema::new(), args)?;
     state.undo_stack_mut().push_cut();
     let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
 
