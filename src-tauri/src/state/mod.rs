@@ -11,6 +11,8 @@ use events::{RefreshStackPayload, UndoAvailabilityPayload};
 use delegate::UndoingDelegate;
 use crate::stack::{Stack, DelegatingStack};
 use crate::expr::Expr;
+use crate::expr::function::table::FunctionTable;
+use crate::expr::function::library::build_function_table;
 use crate::expr::var::table::VarTable;
 use crate::expr::var::constants::bind_constants;
 use crate::command::default_dispatch_table;
@@ -27,6 +29,7 @@ use std::sync::Mutex;
 pub struct TauriApplicationState {
   pub state: Mutex<ApplicationState>,
   pub command_table: CommandDispatchTable,
+  pub function_table: FunctionTable,
 }
 
 #[derive(Default)]
@@ -50,7 +53,7 @@ pub enum UndoDirection {
 }
 
 impl TauriApplicationState {
-  pub fn with_default_command_table() -> Self {
+  pub fn with_default_tables() -> Self {
     let state = {
       let mut state = ApplicationState::default();
       bind_constants(state.variable_table_mut());
@@ -59,6 +62,7 @@ impl TauriApplicationState {
     Self {
       state: Mutex::new(state),
       command_table: default_dispatch_table(),
+      function_table: build_function_table(),
     }
   }
 }

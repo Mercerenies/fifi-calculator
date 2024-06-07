@@ -15,10 +15,11 @@ fn run_math_command(
   opts: CommandOptions,
 ) -> Result<(), tauri::Error> {
   let mut state = app_state.state.lock().expect("poisoned mutex");
+  let function_table = &app_state.function_table;
   let command_table = &app_state.command_table;
   handle_non_tauri_errors(
     &app_handle,
-    tauri_command::run_math_command(&mut state, &app_handle, command_table, command_name, args, opts),
+    tauri_command::run_math_command(&mut state, function_table, &app_handle, command_table, command_name, args, opts),
   )
 }
 
@@ -56,7 +57,7 @@ fn validate_value(
 
 fn main() {
   tauri::Builder::default()
-    .manage(TauriApplicationState::with_default_command_table())
+    .manage(TauriApplicationState::with_default_tables())
     .invoke_handler(tauri::generate_handler![run_math_command, perform_undo_action,
                                              validate_stack_size, validate_value])
     .run(tauri::generate_context!())

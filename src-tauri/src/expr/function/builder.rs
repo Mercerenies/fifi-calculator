@@ -1,7 +1,7 @@
 
 //! Builder API for [`Function`] objects.
 
-use super::function::Function;
+use super::Function;
 use crate::util::prism::{Prism, Identity, OnVec};
 use crate::expr::Expr;
 use crate::expr::simplifier::error::SimplifierError;
@@ -37,30 +37,39 @@ pub enum FunctionCaseResult {
 /// Matcher that requires exactly one argument in order to match. The
 /// argument can optionally be narrowed by a prism, which defaults to
 /// [`Identity`].
-pub struct OneArgumentMatcher<C, Down> {
-  arg_prism: C,
+///
+/// This value is usually constructed with [`arity_one`].
+pub struct OneArgumentMatcher<P, Down> {
+  arg_prism: P,
   _phantom: PhantomData<fn() -> Down>,
 }
 
 /// Matcher that requires exactly two arguments in order to match. The
 /// arguments can each be narrowed by prisms.
-pub struct TwoArgumentMatcher<C1, C2, Down1, Down2> {
-  first_arg_prism: C1,
-  second_arg_prism: C2,
+///
+/// This value is usually constructed with [`arity_two`].
+pub struct TwoArgumentMatcher<P1, P2, Down1, Down2> {
+  first_arg_prism: P1,
+  second_arg_prism: P2,
   _phantom: PhantomData<fn() -> (Down1, Down2)>,
 }
 
 /// Matcher that accepts a variable number of arguments, possibly with
 /// some arbitrary interval restriction on the number of arguments.
 /// The arguments can uniformly be narrowed by a single prism.
-pub struct VecMatcher<C, Down> {
-  arg_prism: C,
+///
+/// This value is usually constructed with [`any_arity`] or
+/// [`non_zero_arity`].
+pub struct VecMatcher<P, Down> {
+  arg_prism: P,
   min_length: usize,
   max_length: usize,
   _phantom: PhantomData<fn() -> Down>,
 }
 
 impl FunctionBuilder {
+  /// Constructs a new `FunctionBuilder` object for the function with
+  /// the given name.
   pub fn new(name: impl Into<String>) -> Self {
     Self {
       name: name.into(),
@@ -68,11 +77,16 @@ impl FunctionBuilder {
     }
   }
 
+  /// Adds an evaluation case to `self`. This function is intended to
+  /// be called in fluent style, and it returns `self` after
+  /// modifications.
   pub fn add_case(mut self, case: Box<FunctionCase>) -> Self {
     self.cases.push(case);
     self
   }
 
+  /// Consumes `self` and builds it into a completed [`Function`]
+  /// value.
   pub fn build(self) -> Function {
     Function::new(
       self.name,
@@ -109,15 +123,15 @@ impl FunctionCaseResult {
   }
 }
 
-impl<Down, C: Prism<Expr, Down>> OneArgumentMatcher<C, Down> {
-  pub fn of_type<NewDown, D>(self, arg_prism: D) -> OneArgumentMatcher<D, NewDown>
-  where D: Prism<Expr, NewDown> {
+impl<Down, P: Prism<Expr, Down>> OneArgumentMatcher<P, Down> {
+  pub fn of_type<NewDown, Q>(self, arg_prism: Q) -> OneArgumentMatcher<Q, NewDown>
+  where Q: Prism<Expr, NewDown> {
     OneArgumentMatcher { arg_prism, _phantom: PhantomData }
   }
 
   pub fn and_then<F>(self, f: F) -> Box<FunctionCase>
   where F: Fn(Down, &mut ErrorList<SimplifierError>) -> Result<Expr, Down> + Send + Sync + 'static,
-        C: Send + Sync + 'static {
+        P: Send + Sync + 'static {
     Box::new(move |mut args, errors| {
       if args.len() != 1 {
         return FunctionCaseResult::NoMatch(args);
@@ -135,21 +149,21 @@ impl<Down, C: Prism<Expr, Down>> OneArgumentMatcher<C, Down> {
   }
 }
 
-impl<Down1, Down2, C1, C2> TwoArgumentMatcher<C1, C2, Down1, Down2>
-where C1: Prism<Expr, Down1>,
-      C2: Prism<Expr, Down2> {
-  pub fn of_types<NewDown1, NewDown2, D1, D2>(
+impl<Down1, Down2, P1, P2> TwoArgumentMatcher<P1, P2, Down1, Down2>
+where P1: Prism<Expr, Down1>,
+      P2: Prism<Expr, Down2> {
+  pub fn of_types<NewDown1, NewDown2, Q1, Q2>(
     self,
-    first_arg_prism: D1,
-    second_arg_prism: D2,
-  ) -> TwoArgumentMatcher<D1, D2, NewDown1, NewDown2>
-  where D1: Prism<Expr, NewDown1>,
-        D2: Prism<Expr, NewDown2> {
+    first_arg_prism: Q1,
+    second_arg_prism: Q2,
+  ) -> TwoArgumentMatcher<Q1, Q2, NewDown1, NewDown2>
+  where Q1: Prism<Expr, NewDown1>,
+        Q2: Prism<Expr, NewDown2> {
     TwoArgumentMatcher { first_arg_prism, second_arg_prism, _phantom: PhantomData }
   }
 
-  pub fn both_of_type<NewDown, D>(self, arg_prism: D) -> TwoArgumentMatcher<D, D, NewDown, NewDown>
-  where D: Prism<Expr, NewDown> + Clone {
+  pub fn both_of_type<NewDown, Q>(self, arg_prism: Q) -> TwoArgumentMatcher<Q, Q, NewDown, NewDown>
+  where Q: Prism<Expr, NewDown> + Clone {
    TwoArgumentMatcher {
       first_arg_prism: arg_prism.clone(),
       second_arg_prism: arg_prism,
@@ -159,8 +173,8 @@ where C1: Prism<Expr, Down1>,
 
   pub fn and_then<F>(self, f: F) -> Box<FunctionCase>
   where F: Fn(Down1, Down2, &mut ErrorList<SimplifierError>) -> Result<Expr, (Down1, Down2)> + Send + Sync + 'static,
-        C1: Send + Sync + 'static,
-        C2: Send + Sync + 'static {
+        P1: Send + Sync + 'static,
+        P2: Send + Sync + 'static {
     Box::new(move |mut args, errors| {
       if args.len() != 2 {
         return FunctionCaseResult::NoMatch(args);
@@ -189,9 +203,9 @@ where C1: Prism<Expr, Down1>,
   }
 }
 
-impl<Down, C: Prism<Expr, Down>> VecMatcher<C, Down> {
-  pub fn of_type<NewDown, D>(self, arg_prism: D) -> VecMatcher<D, NewDown>
-  where D: Prism<Expr, NewDown> {
+impl<Down, P: Prism<Expr, Down>> VecMatcher<P, Down> {
+  pub fn of_type<NewDown, Q>(self, arg_prism: Q) -> VecMatcher<Q, NewDown>
+  where Q: Prism<Expr, NewDown> {
     VecMatcher {
       arg_prism,
       min_length: self.min_length,
@@ -202,7 +216,7 @@ impl<Down, C: Prism<Expr, Down>> VecMatcher<C, Down> {
 
   pub fn and_then<F>(self, f: F) -> Box<FunctionCase>
   where F: Fn(Vec<Down>, &mut ErrorList<SimplifierError>) -> Result<Expr, Vec<Down>> + Send + Sync + 'static,
-        C: Send + Sync + 'static {
+        P: Send + Sync + 'static {
     let arg_prism = OnVec::new(self.arg_prism);
     Box::new(move |args, errors| {
       // Check arity

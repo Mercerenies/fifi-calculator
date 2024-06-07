@@ -31,7 +31,7 @@ use std::marker::PhantomData;
 /// Respects the "keep" modifier of the command options but does not
 /// use the numerical (prefix) argument.
 #[derive(Debug)]
-pub struct SubstituteVarCommand {
+pub struct SubstituteVarCommand { // TODO Should this be a function IN our language?
   _priv: PhantomData<()>,
 }
 

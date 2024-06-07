@@ -1,28 +1,25 @@
 
 //! Basic arithmetic function evaluation rules.
 
-use super::function::Function;
-use super::builder::{self, FunctionBuilder};
-use crate::expr::prisms::{ExprToNumber, ExprToComplex};
 use crate::expr::Expr;
+use crate::expr::function::Function;
+use crate::expr::function::table::FunctionTable;
+use crate::expr::function::builder::{self, FunctionBuilder};
+use crate::expr::prisms::{ExprToNumber, ExprToComplex};
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex, pow_complex_to_real};
 use crate::expr::simplifier::error::SimplifierError;
 
 use num::{Zero, One};
 
-use std::collections::HashMap;
-
-pub fn arithmetic_functions() -> HashMap<String, Function> {
-  let mut functions = HashMap::new();
-  functions.insert("+".to_string(), addition());
-  functions.insert("-".to_string(), subtraction());
-  functions.insert("*".to_string(), multiplication());
-  functions.insert("/".to_string(), division());
-  functions.insert("^".to_string(), power());
-  functions.insert("%".to_string(), modulo());
-  functions.insert("div".to_string(), floor_division());
-  functions.insert("negate".to_string(), arithmetic_negate());
-  functions
+pub fn append_arithmetic_functions(table: &mut FunctionTable) {
+  table.insert(addition());
+  table.insert(subtraction());
+  table.insert(multiplication());
+  table.insert(division());
+  table.insert(power());
+  table.insert(modulo());
+  table.insert(floor_division());
+  table.insert(arithmetic_negate());
 }
 
 pub fn addition() -> Function {

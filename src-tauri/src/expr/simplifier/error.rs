@@ -1,6 +1,9 @@
 
 use thiserror::Error;
 
+// TODO: We might decide to convert this to anyhow::Error as our needs
+// grow with more simplifier types.
+
 /// An error that occurred during the simplification process.
 #[derive(Debug, Clone, Error)]
 #[non_exhaustive]

@@ -9,6 +9,7 @@ use crate::command::dispatch::CommandDispatchTable;
 use crate::command::options::CommandOptions;
 use crate::errorlist::ErrorList;
 use crate::expr::simplifier::default_simplifier;
+use crate::expr::function::table::FunctionTable;
 use crate::stack::base::StackLike;
 
 use std::fmt::Display;
@@ -17,6 +18,7 @@ use std::fmt::Display;
 /// table.
 pub fn run_math_command(
   state: &mut ApplicationState,
+  function_table: &FunctionTable,
   app_handle: &tauri::AppHandle,
   command_table: &CommandDispatchTable,
   command_name: &str,
@@ -26,7 +28,7 @@ pub fn run_math_command(
   let command = command_table.get(command_name)?;
   let context = CommandContext {
     opts,
-    simplifier: default_simplifier(),
+    simplifier: default_simplifier(function_table),
   };
   let output = command.run_command(state, args, &context)?;
   handle_command_output(app_handle, &output)?;

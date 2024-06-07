@@ -18,9 +18,9 @@ pub trait Command {
   ) -> anyhow::Result<CommandOutput>;
 }
 
-pub struct CommandContext {
+pub struct CommandContext<'a> {
   pub opts: CommandOptions,
-  pub simplifier: Box<dyn Simplifier>,
+  pub simplifier: Box<dyn Simplifier + 'a>,
 }
 
 /// The result of performing a command, including any non-fatal errors
@@ -28,12 +28,6 @@ pub struct CommandContext {
 #[derive(Debug, Clone)]
 pub struct CommandOutput {
   pub errors: Vec<String>,
-}
-
-impl CommandContext {
-  pub fn new() -> Self {
-    Self::default()
-  }
 }
 
 impl CommandOutput {
@@ -56,8 +50,8 @@ impl CommandOutput {
 /// and a simplifier that does nothing. Note carefully that this does
 /// *not* provide a sensible simplifier and instead simply uses a
 /// nullary one that returns its argument unmodified.
-impl Default for CommandContext {
-  fn default() -> CommandContext {
+impl Default for CommandContext<'static> {
+  fn default() -> Self {
     CommandContext {
       opts: CommandOptions::default(),
       simplifier: Box::new(IdentitySimplifier),
