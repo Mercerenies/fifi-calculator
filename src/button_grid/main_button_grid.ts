@@ -1,6 +1,7 @@
 
 import { ButtonGrid, GridCell } from "../button_grid.js";
 import { AlgebraButtonGrid } from "./algebra_button_grid.js";
+import { StorageButtonGrid } from "./storage_button_grid.js";
 import { DispatchButton, GotoButton } from './button.js';
 import { NumericalInputButton, AlgebraicInputButton } from './button/input.js';
 import { InputBoxManager } from '../input_box.js';
@@ -69,6 +70,7 @@ export class MainButtonGrid implements ButtonGrid {
       ],
       [
         new GotoButton("<math><mi>x</mi></math>", "a", () => new AlgebraButtonGrid(this, this.inputManager)),
+        new GotoButton(":=", "s", () => new StorageButtonGrid(this, this.inputManager)),
       ],
     ];
   }

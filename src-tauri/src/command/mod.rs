@@ -43,6 +43,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
 
   // Variable-related commands
   map.insert("manual_substitute".to_string(), Box::new(variables::SubstituteVarCommand::new()));
+  map.insert("store_var".to_string(), Box::new(variables::StoreVarCommand::new()));
 
   CommandDispatchTable::from_hash_map(map)
 }

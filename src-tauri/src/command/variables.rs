@@ -1,13 +1,14 @@
 
 //! Specialized commands for working with variables in particular.
 
-use super::arguments::{BinaryArgumentSchema, validate_schema};
+use super::arguments::{UnaryArgumentSchema, BinaryArgumentSchema, validate_schema};
 use super::base::{Command, CommandContext, CommandOutput};
 use crate::errorlist::ErrorList;
 use crate::expr::prisms::StringToVar;
 use crate::expr::var::Var;
 use crate::util::prism::Identity;
 use crate::state::ApplicationState;
+use crate::state::undo::UpdateVarChange;
 use crate::stack::base::StackLike;
 use crate::stack::keepable::KeepableStack;
 use crate::error::Error;
@@ -34,6 +35,16 @@ pub struct SubstituteVarCommand {
   _priv: PhantomData<()>,
 }
 
+/// This command takes one argument: the variable name into which to
+/// store the top stack value. Fails if the top of the stack is empty.
+///
+/// Respects the "keep" modifier. If the "keep" modifier is false, the
+/// top stack element will be popped.
+#[derive(Debug)]
+pub struct StoreVarCommand {
+  _priv: PhantomData<()>,
+}
+
 impl SubstituteVarCommand {
   pub fn new() -> SubstituteVarCommand {
     SubstituteVarCommand { _priv: PhantomData }
@@ -45,6 +56,19 @@ impl SubstituteVarCommand {
       StringToVar::new(),
       "any argument".to_owned(),
       Identity::new(),
+    )
+  }
+}
+
+impl StoreVarCommand {
+  pub fn new() -> StoreVarCommand {
+    StoreVarCommand { _priv: PhantomData }
+  }
+
+  fn argument_schema() -> UnaryArgumentSchema<StringToVar, Var> {
+    UnaryArgumentSchema::new(
+      "variable name".to_owned(),
+      StringToVar::new(),
     )
   }
 }
@@ -71,5 +95,27 @@ impl Command for SubstituteVarCommand {
     stack.push(expr);
 
     Ok(CommandOutput::from_errors(errors))
+  }
+}
+
+impl Command for StoreVarCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    context: &CommandContext,
+  ) -> Result<CommandOutput, Error> {
+    let variable_name = validate_schema(&StoreVarCommand::argument_schema(), args)?;
+
+    state.undo_stack_mut().push_cut();
+
+    let old_value = state.variable_table().get(&variable_name).cloned();
+
+    let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
+    let expr = stack.pop()?;
+    state.variable_table_mut().insert(variable_name.clone(), expr.clone());
+    state.undo_stack_mut().push_change(UpdateVarChange::new(variable_name, old_value, Some(expr)));
+
+    Ok(CommandOutput::success())
   }
 }
