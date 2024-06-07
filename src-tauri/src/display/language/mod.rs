@@ -2,7 +2,6 @@
 pub mod basic;
 
 use crate::expr::Expr;
-use crate::error::Error;
 
 /// A language mode provides a mechanism to convert Exprs into HTML
 /// code for display within the frontend.
@@ -11,7 +10,7 @@ use crate::error::Error;
 /// into Exprs.
 pub trait LanguageMode {
   fn write_to_html(&self, out: &mut String, expr: &Expr);
-  fn parse(&self, text: &str) -> Result<Expr, Error>;
+  fn parse(&self, text: &str) -> anyhow::Result<Expr>;
 
   fn to_html(&self, expr: &Expr) -> String {
     let mut out = String::new();

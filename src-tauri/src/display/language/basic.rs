@@ -1,6 +1,5 @@
 
 use super::LanguageMode;
-use crate::error::Error;
 use crate::parsing::operator::{Operator, Precedence, OperatorTable};
 use crate::parsing::operator::fixity::FixityType;
 use crate::expr::Expr;
@@ -212,9 +211,10 @@ impl LanguageMode for BasicLanguageMode {
     self.to_html_with_precedence(out, expr, Precedence::MIN)
   }
 
-  fn parse(&self, text: &str) -> Result<Expr, Error> {
+  fn parse(&self, text: &str) -> anyhow::Result<Expr> {
     let parser = ExprParser::new(&self.known_operators);
-    parser.tokenize_and_parse(text).map_err(Error::custom_error)
+    let expr = parser.tokenize_and_parse(text)?;
+    Ok(expr)
   }
 }
 

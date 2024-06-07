@@ -6,7 +6,6 @@ use super::arguments::{NullaryArgumentSchema, validate_schema};
 use crate::state::ApplicationState;
 use crate::stack::keepable::KeepableStack;
 use crate::stack::base::{StackLike, RandomAccessStackLike};
-use crate::error::Error;
 
 use std::cmp::Ordering;
 
@@ -28,7 +27,7 @@ impl Command for PopCommand {
     state: &mut ApplicationState,
     args: Vec<String>,
     ctx: &CommandContext,
-  ) -> Result<CommandOutput, Error> {
+  ) -> anyhow::Result<CommandOutput> {
     // Note: PopCommand explicitly ignores the keep_modifier, as it
     // would always be a no-op.
     validate_schema(&NullaryArgumentSchema::new(), args)?;
@@ -60,7 +59,7 @@ impl Command for SwapCommand {
     state: &mut ApplicationState,
     args: Vec<String>,
     ctx: &CommandContext,
-  ) -> Result<CommandOutput, Error> {
+  ) -> anyhow::Result<CommandOutput> {
     validate_schema(&NullaryArgumentSchema::new(), args)?;
     state.undo_stack_mut().push_cut();
     let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
@@ -97,7 +96,7 @@ impl Command for DupCommand {
     state: &mut ApplicationState,
     args: Vec<String>,
     ctx: &CommandContext,
-  ) -> Result<CommandOutput, Error> {
+  ) -> anyhow::Result<CommandOutput> {
     // Note: DupCommand explicitly ignores the keep_modifier, as its
     // behavior would be quite unintuitive (especially with negative
     // numerical arg).

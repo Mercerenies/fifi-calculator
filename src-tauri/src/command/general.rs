@@ -1,7 +1,6 @@
 
 use super::base::{Command, CommandContext, CommandOutput};
 use crate::state::ApplicationState;
-use crate::error::Error;
 
 /// General-purpose [Command] implementation that simply runs a given
 /// function.
@@ -10,7 +9,7 @@ pub struct GeneralCommand<F> {
 }
 
 impl<F> GeneralCommand<F>
-where F: Fn(&mut ApplicationState, Vec<String>, &CommandContext) -> Result<CommandOutput, Error> {
+where F: Fn(&mut ApplicationState, Vec<String>, &CommandContext) -> anyhow::Result<CommandOutput> {
   pub fn new(body: F) -> GeneralCommand<F> {
     GeneralCommand {
       body
@@ -19,13 +18,13 @@ where F: Fn(&mut ApplicationState, Vec<String>, &CommandContext) -> Result<Comma
 }
 
 impl<F> Command for GeneralCommand<F>
-where F: Fn(&mut ApplicationState, Vec<String>, &CommandContext) -> Result<CommandOutput, Error> {
+where F: Fn(&mut ApplicationState, Vec<String>, &CommandContext) -> anyhow::Result<CommandOutput> {
   fn run_command(
     &self,
     state: &mut ApplicationState,
     args: Vec<String>,
     context: &CommandContext,
-  ) -> Result<CommandOutput, Error> {
+  ) -> anyhow::Result<CommandOutput> {
     (self.body)(state, args, context)
   }
 }

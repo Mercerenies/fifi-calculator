@@ -70,7 +70,6 @@ pub(crate) mod test_utils {
   use crate::state::test_utils::state_for_stack;
   use crate::stack::test_utils::stack_of;
   use crate::stack::{Stack, StackError};
-  use crate::error::Error;
 
   /// Tests the operation on the given input stack, expecting a
   /// success. Passes no string arguments.
@@ -117,8 +116,9 @@ pub(crate) mod test_utils {
     let mut context = CommandContext::default();
     context.opts = opts;
     let err = command.run_command(&mut state, args, &context).unwrap_err();
-    let Error::StackError(err) = err else {
-      panic!("Expected StackError, got {:?}", err)
+    let err = match err.downcast::<StackError>() {
+      Ok(stack_error) => stack_error,
+      Err(other_error) => { panic!("Expected StackError, got {:?}", other_error); }
     };
     assert_eq!(state.into_main_stack(), stack_of(input_stack));
     err

@@ -7,7 +7,6 @@ use super::arguments::{UnaryArgumentSchema, validate_schema};
 use crate::util::prism::Identity;
 use crate::expr::Expr;
 use crate::expr::number::Number;
-use crate::error::Error;
 use crate::state::ApplicationState;
 use crate::stack::base::StackLike;
 use crate::display::language::LanguageMode;
@@ -24,24 +23,24 @@ pub struct PushInputCommand<F> {
 }
 
 impl<F> PushInputCommand<F>
-where F: Fn(String, &dyn LanguageMode) -> Result<Expr, Error> {
+where F: Fn(String, &dyn LanguageMode) -> anyhow::Result<Expr> {
   pub fn new(body: F) -> Self {
     Self { body }
   }
 
-  pub fn try_parse(&self, arg: String, language_mode: &dyn LanguageMode) -> Result<Expr, Error> {
+  pub fn try_parse(&self, arg: String, language_mode: &dyn LanguageMode) -> anyhow::Result<Expr> {
     (self.body)(arg, language_mode)
   }
 }
 
 impl<F> Command for PushInputCommand<F>
-where F: Fn(String, &dyn LanguageMode) -> Result<Expr, Error> {
+where F: Fn(String, &dyn LanguageMode) -> anyhow::Result<Expr> {
   fn run_command(
     &self,
     state: &mut ApplicationState,
     args: Vec<String>,
     context: &CommandContext,
-  ) -> Result<CommandOutput, Error> {
+  ) -> anyhow::Result<CommandOutput> {
     let arg = validate_schema(&argument_schema(), args)?;
     let mut errors = ErrorList::new();
 
@@ -59,7 +58,7 @@ fn argument_schema() -> UnaryArgumentSchema<Identity, String> {
 
 /// A `PushInputCommand` which parses a literal real number and pushes
 /// it onto the stack.
-pub fn push_number_command() -> PushInputCommand<impl Fn(String, &dyn LanguageMode) -> Result<Expr, Error>> {
+pub fn push_number_command() -> PushInputCommand<impl Fn(String, &dyn LanguageMode) -> anyhow::Result<Expr>> {
   PushInputCommand::new(|arg, _| {
     let number = Number::from_str(&arg)?;
     Ok(Expr::from(number))
@@ -68,7 +67,7 @@ pub fn push_number_command() -> PushInputCommand<impl Fn(String, &dyn LanguageMo
 
 /// A `PushInputCommand` which uses the current language mode to parse
 /// a general expression.
-pub fn push_expr_command() -> PushInputCommand<impl Fn(String, &dyn LanguageMode) -> Result<Expr, Error>> {
+pub fn push_expr_command() -> PushInputCommand<impl Fn(String, &dyn LanguageMode) -> anyhow::Result<Expr>> {
   PushInputCommand::new(|arg, language_mode| language_mode.parse(&arg))
 }
 

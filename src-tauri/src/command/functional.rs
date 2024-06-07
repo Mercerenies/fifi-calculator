@@ -5,7 +5,6 @@
 use super::base::{Command, CommandContext, CommandOutput};
 use super::arguments::{NullaryArgumentSchema, validate_schema};
 use crate::state::ApplicationState;
-use crate::error::Error;
 use crate::expr::Expr;
 use crate::errorlist::ErrorList;
 use crate::stack::base::StackLike;
@@ -90,7 +89,7 @@ impl UnaryFunctionCommand {
     state: &mut ApplicationState,
     element_count: usize,
     ctx: &CommandContext,
-  ) -> Result<CommandOutput, Error> {
+  ) -> anyhow::Result<CommandOutput> {
     let mut errors = ErrorList::new();
     let values = {
       let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
@@ -108,7 +107,7 @@ impl UnaryFunctionCommand {
     state: &mut ApplicationState,
     element_index: usize,
     ctx: &CommandContext,
-  ) -> Result<CommandOutput, Error> {
+  ) -> anyhow::Result<CommandOutput> {
     let mut errors = ErrorList::new();
     let mut expr = state.main_stack_mut().pop_nth(element_index)?;
     if ctx.opts.keep_modifier {
@@ -148,7 +147,7 @@ impl Command for PushConstantCommand {
     state: &mut ApplicationState,
     args: Vec<String>,
     ctx: &CommandContext,
-  ) -> Result<CommandOutput, Error> {
+  ) -> anyhow::Result<CommandOutput> {
     // Note: keep_modifier has no effect on this command (since there
     // are no pops), so we don't construct a KeepableStack.
     validate_schema(&NullaryArgumentSchema::new(), args)?;
@@ -168,7 +167,7 @@ impl Command for UnaryFunctionCommand {
     state: &mut ApplicationState,
     args: Vec<String>,
     ctx: &CommandContext,
-  ) -> Result<CommandOutput, Error> {
+  ) -> anyhow::Result<CommandOutput> {
     validate_schema(&NullaryArgumentSchema::new(), args)?;
     state.undo_stack_mut().push_cut();
     let arg = ctx.opts.argument.unwrap_or(1);
@@ -196,7 +195,7 @@ impl Command for BinaryFunctionCommand {
     state: &mut ApplicationState,
     args: Vec<String>,
     ctx: &CommandContext,
-  ) -> Result<CommandOutput, Error> {
+  ) -> anyhow::Result<CommandOutput> {
     validate_schema(&NullaryArgumentSchema::new(), args)?;
     state.undo_stack_mut().push_cut();
     let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);

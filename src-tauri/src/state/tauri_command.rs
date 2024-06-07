@@ -7,7 +7,6 @@ use super::events::show_error;
 use crate::command::{CommandContext, CommandOutput};
 use crate::command::dispatch::CommandDispatchTable;
 use crate::command::options::CommandOptions;
-use crate::error::Error;
 use crate::errorlist::ErrorList;
 use crate::expr::simplifier::default_simplifier;
 use crate::stack::base::StackLike;
@@ -23,7 +22,7 @@ pub fn run_math_command(
   command_name: &str,
   args: Vec<String>,
   opts: CommandOptions,
-) -> Result<(), Error> {
+) -> anyhow::Result<()> {
   let command = command_table.get(command_name)?;
   let context = CommandContext {
     opts,
@@ -41,7 +40,7 @@ pub fn perform_undo_action(
   state: &mut ApplicationState,
   app_handle: &tauri::AppHandle,
   direction: UndoDirection,
-) -> Result<(), Error> {
+) -> anyhow::Result<()> {
   // We disable the undo/redo on-screen buttons if there's no action
   // to perform. But the user can still use keyboard shortcuts to
   // trigger them anyway, so these actions can fail. If they do, they
@@ -124,13 +123,24 @@ pub fn handle_command_output(app_handle: &tauri::AppHandle, command_output: &Com
 /// Handles any errors *except* [`tauri::Error`] by displaying them to
 /// the user in a notification box. `tauri::Error` values are passed
 /// through and not handled.
-pub fn handle_non_tauri_errors(app_handle: &tauri::AppHandle, value: Result<(), Error>) -> Result<(), tauri::Error> {
+pub fn handle_non_tauri_errors(
+  app_handle: &tauri::AppHandle,
+  value: anyhow::Result<()>,
+) -> Result<(), tauri::Error> {
   match value {
     Ok(()) => Ok(()),
-    Err(Error::TauriError(e)) => Err(e),
-    Err(other) => {
-      show_error(app_handle, format!("Error: {}", other))?;
-      Ok(())
+    Err(err) => {
+      match err.downcast::<tauri::Error>() {
+        Ok(tauri_error) => {
+          // Tauri error, so let it propagate.
+          Err(tauri_error)
+        }
+        Err(other_error) => {
+          // non-Tauri error, display it and recover.
+          show_error(app_handle, format!("Error: {}", other_error))?;
+          Ok(())
+        }
+      }
     }
   }
 }

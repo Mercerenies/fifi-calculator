@@ -1,6 +1,5 @@
 
 use crate::state::ApplicationState;
-use crate::error::Error;
 use crate::expr::simplifier::Simplifier;
 use crate::expr::simplifier::identity::IdentitySimplifier;
 use super::options::CommandOptions;
@@ -16,7 +15,7 @@ pub trait Command {
     state: &mut ApplicationState,
     args: Vec<String>,
     ctx: &CommandContext,
-  ) -> Result<CommandOutput, Error>;
+  ) -> anyhow::Result<CommandOutput>;
 }
 
 pub struct CommandContext {

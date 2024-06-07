@@ -12,7 +12,6 @@ use crate::state::ApplicationState;
 use crate::state::undo::UpdateVarChange;
 use crate::stack::base::StackLike;
 use crate::stack::keepable::KeepableStack;
-use crate::error::Error;
 
 use std::marker::PhantomData;
 
@@ -80,7 +79,7 @@ impl Command for SubstituteVarCommand {
     state: &mut ApplicationState,
     args: Vec<String>,
     context: &CommandContext,
-  ) -> Result<CommandOutput, Error> {
+  ) -> anyhow::Result<CommandOutput> {
     let (variable_name, new_value) = validate_schema(&SubstituteVarCommand::argument_schema(), args)?;
 
     let mut errors = ErrorList::new();
@@ -105,10 +104,10 @@ impl Command for StoreVarCommand {
     state: &mut ApplicationState,
     args: Vec<String>,
     context: &CommandContext,
-  ) -> Result<CommandOutput, Error> {
+  ) -> anyhow::Result<CommandOutput> {
     let variable_name = validate_schema(&StoreVarCommand::argument_schema(), args)?;
 
-    validate_non_reserved_var_name(&variable_name).map_err(Error::custom_error)?;
+    validate_non_reserved_var_name(&variable_name)?;
     state.undo_stack_mut().push_cut();
 
     let old_value = state.variable_table().get(&variable_name).cloned();
