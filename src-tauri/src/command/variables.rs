@@ -6,6 +6,7 @@ use super::base::{Command, CommandContext, CommandOutput};
 use crate::errorlist::ErrorList;
 use crate::expr::prisms::StringToVar;
 use crate::expr::var::Var;
+use crate::expr::var::constants::validate_non_reserved_var_name;
 use crate::util::prism::Identity;
 use crate::state::ApplicationState;
 use crate::state::undo::UpdateVarChange;
@@ -107,6 +108,7 @@ impl Command for StoreVarCommand {
   ) -> Result<CommandOutput, Error> {
     let variable_name = validate_schema(&StoreVarCommand::argument_schema(), args)?;
 
+    validate_non_reserved_var_name(&variable_name).map_err(Error::custom_error)?;
     state.undo_stack_mut().push_cut();
 
     let old_value = state.variable_table().get(&variable_name).cloned();

@@ -6,6 +6,7 @@ use crate::expr::number::ComplexNumber;
 use super::Var;
 use super::table::VarTable;
 
+use thiserror::Error;
 use once_cell::sync::Lazy;
 
 use std::collections::HashSet;
@@ -22,6 +23,12 @@ pub static RESERVED_NAMES: Lazy<HashSet<Var>> = Lazy::new(|| {
   ].into_iter().map(|s| Var::new(s).unwrap()).collect()
 });
 
+#[derive(Error, Debug, Clone)]
+#[error("variable name '{name}' is reserved")]
+pub struct NameIsReservedError {
+  name: Var,
+}
+
 /// The Euler-Mascheroni constant. The std::f64::consts constant is
 /// nightly-only.
 const GAMMA: f64 = 0.57721566490153286060651209008240243104215933593992_f64;
@@ -37,4 +44,14 @@ pub fn bind_constants(table: &mut VarTable<Expr>) {
   table.insert(Var::new("e").unwrap(), Expr::from(E));
   table.insert(Var::new("i").unwrap(), Expr::from(ComplexNumber::ii()));
   table.insert(Var::new("phi").unwrap(), Expr::from(PHI));
+}
+
+/// If the variable name is a reserved name, returns an appropriate
+/// error. Otherwise, returns `Ok`.
+pub fn validate_non_reserved_var_name(name: &Var) -> Result<(), NameIsReservedError> {
+  if RESERVED_NAMES.contains(name) {
+    Err(NameIsReservedError { name: name.clone() })
+  } else {
+    Ok(())
+  }
 }

@@ -12,6 +12,7 @@ use delegate::UndoingDelegate;
 use crate::stack::{Stack, DelegatingStack};
 use crate::expr::Expr;
 use crate::expr::var::table::VarTable;
+use crate::expr::var::constants::bind_constants;
 use crate::command::default_dispatch_table;
 use crate::command::dispatch::CommandDispatchTable;
 use crate::display::DisplaySettings;
@@ -50,8 +51,13 @@ pub enum UndoDirection {
 
 impl TauriApplicationState {
   pub fn with_default_command_table() -> Self {
+    let state = {
+      let mut state = ApplicationState::default();
+      bind_constants(state.variable_table_mut());
+      state
+    };
     Self {
-      state: Mutex::default(),
+      state: Mutex::new(state),
       command_table: default_dispatch_table(),
     }
   }
