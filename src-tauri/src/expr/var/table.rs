@@ -30,6 +30,10 @@ impl<T> VarTable<T> {
   pub fn insert(&mut self, var: Var, value: T) -> Option<T> {
     self.data.insert(var, value)
   }
+
+  pub fn remove(&mut self, var: &Var) -> Option<T> {
+    self.data.remove(var)
+  }
 }
 
 impl<T> Default for VarTable<T> {
