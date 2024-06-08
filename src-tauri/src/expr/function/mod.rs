@@ -43,11 +43,6 @@ impl Function {
     self.flags
   }
 
-  /// Sets the flags on this function.
-  pub fn set_flags(&mut self, flags: FunctionFlags) {
-    self.flags = flags;
-  }
-
   /// Calls the function, with the intent of fully evaluating it.
   ///
   /// If the function can be fully evaluated, this method returns

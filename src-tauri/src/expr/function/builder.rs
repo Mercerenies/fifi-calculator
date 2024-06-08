@@ -116,7 +116,7 @@ impl FunctionBuilder {
       Err(args)
     });
     let mut function = Function::new(self.name, function_body);
-    function.set_flags(self.flags);
+    function.flags = self.flags;
     function
   }
 }
