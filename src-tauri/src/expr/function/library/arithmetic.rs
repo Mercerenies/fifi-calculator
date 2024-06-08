@@ -26,6 +26,12 @@ pub fn addition() -> Function {
   FunctionBuilder::new("+")
     .permit_flattening()
     .add_case(
+      // Unary simplification
+      builder::arity_one().and_then(|arg, _| {
+        Ok(arg)
+      })
+    )
+    .add_case(
       // Real number addition
       builder::any_arity().of_type(ExprToNumber).and_then(|args, _| {
         let sum = args.into_iter().reduce(|a, b| a + b).unwrap_or(Number::zero());
@@ -67,6 +73,12 @@ pub fn subtraction() -> Function {
 pub fn multiplication() -> Function {
   FunctionBuilder::new("*")
     .permit_flattening()
+    .add_case(
+      // Unary simplification
+      builder::arity_one().and_then(|arg, _| {
+        Ok(arg)
+      })
+    )
     .add_case(
       // Real number multiplication
       builder::any_arity().of_type(ExprToNumber).and_then(|args, _| {
