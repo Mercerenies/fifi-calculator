@@ -2,6 +2,7 @@
 //! Builder API for [`Function`] objects.
 
 use super::Function;
+use super::flags::FunctionFlags;
 use crate::util::prism::{Prism, Identity, OnVec};
 use crate::expr::Expr;
 use crate::expr::simplifier::error::SimplifierError;
@@ -11,6 +12,7 @@ use std::marker::PhantomData;
 
 pub struct FunctionBuilder {
   name: String,
+  flags: FunctionFlags,
   cases: Vec<Box<FunctionCase>>,
 }
 
@@ -73,6 +75,7 @@ impl FunctionBuilder {
   pub fn new(name: impl Into<String>) -> Self {
     Self {
       name: name.into(),
+      flags: FunctionFlags::default(),
       cases: Vec::new(),
     }
   }
@@ -85,29 +88,36 @@ impl FunctionBuilder {
     self
   }
 
+  /// Enables the [`PERMITS_FLATTENING`](FunctionFlags::PERMITS_FLATTENING)
+  /// flag for `self`.
+  pub fn permit_flattening(mut self) -> Self {
+    self.flags |= FunctionFlags::PERMITS_FLATTENING;
+    self
+  }
+
   /// Consumes `self` and builds it into a completed [`Function`]
   /// value.
   pub fn build(self) -> Function {
-    Function::new(
-      self.name,
-      Box::new(move |mut args, errors: &mut ErrorList<SimplifierError>| {
-        for case in &self.cases {
-          match case(args, &mut *errors) {
-            FunctionCaseResult::Success(output) => {
-              return Ok(output);
-            }
-            FunctionCaseResult::Failure(args) => {
-              return Err(args);
-            }
-            FunctionCaseResult::NoMatch(original_args) => {
-              args = original_args;
-            }
+    let function_body = Box::new(move |mut args, errors: &mut ErrorList<SimplifierError>| {
+      for case in &self.cases {
+        match case(args, &mut *errors) {
+          FunctionCaseResult::Success(output) => {
+            return Ok(output);
+          }
+          FunctionCaseResult::Failure(args) => {
+            return Err(args);
+          }
+          FunctionCaseResult::NoMatch(original_args) => {
+            args = original_args;
           }
         }
-        // No cases matched, so we refuse to evaluate the function.
-        Err(args)
-      }),
-    )
+      }
+      // No cases matched, so we refuse to evaluate the function.
+      Err(args)
+    });
+    let mut function = Function::new(self.name, function_body);
+    function.set_flags(self.flags);
+    function
   }
 }
 

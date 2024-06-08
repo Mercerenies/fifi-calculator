@@ -1,8 +1,10 @@
 
 pub mod builder;
+pub mod flags;
 pub mod library;
 pub mod table;
 
+use flags::FunctionFlags;
 use crate::expr::Expr;
 use crate::expr::simplifier::error::SimplifierError;
 use crate::errorlist::ErrorList;
@@ -15,6 +17,7 @@ use std::fmt::{self, Formatter, Debug};
 /// API.
 pub struct Function {
   name: String,
+  flags: FunctionFlags,
   body: Box<FunctionImpl>,
 }
 
@@ -27,12 +30,22 @@ impl Function {
   where S: Into<String>,
         F: Fn(Vec<Expr>, &mut ErrorList<SimplifierError>) -> Result<Expr, Vec<Expr>>,
         F: Send + Sync + 'static {
-    Function { name: name.into(), body: Box::new(body) }
+    Function { name: name.into(), flags: FunctionFlags::default(), body: Box::new(body) }
   }
 
   /// The function's name.
   pub fn name(&self) -> &str {
     &self.name
+  }
+
+  /// The property-based flags set on this function.
+  pub fn flags(&self) -> FunctionFlags {
+    self.flags
+  }
+
+  /// Sets the flags on this function.
+  pub fn set_flags(&mut self, flags: FunctionFlags) {
+    self.flags = flags;
   }
 
   /// Calls the function, with the intent of fully evaluating it.
@@ -55,6 +68,6 @@ impl Function {
 
 impl Debug for Function {
   fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
-    write!(f, "Function {{ name: \"{}\", body: ... }}", self.name)
+    write!(f, "Function {{ name: {:?}, flags: {:?}, body: ... }}", self.name, self.flags)
   }
 }

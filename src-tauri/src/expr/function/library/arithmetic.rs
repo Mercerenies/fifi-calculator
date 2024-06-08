@@ -24,6 +24,7 @@ pub fn append_arithmetic_functions(table: &mut FunctionTable) {
 
 pub fn addition() -> Function {
   FunctionBuilder::new("+")
+    .permit_flattening()
     .add_case(
       // Real number addition
       builder::any_arity().of_type(ExprToNumber).and_then(|args, _| {
@@ -65,6 +66,7 @@ pub fn subtraction() -> Function {
 
 pub fn multiplication() -> Function {
   FunctionBuilder::new("*")
+    .permit_flattening()
     .add_case(
       // Real number multiplication
       builder::any_arity().of_type(ExprToNumber).and_then(|args, _| {
