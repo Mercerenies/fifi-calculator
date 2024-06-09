@@ -50,6 +50,14 @@ pub struct Composed<X, Y, B> {
   _phantom: PhantomData<fn() -> B>,
 }
 
+/// Equality prism. This prism accepts only values which are literally
+/// equal (under [`PartialEq`]) to the given value and rejects all
+/// others. Narrows to `()`.
+#[derive(Debug, Clone, Default)]
+pub struct Only<T> {
+  value: T,
+}
+
 /// Lift a type-checker into each element of a `Vec`.
 #[derive(Debug, Clone)]
 pub struct OnVec<X> {
@@ -71,6 +79,20 @@ impl Identity {
 impl<X, Y, B> Composed<X, Y, B> {
   pub fn new(left: X, right: Y) -> Self {
     Self { left, right, _phantom: PhantomData }
+  }
+}
+
+impl<T> Only<T> {
+  pub fn new(value: T) -> Self {
+    Self { value }
+  }
+
+  pub fn value(&self) -> &T {
+    &self.value
+  }
+
+  pub fn into_value(self) -> T {
+    self.value
   }
 }
 
@@ -110,6 +132,19 @@ where X: Prism<A, B>,
   fn widen_type(&self, input: C) -> A {
     let b = self.right.widen_type(input);
     self.left.widen_type(b)
+  }
+}
+
+impl<T: PartialEq + Clone> Prism<T, ()> for Only<T> {
+  fn widen_type(&self, _: ()) -> T {
+    self.value.clone()
+  }
+  fn narrow_type(&self, input: T) -> Result<(), T> {
+    if input == self.value {
+      Ok(())
+    } else {
+      Err(input)
+    }
   }
 }
 
@@ -312,5 +347,13 @@ mod tests {
       vec_prism.narrow_type(input.clone()),
       Err(input),
     );
+  }
+
+  #[test]
+  fn test_equality_prism() {
+    let prism = Only::new(10);
+    assert_eq!(prism.narrow_type(10), Ok(()));
+    assert_eq!(prism.narrow_type(9), Err(9));
+    assert_eq!(prism.widen_type(()), 10);
   }
 }
