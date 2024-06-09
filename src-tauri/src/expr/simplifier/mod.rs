@@ -5,6 +5,7 @@ pub mod evaluator;
 pub mod flattener;
 pub mod error;
 pub mod identity;
+pub mod partial;
 
 pub use base::Simplifier;
 
@@ -18,12 +19,14 @@ struct DefaultSimplifier<'a> {
   function_table: &'a FunctionTable,
 }
 
-// This could technically be a SequentialSimplifier, but those incur a
-// lot of dynamic function calls (each individual element is a `dyn
-// Simplifier`), and we call these things frequently. So it's more
-// efficient to just hand-write the implementation we need.
+// This could technically be built up as a ChainedSimplifier, but
+// those incur a lot of dynamic function calls (each individual
+// element is a `dyn Simplifier`), and we call these things
+// frequently. So it's more efficient to just hand-write the
+// implementation we need.
 impl<'a> Simplifier for DefaultSimplifier<'a> {
   fn simplify_expr_part(&self, mut expr: Expr, errors: &mut ErrorList<SimplifierError>) -> Expr {
+    expr = partial::IdentityRemover::new(self.function_table).simplify_expr_part(expr, errors);
     expr = evaluator::FunctionEvaluator::new(self.function_table).simplify_expr_part(expr, errors);
     expr = flattener::FunctionFlattener::new(self.function_table).simplify_expr_part(expr, errors);
     expr
