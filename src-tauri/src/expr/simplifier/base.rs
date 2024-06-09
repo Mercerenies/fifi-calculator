@@ -17,23 +17,3 @@ pub trait Simplifier {
     postorder_walk_ok(expr, |e| self.simplify_expr_part(e, errors))
   }
 }
-
-/// A simplifier which runs several other simplifiers in order.
-pub struct SequentialSimplifier {
-  impls: Vec<Box<dyn Simplifier>>,
-}
-
-impl SequentialSimplifier {
-  pub fn new(impls: Vec<Box<dyn Simplifier>>) -> Self {
-    Self { impls }
-  }
-}
-
-impl Simplifier for SequentialSimplifier {
-  fn simplify_expr_part(&self, mut expr: Expr, errors: &mut ErrorList<SimplifierError>) -> Expr {
-    for simplifier in &self.impls {
-      expr = simplifier.simplify_expr(expr, errors);
-    }
-    expr
-  }
-}

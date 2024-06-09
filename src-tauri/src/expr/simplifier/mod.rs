@@ -6,7 +6,7 @@ pub mod flattener;
 pub mod error;
 pub mod identity;
 
-pub use base::{Simplifier, SequentialSimplifier};
+pub use base::Simplifier;
 
 use crate::expr::Expr;
 use crate::expr::function::table::FunctionTable;
