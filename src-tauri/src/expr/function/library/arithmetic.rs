@@ -25,6 +25,7 @@ pub fn append_arithmetic_functions(table: &mut FunctionTable) {
 pub fn addition() -> Function {
   FunctionBuilder::new("+")
     .permit_flattening()
+    .set_identity(Expr::is_zero)
     .add_case(
       // Unary simplification
       builder::arity_one().and_then(|arg, _| {
@@ -73,6 +74,7 @@ pub fn subtraction() -> Function {
 pub fn multiplication() -> Function {
   FunctionBuilder::new("*")
     .permit_flattening()
+    .set_identity(Expr::is_one)
     .add_case(
       // Unary simplification
       builder::arity_one().and_then(|arg, _| {

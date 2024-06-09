@@ -13,6 +13,7 @@ use std::marker::PhantomData;
 pub struct FunctionBuilder {
   name: String,
   flags: FunctionFlags,
+  identity_predicate: Box<dyn Fn(&Expr) -> bool + Send + Sync + 'static>,
   cases: Vec<Box<FunctionCase>>,
 }
 
@@ -75,6 +76,7 @@ impl FunctionBuilder {
   pub fn new(name: impl Into<String>) -> Self {
     Self {
       name: name.into(),
+      identity_predicate: Box::new(super::no_identity_value),
       flags: FunctionFlags::default(),
       cases: Vec::new(),
     }
@@ -85,6 +87,14 @@ impl FunctionBuilder {
   /// modifications.
   pub fn add_case(mut self, case: Box<FunctionCase>) -> Self {
     self.cases.push(case);
+    self
+  }
+
+  /// Sets the predicate for recognizing identity values for the
+  /// function being built. Modifies and returns `self`, to permit
+  /// fluent-style calling.
+  pub fn set_identity(mut self, predicate: impl Fn(&Expr) -> bool + Send + Sync + 'static) -> Self {
+    self.identity_predicate = Box::new(predicate);
     self
   }
 
@@ -115,9 +125,12 @@ impl FunctionBuilder {
       // No cases matched, so we refuse to evaluate the function.
       Err(args)
     });
-    let mut function = Function::new(self.name, function_body);
-    function.flags = self.flags;
-    function
+    Function {
+      name: self.name,
+      flags: self.flags,
+      identity_predicate: self.identity_predicate,
+      body: function_body,
+    }
   }
 }
 

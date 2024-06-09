@@ -38,6 +38,32 @@ impl Expr {
     Expr::Atom(number::Number::one().into())
   }
 
+  /// Returns true if this expression is literally equal to zero. This
+  /// returns true for all representations of zero, including integer,
+  /// floating, and complex representations.
+  ///
+  /// This method never attempts any simplifications, so it returns
+  /// false for expressions which are clearly _mathematically_ zero
+  /// but are not literally zero, such as `0 * x`.
+  pub fn is_zero(&self) -> bool {
+    match self {
+      Expr::Atom(Atom::Number(n)) => n.is_zero(),
+      Expr::Atom(Atom::Complex(z)) => z.is_zero(),
+      _ => false,
+    }
+  }
+
+  /// Returns true if this expression is literally equal to one. This
+  /// returns true for all representations of one, including integer,
+  /// floating, and complex representations.
+  pub fn is_one(&self) -> bool {
+    match self {
+      Expr::Atom(Atom::Number(n)) => n.is_one(),
+      Expr::Atom(Atom::Complex(z)) => z.is_one(),
+      _ => false,
+    }
+  }
+
   pub fn var(name: &str) -> Option<Expr> {
     Var::new(name).map(|v| Expr::Atom(v.into()))
   }

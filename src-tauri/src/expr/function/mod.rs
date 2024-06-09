@@ -18,6 +18,7 @@ use std::fmt::{self, Formatter, Debug};
 pub struct Function {
   name: String,
   flags: FunctionFlags,
+  identity_predicate: Box<dyn Fn(&Expr) -> bool + Send + Sync + 'static>,
   body: Box<FunctionImpl>,
 }
 
@@ -25,14 +26,6 @@ type FunctionImpl =
   dyn Fn(Vec<Expr>, &mut ErrorList<SimplifierError>) -> Result<Expr, Vec<Expr>> + Send + Sync;
 
 impl Function {
-  /// Directly constructs a function with the given name and implementation.
-  fn new<S, F>(name: S, body: F) -> Function
-  where S: Into<String>,
-        F: Fn(Vec<Expr>, &mut ErrorList<SimplifierError>) -> Result<Expr, Vec<Expr>>,
-        F: Send + Sync + 'static {
-    Function { name: name.into(), flags: FunctionFlags::default(), body: Box::new(body) }
-  }
-
   /// The function's name.
   pub fn name(&self) -> &str {
     &self.name
@@ -41,6 +34,10 @@ impl Function {
   /// The property-based flags set on this function.
   pub fn flags(&self) -> FunctionFlags {
     self.flags
+  }
+
+  pub fn is_identity(&self, arg: &Expr) -> bool {
+    (self.identity_predicate)(arg)
   }
 
   /// Calls the function, with the intent of fully evaluating it.
@@ -65,4 +62,8 @@ impl Debug for Function {
   fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
     write!(f, "Function {{ name: {:?}, flags: {:?}, body: ... }}", self.name, self.flags)
   }
+}
+
+fn no_identity_value(_: &Expr) -> bool {
+  false
 }
