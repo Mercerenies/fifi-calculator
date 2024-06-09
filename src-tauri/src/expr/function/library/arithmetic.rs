@@ -4,7 +4,7 @@
 use crate::expr::Expr;
 use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
-use crate::expr::function::builder::{self, FunctionBuilder};
+use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
 use crate::expr::prisms::{ExprToNumber, ExprToComplex};
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex, pow_complex_to_real};
 use crate::expr::simplifier::error::SimplifierError;
@@ -79,6 +79,20 @@ pub fn multiplication() -> Function {
       // Unary simplification
       builder::arity_one().and_then(|arg, _| {
         Ok(arg)
+      })
+    )
+    .add_case(
+      // Multiplication by zero
+      Box::new(|args, _errors| {
+        // TODO: The manual construction of FunctionCase and explicit
+        // FunctionCaseResults here are less than ideal. Can we make a
+        // builder for this?
+        let contains_zero = args.iter().any(Expr::is_zero);
+        if contains_zero {
+          FunctionCaseResult::Success(Expr::zero())
+        } else {
+          FunctionCaseResult::NoMatch(args)
+        }
       })
     )
     .add_case(
