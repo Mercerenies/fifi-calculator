@@ -23,8 +23,9 @@ pub struct Function {
   body: Box<FunctionImpl>,
 }
 
-pub struct FunctionContext<'a> {
+pub struct FunctionContext<'a, 'b> {
   pub errors: &'a mut ErrorList<SimplifierError>,
+  pub function_table: &'b FunctionTable,
   _private: (),
 }
 
@@ -61,7 +62,7 @@ impl Function {
     errors: &mut ErrorList<SimplifierError>,
     function_table: &FunctionTable,
   ) -> Result<Expr, Vec<Expr>> {
-    let context = FunctionContext { errors, _private: () };
+    let context = FunctionContext { errors, function_table, _private: () };
     (self.body)(args, context)
   }
 }
