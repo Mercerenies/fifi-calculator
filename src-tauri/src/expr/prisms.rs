@@ -19,6 +19,10 @@ pub struct ExprToNumber;
 #[derive(Debug, Clone, Copy, Default)]
 pub struct ExprToComplex;
 
+/// Prism which only accepts expressions which are a [`Var`].
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ExprToVar;
+
 /// Prism which downcasts a [`Number`] to a [`PositiveNumber`]. Fails
 /// on negative numbers.
 #[derive(Debug, Clone, Copy, Default)]
@@ -84,6 +88,19 @@ impl Prism<Expr, ComplexLike> for ExprToComplex {
       ComplexLike::Real(r) => Expr::Atom(Atom::Number(r)),
       ComplexLike::Complex(z) => Expr::Atom(Atom::Complex(z)),
     }
+  }
+}
+
+impl Prism<Expr, Var> for ExprToVar {
+  fn narrow_type(&self, input: Expr) -> Result<Var, Expr> {
+    if let Expr::Atom(Atom::Var(var)) = input {
+      Ok(var)
+    } else {
+      Err(input)
+    }
+  }
+  fn widen_type(&self, input: Var) -> Expr {
+    Expr::Atom(Atom::Var(input))
   }
 }
 
