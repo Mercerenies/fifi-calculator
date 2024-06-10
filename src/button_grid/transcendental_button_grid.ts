@@ -1,6 +1,5 @@
 
 import { ButtonGrid, GridCell } from "../button_grid.js";
-import { KeyResponse } from '../keyboard.js';
 import { backButton, DispatchButton } from './button.js';
 import { InputBoxManager } from '../input_box.js';
 
@@ -33,9 +32,5 @@ export class TranscendentalButtonGrid extends ButtonGrid {
         backButton(this.rootGrid),
       ],
     ];
-  }
-
-  onUnhandledKey(): Promise<KeyResponse> {
-    return Promise.resolve(KeyResponse.PASS);
   }
 }

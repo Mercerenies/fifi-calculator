@@ -19,7 +19,6 @@ export class ButtonGridManager {
   private domElement: HTMLElement;
   private rootGrid: ButtonGrid;
   private activeGrid: ButtonGrid;
-  private buttonsByKey: Record<string, GridCell> = {};
   private modifierDelegate: ModifierDelegate;
 
   constructor(domElement: HTMLElement, initialGrid: ButtonGrid, modifierDelegate: ModifierDelegate) {
@@ -49,7 +48,6 @@ export class ButtonGridManager {
 
   setActiveGrid(grid: ButtonGrid): void {
     this.activeGrid = grid;
-    this.loadButtonShortcuts();
     this.loadHtml();
   }
 
@@ -65,21 +63,6 @@ export class ButtonGridManager {
       args,
       opts: modifiersToRustArgs(modifiers),
     });
-  }
-
-  private loadButtonShortcuts(): void {
-    this.buttonsByKey = {};
-    for (const row of this.activeGrid.rows) {
-      for (const button of row) {
-        const keyboardShortcut = button.keyboardShortcut;
-        if (keyboardShortcut !== null) {
-          if (keyboardShortcut in this.buttonsByKey) {
-            console.warn("Duplicate keyboard shortcut in grid:", keyboardShortcut);
-          }
-          this.buttonsByKey[keyboardShortcut] = button;
-        }
-      }
-    }
   }
 
   private loadHtml(): void {
@@ -103,27 +86,69 @@ export class ButtonGridManager {
       // buttons.
       return KeyResponse.BLOCK;
     }
-    const button = this.buttonsByKey[input.toEmacsSyntax()];
+    const button = this.activeGrid.getKeyMappingTable()[input.toEmacsSyntax()];
     if (button !== undefined) {
       input.event.preventDefault();
       await button.fire(this);
       return KeyResponse.BLOCK;
     } else {
-      return await this.activeGrid.onUnhandledKey(input);
+      return await this.activeGrid.onUnhandledKey(input, this);
     }
   }
 }
 
 export abstract class ButtonGrid {
+  // This field is lazy-initialized on the first call to
+  // getKeyMappingTable() and stored after that fact.
+  private buttonsByKey: Record<string, GridCell> | null = null;
+
   // Should be at most a GRID_ROWS * GRID_CELLS_BY_ROW array. If this
   // grid is smaller than that size, the missing elements will be
   // filled in with Spacer objects.
   abstract get rows(): readonly (readonly GridCell[])[];
 
   /* eslint-disable @typescript-eslint/no-unused-vars */
-  onUnhandledKey(input: KeyEventInput): Promise<KeyResponse> {
+  onUnhandledKey(input: KeyEventInput, manager: ButtonGridManager): Promise<KeyResponse> {
     // Default implementation is empty.
     return Promise.resolve(KeyResponse.PASS);
+  }
+
+  getAllCellKeys(): string[] {
+    const keys = [];
+    for (const row of this.rows) {
+      for (const button of row) {
+        if (button.keyboardShortcut !== null) {
+          keys.push(button.keyboardShortcut);
+        }
+      }
+    }
+    return keys;
+  }
+
+  // By default, this method is equivalent to getAllCellKeys(). But
+  // getAllKeys() can be overridden by subclasses to include keys
+  // which delegate to other grids via onUnhandledKey().
+  getAllKeys(): string[] {
+    return this.getAllCellKeys();
+  }
+
+  getKeyMappingTable(): Record<string, GridCell> {
+    if (this.buttonsByKey !== null) {
+      return this.buttonsByKey;
+    }
+    this.buttonsByKey = {};
+    for (const row of this.rows) {
+      for (const button of row) {
+        const keyboardShortcut = button.keyboardShortcut;
+        if (keyboardShortcut !== null) {
+          if (keyboardShortcut in this.buttonsByKey) {
+            console.warn("Duplicate keyboard shortcut in grid:", keyboardShortcut);
+          }
+          this.buttonsByKey[keyboardShortcut] = button;
+        }
+      }
+    }
+    return this.buttonsByKey;
   }
 }
 

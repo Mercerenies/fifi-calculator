@@ -1,5 +1,5 @@
 
-import { ButtonGrid, GridCell } from "../button_grid.js";
+import { ButtonGridManager, ButtonGrid, GridCell } from "../button_grid.js";
 import { AlgebraButtonGrid } from "./algebra_button_grid.js";
 import { StorageButtonGrid } from "./storage_button_grid.js";
 import { TranscendentalButtonGrid } from "./transcendental_button_grid.js";
@@ -36,10 +36,15 @@ export class MainButtonGrid extends ButtonGrid {
   private inputManager: InputBoxManager;
   private onEscapeDismissable: Hideable;
 
+  // We store this one, since we delegate keys to it, and we don't
+  // want to have to regenerate it every time a key is pressed.
+  private transcendentalButtonGrid: TranscendentalButtonGrid;
+
   constructor(inputManager: InputBoxManager, onEscapeDismissable: Hideable) {
     super();
     this.inputManager = inputManager;
     this.onEscapeDismissable = onEscapeDismissable;
+    this.transcendentalButtonGrid = new TranscendentalButtonGrid(this, inputManager);
     this.rows = this.initRows();
   }
 
@@ -56,7 +61,7 @@ export class MainButtonGrid extends ButtonGrid {
         new DispatchButton("<math><mo>&times;</mo><mi>i</mi></math>", "*i", null),
         new DispatchButton("<math><mo>&plusmn;</mo></math>", "negate", "n"),
         new DispatchButton("<math><msup><mi>x</mi><mi>y</mi></msup></math>", "^", "^"),
-        new GotoButton("<math><mi>ξ</mi></math>", null, () => new TranscendentalButtonGrid(this, this.inputManager)),
+        new GotoButton("<math><mi>ξ</mi></math>", null, this.transcendentalButtonGrid),
       ],
       [
         new DispatchButton("&divide;", "/", "/"),
@@ -78,8 +83,14 @@ export class MainButtonGrid extends ButtonGrid {
     ];
   }
 
-  async onUnhandledKey(input: KeyEventInput): Promise<KeyResponse> {
+  async onUnhandledKey(input: KeyEventInput, manager: ButtonGridManager): Promise<KeyResponse> {
     const key = input.toEmacsSyntax();
+
+    const transcendentalResult = await this.tryDelegateToTranscendentalGrid(manager, key);
+    if (transcendentalResult !== null) {
+      return transcendentalResult;
+    }
+
     if (MainButtonGrid.NUMERICAL_INPUT_START_KEYS.has(key)) {
       // Start numerical input
       input.event.preventDefault();
@@ -90,6 +101,17 @@ export class MainButtonGrid extends ButtonGrid {
       return KeyResponse.BLOCK;
     } else {
       return KeyResponse.PASS;
+    }
+  }
+
+  // Returns null if not handled, or a KeyResponse if handled.
+  private async tryDelegateToTranscendentalGrid(manager: ButtonGridManager, key: string): Promise<KeyResponse | null> {
+    const transcendentalTable = this.transcendentalButtonGrid.getKeyMappingTable();
+    if (key in transcendentalTable) {
+      await transcendentalTable[key].fire(manager);
+      return KeyResponse.BLOCK;
+    } else {
+      return null;
     }
   }
 

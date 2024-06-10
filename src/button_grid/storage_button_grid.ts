@@ -36,10 +36,6 @@ export class StorageButtonGrid extends ButtonGrid {
       ],
     ];
   }
-
-  onUnhandledKey(): Promise<KeyResponse> {
-    return Promise.resolve(KeyResponse.PASS);
-  }
 }
 
 export class VariableStoreButton extends Button {
