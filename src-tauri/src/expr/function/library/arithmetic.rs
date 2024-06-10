@@ -2,17 +2,14 @@
 //! Basic arithmetic function evaluation rules.
 
 use crate::expr::Expr;
-use crate::expr::var::Var;
 use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
-use crate::expr::prisms::{ExprToNumber, ExprToComplex, must_be_var};
+use crate::expr::prisms::{ExprToNumber, ExprToComplex};
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex, pow_complex_to_real};
 use crate::expr::simplifier::error::SimplifierError;
 
 use num::{Zero, One};
-
-use std::f64::consts;
 
 pub fn append_arithmetic_functions(table: &mut FunctionTable) {
   table.insert(addition());
@@ -146,7 +143,6 @@ pub fn division() -> Function {
 }
 
 pub fn power() -> Function {
-  let e = Var::new("e").unwrap();
   FunctionBuilder::new("^")
     .add_case(
       // Real number power function
@@ -194,32 +190,6 @@ pub fn power() -> Function {
           return Err((arg1, arg2));
         }
         let power = pow_complex(arg1.into(), arg2.into());
-        Ok(Expr::from(power))
-      })
-    )
-    .add_case(
-      // e^{known real number} case
-      builder::arity_two().of_types(must_be_var(e.clone()), ExprToNumber).and_then(|_unit, arg2, _errors| {
-        // Some simplifications and rules introduce expressions of the
-        // form `e^x` (for some `x`). In general, we'd like to treat
-        // this a lot like a function and leave the `e` unevaluated,
-        // but if `x` is a known constant, then go ahead and give us
-        // the (inexact) result.
-        let e = Number::from(consts::E);
-        let power = pow_real(e, arg2);
-        Ok(Expr::from(power))
-      })
-    )
-    .add_case(
-      // e^{known complex number} case
-      builder::arity_two().of_types(must_be_var(e), ExprToComplex).and_then(|_unit, arg2, _errors| {
-        // Some simplifications and rules introduce expressions of the
-        // form `e^x` (for some `x`). In general, we'd like to treat
-        // this a lot like a function and leave the `e` unevaluated,
-        // but if `x` is a known constant, then go ahead and give us
-        // the (inexact) result.
-        let e = ComplexNumber::from_real(Number::from(consts::E));
-        let power = pow_complex(e, arg2.into());
         Ok(Expr::from(power))
       })
     )

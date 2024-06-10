@@ -35,7 +35,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("log10".to_string(), Box::new(UnaryFunctionCommand::new(log10))); // Currently unused
   map.insert("log2".to_string(), Box::new(UnaryFunctionCommand::new(log2))); // Currently unused
   map.insert("*i".to_string(), Box::new(UnaryFunctionCommand::new(times_i)));
-  map.insert("e^".to_string(), Box::new(UnaryFunctionCommand::new(e_power)));
+  map.insert("e^".to_string(), Box::new(UnaryFunctionCommand::named("exp")));
   map.insert("negate".to_string(), Box::new(UnaryFunctionCommand::new(times_minus_one)));
   map.insert("pop".to_string(), Box::new(shuffle::PopCommand));
   map.insert("swap".to_string(), Box::new(shuffle::SwapCommand));
@@ -59,10 +59,6 @@ fn log10(expr: Expr) -> Expr {
 
 fn log2(expr: Expr) -> Expr {
   Expr::call("log", vec![expr, Expr::from(2)])
-}
-
-fn e_power(expr: Expr) -> Expr {
-  Expr::call("^", vec![Expr::var("e").unwrap(), expr])
 }
 
 fn times_i(expr: Expr) -> Expr {
