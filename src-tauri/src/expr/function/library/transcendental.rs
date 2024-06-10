@@ -25,6 +25,7 @@ pub fn natural_log() -> Function {
       })
     )
     .build()
+  // TODO: Derivative
 }
 
 pub fn logarithm() -> Function {
@@ -38,6 +39,7 @@ pub fn logarithm() -> Function {
       })
     )
     .build()
+  // TODO: Derivative
 }
 
 pub fn exponent() -> Function {
@@ -60,4 +62,5 @@ pub fn exponent() -> Function {
       })
     )
     .build()
+  // TODO: Derivative
 }

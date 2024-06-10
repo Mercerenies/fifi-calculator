@@ -228,6 +228,7 @@ pub fn power() -> Function {
       })
     )
     .build()
+  // TODO: Derivative
 }
 
 pub fn modulo() -> Function {
@@ -250,6 +251,7 @@ pub fn modulo() -> Function {
       })
     )
     .build()
+  // TODO: Derivative
 }
 
 pub fn floor_division() -> Function {
@@ -290,4 +292,5 @@ pub fn arithmetic_negate() -> Function {
       })
     )
     .build()
+  // TODO: Derivative
 }
