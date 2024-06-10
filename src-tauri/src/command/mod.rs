@@ -32,8 +32,8 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("^".to_string(), Box::new(BinaryFunctionCommand::named("^")));
   map.insert("ln".to_string(), Box::new(UnaryFunctionCommand::named("ln")));
   map.insert("log".to_string(), Box::new(BinaryFunctionCommand::named("log")));
-  map.insert("log10".to_string(), Box::new(UnaryFunctionCommand::new(log10)));
-  map.insert("log2".to_string(), Box::new(UnaryFunctionCommand::new(log2)));
+  map.insert("log10".to_string(), Box::new(UnaryFunctionCommand::new(log10))); // Currently unused
+  map.insert("log2".to_string(), Box::new(UnaryFunctionCommand::new(log2))); // Currently unused
   map.insert("*i".to_string(), Box::new(UnaryFunctionCommand::new(times_i)));
   map.insert("e^".to_string(), Box::new(UnaryFunctionCommand::new(e_power)));
   map.insert("negate".to_string(), Box::new(UnaryFunctionCommand::new(times_minus_one)));
