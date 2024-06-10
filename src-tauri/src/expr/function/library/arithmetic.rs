@@ -123,6 +123,17 @@ pub fn multiplication() -> Function {
         Ok(Expr::from(product))
       })
     )
+    .set_derivative(
+      |args, engine| {
+        let mut final_terms = Vec::with_capacity(args.len());
+        for i in 0..args.len() {
+          let mut args = args.clone();
+          args[i].mutate_failable(|e| engine.differentiate(e))?;
+          final_terms.push(Expr::call("*", args));
+        }
+        Ok(Expr::call("+", args))
+      }
+    )
     .build()
 }
 
@@ -148,6 +159,18 @@ pub fn division() -> Function {
         }
         let quotient = ComplexNumber::from(arg1) / ComplexNumber::from(arg2);
         Ok(Expr::from(quotient))
+      })
+    )
+    .set_derivative(
+      builder::arity_two_deriv("/", |arg1, arg2, engine| {
+        let arg1_deriv = engine.differentiate(arg1.clone())?;
+        let arg2_deriv = engine.differentiate(arg2.clone())?;
+        let final_numerator = Expr::call("-", vec![
+          Expr::call("*", vec![arg1_deriv, arg2.clone()]),
+          Expr::call("*", vec![arg1, arg2_deriv]),
+        ]);
+        let final_denominator = Expr::call("^", vec![arg2, Expr::from(Number::from(2))]);
+        Ok(Expr::call("/", vec![final_numerator, final_denominator]))
       })
     )
     .build()

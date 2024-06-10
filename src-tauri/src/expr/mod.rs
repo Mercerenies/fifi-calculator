@@ -82,6 +82,15 @@ impl Expr {
     *self = f(original_value);
   }
 
+  pub fn mutate_failable<F, E>(&mut self, f: F) -> Result<(), E>
+  where F: FnOnce(Expr) -> Result<Expr, E> {
+    // Temporarily replace with a meaningless placeholder value.
+    let placeholder = Expr::Atom(Atom::Number(0f64.into())); // Ugh... simplest non-allocating value I have
+    let original_value = mem::replace(self, placeholder);
+    *self = f(original_value)?;
+    Ok(())
+  }
+
   pub fn substitute_var(self, var: Var, value: Expr) -> Self {
     walker::postorder_walk_ok(self, |expr| {
       if let Expr::Atom(Atom::Var(v)) = expr {
