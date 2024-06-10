@@ -1,6 +1,5 @@
 
 import { ButtonGridManager, ButtonGrid, GridCell } from "../button_grid.js";
-import { KeyResponse } from '../keyboard.js';
 import { backButton, Button } from './button.js';
 import { variableNameInput } from '../input_box/algebraic_input.js';
 import { FreeformInputMethod } from '../input_box/freeform_input.js';

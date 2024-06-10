@@ -1,7 +1,6 @@
 
 import { ButtonGridManager, ButtonGrid, GridCell } from "../button_grid.js";
 import { ButtonModifiers } from './modifier_delegate.js';
-import { KeyResponse } from '../keyboard.js';
 import { backButton, Button } from './button.js';
 import { variableNameInput } from '../input_box/algebraic_input.js';
 import { InputBoxManager } from '../input_box.js';
