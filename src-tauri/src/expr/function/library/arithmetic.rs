@@ -49,6 +49,12 @@ pub fn addition() -> Function {
         Ok(Expr::from(sum))
       })
     )
+    .set_derivative(
+      |args, engine| {
+        let args = engine.differentiate_each(args)?;
+        Ok(Expr::call("+", args))
+      }
+    )
     .build()
 }
 
@@ -66,6 +72,11 @@ pub fn subtraction() -> Function {
       builder::arity_two().both_of_type(ExprToComplex).and_then(|arg1, arg2, _| {
         let difference = ComplexNumber::from(arg1) - ComplexNumber::from(arg2);
         Ok(Expr::from(difference))
+      })
+    )
+    .set_derivative(
+      builder::arity_two_deriv("-", |arg1, arg2, engine| {
+        Ok(Expr::call("-", vec![engine.differentiate(arg1)?, engine.differentiate(arg2)?]))
       })
     )
     .build()

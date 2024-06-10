@@ -3,6 +3,7 @@ use crate::expr::Expr;
 use crate::expr::atom::Atom;
 use crate::expr::var::Var;
 use crate::expr::function::table::FunctionTable;
+use crate::expr::simplifier::error::ArityError;
 
 use thiserror::Error;
 
@@ -41,6 +42,8 @@ pub struct DifferentiationFailure {
 pub enum DifferentiationError {
   #[error("Derivative of function '{0}' is not known")]
   UnknownDerivative(String),
+  #[error("Arity error on function '{0}': {1}")]
+  ArityError(String, ArityError),
 }
 
 impl<'a> DerivativeEngine<'a> {

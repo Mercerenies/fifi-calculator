@@ -5,7 +5,8 @@ use super::{Function, FunctionContext, FunctionDeriv};
 use super::flags::FunctionFlags;
 use crate::util::prism::{Prism, Identity, OnVec};
 use crate::expr::Expr;
-use crate::expr::calculus::{DerivativeEngine, DifferentiationFailure};
+use crate::expr::simplifier::error::ArityError;
+use crate::expr::calculus::{DerivativeEngine, DifferentiationFailure, DifferentiationError};
 
 use std::marker::PhantomData;
 
@@ -304,5 +305,36 @@ pub fn non_zero_arity() -> VecMatcher<Identity, Expr> {
     min_length: 1,
     max_length: usize::MAX,
     _phantom: PhantomData,
+  }
+}
+
+pub fn arity_one_deriv(
+  function_name: &str,
+  f: impl Fn(Expr, &DerivativeEngine) -> Result<Expr, DifferentiationFailure> + Send + Sync + 'static
+) -> impl Fn(Vec<Expr>, &DerivativeEngine) -> Result<Expr, DifferentiationFailure> + Send + Sync + 'static {
+  let function_name = function_name.to_owned();
+  move |mut args, engine| {
+    if args.len() != 1 {
+      let err = ArityError { expected: 1, actual: args.len() };
+      return Err(engine.error(DifferentiationError::ArityError(function_name.clone(), err)));
+    }
+    let arg = args.pop().unwrap(); // unwrap: len() == 1
+    f(arg, engine)
+  }
+}
+
+pub fn arity_two_deriv(
+  function_name: &str,
+  f: impl Fn(Expr, Expr, &DerivativeEngine) -> Result<Expr, DifferentiationFailure> + Send + Sync + 'static
+) -> impl Fn(Vec<Expr>, &DerivativeEngine) -> Result<Expr, DifferentiationFailure> + Send + Sync + 'static {
+  let function_name = function_name.to_owned();
+  move |mut args, engine| {
+    if args.len() != 2 {
+      let err = ArityError { expected: 2, actual: args.len() };
+      return Err(engine.error(DifferentiationError::ArityError(function_name.clone(), err)));
+    }
+    let arg2 = args.pop().unwrap(); // unwrap: len() == 2
+    let arg1 = args.pop().unwrap(); // unwrap: len() == 2
+    f(arg1, arg2, engine)
   }
 }

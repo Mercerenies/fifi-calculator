@@ -12,5 +12,10 @@ pub fn identity_function() -> Function {
     .add_case(
       builder::arity_one().and_then(|arg, _| Ok(arg))
     )
+    .set_derivative(
+      builder::arity_one_deriv("identity", |expr, engine| {
+        engine.differentiate(expr)
+      })
+    )
     .build()
 }

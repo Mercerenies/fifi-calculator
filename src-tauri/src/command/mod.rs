@@ -1,6 +1,7 @@
 
 pub mod arguments;
 mod base;
+pub mod calculus;
 pub mod dispatch;
 pub mod functional;
 pub mod general;
@@ -49,6 +50,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   // Variable-related commands
   map.insert("manual_substitute".to_string(), Box::new(variables::SubstituteVarCommand::new())); // TODO: Reify as function?
   map.insert("store_var".to_string(), Box::new(variables::StoreVarCommand::new()));
+  map.insert("deriv".to_string(), Box::new(calculus::DerivativeCommand::new()));
 
   CommandDispatchTable::from_hash_map(map)
 }
