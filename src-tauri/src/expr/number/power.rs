@@ -84,7 +84,7 @@ pub fn pow_complex_to_real(x: ComplexNumber, y: Number) -> ComplexNumber {
     NumberImpl::Float(y) => {
       // Calculate the result in polar coordinates.
       let magnitude = x.abs().powf(y);
-      let angle = Radians(PI * y);
+      let angle = x.angle() * y;
       ComplexNumber::from_polar_inexact(magnitude, angle)
     }
   }
