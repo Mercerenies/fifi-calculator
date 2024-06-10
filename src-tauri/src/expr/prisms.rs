@@ -1,8 +1,9 @@
 
 use super::Expr;
+use super::var::Var;
 use super::atom::Atom;
 use super::number::{Number, ComplexLike};
-use crate::util::prism::Prism;
+use crate::util::prism::{Prism, Only};
 
 // Re-export some useful expression-adjacent prisms.
 pub use super::var::StringToVar;
@@ -15,6 +16,12 @@ pub struct ExprToNumber;
 /// real or a complex number.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct ExprToComplex;
+
+/// Prism which accepts only a specific variable as the expression.
+pub fn must_be_var(var: Var) -> Only<Expr> {
+  let expr = Expr::Atom(Atom::Var(var));
+  Only::new(expr)
+}
 
 impl ExprToNumber {
   pub fn new() -> Self {
