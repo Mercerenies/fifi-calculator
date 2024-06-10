@@ -30,7 +30,10 @@ impl<'a> DerivativeEngine<'a> {
   pub fn differentiate(&self, expr: Expr) -> Result<Expr, DifferentiationFailure> {
     match expr {
       Expr::Call(function, args) => {
-        todo!();
+        let Some(known_function) = self.function_table.get(&function) else {
+          return Err(self.error(DifferentiationError::UnknownDerivative(function)));
+        };
+        known_function.differentiate(args, self)
       }
       Expr::Atom(Atom::Number(_) | Atom::Complex(_)) => {
         Ok(Expr::zero())

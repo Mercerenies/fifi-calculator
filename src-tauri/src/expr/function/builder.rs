@@ -1,10 +1,11 @@
 
 //! Builder API for [`Function`] objects.
 
-use super::{Function, FunctionContext};
+use super::{Function, FunctionContext, FunctionDeriv};
 use super::flags::FunctionFlags;
 use crate::util::prism::{Prism, Identity, OnVec};
 use crate::expr::Expr;
+use crate::expr::calculus::{DerivativeEngine, DifferentiationFailure};
 
 use std::marker::PhantomData;
 
@@ -12,6 +13,7 @@ pub struct FunctionBuilder {
   name: String,
   flags: FunctionFlags,
   identity_predicate: Box<dyn Fn(&Expr) -> bool + Send + Sync + 'static>,
+  derivative_rule: Option<Box<FunctionDeriv>>,
   cases: Vec<Box<FunctionCase>>,
 }
 
@@ -74,8 +76,9 @@ impl FunctionBuilder {
   pub fn new(name: impl Into<String>) -> Self {
     Self {
       name: name.into(),
-      identity_predicate: Box::new(super::no_identity_value),
       flags: FunctionFlags::default(),
+      identity_predicate: Box::new(super::no_identity_value),
+      derivative_rule: None,
       cases: Vec::new(),
     }
   }
@@ -93,6 +96,19 @@ impl FunctionBuilder {
   /// fluent-style calling.
   pub fn set_identity(mut self, predicate: impl Fn(&Expr) -> bool + Send + Sync + 'static) -> Self {
     self.identity_predicate = Box::new(predicate);
+    self
+  }
+
+  /// Sets the rule for how to differentiate this function. If a
+  /// derivative rule has already been set, then `set_derivative`
+  /// panics.
+  pub fn set_derivative(mut self, rule: impl Fn(Vec<Expr>, &DerivativeEngine) -> Result<Expr, DifferentiationFailure> + Send + Sync + 'static) -> Self {
+    assert!(
+      self.derivative_rule.is_none(),
+      "Cannot set derivative rule on function {} that already has one.",
+      self.name,
+    );
+    self.derivative_rule = Some(Box::new(rule));
     self
   }
 
@@ -127,6 +143,7 @@ impl FunctionBuilder {
       name: self.name,
       flags: self.flags,
       identity_predicate: self.identity_predicate,
+      derivative_rule: self.derivative_rule,
       body: function_body,
     }
   }

@@ -8,6 +8,7 @@ use flags::FunctionFlags;
 use table::FunctionTable;
 use crate::expr::Expr;
 use crate::expr::simplifier::error::SimplifierError;
+use crate::expr::calculus::{DerivativeEngine, DifferentiationFailure, DifferentiationError};
 use crate::errorlist::ErrorList;
 
 use std::fmt::{self, Formatter, Debug};
@@ -20,6 +21,7 @@ pub struct Function {
   name: String,
   flags: FunctionFlags,
   identity_predicate: Box<dyn Fn(&Expr) -> bool + Send + Sync + 'static>,
+  derivative_rule: Option<Box<FunctionDeriv>>,
   body: Box<FunctionImpl>,
 }
 
@@ -31,6 +33,9 @@ pub struct FunctionContext<'a, 'b> {
 
 type FunctionImpl =
   dyn Fn(Vec<Expr>, FunctionContext) -> Result<Expr, Vec<Expr>> + Send + Sync;
+
+type FunctionDeriv =
+  dyn Fn(Vec<Expr>, &DerivativeEngine) -> Result<Expr, DifferentiationFailure> + Send + Sync;
 
 impl Function {
   /// The function's name.
@@ -64,6 +69,17 @@ impl Function {
   ) -> Result<Expr, Vec<Expr>> {
     let context = FunctionContext { errors, function_table, _private: () };
     (self.body)(args, context)
+  }
+
+  pub fn differentiate(
+    &self,
+    args: Vec<Expr>,
+    engine: &DerivativeEngine,
+  ) -> Result<Expr, DifferentiationFailure> {
+    let Some(derivative_rule) = &self.derivative_rule else {
+      return Err(engine.error(DifferentiationError::UnknownDerivative(self.name().to_owned())));
+    };
+    derivative_rule(args, engine)
   }
 }
 
