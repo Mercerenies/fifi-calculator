@@ -1,0 +1,38 @@
+
+//! Evaluation rules for transcendental and trigonometric functions.
+
+use crate::expr::Expr;
+use crate::expr::function::Function;
+use crate::expr::function::table::FunctionTable;
+use crate::expr::function::builder::{self, FunctionBuilder};
+use crate::expr::prisms;
+use crate::expr::number::Number;
+
+pub fn append_transcendental_functions(table: &mut FunctionTable) {
+  table.insert(natural_log());
+  table.insert(logarithm());
+}
+
+pub fn natural_log() -> Function {
+  FunctionBuilder::new("ln")
+    .add_case(
+      // Natural logarithm of a positive real number
+      builder::arity_one().of_type(prisms::expr_to_positive_number()).and_then(|arg, _| {
+        Ok(Expr::from(Number::from(arg).ln()))
+      })
+    )
+    .build()
+}
+
+pub fn logarithm() -> Function {
+  FunctionBuilder::new("log")
+    .add_case(
+      // Arbitrary-base logarithm with positive real arguments
+      builder::arity_two().both_of_type(prisms::expr_to_positive_number()).and_then(|arg, base, _| {
+        let arg = Number::from(arg);
+        let base = Number::from(base);
+        Ok(Expr::from(arg.log(&base)))
+      })
+    )
+    .build()
+}

@@ -3,7 +3,9 @@ use super::Expr;
 use super::var::Var;
 use super::atom::Atom;
 use super::number::{Number, ComplexLike};
-use crate::util::prism::{Prism, Only};
+use crate::util::prism::{Prism, Only, Composed};
+
+use num::Zero;
 
 // Re-export some useful expression-adjacent prisms.
 pub use super::var::StringToVar;
@@ -17,21 +19,44 @@ pub struct ExprToNumber;
 #[derive(Debug, Clone, Copy, Default)]
 pub struct ExprToComplex;
 
+/// Prism which downcasts a [`Number`] to a [`PositiveNumber`]. Fails
+/// on negative numbers.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct NumberToPositiveNumber;
+
+/// A real number which is guaranteed to be positive. This is the
+/// result type of the [`ExprToPositiveNumber`] prism.
+#[derive(Debug, Clone)]
+pub struct PositiveNumber {
+  data: Number,
+}
+
 /// Prism which accepts only a specific variable as the expression.
 pub fn must_be_var(var: Var) -> Only<Expr> {
   let expr = Expr::Atom(Atom::Var(var));
   Only::new(expr)
 }
 
-impl ExprToNumber {
-  pub fn new() -> Self {
-    ExprToNumber
+/// Prism which accepts only positive real numbers.
+pub fn expr_to_positive_number() -> Composed<ExprToNumber, NumberToPositiveNumber, Number> {
+  Composed::new(ExprToNumber, NumberToPositiveNumber)
+}
+
+impl PositiveNumber {
+  /// Creates a `PositiveNumber`, or returns the input number
+  /// unmodified if the value is not positive.
+  pub fn new(number: Number) -> Result<Self, Number> {
+    if number > Number::zero() {
+      Ok(PositiveNumber { data: number })
+    } else {
+      Err(number)
+    }
   }
 }
 
-impl ExprToComplex {
-  pub fn new() -> Self {
-    ExprToComplex
+impl From<PositiveNumber> for Number {
+  fn from(arg: PositiveNumber) -> Self {
+    arg.data
   }
 }
 
@@ -59,5 +84,14 @@ impl Prism<Expr, ComplexLike> for ExprToComplex {
       ComplexLike::Real(r) => Expr::Atom(Atom::Number(r)),
       ComplexLike::Complex(z) => Expr::Atom(Atom::Complex(z)),
     }
+  }
+}
+
+impl Prism<Number, PositiveNumber> for NumberToPositiveNumber {
+  fn narrow_type(&self, input: Number) -> Result<PositiveNumber, Number> {
+    PositiveNumber::new(input)
+  }
+  fn widen_type(&self, input: PositiveNumber) -> Number {
+    input.into()
   }
 }

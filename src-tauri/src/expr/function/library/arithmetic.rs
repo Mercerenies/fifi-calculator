@@ -273,13 +273,13 @@ pub fn floor_division() -> Function {
 pub fn arithmetic_negate() -> Function {
   FunctionBuilder::new("negate")
     .add_case(
-      // Real number addition
+      // Real number negation
       builder::arity_one().of_type(ExprToNumber).and_then(|arg, _| {
         Ok(Expr::from(- arg))
       })
     )
     .add_case(
-      // Complex number addition
+      // Complex number negation
       builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
         let arg = ComplexNumber::from(arg);
         Ok(Expr::from(- arg))

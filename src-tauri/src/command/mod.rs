@@ -30,6 +30,10 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("%".to_string(), Box::new(BinaryFunctionCommand::named("%")));
   map.insert("div".to_string(), Box::new(BinaryFunctionCommand::named("div")));
   map.insert("^".to_string(), Box::new(BinaryFunctionCommand::named("^")));
+  map.insert("ln".to_string(), Box::new(UnaryFunctionCommand::named("ln")));
+  map.insert("log".to_string(), Box::new(BinaryFunctionCommand::named("log")));
+  map.insert("log10".to_string(), Box::new(UnaryFunctionCommand::new(log10)));
+  map.insert("log2".to_string(), Box::new(UnaryFunctionCommand::new(log2)));
   map.insert("*i".to_string(), Box::new(UnaryFunctionCommand::new(times_i)));
   map.insert("negate".to_string(), Box::new(UnaryFunctionCommand::new(times_minus_one)));
   map.insert("pop".to_string(), Box::new(shuffle::PopCommand));
@@ -48,13 +52,21 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   CommandDispatchTable::from_hash_map(map)
 }
 
+fn log10(expr: Expr) -> Expr {
+  Expr::call("log", vec![expr, Expr::from(10)])
+}
+
+fn log2(expr: Expr) -> Expr {
+  Expr::call("log", vec![expr, Expr::from(2)])
+}
+
 fn times_i(expr: Expr) -> Expr {
   let ii = ComplexNumber::ii();
-  Expr::Call("*".to_string(), vec![expr, Expr::from(ii)])
+  Expr::call("*", vec![expr, Expr::from(ii)])
 }
 
 fn times_minus_one(expr: Expr) -> Expr {
-  Expr::Call("*".to_string(), vec![expr, Expr::from(-1)])
+  Expr::call("*", vec![expr, Expr::from(-1)])
 }
 
 fn substitute_vars(expr: Expr, state: &ApplicationState) -> Expr {

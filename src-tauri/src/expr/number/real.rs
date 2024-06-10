@@ -24,6 +24,11 @@ use std::cmp::Ordering;
 /// A real number can be represented as an exact (arbitrary-precision)
 /// integer, a rational number, or an IEEE 754 floating point value.
 /// Use [`Number::repr`] to get the number's current representation.
+///
+/// Note that, if a `Number` is being represented as a floating point
+/// value, it is safe to assume that the contained `Number` is finite
+/// and real. That is, the `Number` struct in particular will never be
+/// used to store NaN or infinity constants.
 #[derive(Debug, Clone)]
 pub struct Number {
   pub(super) inner: NumberImpl,
@@ -168,6 +173,48 @@ impl Number {
 
   pub fn is_negative(&self) -> bool {
     self < &Number::zero()
+  }
+
+  /// Returns the natural logarithm of `self`. This always returns an
+  /// inexact floating result. Panics if `self <= 0`.
+  pub fn ln(&self) -> Number {
+    let x = self.to_f64().expect("Could not convert number to f64");
+    assert!(x > 0.0, "Argument to Number::ln should be positive, got {}", x);
+    Number::from(x.ln())
+  }
+
+  /// Returns the logarithm of `self` with respect to the given base.
+  /// `self` and `base` must be positive. If both `self` and `base`
+  /// are exact and the result is a small integer, the result may be
+  /// represented exactly. This function falls back to an inexact
+  /// representation in all other cases.
+  pub fn log(&self, base: &Number) -> Number {
+    assert!(self > &Number::zero(), "Argument to Number::log should be positive, got {}", self);
+    assert!(base > &Number::zero(), "Argument to Number::log should be positive, got {}", base);
+
+    fn float_log(arg: f64, base: f64) -> Number {
+      Number::from(arg.log(base))
+    }
+    fn rational_log(arg: BigRational, base: BigRational) -> Number {
+      // Try small integer powers by brute force. If that fails,
+      // fall-back to floating-point.
+      let mut x = BigRational::one();
+      for i in 0..10 {
+        if x == arg {
+          return Number::from(i);
+        }
+        x *= &base;
+      }
+      let arg = arg.to_f64().expect("Could not convert number to f64");
+      let base = base.to_f64().expect("Could not convert number to f64");
+      float_log(arg, base)
+    }
+
+    match NumberPair::promote(self.clone(), base.clone()) {
+      NumberPair::Integers(arg, base) => rational_log(arg.into(), base.into()),
+      NumberPair::Ratios(arg, base) => rational_log(arg, base),
+      NumberPair::Floats(arg, base) => float_log(arg, base),
+    }
   }
 }
 
