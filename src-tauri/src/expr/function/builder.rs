@@ -1,12 +1,10 @@
 
 //! Builder API for [`Function`] objects.
 
-use super::Function;
+use super::{Function, FunctionContext};
 use super::flags::FunctionFlags;
 use crate::util::prism::{Prism, Identity, OnVec};
 use crate::expr::Expr;
-use crate::expr::simplifier::error::SimplifierError;
-use crate::errorlist::ErrorList;
 
 use std::marker::PhantomData;
 
@@ -18,7 +16,7 @@ pub struct FunctionBuilder {
 }
 
 pub type FunctionCase =
-  dyn Fn(Vec<Expr>, &mut ErrorList<SimplifierError>) -> FunctionCaseResult + Send + Sync;
+  dyn Fn(Vec<Expr>, &mut FunctionContext) -> FunctionCaseResult + Send + Sync;
 
 /// Result of attempting to apply a function match case.
 pub enum FunctionCaseResult {
@@ -108,9 +106,9 @@ impl FunctionBuilder {
   /// Consumes `self` and builds it into a completed [`Function`]
   /// value.
   pub fn build(self) -> Function {
-    let function_body = Box::new(move |mut args, errors: &mut ErrorList<SimplifierError>| {
+    let function_body = Box::new(move |mut args, mut context: FunctionContext| {
       for case in &self.cases {
-        match case(args, &mut *errors) {
+        match case(args, &mut context) {
           FunctionCaseResult::Success(output) => {
             return Ok(output);
           }
@@ -153,9 +151,9 @@ impl<Down, P: Prism<Expr, Down>> OneArgumentMatcher<P, Down> {
   }
 
   pub fn and_then<F>(self, f: F) -> Box<FunctionCase>
-  where F: Fn(Down, &mut ErrorList<SimplifierError>) -> Result<Expr, Down> + Send + Sync + 'static,
+  where F: Fn(Down, &mut FunctionContext) -> Result<Expr, Down> + Send + Sync + 'static,
         P: Send + Sync + 'static {
-    Box::new(move |mut args, errors| {
+    Box::new(move |mut args, context| {
       if args.len() != 1 {
         return FunctionCaseResult::NoMatch(args);
       }
@@ -163,7 +161,7 @@ impl<Down, P: Prism<Expr, Down>> OneArgumentMatcher<P, Down> {
       match self.arg_prism.narrow_type(arg) {
         Err(original_arg) => FunctionCaseResult::NoMatch(vec![original_arg]),
         Ok(arg) => FunctionCaseResult::from_result(
-          f(arg, errors).map_err(|arg| {
+          f(arg, context).map_err(|arg| {
             vec![self.arg_prism.widen_type(arg)]
           }),
         ),
@@ -195,10 +193,10 @@ where P1: Prism<Expr, Down1>,
   }
 
   pub fn and_then<F>(self, f: F) -> Box<FunctionCase>
-  where F: Fn(Down1, Down2, &mut ErrorList<SimplifierError>) -> Result<Expr, (Down1, Down2)> + Send + Sync + 'static,
+  where F: Fn(Down1, Down2, &mut FunctionContext) -> Result<Expr, (Down1, Down2)> + Send + Sync + 'static,
         P1: Send + Sync + 'static,
         P2: Send + Sync + 'static {
-    Box::new(move |mut args, errors| {
+    Box::new(move |mut args, context| {
       if args.len() != 2 {
         return FunctionCaseResult::NoMatch(args);
       }
@@ -214,7 +212,7 @@ where P1: Prism<Expr, Down1>,
             }
             Ok(arg2) => {
               FunctionCaseResult::from_result(
-                f(arg1, arg2, errors).map_err(|(arg1, arg2)| {
+                f(arg1, arg2, context).map_err(|(arg1, arg2)| {
                   vec![self.first_arg_prism.widen_type(arg1), self.second_arg_prism.widen_type(arg2)]
                 }),
               )
@@ -238,10 +236,10 @@ impl<Down, P: Prism<Expr, Down>> VecMatcher<P, Down> {
   }
 
   pub fn and_then<F>(self, f: F) -> Box<FunctionCase>
-  where F: Fn(Vec<Down>, &mut ErrorList<SimplifierError>) -> Result<Expr, Vec<Down>> + Send + Sync + 'static,
+  where F: Fn(Vec<Down>, &mut FunctionContext) -> Result<Expr, Vec<Down>> + Send + Sync + 'static,
         P: Send + Sync + 'static {
     let arg_prism = OnVec::new(self.arg_prism);
-    Box::new(move |args, errors| {
+    Box::new(move |args, context| {
       // Check arity
       if args.len() < self.min_length || args.len() > self.max_length {
         return FunctionCaseResult::NoMatch(args);
@@ -250,7 +248,7 @@ impl<Down, P: Prism<Expr, Down>> VecMatcher<P, Down> {
       match arg_prism.narrow_type(args) {
         Err(args) => FunctionCaseResult::NoMatch(args),
         Ok(args) => FunctionCaseResult::from_result(
-          f(args, errors).map_err(|args| {
+          f(args, context).map_err(|args| {
             arg_prism.widen_type(args)
           }),
         ),

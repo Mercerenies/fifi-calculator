@@ -83,7 +83,7 @@ pub fn multiplication() -> Function {
     )
     .add_case(
       // Multiplication by zero
-      Box::new(|args, _errors| {
+      Box::new(|args, _context| {
         // TODO: The manual construction of FunctionCase and explicit
         // FunctionCaseResults here are less than ideal. Can we make a
         // builder for this?
@@ -119,9 +119,9 @@ pub fn division() -> Function {
   FunctionBuilder::new("/")
     .add_case(
       // Real number division
-      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, errors| {
+      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, context| {
         if arg2.is_zero() {
-          errors.push(SimplifierError::division_by_zero("/"));
+          context.errors.push(SimplifierError::division_by_zero("/"));
           return Err((arg1, arg2));
         }
         let quotient = arg1 / arg2;
@@ -130,9 +130,9 @@ pub fn division() -> Function {
     )
     .add_case(
       // Complex number division
-      builder::arity_two().both_of_type(ExprToComplex).and_then(|arg1, arg2, errors| {
+      builder::arity_two().both_of_type(ExprToComplex).and_then(|arg1, arg2, context| {
         if arg2.is_zero() {
-          errors.push(SimplifierError::division_by_zero("/"));
+          context.errors.push(SimplifierError::division_by_zero("/"));
           return Err((arg1, arg2));
         }
         let quotient = ComplexNumber::from(arg1) / ComplexNumber::from(arg2);
@@ -146,13 +146,13 @@ pub fn power() -> Function {
   FunctionBuilder::new("^")
     .add_case(
       // Real number power function
-      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, errors| {
+      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, context| {
         if arg1.is_zero() && arg2.is_zero() {
-          errors.push(SimplifierError::zero_to_zero_power("^"));
+          context.errors.push(SimplifierError::zero_to_zero_power("^"));
           return Err((arg1, arg2));
         }
         if arg1.is_zero() && arg2 < Number::zero() {
-          errors.push(SimplifierError::division_by_zero("^"));
+          context.errors.push(SimplifierError::division_by_zero("^"));
           return Err((arg1, arg2));
         }
         let power = pow_real(arg1, arg2);
@@ -161,13 +161,13 @@ pub fn power() -> Function {
     )
     .add_case(
       // Complex-to-real number power function
-      builder::arity_two().of_types(ExprToComplex, ExprToNumber).and_then(|arg1, arg2, errors| {
+      builder::arity_two().of_types(ExprToComplex, ExprToNumber).and_then(|arg1, arg2, context| {
         if arg1.is_zero() && arg2.is_zero() {
-          errors.push(SimplifierError::zero_to_zero_power("^"));
+          context.errors.push(SimplifierError::zero_to_zero_power("^"));
           return Err((arg1, arg2));
         }
         if arg1.is_zero() && arg2 < Number::zero() {
-          errors.push(SimplifierError::division_by_zero("^"));
+          context.errors.push(SimplifierError::division_by_zero("^"));
           return Err((arg1, arg2));
         }
         let power = pow_complex_to_real(arg1.into(), arg2);
@@ -176,9 +176,9 @@ pub fn power() -> Function {
     )
     .add_case(
       // Complex number power function
-      builder::arity_two().of_types(ExprToComplex, ExprToComplex).and_then(|arg1, arg2, errors| {
+      builder::arity_two().of_types(ExprToComplex, ExprToComplex).and_then(|arg1, arg2, context| {
         if arg1.is_zero() && arg2.is_zero() {
-          errors.push(SimplifierError::zero_to_zero_power("^"));
+          context.errors.push(SimplifierError::zero_to_zero_power("^"));
           return Err((arg1, arg2));
         }
         if arg1.is_zero() {
@@ -186,7 +186,7 @@ pub fn power() -> Function {
           // represented as a complex number can simplify here, but
           // that's getting so far into the weeds. Just bail out if
           // arg1 == 0 in general.
-          errors.push(SimplifierError::division_by_zero("^"));
+          context.errors.push(SimplifierError::division_by_zero("^"));
           return Err((arg1, arg2));
         }
         let power = pow_complex(arg1.into(), arg2.into());
@@ -200,9 +200,9 @@ pub fn modulo() -> Function {
   FunctionBuilder::new("%")
     .add_case(
       // Real modulo
-      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, errors| {
+      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, context| {
         if arg2.is_zero() {
-          errors.push(SimplifierError::division_by_zero("%"));
+          context.errors.push(SimplifierError::division_by_zero("%"));
           return Err((arg1, arg2));
         }
         Ok(Expr::from(arg1 % arg2))
@@ -210,8 +210,8 @@ pub fn modulo() -> Function {
     )
     .add_case(
       // Trap case: Complex numbers
-      builder::arity_two().both_of_type(ExprToComplex).and_then(|arg1, arg2, errors| {
-        errors.push(SimplifierError::expected_real("%"));
+      builder::arity_two().both_of_type(ExprToComplex).and_then(|arg1, arg2, context| {
+        context.errors.push(SimplifierError::expected_real("%"));
         Err((arg1, arg2))
       })
     )
@@ -222,9 +222,9 @@ pub fn floor_division() -> Function {
   FunctionBuilder::new("div")
     .add_case(
       // Real floor div
-      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, errors| {
+      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, context| {
         if arg2.is_zero() {
-          errors.push(SimplifierError::division_by_zero("div"));
+          context.errors.push(SimplifierError::division_by_zero("div"));
           return Err((arg1, arg2));
         }
         Ok(Expr::from(arg1.div_floor(&arg2)))
@@ -232,8 +232,8 @@ pub fn floor_division() -> Function {
     )
     .add_case(
       // Trap case: Complex numbers
-      builder::arity_two().both_of_type(ExprToComplex).and_then(|arg1, arg2, errors| {
-        errors.push(SimplifierError::expected_real("div"));
+      builder::arity_two().both_of_type(ExprToComplex).and_then(|arg1, arg2, context| {
+        context.errors.push(SimplifierError::expected_real("div"));
         Err((arg1, arg2))
       })
     )

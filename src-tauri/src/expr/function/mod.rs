@@ -5,6 +5,7 @@ pub mod library;
 pub mod table;
 
 use flags::FunctionFlags;
+use table::FunctionTable;
 use crate::expr::Expr;
 use crate::expr::simplifier::error::SimplifierError;
 use crate::errorlist::ErrorList;
@@ -22,8 +23,13 @@ pub struct Function {
   body: Box<FunctionImpl>,
 }
 
+pub struct FunctionContext<'a> {
+  pub errors: &'a mut ErrorList<SimplifierError>,
+  _private: (),
+}
+
 type FunctionImpl =
-  dyn Fn(Vec<Expr>, &mut ErrorList<SimplifierError>) -> Result<Expr, Vec<Expr>> + Send + Sync;
+  dyn Fn(Vec<Expr>, FunctionContext) -> Result<Expr, Vec<Expr>> + Send + Sync;
 
 impl Function {
   /// The function's name.
@@ -53,8 +59,10 @@ impl Function {
     &self,
     args: Vec<Expr>,
     errors: &mut ErrorList<SimplifierError>,
+    function_table: &FunctionTable,
   ) -> Result<Expr, Vec<Expr>> {
-    (self.body)(args, errors)
+    let context = FunctionContext { errors, _private: () };
+    (self.body)(args, context)
   }
 }
 

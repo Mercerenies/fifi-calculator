@@ -8,6 +8,7 @@ use crate::expr::function::table::FunctionTable;
 
 mod arithmetic;
 mod basic;
+mod calculus;
 mod transcendental;
 
 pub fn build_function_table() -> FunctionTable {
@@ -15,5 +16,6 @@ pub fn build_function_table() -> FunctionTable {
   basic::append_basic_functions(&mut table);
   arithmetic::append_arithmetic_functions(&mut table);
   transcendental::append_transcendental_functions(&mut table);
+  calculus::append_calculus_functions(&mut table);
   table
 }
