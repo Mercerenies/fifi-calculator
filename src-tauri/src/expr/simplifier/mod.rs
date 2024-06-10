@@ -6,6 +6,7 @@ pub mod flattener;
 pub mod error;
 pub mod identity;
 pub mod partial;
+pub mod repeated;
 
 pub use base::Simplifier;
 
@@ -13,6 +14,7 @@ use crate::expr::Expr;
 use crate::expr::function::table::FunctionTable;
 use crate::errorlist::ErrorList;
 use error::SimplifierError;
+use repeated::RepeatedSimplifier;
 
 #[derive(Debug)]
 struct DefaultSimplifier<'a> {
@@ -34,5 +36,9 @@ impl<'a> Simplifier for DefaultSimplifier<'a> {
 }
 
 pub fn default_simplifier(function_table: &FunctionTable) -> Box<dyn Simplifier + '_> {
-  Box::new(DefaultSimplifier { function_table })
+  // We repeat the DefaultSimplifier pipeline a few times, to make
+  // sure we get all reasonable simplifications. The choice of 5 times
+  // is arbitrary.
+  let default_simplifier = DefaultSimplifier { function_table };
+  Box::new(RepeatedSimplifier::new(default_simplifier, 5))
 }

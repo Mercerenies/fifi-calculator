@@ -11,8 +11,18 @@ use super::error::SimplifierError;
 /// node in the expression tree will be simplified before the node
 /// itself.
 pub trait Simplifier {
+  /// Function to simplify a portion of an expression. Callers should
+  /// generally invoke [`Simplifier::simplify_expr`] instead of
+  /// calling this function directly. The former will invoke the
+  /// latter recursively.
   fn simplify_expr_part(&self, expr: Expr, errors: &mut ErrorList<SimplifierError>) -> Expr;
 
+  /// Calls [`Simplifier::simplify_expr_part`] in a post-order
+  /// traversal for each node in the expression tree.
+  ///
+  /// The default implementation runs only one time (in post-order) on
+  /// the whole tree, but other simplifiers may choose to run multiple
+  /// times.
   fn simplify_expr(&self, expr: Expr, errors: &mut ErrorList<SimplifierError>) -> Expr {
     postorder_walk_ok(expr, |e| self.simplify_expr_part(e, errors))
   }
