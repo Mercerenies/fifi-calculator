@@ -114,13 +114,17 @@ export class ButtonGridManager {
   }
 }
 
-export interface ButtonGrid {
+export abstract class ButtonGrid {
   // Should be at most a GRID_ROWS * GRID_CELLS_BY_ROW array. If this
   // grid is smaller than that size, the missing elements will be
   // filled in with Spacer objects.
-  readonly rows: readonly (readonly GridCell[])[];
+  abstract get rows(): readonly (readonly GridCell[])[];
 
-  onUnhandledKey(input: KeyEventInput): Promise<KeyResponse>;
+  /* eslint-disable @typescript-eslint/no-unused-vars */
+  onUnhandledKey(input: KeyEventInput): Promise<KeyResponse> {
+    // Default implementation is empty.
+    return Promise.resolve(KeyResponse.PASS);
+  }
 }
 
 export interface GridCell {

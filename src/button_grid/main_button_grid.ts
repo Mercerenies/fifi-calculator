@@ -26,7 +26,7 @@ function dupSvg(): HTMLElement {
   return svg('assets/duplicate.svg', {alt: "dup"});
 }
 
-export class MainButtonGrid implements ButtonGrid {
+export class MainButtonGrid extends ButtonGrid {
   private static NUMERICAL_INPUT_START_KEYS = new Set([
     "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "e", "_",
   ]);
@@ -37,6 +37,7 @@ export class MainButtonGrid implements ButtonGrid {
   private onEscapeDismissable: Hideable;
 
   constructor(inputManager: InputBoxManager, onEscapeDismissable: Hideable) {
+    super();
     this.inputManager = inputManager;
     this.onEscapeDismissable = onEscapeDismissable;
     this.rows = this.initRows();

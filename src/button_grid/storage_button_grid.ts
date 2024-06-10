@@ -8,13 +8,14 @@ import { InputBoxManager } from '../input_box.js';
 
 const tauri = window.__TAURI__.tauri;
 
-export class StorageButtonGrid implements ButtonGrid {
+export class StorageButtonGrid extends ButtonGrid {
   readonly rows: readonly (readonly GridCell[])[];
 
   private rootGrid: ButtonGrid;
   private inputManager: InputBoxManager;
 
   constructor(rootGrid: ButtonGrid, inputManager: InputBoxManager) {
+    super();
     this.rootGrid = rootGrid;
     this.inputManager = inputManager;
     this.rows = this.initRows();
