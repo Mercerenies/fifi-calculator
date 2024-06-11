@@ -8,6 +8,7 @@ pub mod prisms;
 pub mod simplifier;
 pub mod tokenizer;
 pub mod var;
+pub mod vector;
 pub mod walker;
 
 use atom::Atom;

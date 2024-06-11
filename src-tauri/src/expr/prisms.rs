@@ -9,6 +9,7 @@ use num::Zero;
 
 // Re-export some useful expression-adjacent prisms.
 pub use super::var::StringToVar;
+pub use super::vector::ExprToVector;
 
 /// Prism which downcasts an [`Expr`] to a contained [`Number`].
 #[derive(Debug, Clone, Copy, Default)]
