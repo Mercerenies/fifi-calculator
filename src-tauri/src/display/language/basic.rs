@@ -1,11 +1,12 @@
 
-use super::LanguageMode;
+use super::{LanguageMode, output_sep_by};
 use crate::parsing::operator::{Operator, Precedence, OperatorTable};
 use crate::parsing::operator::fixity::FixityType;
 use crate::expr::Expr;
 use crate::expr::number::Number;
 use crate::expr::atom::Atom;
 use crate::expr::basic_parser::ExprParser;
+use crate::expr::vector::Vector;
 
 use num::Zero;
 
@@ -30,16 +31,9 @@ impl BasicLanguageMode {
   }
 
   fn fn_call_to_html(&self, out: &mut String, f: &str, args: &[Expr]) {
-    let mut first = true;
     out.push_str(f);
     out.push('(');
-    args.iter().for_each(|e| {
-      if !first {
-        out.push_str(", ");
-      }
-      first = false;
-      self.to_html_with_precedence(out, e, Precedence::MIN);
-    });
+    output_sep_by(out, args.iter(), ", ", |out, e| self.to_html_with_precedence(out, e, Precedence::MIN));
     out.push(')');
   }
 
@@ -175,6 +169,12 @@ impl BasicLanguageMode {
     number < &Number::zero() && negation_precedence < prec
   }
 
+  fn vector_to_html(&self, out: &mut String, elems: &[Expr]) {
+    out.push('[');
+    output_sep_by(out, elems.iter(), ", ", |out, e| self.to_html_with_precedence(out, e, Precedence::MIN));
+    out.push(']');
+  }
+
   fn to_html_with_precedence(&self, out: &mut String, expr: &Expr, prec: Precedence) {
     match expr {
       Expr::Atom(Atom::Number(n)) => {
@@ -194,12 +194,16 @@ impl BasicLanguageMode {
         out.push_str(&v.to_string());
       }
       Expr::Call(f, args) => {
-        let as_op =
-          self.try_infix_op_to_html(out, f, args, prec) ||
-          self.try_prefix_op_to_html(out, f, args, prec) ||
-          self.try_postfix_op_to_html(out, f, args, prec);
-        if !as_op {
-          self.fn_call_to_html(out, f, args);
+        if f == Vector::FUNCTION_NAME {
+          self.vector_to_html(out, args);
+        } else {
+          let as_op =
+            self.try_infix_op_to_html(out, f, args, prec) ||
+            self.try_prefix_op_to_html(out, f, args, prec) ||
+            self.try_postfix_op_to_html(out, f, args, prec);
+          if !as_op {
+            self.fn_call_to_html(out, f, args);
+          }
         }
       }
     }

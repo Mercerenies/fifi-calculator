@@ -18,3 +18,23 @@ pub trait LanguageMode {
     out
   }
 }
+
+/// Helper function to output a list of values, separated by a chosen
+/// delimiter.
+pub fn output_sep_by<T, I, F>(
+  out: &mut String,
+  elems: I,
+  delimiter: &str,
+  printer: F,
+)
+where I: IntoIterator<Item = T>,
+      F: Fn(&mut String, T) {
+  let mut elems = elems.into_iter();
+  if let Some(first) = elems.next() {
+    printer(out, first);
+    for elem in elems {
+      out.push_str(delimiter);
+      printer(out, elem);
+    }
+  }
+}
