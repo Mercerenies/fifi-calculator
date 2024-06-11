@@ -132,7 +132,7 @@ pub fn multiplication() -> Function {
           args[i].mutate_failable(|e| engine.differentiate(e))?;
           final_terms.push(Expr::call("*", args));
         }
-        Ok(Expr::call("+", args))
+        Ok(Expr::call("+", final_terms))
       }
     )
     .build()
