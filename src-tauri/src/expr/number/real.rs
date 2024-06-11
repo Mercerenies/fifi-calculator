@@ -16,6 +16,7 @@ use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
 use std::ops;
 use std::cmp::Ordering;
+use std::convert::TryFrom;
 
 /// General-purpose real number type, capable of automatically
 /// switching between representations when mathematical functions
@@ -39,6 +40,13 @@ pub(super) enum NumberImpl {
   Integer(BigInt),
   Ratio(BigRational),
   Float(f64),
+}
+
+#[derive(Debug, Error, Clone)]
+#[error("Expected integer, got {number}")]
+pub struct TryFromNumberToBigIntError {
+  pub number: Number,
+  _priv: (),
 }
 
 #[derive(Error, Debug, Clone, PartialEq)]
@@ -218,9 +226,35 @@ impl Number {
   }
 }
 
+impl TryFrom<Number> for BigInt {
+  type Error = TryFromNumberToBigIntError;
+
+  fn try_from(n: Number) -> Result<BigInt, Self::Error> {
+    match n.inner {
+      NumberImpl::Integer(i) => Ok(i),
+      _ => Err(TryFromNumberToBigIntError {
+        number: n,
+        _priv: (),
+      }),
+    }
+  }
+}
+
+impl From<i32> for Number {
+  fn from(i: i32) -> Number {
+    Number { inner: NumberImpl::Integer(i.into()) }
+  }
+}
+
 /// Constructs an integer number from an `i64`.
 impl From<i64> for Number {
   fn from(i: i64) -> Number {
+    Number { inner: NumberImpl::Integer(i.into()) }
+  }
+}
+
+impl From<usize> for Number {
+  fn from(i: usize) -> Number {
     Number { inner: NumberImpl::Integer(i.into()) }
   }
 }

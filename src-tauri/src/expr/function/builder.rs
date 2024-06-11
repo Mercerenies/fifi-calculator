@@ -58,6 +58,17 @@ pub struct TwoArgumentMatcher<P1, P2, Down1, Down2> {
   _phantom: PhantomData<fn() -> (Down1, Down2)>,
 }
 
+/// Matcher that requires exactly three arguments in order to match.
+/// The arguments can each be narrowed by prisms.
+///
+/// This value is usually constructed with [`arity_three`].
+pub struct ThreeArgumentMatcher<P1, P2, P3, Down1, Down2, Down3> {
+  first_arg_prism: P1,
+  second_arg_prism: P2,
+  third_arg_prism: P3,
+  _phantom: PhantomData<fn() -> (Down1, Down2, Down3)>,
+}
+
 /// Matcher that accepts a variable number of arguments, possibly with
 /// some arbitrary interval restriction on the number of arguments.
 /// The arguments can uniformly be narrowed by a single prism.
@@ -242,6 +253,80 @@ where P1: Prism<Expr, Down1>,
   }
 }
 
+impl<Down1, Down2, Down3, P1, P2, P3> ThreeArgumentMatcher<P1, P2, P3, Down1, Down2, Down3>
+where P1: Prism<Expr, Down1>,
+      P2: Prism<Expr, Down2>,
+      P3: Prism<Expr, Down3> {
+  pub fn of_types<NewDown1, NewDown2, NewDown3, Q1, Q2, Q3>(
+    self,
+    first_arg_prism: Q1,
+    second_arg_prism: Q2,
+    third_arg_prism: Q3,
+  ) -> ThreeArgumentMatcher<Q1, Q2, Q3, NewDown1, NewDown2, NewDown3>
+  where Q1: Prism<Expr, NewDown1>,
+        Q2: Prism<Expr, NewDown2>,
+        Q3: Prism<Expr, NewDown3> {
+    ThreeArgumentMatcher { first_arg_prism, second_arg_prism, third_arg_prism, _phantom: PhantomData }
+  }
+
+  pub fn all_of_type<NewDown, Q>(self, arg_prism: Q) -> ThreeArgumentMatcher<Q, Q, Q, NewDown, NewDown, NewDown>
+  where Q: Prism<Expr, NewDown> + Clone {
+   ThreeArgumentMatcher {
+      first_arg_prism: arg_prism.clone(),
+      second_arg_prism: arg_prism.clone(),
+      third_arg_prism: arg_prism,
+      _phantom: PhantomData,
+    }
+  }
+
+  pub fn and_then<F>(self, f: F) -> Box<FunctionCase>
+  where F: Fn(Down1, Down2, Down3, &mut FunctionContext) -> Result<Expr, (Down1, Down2, Down3)> + Send + Sync + 'static,
+        P1: Send + Sync + 'static,
+        P2: Send + Sync + 'static,
+        P3: Send + Sync + 'static {
+    // TODO: Better way to avoid this pyramid of doom :(
+    Box::new(move |mut args, context| {
+      if args.len() != 3 {
+        return FunctionCaseResult::NoMatch(args);
+      }
+      let arg3 = args.pop().unwrap(); // unwrap: args.len() == 3
+      let arg2 = args.pop().unwrap(); // unwrap: args.len() == 3
+      let arg1 = args.pop().unwrap(); // unwrap: args.len() == 3
+      match self.first_arg_prism.narrow_type(arg1) {
+        Err(original_arg1) => FunctionCaseResult::NoMatch(vec![original_arg1, arg2, arg3]),
+        Ok(arg1) => {
+          match self.second_arg_prism.narrow_type(arg2) {
+            Err(original_arg2) => {
+              let original_arg1 = self.first_arg_prism.widen_type(arg1);
+              FunctionCaseResult::NoMatch(vec![original_arg1, original_arg2])
+            }
+            Ok(arg2) => {
+              match self.third_arg_prism.narrow_type(arg3) {
+                Err(original_arg_3) => {
+                  let original_arg1 = self.first_arg_prism.widen_type(arg1);
+                  let original_arg2 = self.second_arg_prism.widen_type(arg2);
+                  FunctionCaseResult::NoMatch(vec![original_arg1, original_arg2, original_arg_3])
+                }
+                Ok(arg3) => {
+                  FunctionCaseResult::from_result(
+                    f(arg1, arg2, arg3, context).map_err(|(arg1, arg2, arg3)| {
+                      vec![
+                        self.first_arg_prism.widen_type(arg1),
+                        self.second_arg_prism.widen_type(arg2),
+                        self.third_arg_prism.widen_type(arg3),
+                      ]
+                    }),
+                  )
+                }
+              }
+            }
+          }
+        }
+      }
+    })
+  }
+}
+
 impl<Down, P: Prism<Expr, Down>> VecMatcher<P, Down> {
   pub fn of_type<NewDown, Q>(self, arg_prism: Q) -> VecMatcher<Q, NewDown>
   where Q: Prism<Expr, NewDown> {
@@ -286,6 +371,15 @@ pub fn arity_two() -> TwoArgumentMatcher<Identity, Identity, Expr, Expr> {
   TwoArgumentMatcher {
     first_arg_prism: Identity::new(),
     second_arg_prism: Identity::new(),
+    _phantom: PhantomData,
+  }
+}
+
+pub fn arity_three() -> ThreeArgumentMatcher<Identity, Identity, Identity, Expr, Expr, Expr> {
+  ThreeArgumentMatcher {
+    first_arg_prism: Identity::new(),
+    second_arg_prism: Identity::new(),
+    third_arg_prism: Identity::new(),
     _phantom: PhantomData,
   }
 }

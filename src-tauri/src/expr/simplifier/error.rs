@@ -48,6 +48,14 @@ impl SimplifierError {
     }
   }
 
+  pub fn custom_error<S>(function: S, error_message: &'static str) -> Self
+  where S: Into<String> {
+    Self {
+      function: function.into(),
+      error: anyhow::Error::msg(error_message),
+    }
+  }
+
   pub fn function(&self) -> &str {
     &self.function
   }
