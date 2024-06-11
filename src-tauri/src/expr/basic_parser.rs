@@ -4,6 +4,7 @@
 
 use super::Expr;
 use super::number::ComplexNumber;
+use super::vector::Vector;
 use super::tokenizer::{ExprTokenizer, Token, TokenData, TokenizerError};
 use crate::parsing::shunting_yard::{self, ShuntingYardDriver, ShuntingYardError};
 use crate::parsing::operator::{Operator, OperatorTable};
@@ -33,15 +34,17 @@ pub enum ParseError {
   OperatorChainError(#[from] OperatorChainError<Expr>),
 }
 
-#[derive(Clone, Debug, Error)]
+#[derive(Clone, Debug, Error, PartialEq)]
 #[non_exhaustive]
 pub enum ParsingError {
   #[error("Expected start of expression at {0}")]
   ExpectedStartOfExpr(SourceOffset),
-  #[error("Expected right parenthesis or comma, got {0} at {1}")]
-  ExpectedRParenOrComma(TokenData, SourceOffset),
+  #[error("Expected rest of argument list, got {0} at {1}")]
+  ExpectedRestOfArgList(TokenData, SourceOffset),
   #[error("Expected parenthesized expression or complex number at {0}")]
   ExpectedParensOrComplex(SourceOffset),
+  #[error("Expected closing bracket '{expected}', found '{actual}' at {offset}")]
+  WrongClosingBracket { expected: TokenData, actual: TokenData, offset: SourceOffset },
   #[error("Expected operator")]
   ExpectedOperator,
   #[error("Unexpected EOF")]
@@ -87,11 +90,11 @@ impl<'a> ExprParser<'a> {
       return Err(ParsingError::UnexpectedEOF.into());
     };
     match &token.data {
-      TokenData::Comma | TokenData::RightParen => {
+      TokenData::Comma | TokenData::RightParen | TokenData::RightBracket => {
         Err(ParsingError::ExpectedStartOfExpr(token.span.start).into())
       }
       TokenData::Var(_) | TokenData::Operator(_) | TokenData::FunctionCallStart(_) |
-      TokenData::LeftParen | TokenData::Number(_) => {
+      TokenData::LeftParen | TokenData::Number(_) | TokenData::LeftBracket => {
         self.parse_operator_chain(stream)
       }
     }
@@ -109,13 +112,14 @@ impl<'a> ExprParser<'a> {
           tokens.push(spanned.map(ChainToken::Operator));
           stream = tail;
         }
-        Some(TokenData::Var(_) | TokenData::FunctionCallStart(_) | TokenData::LeftParen | TokenData::Number(_)) => {
+        Some(TokenData::Var(_) | TokenData::FunctionCallStart(_) | TokenData::LeftParen |
+             TokenData::LeftBracket | TokenData::Number(_)) => {
           // Read atomic expression
           let (spanned, tail) = self.parse_atom(stream)?;
           tokens.push(spanned.map(ChainToken::Scalar));
           stream = tail;
         }
-        _ => {
+        None | Some(TokenData::Comma | TokenData::RightBracket | TokenData::RightParen) => {
           // End of operator chain
           break;
         }
@@ -151,11 +155,11 @@ impl<'a> ExprParser<'a> {
         Ok((Spanned::new(Expr::from(v.clone()), token.span), &stream[1..]))
       }
       TokenData::FunctionCallStart(f) => {
-        let ((args, end), tail) = self.parse_function_args(&stream[1..])?;
+        let ((args, end), tail) = self.parse_function_args(&stream[1..], TokenData::RightParen)?;
         Ok((Spanned::new(Expr::call(f, args), Span::new(token.span.start, end)), tail))
       }
       TokenData::LeftParen => {
-        let ((mut args, end), tail) = self.parse_function_args(&stream[1..])?;
+        let ((mut args, end), tail) = self.parse_function_args(&stream[1..], TokenData::RightParen)?;
         let span = Span::new(token.span.start, end);
         match args.len() {
           1 => {
@@ -177,21 +181,40 @@ impl<'a> ExprParser<'a> {
           }
         }
       }
+      TokenData::LeftBracket => {
+        let ((args, end), tail) = self.parse_function_args(&stream[1..], TokenData::RightBracket)?;
+        let span = Span::new(token.span.start, end);
+        Ok((
+          Spanned::new(Expr::call(Vector::FUNCTION_NAME, args), span),
+          tail,
+        ))
+      }
       _ => {
         Err(ParsingError::ExpectedStartOfExpr(token.span.start).into())
       }
     }
   }
 
-  // Expects and consumes a closing parenthesis at the end.
-  fn parse_function_args<'t>(&self, mut stream: &'t [Token]) -> IResult<'t, (Vec<Expr>, SourceOffset)> {
+  // Expects and consumes a closing bracket of the correct kind at the end.
+  fn parse_function_args<'t>(
+    &self,
+    mut stream: &'t [Token],
+    expected_close_bracket: TokenData,
+  ) -> IResult<'t, (Vec<Expr>, SourceOffset)> {
     let close_paren_offset: SourceOffset;
     let mut output = Vec::new();
     loop {
       let Some(token) = stream.first() else {
         return Err(ParsingError::UnexpectedEOF.into());
       };
-      if token.data == TokenData::RightParen {
+      if token.data == TokenData::RightParen || token.data == TokenData::RightBracket {
+        if token.data != expected_close_bracket {
+          return Err(ParsingError::WrongClosingBracket {
+            expected: expected_close_bracket,
+            actual: token.data.clone(),
+            offset: token.span.start,
+          }.into());
+        }
         close_paren_offset = token.span.end;
         stream = &stream[1..];
         break;
@@ -205,7 +228,7 @@ impl<'a> ExprParser<'a> {
           // allow those).
           stream = &stream[1..];
         }
-        Some(Token { data: TokenData::RightParen, .. }) => {
+        Some(Token { data: TokenData::RightParen | TokenData::RightBracket, .. }) => {
           // We're at the end of the list; next loop iteration will
           // terminate. Do nothing for now.
         }
@@ -213,7 +236,7 @@ impl<'a> ExprParser<'a> {
           return Err(ParsingError::UnexpectedEOF.into());
         }
         Some(Token { data, span }) => {
-          return Err(ParsingError::ExpectedRParenOrComma(data.clone(), span.start).into());
+          return Err(ParsingError::ExpectedRestOfArgList(data.clone(), span.start).into());
         }
       }
     }
@@ -406,5 +429,51 @@ mod tests {
         Expr::call("negate", vec![Expr::from(3)]),
       ],
     ));
+  }
+
+  #[test]
+  fn test_explicit_vector() {
+    let table = OperatorTable::common_operators();
+    let parser = ExprParser::new(&table);
+
+    let expr = parser.tokenize_and_parse("vector(1, 2)").unwrap();
+    assert_eq!(expr, Expr::call("vector", vec![Expr::from(1), Expr::from(2)]));
+  }
+
+  #[test]
+  fn test_vector_with_syntax_sugar() {
+    let table = OperatorTable::common_operators();
+    let parser = ExprParser::new(&table);
+
+    let expr = parser.tokenize_and_parse("[1, 2]").unwrap();
+    assert_eq!(expr, Expr::call("vector", vec![Expr::from(1), Expr::from(2)]));
+  }
+
+  #[test]
+  fn test_vector_with_trailing_comma() {
+    let table = OperatorTable::common_operators();
+    let parser = ExprParser::new(&table);
+
+    let expr = parser.tokenize_and_parse("[1, 2, ]").unwrap();
+    assert_eq!(expr, Expr::call("vector", vec![Expr::from(1), Expr::from(2)]));
+  }
+
+  #[test]
+  fn test_vector_with_wrong_bracket() {
+    let table = OperatorTable::common_operators();
+    let parser = ExprParser::new(&table);
+
+    let err = parser.tokenize_and_parse("[1)").unwrap_err();
+    let ParseError::ParsingError(err) = err else {
+      panic!("Expected parsing error, got {:?}", err);
+    };
+    assert_eq!(
+      err,
+      ParsingError::WrongClosingBracket {
+        expected: TokenData::RightBracket,
+        actual: TokenData::RightParen,
+        offset: SourceOffset(2),
+      },
+    )
   }
 }

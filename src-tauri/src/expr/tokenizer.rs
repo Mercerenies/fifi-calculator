@@ -34,6 +34,8 @@ pub enum TokenData {
   LeftParen,
   Comma,
   RightParen,
+  LeftBracket,
+  RightBracket,
 }
 
 #[derive(Debug, Clone, Error, PartialEq)]
@@ -107,6 +109,10 @@ impl<'a> ExprTokenizer<'a> {
       Some(Token::new(TokenData::RightParen, m.span()))
     } else if let Some(m) = state.read_literal(",") {
       Some(Token::new(TokenData::Comma, m.span()))
+    } else if let Some(m) = state.read_literal("[") {
+      Some(Token::new(TokenData::LeftBracket, m.span()))
+    } else if let Some(m) = state.read_literal("]") {
+      Some(Token::new(TokenData::RightBracket, m.span()))
     } else {
       None
     }
@@ -171,6 +177,8 @@ impl Display for TokenData {
       TokenData::LeftParen => write!(f, "("),
       TokenData::Comma => write!(f, ","),
       TokenData::RightParen => write!(f, ")"),
+      TokenData::LeftBracket => write!(f, "["),
+      TokenData::RightBracket => write!(f, "]"),
     }
   }
 }
@@ -309,6 +317,26 @@ mod tests {
         Token::new(TokenData::RightParen, span(5, 6)),
         Token::new(TokenData::Comma, span(7, 8)),
         Token::new(TokenData::RightParen, span(9, 10)),
+      ],
+    );
+    assert!(state.is_eof());
+  }
+
+  #[test]
+  fn test_token_stream_with_brackets() {
+    let table = sample_operator_table();
+    let tokenizer = ExprTokenizer::new(&table);
+
+    let mut state = TokenizerState::new("[ a() , ]");
+    let tokens = tokenizer.read_tokens(&mut state).unwrap();
+    assert_eq!(
+      tokens,
+      vec![
+        Token::new(TokenData::LeftBracket, span(0, 1)),
+        Token::new(TokenData::FunctionCallStart("a".to_owned()), span(2, 4)),
+        Token::new(TokenData::RightParen, span(4, 5)),
+        Token::new(TokenData::Comma, span(6, 7)),
+        Token::new(TokenData::RightBracket, span(8, 9)),
       ],
     );
     assert!(state.is_eof());
