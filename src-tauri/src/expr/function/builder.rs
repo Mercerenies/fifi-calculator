@@ -66,6 +66,7 @@ pub struct ThreeArgumentMatcher<P1, P2, P3, Down1, Down2, Down3> {
   first_arg_prism: P1,
   second_arg_prism: P2,
   third_arg_prism: P3,
+  #[allow(clippy::type_complexity)] // It's just a PhantomData, to get rid of unused args.
   _phantom: PhantomData<fn() -> (Down1, Down2, Down3)>,
 }
 

@@ -31,25 +31,25 @@ impl<'a> FunctionFlattener<'a> {
   pub fn new(function_table: &'a FunctionTable) -> Self {
     Self { function_table }
   }
+}
 
-  fn flatten_nested(&self, function_name: &str, args: Vec<Expr>) -> Vec<Expr> {
-    let mut new_args = Vec::with_capacity(args.len());
-    for arg in args {
-      match arg {
-        Expr::Call(f, sub_args) => {
-          if f == function_name {
-            new_args.extend(self.flatten_nested(function_name, sub_args));
-          } else {
-            new_args.push(Expr::Call(f, sub_args));
-          }
-        }
-        _ => {
-          new_args.push(arg);
+fn flatten_nested(function_name: &str, args: Vec<Expr>) -> Vec<Expr> {
+  let mut new_args = Vec::with_capacity(args.len());
+  for arg in args {
+    match arg {
+      Expr::Call(f, sub_args) => {
+        if f == function_name {
+          new_args.extend(flatten_nested(function_name, sub_args));
+        } else {
+          new_args.push(Expr::Call(f, sub_args));
         }
       }
+      _ => {
+        new_args.push(arg);
+      }
     }
-    new_args
   }
+  new_args
 }
 
 impl<'a> Simplifier for FunctionFlattener<'a> {
@@ -60,7 +60,7 @@ impl<'a> Simplifier for FunctionFlattener<'a> {
           return Expr::Call(function_name, args);
         };
         if known_function.flags().contains(FunctionFlags::PERMITS_FLATTENING) {
-          let args = self.flatten_nested(&function_name, args);
+          let args = flatten_nested(&function_name, args);
           Expr::Call(function_name, args)
         } else {
           Expr::Call(function_name, args)
