@@ -24,8 +24,13 @@ pub fn natural_log() -> Function {
         Ok(Expr::from(Number::from(arg).ln()))
       })
     )
+    .set_derivative(
+      builder::arity_one_deriv("ln", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("/", vec![arg_deriv, arg]))
+      })
+    )
     .build()
-  // TODO: Derivative
 }
 
 pub fn logarithm() -> Function {
@@ -61,6 +66,14 @@ pub fn exponent() -> Function {
         Ok(Expr::from(power))
       })
     )
+    .set_derivative(
+      builder::arity_one_deriv("exp", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("*", vec![
+          arg_deriv,
+          Expr::call("exp", vec![arg]),
+        ]))
+      })
+    )
     .build()
-  // TODO: Derivative
 }
