@@ -51,19 +51,22 @@ export class VariableStoreButton extends Button {
     // Fire-and-forget a new promise that gets user input, so we don't
     // hold up the existing input.
     this.readAndStore(manager);
-    manager.resetState();
   }
 
   private async readAndStore(manager: ButtonGridManager): Promise<void> {
-    const isValid = await tauri.invoke('validate_stack_size', { expected: 1 });
-    if (!isValid) {
-      return;
+    try {
+      const isValid = await tauri.invoke('validate_stack_size', { expected: 1 });
+      if (!isValid) {
+        return;
+      }
+      const variableName = await variableNameInput(this.inputManager);
+      if (!variableName) {
+        return;
+      }
+      await manager.invokeMathCommand('store_var', [variableName], this.modifiersOverride());
+    } finally {
+      manager.resetState();
     }
-    const variableName = await variableNameInput(this.inputManager);
-    if (!variableName) {
-      return;
-    }
-    await manager.invokeMathCommand('store_var', [variableName], this.modifiersOverride());
   }
 
   private modifiersOverride(): Partial<ButtonModifiers> {

@@ -50,23 +50,26 @@ export class VariableSubstituteButton extends Button {
     // Fire-and-forget a new promise that gets user input, so we don't
     // hold up the existing input.
     this.readAndSubstitute(manager);
-    manager.resetState();
   }
 
   private async readAndSubstitute(manager: ButtonGridManager): Promise<void> {
-    const isValid = await tauri.invoke('validate_stack_size', { expected: 1 });
-    if (!isValid) {
-      return;
+    try {
+      const isValid = await tauri.invoke('validate_stack_size', { expected: 1 });
+      if (!isValid) {
+        return;
+      }
+      const variableName = await variableNameInput(this.inputManager);
+      if (!variableName) {
+        return;
+      }
+      const newValue = await this.inputManager.show(new FreeformInputMethod("Subst"));
+      if (!newValue) {
+        return;
+      }
+      await manager.invokeMathCommand('manual_substitute', [variableName, newValue]);
+    } finally {
+      manager.resetState();
     }
-    const variableName = await variableNameInput(this.inputManager);
-    if (!variableName) {
-      return;
-    }
-    const newValue = await this.inputManager.show(new FreeformInputMethod("Subst"));
-    if (!newValue) {
-      return;
-    }
-    await manager.invokeMathCommand('manual_substitute', [variableName, newValue]);
   }
 }
 
@@ -82,18 +85,21 @@ export class DerivativeButton extends Button {
     // Fire-and-forget a new promise that gets user input, so we don't
     // hold up the existing input.
     this.readAndApply(manager);
-    manager.resetState();
   }
 
   private async readAndApply(manager: ButtonGridManager): Promise<void> {
-    const isValid = await tauri.invoke('validate_stack_size', { expected: 1 });
-    if (!isValid) {
-      return;
+    try {
+      const isValid = await tauri.invoke('validate_stack_size', { expected: 1 });
+      if (!isValid) {
+        return;
+      }
+      const variableName = await variableNameInput(this.inputManager);
+      if (!variableName) {
+        return;
+      }
+      await manager.invokeMathCommand('deriv', [variableName]);
+    } finally {
+      manager.resetState();
     }
-    const variableName = await variableNameInput(this.inputManager);
-    if (!variableName) {
-      return;
-    }
-    await manager.invokeMathCommand('deriv', [variableName]);
   }
 }
