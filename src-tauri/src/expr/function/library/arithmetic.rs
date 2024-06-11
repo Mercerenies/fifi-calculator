@@ -130,6 +130,13 @@ pub fn multiplication() -> Function {
         for i in 0..args.len() {
           let mut args = args.clone();
           args[i].mutate_failable(|e| engine.differentiate(e))?;
+
+          // To help the simplifier along, if args[i]'s derivative is
+          // zero, then omit the term entirely.
+          if args[i].is_zero() {
+            continue;
+          }
+
           final_terms.push(Expr::call("*", args));
         }
         Ok(Expr::call("+", final_terms))
@@ -166,12 +173,19 @@ pub fn division() -> Function {
       builder::arity_two_deriv("/", |arg1, arg2, engine| {
         let arg1_deriv = engine.differentiate(arg1.clone())?;
         let arg2_deriv = engine.differentiate(arg2.clone())?;
-        let final_numerator = Expr::call("-", vec![
-          Expr::call("*", vec![arg1_deriv, arg2.clone()]),
-          Expr::call("*", vec![arg1, arg2_deriv]),
-        ]);
-        let final_denominator = Expr::call("^", vec![arg2, Expr::from(Number::from(2))]);
-        Ok(Expr::call("/", vec![final_numerator, final_denominator]))
+
+        if arg2_deriv.is_zero() {
+          // Simple case; denominator was a constant
+          Ok(Expr::call("/", vec![arg1_deriv, arg2]))
+        } else {
+          // General Quotient Rule
+          let final_numerator = Expr::call("-", vec![
+            Expr::call("*", vec![arg1_deriv, arg2.clone()]),
+            Expr::call("*", vec![arg1, arg2_deriv]),
+          ]);
+          let final_denominator = Expr::call("^", vec![arg2, Expr::from(Number::from(2))]);
+          Ok(Expr::call("/", vec![final_numerator, final_denominator]))
+        }
       })
     )
     .build()
