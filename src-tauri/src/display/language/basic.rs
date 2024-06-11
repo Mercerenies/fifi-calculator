@@ -378,6 +378,36 @@ mod tests {
     assert_eq!(mode.to_html(&expr), "+ 1");
   }
 
+  #[test]
+  fn test_vector() {
+    let mode = BasicLanguageMode::from_common_operators();
+    let expr = Expr::call(
+      "vector",
+      vec![Expr::from(1), Expr::from(2), Expr::from(3)],
+    );
+    assert_eq!(mode.to_html(&expr), "[1, 2, 3]");
+  }
+
+  #[test]
+  fn test_empty_vector() {
+    let mode = BasicLanguageMode::from_common_operators();
+    let expr = Expr::call(
+      "vector",
+      vec![],
+    );
+    assert_eq!(mode.to_html(&expr), "[]");
+  }
+
+  #[test]
+  fn test_singleton_vector() {
+    let mode = BasicLanguageMode::from_common_operators();
+    let expr = Expr::call(
+      "vector",
+      vec![Expr::from(-99)],
+    );
+    assert_eq!(mode.to_html(&expr), "[-99]");
+  }
+
   // TODO Common operators doesn't have any postfix ops right now,
   // test those when we get them
 }
