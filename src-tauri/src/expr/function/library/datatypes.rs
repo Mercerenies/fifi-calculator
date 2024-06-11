@@ -4,7 +4,7 @@
 //! useful properties we can exploit.
 
 use crate::expr::function::Function;
-use crate::expr::function::builder::{self, FunctionBuilder};
+use crate::expr::function::builder::FunctionBuilder;
 use crate::expr::function::table::FunctionTable;
 
 pub fn append_datatype_functions(table: &mut FunctionTable) {
