@@ -18,6 +18,7 @@ use num::{Zero, One};
 
 use std::mem;
 use std::fmt::{self, Display, Formatter};
+use std::collections::HashSet;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
@@ -116,6 +117,19 @@ impl Expr {
         expr
       }
     })
+  }
+
+  pub fn free_vars(self) -> HashSet<Var> {
+    let mut result = HashSet::new();
+    walker::postorder_walk_ok(self, |expr| {
+      if let Expr::Atom(Atom::Var(v)) = expr {
+        result.insert(v.clone());
+        Expr::Atom(Atom::Var(v))
+      } else {
+        expr
+      }
+    });
+    result
   }
 }
 

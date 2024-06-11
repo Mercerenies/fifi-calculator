@@ -8,6 +8,7 @@ use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
 use crate::expr::prisms::{ExprToNumber, ExprToComplex};
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex, pow_complex_to_real};
 use crate::expr::simplifier::error::SimplifierError;
+use crate::expr::calculus::DifferentiationError;
 
 use num::{Zero, One};
 
@@ -227,8 +228,61 @@ pub fn power() -> Function {
         Ok(Expr::from(power))
       })
     )
+    .set_derivative(
+      builder::arity_two_deriv("^", |arg1, arg2, engine| {
+        // TODO: Write a variant of postorder_walk that produces `()`
+        // and doesn't consume its input, so we don't have to clone()
+        // here to get free_vars().
+        let arg1_has_var = arg1.clone().free_vars().contains(engine.target_variable());
+        let arg2_has_var = arg2.clone().free_vars().contains(engine.target_variable());
+
+        if !arg1_has_var && !arg2_has_var {
+          // Constant
+          Ok(Expr::zero())
+        } else if !arg2_has_var {
+          // Power Rule
+          let arg1_deriv = engine.differentiate(arg1.clone())?;
+          Ok(Expr::call("*", vec![
+            arg2.clone(),
+            arg1_deriv,
+            Expr::call("^", vec![arg1, Expr::call("-", vec![arg2, Expr::from(1)])]),
+          ]))
+        } else if !arg1_has_var {
+          // Exponent Rule
+          let arg2_deriv = engine.differentiate(arg2.clone())?;
+          Ok(Expr::call("*", vec![
+            Expr::call("ln", vec![arg1.clone()]),
+            arg2_deriv,
+            Expr::call("^", vec![arg1, arg2]),
+          ]))
+        } else {
+          // General Case
+          //
+          // Technically, this rule always works, but to make it
+          // easier on the simplifier, we use more basic rules when we
+          // can.
+          let arg1_deriv = engine.differentiate(arg1.clone())?;
+          let arg2_deriv = engine.differentiate(arg2.clone())?;
+          Ok(
+            Expr::call("*", vec![
+              Expr::call("^", vec![
+                arg1.clone(),
+                Expr::call("-", vec![arg2.clone(), Expr::from(1)]),
+              ]),
+              Expr::call("+", vec![
+                Expr::call("*", vec![arg2.clone(), arg1_deriv]),
+                Expr::call("*", vec![
+                  arg1.clone(),
+                  arg2_deriv,
+                  Expr::call("ln", vec![arg1]),
+                ]),
+              ]),
+            ]),
+          )
+        }
+      })
+    )
     .build()
-  // TODO: Derivative
 }
 
 pub fn modulo() -> Function {
@@ -250,8 +304,24 @@ pub fn modulo() -> Function {
         Err((arg1, arg2))
       })
     )
+    .set_derivative(
+      builder::arity_two_deriv("%", |arg1, arg2, engine| {
+        // Currently, we only support differentiating the modulo
+        // operator if the right-hand argument is constant. In that
+        // case, the derivative is simply the derivative of the
+        // left-hand argument, except on a countable subset of the
+        // reals, on which the derivative fails to exist. The function
+        // *is* differentiable in the general case, but I haven't
+        // worked out how to do it.
+        let free_vars = arg2.free_vars();
+        if free_vars.contains(engine.target_variable()) {
+          let err = DifferentiationError::custom_error("Right-hand side of % must be constant to differentiate");
+          return Err(engine.error(err));
+        }
+        engine.differentiate(arg1)
+      })
+    )
     .build()
-  // TODO: Derivative
 }
 
 pub fn floor_division() -> Function {
@@ -291,6 +361,10 @@ pub fn arithmetic_negate() -> Function {
         Ok(Expr::from(- arg))
       })
     )
+    .set_derivative(
+      builder::arity_one_deriv("negate", |arg, engine| {
+        Ok(Expr::call("negate", vec![engine.differentiate(arg)?]))
+      })
+    )
     .build()
-  // TODO: Derivative
 }
