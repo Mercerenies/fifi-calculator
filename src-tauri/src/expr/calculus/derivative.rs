@@ -40,6 +40,8 @@ pub struct DifferentiationFailure {
 /// An error during differentiation.
 #[derive(Debug, Clone, Error)]
 pub enum DifferentiationError {
+  #[error("{0}")]
+  CustomError(String),
   #[error("Derivative of function '{0}' is not known")]
   UnknownDerivative(String),
   #[error("Arity error on function '{0}': {1}")]
@@ -47,6 +49,10 @@ pub enum DifferentiationError {
 }
 
 impl<'a> DerivativeEngine<'a> {
+  pub fn target_variable(&self) -> &Var {
+    &self.target_variable
+  }
+
   /// Attempts to recursively differentiate a sub-expression.
   ///
   /// If you're looking to start a differentiation process, use the
@@ -92,6 +98,12 @@ impl<'a> DerivativeEngine<'a> {
       error: reason,
       _priv: (),
     }
+  }
+}
+
+impl DifferentiationError {
+  pub fn custom_error(msg: &str) -> DifferentiationError {
+    DifferentiationError::CustomError(msg.to_string())
   }
 }
 
