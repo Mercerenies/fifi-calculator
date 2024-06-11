@@ -43,6 +43,16 @@ pub fn logarithm() -> Function {
         Ok(Expr::from(arg.log(&base)))
       })
     )
+    .set_derivative(
+      builder::arity_two_deriv("log", |arg, base, engine| {
+        // Convert to ln(a) / ln(b) and do the Quotient Rule.
+        let equivalent_expr = Expr::call("/", vec![
+          Expr::call("ln", vec![arg]),
+          Expr::call("ln", vec![base]),
+        ]);
+        engine.differentiate(equivalent_expr)
+      })
+    )
     .build()
   // TODO: Derivative
 }
