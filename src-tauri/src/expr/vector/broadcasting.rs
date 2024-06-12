@@ -171,7 +171,7 @@ impl Prism<Expr, Broadcastable> for ExprToBroadcastable {
       Expr::Atom(Atom::Number(n)) => Ok(Broadcastable::real_scalar(n)),
       Expr::Atom(Atom::Complex(c)) => Ok(Broadcastable::complex_scalar(c)),
       expr => {
-        ExprToVector.narrow_type(expr).map(|v| Broadcastable::vector(v))
+        ExprToVector.narrow_type(expr).map(Broadcastable::vector)
       }
     }
   }

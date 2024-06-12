@@ -75,7 +75,7 @@ impl Vector {
     }
     Ok(
       self.into_iter()
-        .zip(other.into_iter())
+        .zip(other)
         .map(|(a, b)| f(a, b))
         .collect()
     )
