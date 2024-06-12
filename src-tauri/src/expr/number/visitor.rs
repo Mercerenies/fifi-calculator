@@ -22,16 +22,16 @@ impl NumberPair {
     use NumberPair::*;
     match (left.inner, right.inner) {
       // Coerce both to integers
-      (Integer(left), Integer(right)) => Integers(left, right),
+      (Integer(left), Integer(right)) => Integers(*left, *right),
       // Coerce both to rational
-      (Integer(left), Ratio(right)) => Ratios(int_to_rational(left), right),
-      (Ratio(left), Integer(right)) => Ratios(left, int_to_rational(right)),
-      (Ratio(left), Ratio(right)) => Ratios(left, right),
+      (Integer(left), Ratio(right)) => Ratios(int_to_rational(*left), *right),
+      (Ratio(left), Integer(right)) => Ratios(*left, int_to_rational(*right)),
+      (Ratio(left), Ratio(right)) => Ratios(*left, *right),
       // Coerce both to floats
-      (Integer(left), Float(right)) => Floats(int_to_float(left), right),
-      (Ratio(left), Float(right)) => Floats(rational_to_float(left), right),
-      (Float(left), Integer(right)) => Floats(left, int_to_float(right)),
-      (Float(left), Ratio(right)) => Floats(left, rational_to_float(right)),
+      (Integer(left), Float(right)) => Floats(int_to_float(*left), right),
+      (Ratio(left), Float(right)) => Floats(rational_to_float(*left), right),
+      (Float(left), Integer(right)) => Floats(left, int_to_float(*right)),
+      (Float(left), Ratio(right)) => Floats(left, rational_to_float(*right)),
       (Float(left), Float(right)) => Floats(left, right),
     }
   }

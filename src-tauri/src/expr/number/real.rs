@@ -37,8 +37,8 @@ pub struct Number {
 
 #[derive(Debug, Clone)]
 pub(super) enum NumberImpl {
-  Integer(BigInt),
-  Ratio(BigRational),
+  Integer(Box<BigInt>),
+  Ratio(Box<BigRational>),
   Float(f64),
 }
 
@@ -124,8 +124,8 @@ impl Number {
       }
       Ordering::Greater => {
         match &self.inner {
-          NumberImpl::Integer(n) => Number::from(powi_by_repeated_square(n.clone(), exp)),
-          NumberImpl::Ratio(r) => Number::from(powi_by_repeated_square(r.clone(), exp)),
+          NumberImpl::Integer(n) => Number::from(powi_by_repeated_square((**n).clone(), exp)),
+          NumberImpl::Ratio(r) => Number::from(powi_by_repeated_square((**r).clone(), exp)),
           NumberImpl::Float(f) =>
             // In the floating case, we're already going to end up
             // with an inexact result, so just rely on the hardware
@@ -231,7 +231,7 @@ impl TryFrom<Number> for BigInt {
 
   fn try_from(n: Number) -> Result<BigInt, Self::Error> {
     match n.inner {
-      NumberImpl::Integer(i) => Ok(i),
+      NumberImpl::Integer(i) => Ok(*i),
       _ => Err(TryFromNumberToBigIntError {
         number: n,
         _priv: (),
@@ -242,20 +242,20 @@ impl TryFrom<Number> for BigInt {
 
 impl From<i32> for Number {
   fn from(i: i32) -> Number {
-    Number { inner: NumberImpl::Integer(i.into()) }
+    Number { inner: NumberImpl::Integer(Box::new(i.into())) }
   }
 }
 
 /// Constructs an integer number from an `i64`.
 impl From<i64> for Number {
   fn from(i: i64) -> Number {
-    Number { inner: NumberImpl::Integer(i.into()) }
+    Number { inner: NumberImpl::Integer(Box::new(i.into())) }
   }
 }
 
 impl From<usize> for Number {
   fn from(i: usize) -> Number {
-    Number { inner: NumberImpl::Integer(i.into()) }
+    Number { inner: NumberImpl::Integer(Box::new(i.into())) }
   }
 }
 
@@ -263,14 +263,14 @@ impl From<usize> for Number {
 /// integer.
 impl From<BigInt> for Number {
   fn from(i: BigInt) -> Number {
-    Number { inner: NumberImpl::Integer(i) }
+    Number { inner: NumberImpl::Integer(Box::new(i)) }
   }
 }
 
 /// Constructs a rational number from a `BigRational` value.
 impl From<BigRational> for Number {
   fn from(r: BigRational) -> Number {
-    Number { inner: NumberImpl::Ratio(r) }.simplify()
+    Number { inner: NumberImpl::Ratio(Box::new(r)) }.simplify()
   }
 }
 
@@ -522,9 +522,9 @@ impl ops::Neg for Number {
 
   fn neg(self) -> Number {
     match self.inner {
-      NumberImpl::Integer(i) => Number::from(-i),
-      NumberImpl::Ratio(r) => Number::from(-r),
-      NumberImpl::Float(f) => Number::from(-f),
+      NumberImpl::Integer(i) => Number::from(- (*i)),
+      NumberImpl::Ratio(r) => Number::from(- (*r)),
+      NumberImpl::Float(f) => Number::from(- f),
     }
   }
 }

@@ -18,7 +18,7 @@ use std::f64::consts::PI;
 pub fn pow_real(x: Number, y: Number) -> ComplexLike {
   match y.inner {
     NumberImpl::Integer(y) => {
-      ComplexLike::Real(x.powi(y))
+      ComplexLike::Real(x.powi(*y))
     }
     NumberImpl::Ratio(y) => {
       let big_x = x.powi(y.numer().clone());
@@ -75,7 +75,7 @@ pub fn root_real(x: Number, n: BigInt) -> ComplexLike {
 pub fn pow_complex_to_real(x: ComplexNumber, y: Number) -> ComplexNumber {
   match y.inner {
     NumberImpl::Integer(y) => {
-      x.powi(y)
+      x.powi(*y)
     }
     NumberImpl::Ratio(y) => {
       let big_x = x.powi(y.numer().clone());
