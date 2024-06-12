@@ -183,3 +183,152 @@ impl Prism<Expr, Broadcastable> for ExprToBroadcastable {
     }
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  use num::Zero;
+
+  #[test]
+  fn test_shape_of_broadcastable_constructors() {
+    let real_scalar = Broadcastable::real_scalar(Number::from(99));
+    assert_eq!(real_scalar.data, BroadcastableImpl::RealScalar(Number::from(99)));
+    let complex_scalar = Broadcastable::complex_scalar(ComplexNumber::zero());
+    assert_eq!(complex_scalar.data, BroadcastableImpl::ComplexScalar(ComplexNumber::zero()));
+    let vector = Broadcastable::vector(Vector::default());
+    assert_eq!(vector.data, BroadcastableImpl::Vector(Vector::default()));
+  }
+
+  #[test]
+  fn test_rank() {
+    let real_scalar = Broadcastable::real_scalar(Number::from(99));
+    assert_eq!(real_scalar.rank(), 0);
+    let complex_scalar = Broadcastable::complex_scalar(ComplexNumber::zero());
+    assert_eq!(complex_scalar.rank(), 0);
+    let vector = Broadcastable::vector(Vector::default());
+    assert_eq!(vector.rank(), 1);
+  }
+
+  #[test]
+  fn test_extend_to_on_real_scalar() {
+    let x = Broadcastable::real_scalar(Number::from(99));
+    assert_eq!(x.clone().extend_to(0), Ok(Vector::from(vec![])));
+    assert_eq!(x.clone().extend_to(1), Ok(Vector::from(vec![Expr::from(99)])));
+    assert_eq!(x.extend_to(2), Ok(Vector::from(vec![Expr::from(99), Expr::from(99)])));
+  }
+
+  #[test]
+  fn test_extend_to_on_complex_scalar() {
+    let z = ComplexNumber::new(Number::from(2), Number::from(1));
+    let x = Broadcastable::complex_scalar(z.clone());
+    assert_eq!(x.clone().extend_to(0), Ok(Vector::from(vec![])));
+    assert_eq!(x.clone().extend_to(1), Ok(Vector::from(vec![Expr::from(z.clone())])));
+    assert_eq!(x.extend_to(2), Ok(Vector::from(vec![Expr::from(z.clone()), Expr::from(z)])));
+  }
+
+  #[test]
+  fn test_add_vec_to_scalar() {
+    let x = Broadcastable::vector(Vector::from(vec![Expr::from(1), Expr::from(2), Expr::from(3)]));
+    let y = Broadcastable::real_scalar(Number::from(99));
+    assert_eq!(x.try_add(y).unwrap(), Broadcastable::vector(Vector::from(vec![
+      Expr::call("+", vec![Expr::from(1), Expr::from(99)]),
+      Expr::call("+", vec![Expr::from(2), Expr::from(99)]),
+      Expr::call("+", vec![Expr::from(3), Expr::from(99)]),
+    ])));
+  }
+
+  #[test]
+  fn test_add_scalar_to_vec() {
+    let x = Broadcastable::real_scalar(Number::from(99));
+    let y = Broadcastable::vector(Vector::from(vec![Expr::from(1), Expr::from(2), Expr::from(3)]));
+    assert_eq!(x.try_add(y).unwrap(), Broadcastable::vector(Vector::from(vec![
+      Expr::call("+", vec![Expr::from(99), Expr::from(1)]),
+      Expr::call("+", vec![Expr::from(99), Expr::from(2)]),
+      Expr::call("+", vec![Expr::from(99), Expr::from(3)]),
+    ])));
+  }
+
+  #[test]
+  fn test_add_two_real_scalars() {
+    let x = Broadcastable::real_scalar(Number::from(1));
+    let y = Broadcastable::real_scalar(Number::from(2));
+    assert_eq!(x.try_add(y).unwrap(), Broadcastable::real_scalar(Number::from(3)));
+  }
+
+  #[test]
+  fn test_add_real_scalar_to_complex_scalar() {
+    let x = Broadcastable::real_scalar(Number::from(1));
+    let y = Broadcastable::complex_scalar(ComplexNumber::from_imag(Number::from(2)));
+    assert_eq!(
+      x.try_add(y).unwrap(),
+      Broadcastable::complex_scalar(ComplexNumber::new(Number::from(1), Number::from(2))),
+    );
+  }
+
+  #[test]
+  fn test_add_matching_vecs() {
+    let x = Broadcastable::vector(Vector::from(vec![Expr::from(1), Expr::from(2), Expr::from(3)]));
+    let y = Broadcastable::vector(Vector::from(vec![Expr::from(9), Expr::from(8), Expr::from(7)]));
+    assert_eq!(
+      x.try_add(y).unwrap(),
+      Broadcastable::vector(Vector::from(vec![
+        Expr::call("+", vec![Expr::from(1), Expr::from(9)]),
+        Expr::call("+", vec![Expr::from(2), Expr::from(8)]),
+        Expr::call("+", vec![Expr::from(3), Expr::from(7)]),
+      ])),
+    );
+  }
+
+  #[test]
+  fn test_add_nonmatching_vecs() {
+    let x = Broadcastable::vector(Vector::from(vec![Expr::from(1), Expr::from(2), Expr::from(3)]));
+    let y = Broadcastable::vector(Vector::from(vec![Expr::from(9), Expr::from(8), Expr::from(7), Expr::from(6)]));
+    assert_eq!(
+      x.try_add(y).unwrap_err(),
+      LengthError { expected: 3, actual: 4 },
+    );
+  }
+
+  #[test]
+  fn test_widen_broadcastable_with_prism() {
+    let real = Broadcastable::real_scalar(Number::from(1));
+    assert_eq!(ExprToBroadcastable.widen_type(real), Expr::from(1));
+    let complex = Broadcastable::complex_scalar(ComplexNumber::from_imag(Number::from(1)));
+    assert_eq!(ExprToBroadcastable.widen_type(complex), Expr::from(ComplexNumber::from_imag(Number::from(1))));
+    let vector = Broadcastable::vector(Vector::from(vec![Expr::from(1), Expr::from(2)]));
+    assert_eq!(
+      ExprToBroadcastable.widen_type(vector),
+      Expr::call("vector", vec![Expr::from(1), Expr::from(2)]),
+    );
+  }
+
+  #[test]
+  fn test_narrow_prism_to_scalar() {
+    let number = Expr::from(19);
+    assert_eq!(ExprToBroadcastable.narrow_type(number), Ok(Broadcastable::real_scalar(Number::from(19))));
+    let complex_number = Expr::from(ComplexNumber::from_imag(Number::from(19)));
+    assert_eq!(
+      ExprToBroadcastable.narrow_type(complex_number),
+      Ok(Broadcastable::complex_scalar(ComplexNumber::from_imag(Number::from(19)))),
+    );
+  }
+
+  #[test]
+  fn test_narrow_prism_to_vector() {
+    let vector = Expr::call("vector", vec![Expr::from(1), Expr::from(2)]);
+    assert_eq!(
+      ExprToBroadcastable.narrow_type(vector),
+      Ok(Broadcastable::vector(Vector::from(vec![Expr::from(1), Expr::from(2)]))),
+    );
+  }
+
+  #[test]
+  fn test_narrow_prism_failure() {
+    let not_broadcastable = Expr::call("foobar", vec![]);
+    assert_eq!(
+      ExprToBroadcastable.narrow_type(not_broadcastable.clone()),
+      Err(not_broadcastable),
+    );
+  }
+}

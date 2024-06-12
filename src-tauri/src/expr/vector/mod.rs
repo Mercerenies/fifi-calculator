@@ -33,7 +33,7 @@ pub struct ParseVectorError {
   _priv: (),
 }
 
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
 #[error("Length mismatch: expected {expected} but found {actual}")]
 pub struct LengthError {
   expected: usize,
@@ -232,5 +232,36 @@ mod tests {
     let expr = Expr::from(10);
     let err = ExprToVector.narrow_type(expr).unwrap_err();
     assert_eq!(err, Expr::from(10));
+  }
+
+  #[test]
+  fn test_map() {
+    let vec = Vector::from(vec![Expr::from(1), Expr::from(2), Expr::from(3)]);
+    let mapped = vec.map(|e| Expr::call("foo", vec![e]));
+    assert_eq!(mapped, Vector::from(vec![
+      Expr::call("foo", vec![Expr::from(1)]),
+      Expr::call("foo", vec![Expr::from(2)]),
+      Expr::call("foo", vec![Expr::from(3)]),
+    ]));
+  }
+
+  #[test]
+  fn test_zip_with() {
+    let vec1 = Vector::from(vec![Expr::from(1), Expr::from(2), Expr::from(3)]);
+    let vec2 = Vector::from(vec![Expr::from(10), Expr::from(20), Expr::from(30)]);
+    let zipped = vec1.zip_with(vec2, |a, b| Expr::call("add", vec![a, b])).unwrap();
+    assert_eq!(zipped, Vector::from(vec![
+      Expr::call("add", vec![Expr::from(1), Expr::from(10)]),
+      Expr::call("add", vec![Expr::from(2), Expr::from(20)]),
+      Expr::call("add", vec![Expr::from(3), Expr::from(30)]),
+    ]));
+  }
+
+  #[test]
+  fn test_zip_with_on_different_size_vectors() {
+    let vec1 = Vector::from(vec![Expr::from(1), Expr::from(2), Expr::from(3)]);
+    let vec2 = Vector::from(vec![Expr::from(10), Expr::from(20)]);
+    let err = vec1.zip_with(vec2, |a, b| Expr::call("add", vec![a, b])).unwrap_err();
+    assert_eq!(err, LengthError { expected: 3, actual: 2 });
   }
 }
