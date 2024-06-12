@@ -21,6 +21,7 @@ pub struct Broadcastable {
   data: BroadcastableImpl,
 }
 
+/// Prism which attempts to read an [`Expr`] as a [`Broadcastable`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExprToBroadcastable;
 
@@ -32,24 +33,31 @@ enum BroadcastableImpl {
 }
 
 impl Broadcastable {
+  /// Constructs a `Broadcastable` which is a literal real number.
   pub fn real_scalar(n: Number) -> Self {
     Broadcastable {
       data: BroadcastableImpl::RealScalar(n),
     }
   }
 
+  /// Constructs a `Broadcastable` which is a literal complex number.
   pub fn complex_scalar(c: ComplexNumber) -> Self {
     Broadcastable {
       data: BroadcastableImpl::ComplexScalar(c),
     }
   }
 
+  /// Constructs a `Broadcastable` which is a vector of arbitrary
+  /// expressions.
   pub fn vector(v: Vector) -> Self {
     Broadcastable {
       data: BroadcastableImpl::Vector(v),
     }
   }
 
+  /// Returns the rank of the `Broadcastable`.
+  ///
+  /// The rank of a scalar is zero, and the rank of a vector is one.
   pub fn rank(&self) -> usize {
     match &self.data {
       BroadcastableImpl::RealScalar(_) => 0,
