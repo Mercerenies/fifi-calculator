@@ -1,4 +1,6 @@
 
+pub mod broadcasting;
+
 use super::Expr;
 use crate::util::prism::Prism;
 
@@ -31,6 +33,13 @@ pub struct ParseVectorError {
   _priv: (),
 }
 
+#[derive(Debug, Clone, Error)]
+#[error("Length mismatch: expected {expected} but found {actual}")]
+pub struct LengthError {
+  expected: usize,
+  actual: usize,
+}
+
 impl Vector {
   pub const FUNCTION_NAME: &'static str = "vector";
 
@@ -56,6 +65,31 @@ impl Vector {
     }
   }
 
+  pub fn zip_with<F>(self, other: Vector, mut f: F) -> Result<Vector, LengthError>
+  where F: FnMut(Expr, Expr) -> Expr {
+    if self.len() != other.len() {
+      return Err(LengthError {
+        expected: self.len(),
+        actual: other.len(),
+      });
+    }
+    Ok(
+      self.into_iter()
+        .zip(other.into_iter())
+        .map(|(a, b)| f(a, b))
+        .collect()
+    )
+  }
+
+  pub fn map<F>(self, f: F) -> Vector
+  where F: FnMut(Expr) -> Expr {
+    self.data.into_iter().map(f).collect()
+  }
+
+  pub fn into_expr(self) -> Expr {
+    Expr::call(Vector::FUNCTION_NAME, self.data)
+  }
+
   pub fn iter(&self) -> std::slice::Iter<'_, Expr> {
     self.data.iter()
   }
@@ -79,6 +113,14 @@ impl Vector {
   pub fn as_mut_slice(&mut self) -> &mut [Expr] {
     &mut self.data
   }
+
+  pub fn len(&self) -> usize {
+    self.data.len()
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.data.is_empty()
+  }
 }
 
 impl Prism<Expr, Vector> for ExprToVector {
@@ -86,7 +128,7 @@ impl Prism<Expr, Vector> for ExprToVector {
     Vector::parse(input).map_err(|err| err.original_expr)
   }
   fn widen_type(&self, input: Vector) -> Expr {
-    Expr::call(Vector::FUNCTION_NAME, input.data)
+    input.into_expr()
   }
 }
 

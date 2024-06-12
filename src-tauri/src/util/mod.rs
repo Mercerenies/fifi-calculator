@@ -9,6 +9,7 @@ use regex::{Regex, escape};
 
 use std::convert::Infallible;
 use std::cmp::Reverse;
+use std::iter;
 
 pub fn unwrap_infallible<T>(res: Result<T, Infallible>) -> T {
   match res {
@@ -76,6 +77,14 @@ where F: FnMut(I::Item) -> bool,
     }
   }
   count
+}
+
+/// Produces a container which consists of the same element repeated
+/// `n` times.
+pub fn repeated<C, T>(elem: T, n: usize) -> C
+where T: Clone,
+      C: FromIterator<T> {
+  iter::repeat(elem).take(n).collect()
 }
 
 #[cfg(test)]
