@@ -13,8 +13,6 @@ use crate::state::undo::UpdateVarChange;
 use crate::stack::base::StackLike;
 use crate::stack::keepable::KeepableStack;
 
-use std::marker::PhantomData;
-
 /// This command takes two arguments: a variable and an arbitrary
 /// string (which will be parsed as an expression). Replaces all
 /// instances of the given variable with the target expression in the
@@ -32,7 +30,7 @@ use std::marker::PhantomData;
 /// use the numerical (prefix) argument.
 #[derive(Debug, Default)]
 pub struct SubstituteVarCommand { // TODO Should this be a function IN our language?
-  _priv: PhantomData<()>,
+  _priv: (),
 }
 
 /// This command takes one argument: the variable name into which to
@@ -42,12 +40,12 @@ pub struct SubstituteVarCommand { // TODO Should this be a function IN our langu
 /// top stack element will be popped.
 #[derive(Debug, Default)]
 pub struct StoreVarCommand {
-  _priv: PhantomData<()>,
+  _priv: (),
 }
 
 impl SubstituteVarCommand {
   pub fn new() -> SubstituteVarCommand {
-    SubstituteVarCommand { _priv: PhantomData }
+    SubstituteVarCommand { _priv: () }
   }
 
   fn argument_schema() -> BinaryArgumentSchema<StringToVar, Var, Identity, String> {
@@ -62,7 +60,7 @@ impl SubstituteVarCommand {
 
 impl StoreVarCommand {
   pub fn new() -> StoreVarCommand {
-    StoreVarCommand { _priv: PhantomData }
+    StoreVarCommand { _priv: () }
   }
 
   fn argument_schema() -> UnaryArgumentSchema<StringToVar, Var> {

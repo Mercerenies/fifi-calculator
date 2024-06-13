@@ -29,7 +29,7 @@ pub trait ArgumentSchema {
 
 #[derive(Clone, Debug, Default)]
 pub struct NullaryArgumentSchema {
-  _priv: PhantomData<()>,
+  _priv: (),
 }
 
 #[derive(Clone, Debug)]
@@ -60,7 +60,7 @@ pub struct ArgumentSchemaError {
 /// more error details to the console.
 #[derive(Debug, Clone)]
 pub struct UserFacingSchemaError {
-  _priv: PhantomData<()>,
+  _priv: (),
 }
 
 /// Private implementation of some of the specific errors used inside
@@ -76,7 +76,7 @@ enum ArgumentSchemaErrorImpl {
 impl NullaryArgumentSchema {
   pub fn new() -> Self {
     Self {
-      _priv: PhantomData,
+      _priv: (),
     }
   }
 }
@@ -223,7 +223,7 @@ pub fn validate_schema<S: ArgumentSchema>(
     Ok(output) => Ok(output),
     Err(e) => {
       eprintln!("Argument schema error: {}", e);
-      Err(UserFacingSchemaError { _priv: PhantomData })
+      Err(UserFacingSchemaError { _priv: () })
     }
   }
 }
