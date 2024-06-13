@@ -88,7 +88,8 @@ pub(crate) mod test_utils {
 
   /// Tests the operation on the given input stack, expecting a
   /// success. Passes no string arguments.
-  pub fn act_on_stack(command: &impl Command, opts: CommandOptions, input_stack: Vec<i64>) -> Stack<Expr> {
+  pub fn act_on_stack<E>(command: &impl Command, opts: CommandOptions, input_stack: Vec<E>) -> Stack<Expr>
+  where E: Into<Expr> {
     let args = Vec::<String>::new();
     act_on_stack_with_args(command, args, opts, input_stack)
   }
@@ -96,19 +97,21 @@ pub(crate) mod test_utils {
   /// Tests the operation on the given input stack. Expects a failure.
   /// Passes no string arguments. Asserts that the stack is unchanged
   /// and returns the error.
-  pub fn act_on_stack_err(command: &impl Command, opts: CommandOptions, input_stack: Vec<i64>) -> StackError {
+  pub fn act_on_stack_err<E>(command: &impl Command, opts: CommandOptions, input_stack: Vec<E>) -> StackError
+  where E: Into<Expr> + Clone {
     let args = Vec::<String>::new();
     act_on_stack_with_args_err(command, args, opts, input_stack)
   }
 
   /// Tests the operation on the given input stack, expecting a
   /// success.
-  pub fn act_on_stack_with_args(
+  pub fn act_on_stack_with_args<E>(
     command: &impl Command,
     args: Vec<impl Into<String>>,
     opts: CommandOptions,
-    input_stack: Vec<i64>,
-  ) -> Stack<Expr> {
+    input_stack: Vec<E>,
+  ) -> Stack<Expr>
+  where E: Into<Expr> {
     let args = args.into_iter().map(|s| s.into()).collect();
     let mut state = state_for_stack(input_stack);
     let mut context = CommandContext::default();
@@ -120,12 +123,13 @@ pub(crate) mod test_utils {
 
   /// Tests the operation on the given input stack. Expects a failure.
   /// Asserts that the stack is unchanged and returns the error.
-  pub fn act_on_stack_with_args_err(
+  pub fn act_on_stack_with_args_err<E>(
     command: &impl Command,
     args: Vec<impl Into<String>>,
     opts: CommandOptions,
-    input_stack: Vec<i64>,
-  ) -> StackError {
+    input_stack: Vec<E>,
+  ) -> StackError
+  where E: Into<Expr> + Clone {
     let args = args.into_iter().map(|s| s.into()).collect();
     let mut state = state_for_stack(input_stack.clone());
     let mut context = CommandContext::default();

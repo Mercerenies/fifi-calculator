@@ -277,7 +277,7 @@ mod tests {
 
   #[test]
   fn test_push_constant_with_empty_stack() {
-    let input_stack = vec![];
+    let input_stack = Vec::<Expr>::new();
     let output_stack = act_on_stack(&push_constant_zero(), CommandOptions::default(), input_stack);
     assert_eq!(output_stack, stack_of(vec![0]));
   }
@@ -355,7 +355,7 @@ mod tests {
 
   #[test]
   fn test_unary_function_command_on_empty_stack() {
-    let input_stack = vec![];
+    let input_stack = Vec::<Expr>::new();
     let error = act_on_stack_err(&unary_function(), CommandOptions::default(), input_stack);
     assert_eq!(
       error,
@@ -380,7 +380,7 @@ mod tests {
 
   #[test]
   fn test_unary_function_command_with_arg_one_on_empty_stack() {
-    let input_stack = vec![];
+    let input_stack = Vec::<Expr>::new();
     let error = act_on_stack_err(&unary_function(), CommandOptions::numerical(1), input_stack);
     assert_eq!(
       error,
@@ -423,7 +423,7 @@ mod tests {
 
   #[test]
   fn test_unary_function_command_with_arg_two_on_empty_stack() {
-    let input_stack = vec![];
+    let input_stack = Vec::<Expr>::new();
     let error = act_on_stack_err(&unary_function(), CommandOptions::numerical(2), input_stack);
     assert_eq!(
       error,
@@ -490,7 +490,7 @@ mod tests {
 
   #[test]
   fn test_unary_function_command_with_arg_zero_on_empty_stack() {
-    let input_stack = vec![];
+    let input_stack = Vec::<Expr>::new();
     let output_stack = act_on_stack(&unary_function(), CommandOptions::numerical(0), input_stack);
     assert_eq!(output_stack, Stack::new());
   }
@@ -499,7 +499,7 @@ mod tests {
   fn test_unary_function_command_with_arg_zero_and_keep_arg_on_empty_stack() {
     // keep_modifier has no effect, since there's nothing to preserve.
     let opts = CommandOptions::numerical(0).with_keep_modifier();
-    let input_stack = vec![];
+    let input_stack = Vec::<Expr>::new();
     let output_stack = act_on_stack(&unary_function(), opts, input_stack);
     assert_eq!(output_stack, Stack::new());
   }
@@ -538,7 +538,7 @@ mod tests {
 
   #[test]
   fn test_unary_function_command_with_arg_negative_one_on_empty_stack() {
-    let input_stack = vec![];
+    let input_stack = Vec::<Expr>::new();
     let error = act_on_stack_err(&unary_function(), CommandOptions::numerical(1), input_stack);
     assert_eq!(
       error,
@@ -580,7 +580,7 @@ mod tests {
 
   #[test]
   fn test_unary_function_command_with_arg_negative_two_on_empty_stack() {
-    let input_stack = vec![];
+    let input_stack = Vec::<Expr>::new();
     let error = act_on_stack_err(&unary_function(), CommandOptions::numerical(-2), input_stack);
     assert_eq!(
       error,
@@ -666,7 +666,7 @@ mod tests {
 
   #[test]
   fn test_binary_function_command_on_empty_stack() {
-    let input_stack = vec![];
+    let input_stack = Vec::<Expr>::new();
     let error = act_on_stack_err(&binary_function(), CommandOptions::default(), input_stack);
     assert_eq!(
       error,
@@ -729,7 +729,7 @@ mod tests {
 
   #[test]
   fn test_binary_function_command_on_empty_stack_with_arg_two() {
-    let input_stack = vec![];
+    let input_stack = Vec::<Expr>::new();
     let error = act_on_stack_err(&binary_function(), CommandOptions::numerical(2), input_stack);
     assert_eq!(
       error,
@@ -761,7 +761,7 @@ mod tests {
 
   #[test]
   fn test_binary_function_command_on_empty_stack_with_arg_one() {
-    let input_stack = vec![];
+    let input_stack = Vec::<Expr>::new();
     let error = act_on_stack_err(&binary_function(), CommandOptions::numerical(1), input_stack);
     assert_eq!(
       error,
@@ -897,7 +897,7 @@ mod tests {
 
   #[test]
   fn test_binary_function_command_with_positive_arg_and_empty_stack() {
-    let input_stack = vec![];
+    let input_stack = Vec::<Expr>::new();
     let error = act_on_stack_err(&binary_function(), CommandOptions::numerical(3), input_stack);
     assert_eq!(
       error,
@@ -993,7 +993,7 @@ mod tests {
 
   #[test]
   fn test_binary_function_command_with_negative_arg_and_empty_stack() {
-    let input_stack = vec![];
+    let input_stack = Vec::<Expr>::new();
     let error = act_on_stack_err(&binary_function(), CommandOptions::numerical(-4), input_stack);
     assert_eq!(
       error,
