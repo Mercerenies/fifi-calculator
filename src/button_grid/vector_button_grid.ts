@@ -20,6 +20,7 @@ export class VectorButtonGrid extends ButtonGrid {
     return [
       [
         new DispatchButton("p", "pack", "p"),
+        new DispatchButton("u", "unpack", "u"),
       ],
       [],
       [],
