@@ -95,13 +95,22 @@ pub(crate) mod test_utils {
     act_on_stack_with_args(command, args, opts, input_stack)
   }
 
-  /// Tests the operation on the given input stack. Expects a failure.
-  /// Passes no string arguments. Asserts that the stack is unchanged
-  /// and returns the error.
+  /// Tests the operation on the given input stack. Expects a
+  /// [`StackError`]. Passes no string arguments. Asserts that the
+  /// stack is unchanged and returns the error.
   pub fn act_on_stack_err<E>(command: &impl Command, opts: CommandOptions, input_stack: Vec<E>) -> StackError
   where E: Into<Expr> + Clone {
     let args = Vec::<String>::new();
     act_on_stack_with_args_err(command, args, opts, input_stack)
+  }
+
+  /// Tests the operation on the given input stack. Expects an error
+  /// of any type. Passes no string arguments. Asserts that the stack
+  /// is unchanged and returns the error.
+  pub fn act_on_stack_any_err<E>(command: &impl Command, opts: CommandOptions, input_stack: Vec<E>) -> anyhow::Error
+  where E: Into<Expr> + Clone {
+    let args = Vec::<String>::new();
+    act_on_stack_with_args_any_err(command, args, opts, input_stack)
   }
 
   /// Tests the operation on the given input stack, expecting a
@@ -122,8 +131,28 @@ pub(crate) mod test_utils {
     state.into_main_stack()
   }
 
-  /// Tests the operation on the given input stack. Expects a failure.
-  /// Asserts that the stack is unchanged and returns the error.
+  /// Tests the operation on the given input stack. Expects a failure
+  /// of any type. Asserts that the stack is unchanged and returns the
+  /// error.
+  pub fn act_on_stack_with_args_any_err<E>(
+    command: &impl Command,
+    args: Vec<impl Into<String>>,
+    opts: CommandOptions,
+    input_stack: Vec<E>,
+  ) -> anyhow::Error
+  where E: Into<Expr> + Clone {
+    let args = args.into_iter().map(|s| s.into()).collect();
+    let mut state = state_for_stack(input_stack.clone());
+    let mut context = CommandContext::default();
+    context.opts = opts;
+    let err = command.run_command(&mut state, args, &context).unwrap_err();
+    assert_eq!(state.into_main_stack(), stack_of(input_stack));
+    err
+  }
+
+  /// Tests the operation on the given input stack. Expects a
+  /// [`StackError`] to occur. Asserts that the stack is unchanged and
+  /// returns the error.
   pub fn act_on_stack_with_args_err<E>(
     command: &impl Command,
     args: Vec<impl Into<String>>,
@@ -131,16 +160,7 @@ pub(crate) mod test_utils {
     input_stack: Vec<E>,
   ) -> StackError
   where E: Into<Expr> + Clone {
-    let args = args.into_iter().map(|s| s.into()).collect();
-    let mut state = state_for_stack(input_stack.clone());
-    let mut context = CommandContext::default();
-    context.opts = opts;
-    let err = command.run_command(&mut state, args, &context).unwrap_err();
-    let err = match err.downcast::<StackError>() {
-      Ok(stack_error) => stack_error,
-      Err(other_error) => { panic!("Expected StackError, got {:?}", other_error); }
-    };
-    assert_eq!(state.into_main_stack(), stack_of(input_stack));
-    err
+    let err = act_on_stack_with_args_any_err(command, args, opts, input_stack);
+    err.downcast::<StackError>().unwrap()
   }
 }

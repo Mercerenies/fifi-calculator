@@ -109,7 +109,6 @@ mod tests {
   use crate::stack::{Stack, StackError};
   use crate::command::test_utils::{act_on_stack, act_on_stack_err};
   use crate::command::options::CommandOptions;
-  use crate::state::ApplicationState;
 
   #[test]
   fn test_simple_pop_vector() {
