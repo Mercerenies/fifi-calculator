@@ -53,7 +53,6 @@ export class GotoButton extends Button {
 
   async fire(manager: ButtonGridManager): Promise<void> {
     const grid = this.gridFactory();
-    console.log(grid);
     manager.setActiveGrid(grid);
   }
 }

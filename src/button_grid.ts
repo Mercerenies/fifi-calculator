@@ -107,7 +107,7 @@ export abstract class ButtonGrid {
   // filled in with Spacer objects.
   abstract get rows(): readonly (readonly GridCell[])[];
 
-  /* eslint-disable @typescript-eslint/no-unused-vars */
+  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
   onUnhandledKey(input: KeyEventInput, manager: ButtonGridManager): Promise<KeyResponse> {
     // Default implementation is empty.
     return Promise.resolve(KeyResponse.PASS);
