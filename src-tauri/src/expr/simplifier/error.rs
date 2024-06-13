@@ -73,6 +73,12 @@ impl SimplifierError {
   }
 }
 
+impl DomainError {
+  pub fn new(explanation: impl Into<String>) -> Self {
+    Self { explanation: explanation.into() }
+  }
+}
+
 impl Display for SimplifierError {
   fn fmt(&self, f: &mut Formatter) -> fmt::Result {
     write!(f, "{}: {}", self.function, self.error)

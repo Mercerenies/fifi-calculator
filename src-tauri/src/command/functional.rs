@@ -246,10 +246,9 @@ mod tests {
   use crate::command::options::CommandOptions;
   use crate::stack::test_utils::stack_of;
   use crate::stack::{Stack, StackError};
-  use crate::expr::number::Number;
 
   fn push_constant_zero() -> PushConstantCommand {
-    PushConstantCommand::new(Expr::from(Number::from(0)))
+    PushConstantCommand::new(Expr::zero())
   }
 
   fn unary_function() -> UnaryFunctionCommand {

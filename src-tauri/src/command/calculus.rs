@@ -19,7 +19,7 @@ use crate::stack::keepable::KeepableStack;
 ///
 /// Respects the "keep" modifier.
 #[derive(Debug, Default)]
-pub struct DerivativeCommand { // TODO: Multiple derivatives in one go
+pub struct DerivativeCommand {
   _priv: (),
 }
 

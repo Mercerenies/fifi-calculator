@@ -15,7 +15,7 @@ use atom::Atom;
 use var::Var;
 use var::table::VarTable;
 
-use num::{Zero, One};
+use num::{Zero, One, BigInt};
 
 use std::mem;
 use std::fmt::{self, Display, Formatter};
@@ -180,6 +180,12 @@ impl From<number::Number> for Expr {
 impl From<number::ComplexNumber> for Expr {
   fn from(z: number::ComplexNumber) -> Expr {
     Expr::Atom(z.into())
+  }
+}
+
+impl From<BigInt> for Expr {
+  fn from(b: BigInt) -> Expr {
+    Expr::Atom(Atom::Number(b.into()))
   }
 }
 
