@@ -9,6 +9,8 @@ use crate::expr::number::{Number, ComplexNumber};
 use crate::util;
 use crate::util::prism::Prism;
 
+use num::{Zero, One};
+
 use std::ops::{Add, Sub, Mul, Div};
 
 /// A `Broadcastable` is a value whose rank (as a tensor) is known.
@@ -53,6 +55,16 @@ impl Broadcastable {
     Broadcastable {
       data: BroadcastableImpl::Vector(v),
     }
+  }
+
+  /// The real value zero.
+  pub fn zero() -> Self {
+    Broadcastable::real_scalar(Number::zero())
+  }
+
+  /// The real value one.
+  pub fn one() -> Self {
+    Broadcastable::real_scalar(Number::one())
   }
 
   /// Returns the rank of the `Broadcastable`.
@@ -173,6 +185,16 @@ impl Broadcastable {
   }
 }
 
+impl From<Broadcastable> for Expr {
+  fn from(b: Broadcastable) -> Expr {
+    match b.data {
+      BroadcastableImpl::RealScalar(n) => Expr::Atom(Atom::Number(n)),
+      BroadcastableImpl::ComplexScalar(c) => Expr::Atom(Atom::Complex(c)),
+      BroadcastableImpl::Vector(v) => v.into_expr(),
+    }
+  }
+}
+
 impl Prism<Expr, Broadcastable> for ExprToBroadcastable {
   fn narrow_type(&self, expr: Expr) -> Result<Broadcastable, Expr> {
     match expr {
@@ -184,11 +206,7 @@ impl Prism<Expr, Broadcastable> for ExprToBroadcastable {
     }
   }
   fn widen_type(&self, b: Broadcastable) -> Expr {
-    match b.data {
-      BroadcastableImpl::RealScalar(n) => Expr::Atom(Atom::Number(n)),
-      BroadcastableImpl::ComplexScalar(c) => Expr::Atom(Atom::Complex(c)),
-      BroadcastableImpl::Vector(v) => v.into_expr(),
-    }
+    b.into()
   }
 }
 

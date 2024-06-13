@@ -5,7 +5,8 @@ use crate::expr::Expr;
 use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
-use crate::expr::prisms::{ExprToNumber, ExprToComplex};
+use crate::expr::vector::broadcasting::Broadcastable;
+use crate::expr::prisms::{ExprToNumber, ExprToComplex, ExprToBroadcastable};
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex, pow_complex_to_real};
 use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::calculus::DifferentiationError;
@@ -48,6 +49,21 @@ pub fn addition() -> Function {
           .reduce(|a, b| a + b)
           .unwrap_or(ComplexNumber::zero());
         Ok(Expr::from(sum))
+      })
+    )
+    .add_case(
+      // Vector addition (with broadcasting)
+      builder::any_arity().of_type(ExprToBroadcastable).and_then(|args, context| {
+        let args_clone = args.clone(); // TODO: Get rid of this!
+        let sum = args.into_iter()
+          .try_fold(Broadcastable::zero(), Broadcastable::try_add);
+        match sum {
+          Ok(sum) => Ok(sum.into()),
+          Err(err) => {
+            context.errors.push(SimplifierError::new("+", err));
+            Err(args_clone)
+          }
+        }
       })
     )
     .set_derivative(
