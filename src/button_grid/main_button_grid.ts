@@ -109,6 +109,8 @@ export class MainButtonGrid extends ButtonGrid {
   // Returns null if not handled, or a KeyResponse if handled.
   private async tryDelegateToTranscendentalGrid(manager: ButtonGridManager, key: string): Promise<KeyResponse | null> {
     const transcendentalTable = this.transcendentalButtonGrid.getKeyMappingTable();
+    /* eslint-disable-next-line @typescript-eslint/no-dynamic-delete */
+    delete transcendentalTable["Escape"]; // Don't forward "Escape", which just doubles back to this grid.
     if (key in transcendentalTable) {
       await transcendentalTable[key].fire(manager);
       return KeyResponse.BLOCK;
