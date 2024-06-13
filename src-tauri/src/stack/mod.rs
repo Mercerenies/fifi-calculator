@@ -13,12 +13,9 @@ pub use structure::Stack;
 pub(crate) mod test_utils {
   use super::*;
   use crate::expr::Expr;
-  use crate::expr::number::Number;
 
-  pub fn stack_of(number_vec: Vec<i64>) -> Stack<Expr> {
-    let expr_vec: Vec<_> = number_vec.into_iter().map(|n| {
-      Expr::from(Number::from(n))
-    }).collect();
+  pub fn stack_of(vec: Vec<impl Into<Expr>>) -> Stack<Expr> {
+    let expr_vec: Vec<_> = vec.into_iter().map(|n| n.into()).collect();
     Stack::from(expr_vec)
   }
 }

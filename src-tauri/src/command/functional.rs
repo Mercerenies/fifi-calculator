@@ -492,7 +492,7 @@ mod tests {
   fn test_unary_function_command_with_arg_zero_on_empty_stack() {
     let input_stack = vec![];
     let output_stack = act_on_stack(&unary_function(), CommandOptions::numerical(0), input_stack);
-    assert_eq!(output_stack, stack_of(vec![]));
+    assert_eq!(output_stack, Stack::new());
   }
 
   #[test]
@@ -501,7 +501,7 @@ mod tests {
     let opts = CommandOptions::numerical(0).with_keep_modifier();
     let input_stack = vec![];
     let output_stack = act_on_stack(&unary_function(), opts, input_stack);
-    assert_eq!(output_stack, stack_of(vec![]));
+    assert_eq!(output_stack, Stack::new());
   }
 
   #[test]

@@ -187,7 +187,7 @@ pub(crate) mod test_utils {
   /// Produces a default state, except that the state's `main_stack`
   /// is equal to `stack` (with the top of the stack being the last
   /// element in the vector).
-  pub fn state_for_stack(stack: Vec<i64>) -> ApplicationState {
+  pub fn state_for_stack(stack: Vec<impl Into<Expr>>) -> ApplicationState {
     let mut state = ApplicationState::new();
     *state.main_stack_mut_raw() = stack_of(stack);
     state

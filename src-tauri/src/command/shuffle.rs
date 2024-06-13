@@ -134,7 +134,7 @@ mod tests {
   use crate::command::test_utils::{act_on_stack, act_on_stack_err};
   use crate::command::options::CommandOptions;
   use crate::stack::test_utils::stack_of;
-  use crate::stack::StackError;
+  use crate::stack::{Stack, StackError};
 
   #[test]
   fn test_simple_pop() {
@@ -180,7 +180,7 @@ mod tests {
   #[test]
   fn test_multiple_pop_all_stack_elements() {
     let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(4), vec![10, 20, 30, 40]);
-    assert_eq!(output_stack, stack_of(vec![]));
+    assert_eq!(output_stack, Stack::new());
   }
 
   #[test]
@@ -204,20 +204,20 @@ mod tests {
   #[test]
   fn test_pop_with_argument_zero() {
     let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(0), vec![10, 20, 30]);
-    assert_eq!(output_stack, stack_of(vec![]));
+    assert_eq!(output_stack, Stack::new());
   }
 
   #[test]
   fn test_pop_with_argument_zero_and_keep_arg() {
     // keep_modifier has no effect on pop commands.
     let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(0).with_keep_modifier(), vec![10, 20, 30]);
-    assert_eq!(output_stack, stack_of(vec![]));
+    assert_eq!(output_stack, Stack::new());
   }
 
   #[test]
   fn test_pop_with_argument_zero_on_empty_stack() {
     let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(0), vec![]);
-    assert_eq!(output_stack, stack_of(vec![]));
+    assert_eq!(output_stack, Stack::new());
   }
 
   #[test]
@@ -402,7 +402,7 @@ mod tests {
   fn test_swap_argument_zero_on_empty_stack() {
     let opts = CommandOptions::numerical(0);
     let output_stack = act_on_stack(&SwapCommand, opts, vec![]);
-    assert_eq!(output_stack, stack_of(vec![]));
+    assert_eq!(output_stack, Stack::new());
   }
 
   #[test]
@@ -411,7 +411,7 @@ mod tests {
     // keep_modifier has no effect.
     let opts = CommandOptions::numerical(0).with_keep_modifier();
     let output_stack = act_on_stack(&SwapCommand, opts, vec![]);
-    assert_eq!(output_stack, stack_of(vec![]));
+    assert_eq!(output_stack, Stack::new());
   }
 
   #[test]
@@ -565,7 +565,7 @@ mod tests {
   #[test]
   fn test_dup_argument_zero_on_empty_stack() {
     let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(0), vec![]);
-    assert_eq!(output_stack, stack_of(vec![]));
+    assert_eq!(output_stack, Stack::new());
   }
 
   #[test]
