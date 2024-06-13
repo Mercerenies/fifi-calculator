@@ -2,6 +2,7 @@
 mod complex;
 mod visitor;
 mod power;
+pub mod prisms;
 mod real;
 mod repr;
 

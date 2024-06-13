@@ -11,6 +11,7 @@ use num::Zero;
 pub use super::var::StringToVar;
 pub use super::vector::ExprToVector;
 pub use super::vector::broadcasting::ExprToBroadcastable;
+pub use super::number::prisms::NumberToUsize;
 
 /// Prism which downcasts an [`Expr`] to a contained [`Number`].
 #[derive(Debug, Clone, Copy, Default)]
@@ -46,6 +47,12 @@ pub fn must_be_var(var: Var) -> Only<Expr> {
 /// Prism which accepts only positive real numbers.
 pub fn expr_to_positive_number() -> Composed<ExprToNumber, NumberToPositiveNumber, Number> {
   Composed::new(ExprToNumber, NumberToPositiveNumber)
+}
+
+/// Prism which only accepts expressions containing [`Number`] values
+/// representable by a `usize`.
+pub fn expr_to_usize() -> Composed<ExprToNumber, NumberToUsize, Number> {
+  Composed::new(ExprToNumber, NumberToUsize)
 }
 
 impl PositiveNumber {
