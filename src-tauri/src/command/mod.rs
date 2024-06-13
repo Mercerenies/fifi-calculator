@@ -9,6 +9,7 @@ pub mod options;
 pub mod shuffle;
 pub mod input;
 pub mod variables;
+pub mod vector;
 
 pub use base::{Command, CommandContext, CommandOutput};
 use functional::{UnaryFunctionCommand, BinaryFunctionCommand};
