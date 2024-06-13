@@ -54,7 +54,6 @@ pub fn logarithm() -> Function {
       })
     )
     .build()
-  // TODO: Derivative
 }
 
 pub fn exponent() -> Function {
