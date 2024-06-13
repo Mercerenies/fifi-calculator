@@ -91,7 +91,15 @@ impl Command for PackCommand {
       // Pop one value, use that to determine the length of the
       // vector. Take care to respect the "keep" modifier.
       let arg = PackCommand::pop_non_negative_integer(&mut state.main_stack_mut())?;
-      let vector = PackCommand::pop_and_construct_vector(state, context, arg as usize)?;
+      // TODO (CLEANUP): Messy code pattern here to perform stack
+      // cleanup in case of error.
+      let vector = match PackCommand::pop_and_construct_vector(state, context, arg as usize) {
+        Ok(vector) => vector,
+        Err(err) => {
+          state.main_stack_mut().push(Expr::from(BigInt::from(arg)));
+          return Err(err);
+        }
+      };
       let expr = context.simplifier.simplify_expr(vector.into(), &mut errors);
       if context.opts.keep_modifier {
         state.main_stack_mut().push(Expr::from(BigInt::from(arg)));
@@ -107,7 +115,7 @@ impl Command for PackCommand {
 mod tests {
   use super::*;
   use crate::stack::{Stack, StackError};
-  use crate::command::test_utils::{act_on_stack, act_on_stack_err};
+  use crate::command::test_utils::{act_on_stack, act_on_stack_err, act_on_stack_any_err};
   use crate::command::options::CommandOptions;
 
   #[test]
@@ -196,5 +204,71 @@ mod tests {
       Expr::from(20),
       Expr::call(Vector::FUNCTION_NAME, vec![Expr::from(30), Expr::from(40)]),
     ]));
+  }
+
+  #[test]
+  fn test_pop_vector_with_keep_arg_but_no_prefix_arg() {
+    let opts = CommandOptions::default().with_keep_modifier();
+    let input_stack = vec![10, 20, 30, 40, 2];
+    let output_stack = act_on_stack(&PackCommand::new(), opts, input_stack);
+    assert_eq!(output_stack, Stack::from(vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::from(30),
+      Expr::from(40),
+      Expr::from(2),
+      Expr::call(Vector::FUNCTION_NAME, vec![Expr::from(30), Expr::from(40)]),
+    ]));
+  }
+
+  #[test]
+  fn test_pop_vector_no_prefix_arg_and_empty_stack() {
+    let opts = CommandOptions::default();
+    let input_stack = Vec::<Expr>::new();
+    let err = act_on_stack_err(&PackCommand::new(), opts, input_stack);
+    assert_eq!(err, StackError::NotEnoughElements { expected: 1, actual: 0 });
+  }
+
+  #[test]
+  fn test_pop_vector_no_prefix_arg_and_not_enough_arguments() {
+    let opts = CommandOptions::default();
+    let input_stack = vec![10, 20, 5];
+    let err = act_on_stack_err(&PackCommand::new(), opts, input_stack);
+    assert_eq!(err, StackError::NotEnoughElements { expected: 5, actual: 2 });
+  }
+
+  #[test]
+  fn test_pop_vector_keep_arg_but_no_prefix_arg_and_not_enough_arguments() {
+    let opts = CommandOptions::default().with_keep_modifier();
+    let input_stack = vec![10, 20, 5];
+    let err = act_on_stack_err(&PackCommand::new(), opts, input_stack);
+    assert_eq!(err, StackError::NotEnoughElements { expected: 5, actual: 2 });
+  }
+
+  #[test]
+  fn test_pop_vector_no_prefix_arg_negative_top_of_stack() {
+    let opts = CommandOptions::default();
+    let input_stack = vec![10, 20, -2];
+    let err = act_on_stack_any_err(&PackCommand::new(), opts, input_stack);
+    let err = err.downcast::<DomainError>().unwrap();
+    assert_eq!(err.explanation, "Expected small positive integer, got -2");
+  }
+
+  #[test]
+  fn test_pop_vector_no_prefix_arg_negative_top_of_stack_with_keep_arg() {
+    let opts = CommandOptions::default().with_keep_modifier();
+    let input_stack = vec![10, 20, -2];
+    let err = act_on_stack_any_err(&PackCommand::new(), opts, input_stack);
+    let err = err.downcast::<DomainError>().unwrap();
+    assert_eq!(err.explanation, "Expected small positive integer, got -2");
+  }
+
+  #[test]
+  fn test_pop_vector_no_prefix_arg_invalid_top_of_stack() {
+    let opts = CommandOptions::default();
+    let input_stack = vec![Expr::from(10), Expr::from(20), Expr::var("x").unwrap()];
+    let err = act_on_stack_any_err(&PackCommand::new(), opts, input_stack);
+    let err = err.downcast::<DomainError>().unwrap();
+    assert_eq!(err.explanation, "Expected small positive integer, got x");
   }
 }
