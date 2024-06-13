@@ -6,7 +6,7 @@ use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
 use crate::expr::vector::broadcasting::Broadcastable;
-use crate::expr::prisms::{ExprToNumber, ExprToComplex, ExprToBroadcastable};
+use crate::expr::prisms::{ExprToNumber, ExprToComplex, ExprToVector, ExprToBroadcastable};
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex, pow_complex_to_real};
 use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::calculus::DifferentiationError;
@@ -302,6 +302,16 @@ pub fn power() -> Function {
         Ok(Expr::from(power))
       })
     )
+    .add_case(
+      // Vector to scalar power function
+      //
+      // (We just distribute scalar exponents over the elements of the
+      // vector)
+      builder::arity_two().of_types(ExprToVector, ExprToComplex).and_then(|arg1, arg2, _| {
+        let result = arg1.map(|elem| Expr::call("^", vec![elem, Expr::from(arg2.clone())]));
+        Ok(result.into_expr())
+      })
+    )
     .set_derivative(
       builder::arity_two_deriv("^", |arg1, arg2, engine| {
         // TODO: Write a variant of postorder_walk that produces `()`
@@ -433,6 +443,13 @@ pub fn arithmetic_negate() -> Function {
       builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
         let arg = ComplexNumber::from(arg);
         Ok(Expr::from(- arg))
+      })
+    )
+    .add_case(
+      // Negation of a vector
+      builder::arity_one().of_type(ExprToVector).and_then(|arg, _| {
+        let result = arg.map(|e| Expr::call("negate", vec![e]));
+        Ok(result.into_expr())
       })
     )
     .set_derivative(

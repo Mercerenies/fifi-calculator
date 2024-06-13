@@ -86,6 +86,8 @@ impl Vector {
     self.data.into_iter().map(f).collect()
   }
 
+  /// Reifies the vector as an `Expr` in the expression language.
+  /// Equivalent to `Expr::from(self)`.
   pub fn into_expr(self) -> Expr {
     Expr::call(Vector::FUNCTION_NAME, self.data)
   }
@@ -158,6 +160,12 @@ impl From<Vec<Expr>> for Vector {
 impl From<Vector> for Vec<Expr> {
   fn from(v: Vector) -> Self {
     v.data
+  }
+}
+
+impl From<Vector> for Expr {
+  fn from(v: Vector) -> Self {
+    v.into_expr()
   }
 }
 
