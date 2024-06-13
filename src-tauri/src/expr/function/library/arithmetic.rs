@@ -13,6 +13,8 @@ use crate::expr::calculus::DifferentiationError;
 
 use num::{Zero, One};
 
+use std::ops::Add;
+
 pub fn append_arithmetic_functions(table: &mut FunctionTable) {
   table.insert(addition());
   table.insert(subtraction());
@@ -54,16 +56,16 @@ pub fn addition() -> Function {
     .add_case(
       // Vector addition (with broadcasting)
       builder::any_arity().of_type(ExprToBroadcastable).and_then(|args, context| {
-        let args_clone = args.clone(); // TODO: Get rid of this!
-        let sum = args.into_iter()
-          .try_fold(Broadcastable::zero(), Broadcastable::try_add);
-        match sum {
-          Ok(sum) => Ok(sum.into()),
-          Err(err) => {
-            context.errors.push(SimplifierError::new("+", err));
-            Err(args_clone)
-          }
+        if let Err(err) = Broadcastable::check_compatible_lengths(args.iter()) {
+          context.errors.push(SimplifierError::new("+", err));
+          return Err(args);
         }
+        // Now that we've validated the lengths, we can safely add all
+        // of the values together. `Broadcastable::add` can panic, but
+        // it won't since we know the lengths are good.
+        let sum = args.into_iter()
+          .fold(Broadcastable::zero(), Broadcastable::add);
+        Ok(sum.into())
       })
     )
     .set_derivative(

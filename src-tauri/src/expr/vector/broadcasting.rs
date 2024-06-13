@@ -96,6 +96,39 @@ impl Broadcastable {
     }
   }
 
+  /// Checks whether arithmetic operations can be safely applied among
+  /// the sequence of [`Broadcastable`] values. Specifically, this
+  /// function succeeds if every `Broadcastable` which is a vector has
+  /// the same length. This also means that an empty sequence, or a
+  /// sequence consisting of only scalars, vacuously passes this test.
+  ///
+  /// If this check succeeds, then arithmetic can be performed on the
+  /// vector. [`try_add`](Broadcasting::try_add),
+  /// [`try_sub`](Broadcasting::try_sub), and company will always
+  /// produce `Ok` values when reduced on the collection using
+  /// `try_fold`. In this way, it's possible to validate, in advance,
+  /// whether or not arithmetic will succeed, without partially
+  /// consuming a collection in the case that it fails.
+  pub fn check_compatible_lengths<'a, I>(values: I) -> Result<(), LengthError>
+  where I: IntoIterator<Item = &'a Broadcastable> {
+    let mut identified_length: Option<usize> = None;
+    for value in values {
+      if let BroadcastableImpl::Vector(v) = &value.data {
+        match identified_length {
+          None => {
+            identified_length = Some(v.len());
+          }
+          Some(len) => {
+            if len != v.len() {
+              return Err(LengthError { expected: len, actual: v.len() });
+            }
+          }
+        }
+      }
+    }
+    Ok(())
+  }
+
   /// Adds two `Broadcastable` values together. Produces an error if
   /// both are vectors and they have different lengths.
   pub fn try_add(self, other: Broadcastable) -> Result<Broadcastable, LengthError> {
@@ -182,6 +215,38 @@ impl Broadcastable {
         Ok(Broadcastable::vector(res))
       }
     }
+  }
+}
+
+impl Add for Broadcastable {
+  type Output = Broadcastable;
+
+  fn add(self, other: Broadcastable) -> Broadcastable {
+    self.try_add(other).unwrap_or_else(|err| panic!("{err}"))
+  }
+}
+
+impl Sub for Broadcastable {
+  type Output = Broadcastable;
+
+  fn sub(self, other: Broadcastable) -> Broadcastable {
+    self.try_sub(other).unwrap_or_else(|err| panic!("{err}"))
+  }
+}
+
+impl Mul for Broadcastable {
+  type Output = Broadcastable;
+
+  fn mul(self, other: Broadcastable) -> Broadcastable {
+    self.try_mul(other).unwrap_or_else(|err| panic!("{err}"))
+  }
+}
+
+impl Div for Broadcastable {
+  type Output = Broadcastable;
+
+  fn div(self, other: Broadcastable) -> Broadcastable {
+    self.try_div(other).unwrap_or_else(|err| panic!("{err}"))
   }
 }
 
