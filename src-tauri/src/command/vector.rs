@@ -8,6 +8,7 @@ use crate::util::prism::Prism;
 use crate::errorlist::ErrorList;
 use crate::expr::Expr;
 use crate::expr::prisms;
+use crate::expr::atom::Atom;
 use crate::expr::vector::Vector;
 use crate::expr::simplifier::error::DomainError;
 use crate::state::ApplicationState;
@@ -33,9 +34,27 @@ pub struct PackCommand {
   _priv: (),
 }
 
+/// `UnpackCommand` unpacks the top stack element into several stack
+/// elements.
+///
+/// If given a function call on top of the stack, the arguments to the
+/// call are pushed onto the stack. This includes the case of a
+/// vector, which is represented as a call to the "vector" function.
+///
+/// Most atoms cannot be destructured, with the exception of complex
+/// number atoms, which will be destructured into the real part and
+/// the imaginary part.
+///
+/// This command respects the "keep" modifier but does not use the
+/// numerical argument.
+#[derive(Debug, Default)]
+pub struct UnpackCommand {
+  _priv: (),
+}
+
 impl PackCommand {
   pub fn new() -> Self {
-    Default::default()
+    Self::default()
   }
 
   fn pop_and_construct_vector(
@@ -69,6 +88,12 @@ impl PackCommand {
   }
 }
 
+impl UnpackCommand {
+  pub fn new() -> Self {
+    Self::default()
+  }
+}
+
 impl Command for PackCommand {
   fn run_command(
     &self,
@@ -77,7 +102,6 @@ impl Command for PackCommand {
     context: &CommandContext,
   ) -> anyhow::Result<CommandOutput> {
     validate_schema(&NullaryArgumentSchema::new(), args)?;
-
     state.undo_stack_mut().push_cut();
 
     let mut errors = ErrorList::new();
@@ -111,15 +135,53 @@ impl Command for PackCommand {
   }
 }
 
+impl Command for UnpackCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    context: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    validate_schema(&NullaryArgumentSchema::new(), args)?;
+    state.undo_stack_mut().push_cut();
+
+    let mut errors = ErrorList::new();
+    let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
+    match stack.pop()? {
+      Expr::Call(_, args) => {
+        let args = args.into_iter().map(|arg| context.simplifier.simplify_expr(arg, &mut errors));
+        stack.push_several(args);
+      }
+      Expr::Atom(Atom::Complex(z)) => {
+        // Note: No sense in running a simplifier on the
+        // clearly-literal real numbers here.
+        let (real, imag) = z.into_parts();
+        stack.push(Expr::from(real));
+        stack.push(Expr::from(imag));
+      }
+      expr @ Expr::Atom(Atom::Number(_) | Atom::Var(_)) => {
+        if !context.opts.keep_modifier {
+          // If we actually popped the value, then push it back since
+          // this is an error condition.
+          stack.push(expr.clone());
+        }
+        return Err(anyhow::anyhow!(DomainError::new(format!("Cannot unpack {expr}"))));
+      }
+    }
+    Ok(CommandOutput::from_errors(errors))
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
   use crate::stack::{Stack, StackError};
   use crate::command::test_utils::{act_on_stack, act_on_stack_err, act_on_stack_any_err};
   use crate::command::options::CommandOptions;
+  use crate::expr::number::{Number, ComplexNumber};
 
   #[test]
-  fn test_simple_pop_vector() {
+  fn test_simple_pack_vector() {
     let opts = CommandOptions::numerical(2);
     let input_stack = vec![10, 20, 30, 40];
     let output_stack = act_on_stack(&PackCommand::new(), opts, input_stack);
@@ -131,7 +193,7 @@ mod tests {
   }
 
   #[test]
-  fn test_simple_pop_vector_whole_stack() {
+  fn test_pack_vector_whole_stack() {
     let opts = CommandOptions::numerical(4);
     let input_stack = vec![10, 20, 30, 40];
     let output_stack = act_on_stack(&PackCommand::new(), opts, input_stack);
@@ -146,7 +208,7 @@ mod tests {
   }
 
   #[test]
-  fn test_simple_pop_vector_stack_too_small() {
+  fn test_pack_vector_stack_too_small() {
     let opts = CommandOptions::numerical(4);
     let input_stack = vec![10, 20, 30];
     let err = act_on_stack_err(&PackCommand::new(), opts, input_stack);
@@ -154,7 +216,7 @@ mod tests {
   }
 
   #[test]
-  fn test_simple_pop_vector_arg_zero() {
+  fn test_pack_vector_arg_zero() {
     let opts = CommandOptions::numerical(0);
     let input_stack = vec![10, 20, 30, 40];
     let output_stack = act_on_stack(&PackCommand::new(), opts, input_stack);
@@ -168,7 +230,7 @@ mod tests {
   }
 
   #[test]
-  fn test_simple_pop_vector_arg_one() {
+  fn test_pack_vector_arg_one() {
     let opts = CommandOptions::numerical(1);
     let input_stack = vec![10, 20, 30, 40];
     let output_stack = act_on_stack(&PackCommand::new(), opts, input_stack);
@@ -181,7 +243,7 @@ mod tests {
   }
 
   #[test]
-  fn test_simple_pop_vector_with_keep_arg() {
+  fn test_pack_vector_with_keep_arg() {
     let opts = CommandOptions::numerical(2).with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40];
     let output_stack = act_on_stack(&PackCommand::new(), opts, input_stack);
@@ -195,7 +257,7 @@ mod tests {
   }
 
   #[test]
-  fn test_pop_vector_no_prefix_arg() {
+  fn test_pack_vector_no_prefix_arg() {
     let opts = CommandOptions::default();
     let input_stack = vec![10, 20, 30, 40, 2];
     let output_stack = act_on_stack(&PackCommand::new(), opts, input_stack);
@@ -207,7 +269,7 @@ mod tests {
   }
 
   #[test]
-  fn test_pop_vector_with_keep_arg_but_no_prefix_arg() {
+  fn test_pack_vector_with_keep_arg_but_no_prefix_arg() {
     let opts = CommandOptions::default().with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40, 2];
     let output_stack = act_on_stack(&PackCommand::new(), opts, input_stack);
@@ -222,7 +284,7 @@ mod tests {
   }
 
   #[test]
-  fn test_pop_vector_no_prefix_arg_and_empty_stack() {
+  fn test_pack_vector_no_prefix_arg_and_empty_stack() {
     let opts = CommandOptions::default();
     let input_stack = Vec::<Expr>::new();
     let err = act_on_stack_err(&PackCommand::new(), opts, input_stack);
@@ -230,7 +292,7 @@ mod tests {
   }
 
   #[test]
-  fn test_pop_vector_no_prefix_arg_and_not_enough_arguments() {
+  fn test_pack_vector_no_prefix_arg_and_not_enough_arguments() {
     let opts = CommandOptions::default();
     let input_stack = vec![10, 20, 5];
     let err = act_on_stack_err(&PackCommand::new(), opts, input_stack);
@@ -238,7 +300,7 @@ mod tests {
   }
 
   #[test]
-  fn test_pop_vector_keep_arg_but_no_prefix_arg_and_not_enough_arguments() {
+  fn test_pack_vector_keep_arg_but_no_prefix_arg_and_not_enough_arguments() {
     let opts = CommandOptions::default().with_keep_modifier();
     let input_stack = vec![10, 20, 5];
     let err = act_on_stack_err(&PackCommand::new(), opts, input_stack);
@@ -246,7 +308,7 @@ mod tests {
   }
 
   #[test]
-  fn test_pop_vector_no_prefix_arg_negative_top_of_stack() {
+  fn test_pack_vector_no_prefix_arg_negative_top_of_stack() {
     let opts = CommandOptions::default();
     let input_stack = vec![10, 20, -2];
     let err = act_on_stack_any_err(&PackCommand::new(), opts, input_stack);
@@ -255,7 +317,7 @@ mod tests {
   }
 
   #[test]
-  fn test_pop_vector_no_prefix_arg_negative_top_of_stack_with_keep_arg() {
+  fn test_pack_vector_no_prefix_arg_negative_top_of_stack_with_keep_arg() {
     let opts = CommandOptions::default().with_keep_modifier();
     let input_stack = vec![10, 20, -2];
     let err = act_on_stack_any_err(&PackCommand::new(), opts, input_stack);
@@ -264,11 +326,116 @@ mod tests {
   }
 
   #[test]
-  fn test_pop_vector_no_prefix_arg_invalid_top_of_stack() {
+  fn test_pack_vector_no_prefix_arg_invalid_top_of_stack() {
     let opts = CommandOptions::default();
     let input_stack = vec![Expr::from(10), Expr::from(20), Expr::var("x").unwrap()];
     let err = act_on_stack_any_err(&PackCommand::new(), opts, input_stack);
     let err = err.downcast::<DomainError>().unwrap();
     assert_eq!(err.explanation, "Expected small positive integer, got x");
+  }
+
+  #[test]
+  fn test_unpack_vector() {
+    let opts = CommandOptions::default();
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::call(Vector::FUNCTION_NAME, vec![Expr::from(20), Expr::from(30), Expr::from(40)]),
+    ];
+    let output_stack = act_on_stack(&UnpackCommand::new(), opts, input_stack);
+    assert_eq!(output_stack, Stack::from(vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::from(30),
+      Expr::from(40),
+    ]));
+  }
+
+  #[test]
+  fn test_unpack_vector_with_keep_arg() {
+    let opts = CommandOptions::default().with_keep_modifier();
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::call(Vector::FUNCTION_NAME, vec![Expr::from(20), Expr::from(30), Expr::from(40)]),
+    ];
+    let output_stack = act_on_stack(&UnpackCommand::new(), opts, input_stack);
+    assert_eq!(output_stack, Stack::from(vec![
+      Expr::from(10),
+      Expr::call(Vector::FUNCTION_NAME, vec![Expr::from(20), Expr::from(30), Expr::from(40)]),
+      Expr::from(20),
+      Expr::from(30),
+      Expr::from(40),
+    ]));
+  }
+
+  #[test]
+  fn test_unpack_complex() {
+    let opts = CommandOptions::default();
+    let input_stack = vec![
+      Expr::from(ComplexNumber::new(Number::from(1), Number::from(3))),
+    ];
+    let output_stack = act_on_stack(&UnpackCommand::new(), opts, input_stack);
+    assert_eq!(output_stack, Stack::from(vec![
+      Expr::from(1),
+      Expr::from(3),
+    ]));
+  }
+
+  #[test]
+  fn test_unpack_arbitrary_call() {
+    let opts = CommandOptions::default();
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::call("+", vec![Expr::from(20), Expr::from(30), Expr::from(40)]),
+    ];
+    let output_stack = act_on_stack(&UnpackCommand::new(), opts, input_stack);
+    assert_eq!(output_stack, Stack::from(vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::from(30),
+      Expr::from(40),
+    ]));
+  }
+
+  #[test]
+  fn test_unpack_arbitrary_call_with_keep_arg() {
+    let opts = CommandOptions::default().with_keep_modifier();
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::call("+", vec![Expr::from(20), Expr::from(30), Expr::from(40)]),
+    ];
+    let output_stack = act_on_stack(&UnpackCommand::new(), opts, input_stack);
+    assert_eq!(output_stack, Stack::from(vec![
+      Expr::from(10),
+      Expr::call("+", vec![Expr::from(20), Expr::from(30), Expr::from(40)]),
+      Expr::from(20),
+      Expr::from(30),
+      Expr::from(40),
+    ]));
+  }
+
+  #[test]
+  fn test_unpack_with_empty_stack() {
+    let opts = CommandOptions::default();
+    let input_stack = Vec::<Expr>::new();
+    let err = act_on_stack_err(&UnpackCommand::new(), opts, input_stack);
+    assert_eq!(err, StackError::NotEnoughElements { expected: 1, actual: 0 });
+  }
+
+  #[test]
+  fn test_unpack_with_invalid_top_of_stack() {
+    let opts = CommandOptions::default();
+    let input_stack = vec![Expr::from(10), Expr::from(20), Expr::var("x").unwrap()];
+    let err = act_on_stack_any_err(&UnpackCommand::new(), opts, input_stack);
+    let err = err.downcast::<DomainError>().unwrap();
+    assert_eq!(err.explanation, "Cannot unpack x");
+  }
+
+  #[test]
+  fn test_unpack_with_invalid_top_of_stack_with_keep_arg() {
+    let opts = CommandOptions::default().with_keep_modifier();
+    let input_stack = vec![Expr::from(10), Expr::from(20), Expr::var("x").unwrap()];
+    let err = act_on_stack_any_err(&UnpackCommand::new(), opts, input_stack);
+    let err = err.downcast::<DomainError>().unwrap();
+    assert_eq!(err.explanation, "Cannot unpack x");
   }
 }

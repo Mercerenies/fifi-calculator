@@ -49,6 +49,10 @@ impl ComplexNumber {
     self.imag.repr()
   }
 
+  pub fn into_parts(self) -> (Number, Number) {
+    (self.real, self.imag)
+  }
+
   pub fn from_real(real: Number) -> Self {
     Self { real, imag: Number::zero() }
   }
