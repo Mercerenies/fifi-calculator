@@ -13,7 +13,7 @@ use crate::expr::calculus::DifferentiationError;
 
 use num::{Zero, One};
 
-use std::ops::Add;
+use std::ops::{Add, Mul};
 
 pub fn append_arithmetic_functions(table: &mut FunctionTable) {
   table.insert(addition());
@@ -93,6 +93,16 @@ pub fn subtraction() -> Function {
         Ok(Expr::from(difference))
       })
     )
+    .add_case(
+      // Vector subtraction (with broadcasting)
+      builder::arity_two().both_of_type(ExprToBroadcastable).and_then(|arg1, arg2, context| {
+        if let Err(err) = Broadcastable::check_compatible_lengths([&arg1, &arg2]) {
+          context.errors.push(SimplifierError::new("-", err));
+          return Err((arg1, arg2));
+        }
+        Ok(Expr::from(arg1 - arg2))
+      })
+    )
     .set_derivative(
       builder::arity_two_deriv("-", |arg1, arg2, engine| {
         Ok(Expr::call("-", vec![engine.differentiate(arg1)?, engine.differentiate(arg2)?]))
@@ -142,6 +152,21 @@ pub fn multiplication() -> Function {
         Ok(Expr::from(product))
       })
     )
+    .add_case(
+      // Vector multiplication (with broadcasting)
+      builder::any_arity().of_type(ExprToBroadcastable).and_then(|args, context| {
+        if let Err(err) = Broadcastable::check_compatible_lengths(args.iter()) {
+          context.errors.push(SimplifierError::new("*", err));
+          return Err(args);
+        }
+        // Now that we've validated the lengths, we can safely add all
+        // of the values together. `Broadcastable::add` can panic, but
+        // it won't since we know the lengths are good.
+        let product = args.into_iter()
+          .fold(Broadcastable::one(), Broadcastable::mul);
+        Ok(product.into())
+      })
+    )
     .set_derivative(
       |args, engine| {
         let mut final_terms = Vec::with_capacity(args.len());
@@ -185,6 +210,23 @@ pub fn division() -> Function {
         }
         let quotient = ComplexNumber::from(arg1) / ComplexNumber::from(arg2);
         Ok(Expr::from(quotient))
+      })
+    )
+    .add_case(
+      // Vector division (with broadcasting)
+      builder::arity_two().both_of_type(ExprToBroadcastable).and_then(|arg1, arg2, context| {
+        if let Err(err) = Broadcastable::check_compatible_lengths([&arg1, &arg2]) {
+          context.errors.push(SimplifierError::new("/", err));
+          return Err((arg1, arg2));
+        }
+        // safety: We checked that the lengths were compatible, so
+        // `Broadcastable` won't panic. Further, at least one of
+        // `arg1` or `arg2` is a vector (since the above cases would
+        // have handled any situations where both are scalar), so the
+        // division operator here merely simplifies the expression and
+        // does NOT invoke Number::div or ComplexNumber::div, so
+        // division by zero will NOT panic here.
+        Ok(Expr::from(arg1 / arg2))
       })
     )
     .set_derivative(
