@@ -3,6 +3,7 @@
 //! functions will usually not simplify, but they might have some
 //! useful properties we can exploit.
 
+use crate::expr::Expr;
 use crate::expr::function::Function;
 use crate::expr::function::builder::FunctionBuilder;
 use crate::expr::function::table::FunctionTable;
@@ -12,9 +13,12 @@ pub fn append_datatype_functions(table: &mut FunctionTable) {
 }
 
 pub fn vector_function() -> Function {
-  // Note: This function doesn't currently have any properties, but we
-  // still recognize it.
   FunctionBuilder::new("vector")
+    .set_derivative(
+      |args, engine| {
+        let args = engine.differentiate_each(args)?;
+        Ok(Expr::call("vector", args))
+      }
+    )
     .build()
-  // TODO: Derivative should be pointwise :)
 }
