@@ -87,6 +87,14 @@ where T: Clone,
   iter::repeat(elem).take(n).collect()
 }
 
+/// Reduces a double-ended iterator from the right. Similar to
+/// `reduce`, this function returns `None` if given an empty iterator.
+pub fn reduce_right<I, F>(iter: I, mut f: F) -> Option<I::Item>
+where I: DoubleEndedIterator,
+      F: FnMut(I::Item, I::Item) -> I::Item {
+  iter.rev().reduce(|a, b| f(b, a))
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -154,5 +162,29 @@ mod tests {
     let list = vec![0, 1, 2, 3, 10, 20, 30];
     assert_eq!(count_prefix(list.iter(), |_| false), 0);
     assert_eq!(count_suffix(list.iter(), |_| false), 0);
+  }
+
+  #[test]
+  fn test_reduce_right_on_associative_operation() {
+    let list = vec![0, 1, 2, 3, 4, 5];
+    assert_eq!(reduce_right(list.into_iter(), |a, b| a + b), Some(15));
+  }
+
+  #[test]
+  fn test_reduce_right_on_empty_collection() {
+    let list: Vec<i64> = vec![];
+    assert_eq!(reduce_right(list.into_iter(), |_, _| panic!("Should not be called!")), None);
+  }
+
+  #[test]
+  fn test_reduce_right_on_non_associative_operation() {
+    let list = vec![0, 1, 2, 3, 4, 5];
+    assert_eq!(reduce_right(list.into_iter(), |a, b| a - b), Some(-3));
+  }
+
+  #[test]
+  fn test_reduce_right_on_non_associative_operation_with_singleton_list() {
+    let list = vec![66];
+    assert_eq!(reduce_right(list.into_iter(), |_, _| panic!("Should not be called!")), Some(66));
   }
 }
