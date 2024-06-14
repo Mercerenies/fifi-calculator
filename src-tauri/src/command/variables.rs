@@ -4,6 +4,7 @@
 use super::arguments::{UnaryArgumentSchema, BinaryArgumentSchema, validate_schema};
 use super::base::{Command, CommandContext, CommandOutput};
 use crate::errorlist::ErrorList;
+use crate::expr::Expr;
 use crate::expr::prisms::StringToVar;
 use crate::expr::var::Var;
 use crate::expr::var::constants::validate_non_reserved_var_name;
@@ -18,18 +19,15 @@ use crate::stack::keepable::KeepableStack;
 /// instances of the given variable with the target expression in the
 /// top stack element.
 ///
-/// If the stack is empty, this command fails. It is NOT an error for
-/// the variable to be absent from the target stack expression. In
-/// that case, the stack value is unchanged. This command is also
-/// inherently single-pass, so a substitution can be self-referencing.
-/// That is, it's meaningful to replace `x` with `x + 1` using this
-/// function, since the `x` on the right-hand side will not get
-/// recursively substituted.
+/// If the stack is empty, this command fails. Respects the "keep"
+/// modifier of the command options but does not use the numerical
+/// (prefix) argument.
 ///
-/// Respects the "keep" modifier of the command options but does not
-/// use the numerical (prefix) argument.
+/// Otherwise, replaces the top stack element with a call to the
+/// `substitute(...)` function, to replace the argument variable with
+/// the argument expression in the stack element.
 #[derive(Debug, Default)]
-pub struct SubstituteVarCommand { // TODO Should this be a function IN our language?
+pub struct SubstituteVarCommand {
   _priv: (),
 }
 
@@ -88,7 +86,7 @@ impl Command for SubstituteVarCommand {
 
     let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
     let expr = stack.pop()?;
-    let expr = expr.substitute_var(variable_name, new_value);
+    let expr = Expr::call("substitute", vec![expr, Expr::from(variable_name), new_value]);
     let expr = context.simplifier.simplify_expr(expr, &mut errors);
     stack.push(expr);
 
