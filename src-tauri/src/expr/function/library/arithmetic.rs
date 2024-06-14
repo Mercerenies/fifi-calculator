@@ -5,8 +5,8 @@ use crate::expr::Expr;
 use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
-use crate::expr::vector::tensor::Broadcastable;
-use crate::expr::prisms::{ExprToNumber, ExprToComplex, ExprToVector, ExprToBroadcastable};
+use crate::expr::vector::tensor::Tensor;
+use crate::expr::prisms::{ExprToNumber, ExprToComplex, ExprToVector, ExprToTensor};
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex, pow_complex_to_real};
 use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::calculus::DifferentiationError;
@@ -55,8 +55,8 @@ pub fn addition() -> Function {
     )
     .add_case(
       // Vector addition (with broadcasting)
-      builder::any_arity().of_type(ExprToBroadcastable).and_then(|args, context| {
-        if let Err(err) = Broadcastable::check_compatible_lengths(args.iter()) {
+      builder::any_arity().of_type(ExprToTensor).and_then(|args, context| {
+        if let Err(err) = Tensor::check_compatible_lengths(args.iter()) {
           context.errors.push(SimplifierError::new("+", err));
           return Err(args);
         }
@@ -64,7 +64,7 @@ pub fn addition() -> Function {
         // of the values together. `Broadcastable::add` can panic, but
         // it won't since we know the lengths are good.
         let sum = args.into_iter()
-          .fold(Broadcastable::zero(), Broadcastable::add);
+          .fold(Tensor::zero(), Tensor::add);
         Ok(sum.into())
       })
     )
@@ -95,8 +95,8 @@ pub fn subtraction() -> Function {
     )
     .add_case(
       // Vector subtraction (with broadcasting)
-      builder::arity_two().both_of_type(ExprToBroadcastable).and_then(|arg1, arg2, context| {
-        if let Err(err) = Broadcastable::check_compatible_lengths([&arg1, &arg2]) {
+      builder::arity_two().both_of_type(ExprToTensor).and_then(|arg1, arg2, context| {
+        if let Err(err) = Tensor::check_compatible_lengths([&arg1, &arg2]) {
           context.errors.push(SimplifierError::new("-", err));
           return Err((arg1, arg2));
         }
@@ -154,16 +154,16 @@ pub fn multiplication() -> Function {
     )
     .add_case(
       // Vector multiplication (with broadcasting)
-      builder::any_arity().of_type(ExprToBroadcastable).and_then(|args, context| {
-        if let Err(err) = Broadcastable::check_compatible_lengths(args.iter()) {
+      builder::any_arity().of_type(ExprToTensor).and_then(|args, context| {
+        if let Err(err) = Tensor::check_compatible_lengths(args.iter()) {
           context.errors.push(SimplifierError::new("*", err));
           return Err(args);
         }
         // Now that we've validated the lengths, we can safely add all
-        // of the values together. `Broadcastable::add` can panic, but
+        // of the values together. `Tensor::add` can panic, but
         // it won't since we know the lengths are good.
         let product = args.into_iter()
-          .fold(Broadcastable::one(), Broadcastable::mul);
+          .fold(Tensor::one(), Tensor::mul);
         Ok(product.into())
       })
     )
@@ -214,15 +214,15 @@ pub fn division() -> Function {
     )
     .add_case(
       // Vector division (with broadcasting)
-      builder::arity_two().both_of_type(ExprToBroadcastable).and_then(|arg1, arg2, context| {
-        if let Err(err) = Broadcastable::check_compatible_lengths([&arg1, &arg2]) {
+      builder::arity_two().both_of_type(ExprToTensor).and_then(|arg1, arg2, context| {
+        if let Err(err) = Tensor::check_compatible_lengths([&arg1, &arg2]) {
           context.errors.push(SimplifierError::new("/", err));
           return Err((arg1, arg2));
         }
         // safety: We checked that the lengths were compatible, so
-        // `Broadcastable` won't panic. Further, at least one of
-        // `arg1` or `arg2` is a vector (since the above cases would
-        // have handled any situations where both are scalar), so the
+        // `Tensor` won't panic. Further, at least one of `arg1` or
+        // `arg2` is a vector (since the above cases would have
+        // handled any situations where both are scalar), so the
         // division operator here merely simplifies the expression and
         // does NOT invoke Number::div or ComplexNumber::div, so
         // division by zero will NOT panic here.
