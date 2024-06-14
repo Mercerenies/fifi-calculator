@@ -52,7 +52,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("vconcat".to_string(), Box::new(BinaryFunctionCommand::named("vconcat")));
   map.insert("iota".to_string(), Box::new(UnaryFunctionCommand::named("iota")));
   map.insert("head".to_string(), Box::new(UnaryFunctionCommand::named("head")));
-  map.insert("cons".to_string(), Box::new(BinaryFunctionCommand::named("cons")));
+  map.insert("cons".to_string(), Box::new(BinaryFunctionCommand::named("cons").assoc_right()));
 
   // Commands which accept a single string.
   map.insert("push_number".to_string(), Box::new(push_number_command()));
