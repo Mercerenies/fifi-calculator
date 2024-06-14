@@ -8,11 +8,14 @@ use crate::expr::function::builder::{self, FunctionBuilder};
 use crate::expr::vector::Vector;
 use crate::expr::vector::tensor::Tensor;
 use crate::expr::prisms;
+use crate::util::prism::Identity;
 
 use std::cmp::Ordering;
+use std::iter;
 
 pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(vconcat());
+  table.insert(repeat());
   table.insert(iota());
 }
 
@@ -39,6 +42,17 @@ pub fn vconcat() -> Function {
         let args = engine.differentiate_each(args)?;
         Ok(Expr::call("vconcat", args))
       }
+    )
+    .build()
+}
+
+pub fn repeat() -> Function {
+  FunctionBuilder::new("repeat")
+    .add_case(
+      builder::arity_two().of_types(Identity::new(), prisms::expr_to_usize()).and_then(|value, len, _| {
+        let vector: Vector = iter::repeat(value).take(len).collect();
+        Ok(vector.into())
+      })
     )
     .build()
 }

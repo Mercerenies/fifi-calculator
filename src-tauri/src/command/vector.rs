@@ -52,6 +52,15 @@ pub struct UnpackCommand {
   _priv: (),
 }
 
+/// `RepeatCommand` pops one stack element `expr` and pushes the
+/// expression `repeat(expr, n)`, where `n` is the numerical argument
+/// to the command. The numerical argument defaults to 2 if not
+/// supplied.
+#[derive(Debug, Default)]
+pub struct RepeatCommand {
+  _priv: (),
+}
+
 impl PackCommand {
   pub fn new() -> Self {
     Self::default()
@@ -89,6 +98,12 @@ impl PackCommand {
 }
 
 impl UnpackCommand {
+  pub fn new() -> Self {
+    Self::default()
+  }
+}
+
+impl RepeatCommand {
   pub fn new() -> Self {
     Self::default()
   }
@@ -168,6 +183,29 @@ impl Command for UnpackCommand {
         return Err(anyhow::anyhow!(DomainError::new(format!("Cannot unpack {expr}"))));
       }
     }
+    Ok(CommandOutput::from_errors(errors))
+  }
+}
+
+impl Command for RepeatCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    context: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    validate_schema(&NullaryArgumentSchema::new(), args)?;
+    state.undo_stack_mut().push_cut();
+
+    let arg = context.opts.argument.unwrap_or(2);
+    let mut errors = ErrorList::new();
+    let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
+
+    let expr = stack.pop()?;
+    let expr = Expr::call("repeat", vec![expr, Expr::from(arg)]);
+    let expr = context.simplifier.simplify_expr(expr, &mut errors);
+    stack.push(expr);
+
     Ok(CommandOutput::from_errors(errors))
   }
 }
@@ -437,5 +475,44 @@ mod tests {
     let err = act_on_stack_any_err(&UnpackCommand::new(), opts, input_stack);
     let err = err.downcast::<DomainError>().unwrap();
     assert_eq!(err.explanation, "Cannot unpack x");
+  }
+
+  #[test]
+  fn test_repeat_with_no_arg() {
+    let opts = CommandOptions::default();
+    let input_stack = vec![Expr::from(10)];
+    let output_stack = act_on_stack(&RepeatCommand::new(), opts, input_stack);
+    assert_eq!(output_stack, Stack::from(vec![
+      Expr::call("repeat", vec![Expr::from(10), Expr::from(2)]),
+    ]));
+  }
+
+  #[test]
+  fn test_repeat_with_arg() {
+    let opts = CommandOptions::numerical(5);
+    let input_stack = vec![Expr::from(10)];
+    let output_stack = act_on_stack(&RepeatCommand::new(), opts, input_stack);
+    assert_eq!(output_stack, Stack::from(vec![
+      Expr::call("repeat", vec![Expr::from(10), Expr::from(5)]),
+    ]));
+  }
+
+  #[test]
+  fn test_repeat_with_arg_and_keep_arg() {
+    let opts = CommandOptions::numerical(5).with_keep_modifier();
+    let input_stack = vec![Expr::from(10)];
+    let output_stack = act_on_stack(&RepeatCommand::new(), opts, input_stack);
+    assert_eq!(output_stack, Stack::from(vec![
+      Expr::from(10),
+      Expr::call("repeat", vec![Expr::from(10), Expr::from(5)]),
+    ]));
+  }
+
+  #[test]
+  fn test_repeat_with_empty_stack() {
+    let opts = CommandOptions::default();
+    let input_stack = Vec::<Expr>::new();
+    let err = act_on_stack_err(&RepeatCommand::new(), opts, input_stack);
+    assert_eq!(err, StackError::NotEnoughElements { expected: 1, actual: 0 });
   }
 }
