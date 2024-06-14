@@ -23,7 +23,7 @@ pub fn vconcat() -> Function {
     .set_identity(is_empty_vector)
     .add_case(
       // Vector concatenation
-      builder::any_arity().of_type(ExprToTensor).and_then(|args, context| {
+      builder::any_arity().of_type(ExprToTensor).and_then(|args, _| {
         let sum = args.into_iter()
           .map(Tensor::into_vector)
           .fold(Vector::empty(), Vector::append);

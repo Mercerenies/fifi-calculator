@@ -22,7 +22,9 @@ export class VectorButtonGrid extends ButtonGrid {
         new DispatchButton("p", "pack", "p"),
         new DispatchButton("u", "unpack", "u"),
       ],
-      [],
+      [
+        new DispatchButton("++", "vconcat", "|"),
+      ],
       [],
       [],
       [],

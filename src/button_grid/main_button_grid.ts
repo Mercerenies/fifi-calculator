@@ -37,15 +37,13 @@ export class MainButtonGrid extends ButtonGrid {
   private inputManager: InputBoxManager;
   private onEscapeDismissable: Hideable;
 
-  // We store this one, since we delegate keys to it, and we don't
-  // want to have to regenerate it every time a key is pressed.
-  private transcendentalButtonGrid: TranscendentalButtonGrid;
+  private subgrids: Subgrids;
 
   constructor(inputManager: InputBoxManager, onEscapeDismissable: Hideable) {
     super();
     this.inputManager = inputManager;
     this.onEscapeDismissable = onEscapeDismissable;
-    this.transcendentalButtonGrid = new TranscendentalButtonGrid(this, inputManager);
+    this.subgrids = new Subgrids(this, inputManager);
     this.rows = this.initRows();
   }
 
@@ -62,7 +60,7 @@ export class MainButtonGrid extends ButtonGrid {
         new DispatchButton("<math><mo>&times;</mo><mi>i</mi></math>", "*i", null),
         new DispatchButton("<math><mo>&plusmn;</mo></math>", "negate", "n"),
         new DispatchButton("<math><msup><mi>x</mi><mi>y</mi></msup></math>", "^", "^"),
-        new GotoButton("<math><mi>ξ</mi></math>", null, this.transcendentalButtonGrid),
+        new GotoButton("<math><mi>ξ</mi></math>", null, this.subgrids.transcendental),
       ],
       [
         new DispatchButton("&divide;", "/", "/"),
@@ -78,9 +76,9 @@ export class MainButtonGrid extends ButtonGrid {
         new AlgebraicInputButton(this.inputManager),
       ],
       [
-        new GotoButton("<math><mi>x</mi></math>", "a", () => new AlgebraButtonGrid(this, this.inputManager)),
-        new GotoButton(":=", "s", () => new StorageButtonGrid(this, this.inputManager)),
-        new GotoButton("[]", "v", () => new VectorButtonGrid(this, this.inputManager)),
+        new GotoButton("<math><mi>x</mi></math>", "a", this.subgrids.algebra),
+        new GotoButton(":=", "s", () => this.subgrids.storage),
+        new GotoButton("[]", "v", () => this.subgrids.vector),
       ],
     ];
   }
@@ -91,6 +89,12 @@ export class MainButtonGrid extends ButtonGrid {
     const transcendentalResult = await this.tryDelegateToTranscendentalGrid(manager, key);
     if (transcendentalResult !== null) {
       return transcendentalResult;
+    }
+
+    // Emacs compatibility: Forward "|" to vector button grid.
+    if (key == "|") {
+      const vectorTable = this.subgrids.vector.getKeyMappingTable();
+      vectorTable[key].fire(manager);
     }
 
     if (MainButtonGrid.NUMERICAL_INPUT_START_KEYS.has(key)) {
@@ -108,7 +112,7 @@ export class MainButtonGrid extends ButtonGrid {
 
   // Returns null if not handled, or a KeyResponse if handled.
   private async tryDelegateToTranscendentalGrid(manager: ButtonGridManager, key: string): Promise<KeyResponse | null> {
-    const transcendentalTable = this.transcendentalButtonGrid.getKeyMappingTable();
+    const transcendentalTable = this.subgrids.transcendental.getKeyMappingTable();
     /* eslint-disable-next-line @typescript-eslint/no-dynamic-delete */
     delete transcendentalTable["Escape"]; // Don't forward "Escape", which just doubles back to this grid.
     if (key in transcendentalTable) {
@@ -128,5 +132,19 @@ export class MainButtonGrid extends ButtonGrid {
     default:
       return key;
     }
+  }
+}
+
+class Subgrids {
+  readonly algebra: AlgebraButtonGrid;
+  readonly storage: StorageButtonGrid;
+  readonly vector: VectorButtonGrid;
+  readonly transcendental: TranscendentalButtonGrid;
+
+  constructor(mainGrid: MainButtonGrid, inputManager: InputBoxManager) {
+    this.algebra = new AlgebraButtonGrid(mainGrid, inputManager);
+    this.storage = new StorageButtonGrid(mainGrid, inputManager);
+    this.vector = new VectorButtonGrid(mainGrid, inputManager);
+    this.transcendental = new TranscendentalButtonGrid(mainGrid, inputManager);
   }
 }
