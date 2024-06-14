@@ -46,6 +46,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("pack".to_string(), Box::new(vector::PackCommand::new()));
   map.insert("unpack".to_string(), Box::new(vector::UnpackCommand::new()));
   map.insert("vconcat".to_string(), Box::new(BinaryFunctionCommand::named("vconcat")));
+  map.insert("iota".to_string(), Box::new(UnaryFunctionCommand::named("iota")));
 
   // Commands which accept a single string.
   map.insert("push_number".to_string(), Box::new(push_number_command()));

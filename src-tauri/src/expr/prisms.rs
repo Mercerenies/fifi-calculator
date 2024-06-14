@@ -11,7 +11,7 @@ use num::Zero;
 pub use super::var::StringToVar;
 pub use super::vector::ExprToVector;
 pub use super::vector::tensor::ExprToTensor;
-pub use super::number::prisms::NumberToUsize;
+pub use super::number::prisms::{NumberToUsize, NumberToI64};
 
 /// Prism which downcasts an [`Expr`] to a contained [`Number`].
 #[derive(Debug, Clone, Copy, Default)]
@@ -53,6 +53,12 @@ pub fn expr_to_positive_number() -> Composed<ExprToNumber, NumberToPositiveNumbe
 /// representable by a `usize`.
 pub fn expr_to_usize() -> Composed<ExprToNumber, NumberToUsize, Number> {
   Composed::new(ExprToNumber, NumberToUsize)
+}
+
+/// Prism which only accepts expressions containing [`Number`] values
+/// representable by an `i64`.
+pub fn expr_to_i64() -> Composed<ExprToNumber, NumberToI64, Number> {
+  Composed::new(ExprToNumber, NumberToI64)
 }
 
 impl PositiveNumber {
