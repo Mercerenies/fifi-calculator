@@ -5,7 +5,7 @@ use crate::expr::Expr;
 use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
-use crate::expr::vector::broadcasting::Broadcastable;
+use crate::expr::vector::tensor::Broadcastable;
 use crate::expr::prisms::{ExprToNumber, ExprToComplex, ExprToVector, ExprToBroadcastable};
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex, pow_complex_to_real};
 use crate::expr::simplifier::error::SimplifierError;

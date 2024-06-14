@@ -1,5 +1,5 @@
 
-pub mod broadcasting;
+pub mod tensor;
 
 use super::Expr;
 use crate::util::prism::Prism;

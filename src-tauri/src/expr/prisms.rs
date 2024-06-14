@@ -10,7 +10,7 @@ use num::Zero;
 // Re-export some useful expression-adjacent prisms.
 pub use super::var::StringToVar;
 pub use super::vector::ExprToVector;
-pub use super::vector::broadcasting::ExprToBroadcastable;
+pub use super::vector::tensor::ExprToBroadcastable;
 pub use super::number::prisms::NumberToUsize;
 
 /// Prism which downcasts an [`Expr`] to a contained [`Number`].
