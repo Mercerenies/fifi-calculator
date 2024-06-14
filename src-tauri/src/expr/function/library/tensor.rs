@@ -100,7 +100,6 @@ pub fn head() -> Function {
 }
 
 pub fn cons() -> Function {
-  // TODO: This should right associate with a non-negative prefix arg :)
   FunctionBuilder::new("cons")
     .add_case(
       builder::arity_two().of_types(Identity::new(), prisms::ExprToVector).and_then(|new_value, mut vec, _| {
