@@ -9,10 +9,10 @@ use crate::expr::vector::Vector;
 use crate::expr::vector::tensor::Tensor;
 use crate::expr::prisms;
 use crate::expr::simplifier::error::SimplifierError;
+use crate::util::repeated;
 use crate::util::prism::Identity;
 
 use std::cmp::Ordering;
-use std::iter;
 
 pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(vconcat());
@@ -53,7 +53,7 @@ pub fn repeat() -> Function {
   FunctionBuilder::new("repeat")
     .add_case(
       builder::arity_two().of_types(Identity::new(), prisms::expr_to_usize()).and_then(|value, len, _| {
-        let vector: Vector = iter::repeat(value).take(len).collect();
+        let vector: Vector = repeated(value, len);
         Ok(vector.into())
       })
     )
