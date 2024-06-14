@@ -9,6 +9,7 @@ use crate::expr::Expr;
 use crate::errorlist::ErrorList;
 use crate::stack::base::StackLike;
 use crate::stack::keepable::KeepableStack;
+use crate::util::reduce_right;
 
 use std::cmp::Ordering;
 
@@ -46,9 +47,11 @@ type UnaryFunction = dyn Fn(Expr, &ApplicationState) -> Expr + Send + Sync;
 /// stack being the first argument to the function.
 ///
 /// With a positive prefix argument N, the top N stack elements are
-/// reduced down to one by repeatedly applying the function,
-/// associating to the left. A prefix argument of zero reduces the
-/// whole stack in this way.
+/// reduced down to one by repeatedly applying the function. A prefix
+/// argument of zero reduces the whole stack in this way. The
+/// reduction associates to the left by default, but this can be
+/// customized with the [`BinaryFunctionCommand::assoc_left`] and
+/// [`BinaryFunctionCommand::assoc_right`] helpers.
 ///
 /// A negative prefix argument N is a bit more complex. It pops one
 /// element and then applies the binary function `function` to the top
@@ -56,6 +59,7 @@ type UnaryFunction = dyn Fn(Expr, &ApplicationState) -> Expr + Send + Sync;
 /// specialized to the popped value.
 pub struct BinaryFunctionCommand {
   function: Box<dyn Fn(Expr, Expr) -> Expr + Send + Sync>,
+  associates_right: bool,
 }
 
 impl PushConstantCommand {
@@ -128,7 +132,10 @@ impl UnaryFunctionCommand {
 impl BinaryFunctionCommand {
   pub fn new<F>(function: F) -> BinaryFunctionCommand
   where F: Fn(Expr, Expr) -> Expr + Send + Sync + 'static {
-    BinaryFunctionCommand { function: Box::new(function) }
+    BinaryFunctionCommand {
+      function: Box::new(function),
+      associates_right: false,
+    }
   }
 
   pub fn named(function_name: impl Into<String>) -> BinaryFunctionCommand {
@@ -138,8 +145,38 @@ impl BinaryFunctionCommand {
     })
   }
 
+  /// Returns a `BinaryFunctionCommand` identical to `self` except
+  /// that the command associates to the left when given a
+  /// non-negative prefix argument.
+  ///
+  /// Note that left association is the default behavior, so this
+  /// builder function rarely needs to be called explicitly.
+  pub fn assoc_left(mut self) -> Self {
+    self.associates_right = false;
+    self
+  }
+
+  /// Returns a `BinaryFunctionCommand` identical to `self` except
+  /// that the command associates to the right when given a
+  /// non-negative prefix argument.
+  pub fn assoc_right(mut self) -> Self {
+    self.associates_right = true;
+    self
+  }
+
   fn wrap_exprs(&self, a: Expr, b: Expr) -> Expr {
     (self.function)(a, b)
+  }
+
+  fn reduce_exprs<I>(&self, args: I) -> Option<Expr>
+  where I: IntoIterator<Item=Expr>,
+        I::IntoIter: DoubleEndedIterator {
+    let wrapper = |a, b| self.wrap_exprs(a, b);
+    if self.associates_right {
+      reduce_right(args.into_iter(), wrapper)
+    } else {
+      args.into_iter().reduce(wrapper)
+    }
   }
 }
 
@@ -208,9 +245,8 @@ impl Command for BinaryFunctionCommand {
       Ordering::Greater => {
         // Perform reduction on top N elements.
         let values = stack.pop_several(arg as usize)?;
-        let result = values.into_iter().reduce(|a, b| {
-          self.wrap_exprs(a, b)
-        }).expect("Empty stack"); // expect safety: We popped at least one element off the stack
+        let result = self.reduce_exprs(values)
+          .expect("Empty stack"); // expect safety: We popped at least one element off the stack
         let result = ctx.simplifier.simplify_expr(result, &mut errors);
         stack.push(result);
       }
@@ -228,9 +264,8 @@ impl Command for BinaryFunctionCommand {
         // Reduce entire stack.
         stack.check_stack_size(1)?;
         let values = stack.pop_all();
-        let result = values.into_iter().reduce(|a, b| {
-          self.wrap_exprs(a, b)
-        }).expect("Empty stack"); // expect safety: We just checked that the stack was non-empty
+        let result = self.reduce_exprs(values)
+          .expect("Empty stack"); // expect safety: We just checked that the stack was non-empty
         let result = ctx.simplifier.simplify_expr(result, &mut errors);
         stack.push(result);
       }
@@ -626,6 +661,34 @@ mod tests {
   }
 
   #[test]
+  fn test_binary_function_command_explicitly_left_assoc() {
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&binary_function().assoc_left(), CommandOptions::default(), input_stack);
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        Expr::from(10),
+        Expr::from(20),
+        Expr::call("test_func", vec![Expr::from(30), Expr::from(40)]),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_binary_function_command_right_assoc() {
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&binary_function().assoc_right(), CommandOptions::default(), input_stack);
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        Expr::from(10),
+        Expr::from(20),
+        Expr::call("test_func", vec![Expr::from(30), Expr::from(40)]),
+      ]),
+    );
+  }
+
+  #[test]
   fn test_binary_function_command_with_keep_arg() {
     let opts = CommandOptions::default().with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40];
@@ -745,6 +808,13 @@ mod tests {
   }
 
   #[test]
+  fn test_binary_function_command_with_argument_one_assoc_right() {
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&binary_function().assoc_right(), CommandOptions::numerical(1), input_stack);
+    assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40]));
+  }
+
+  #[test]
   fn test_binary_function_command_with_argument_one_and_keep_arg() {
     let opts = CommandOptions::numerical(1).with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40];
@@ -797,6 +867,60 @@ mod tests {
   }
 
   #[test]
+  fn test_binary_function_command_with_positive_arg_explicitly_left_assoc() {
+    let input_stack = vec![10, 20, 30, 40, 50];
+    let output_stack = act_on_stack(&binary_function().assoc_left(), CommandOptions::numerical(4), input_stack);
+
+    fn test_func(a: Expr, b: Expr) -> Expr {
+      Expr::call("test_func", vec![a, b])
+    }
+
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        Expr::from(10),
+        test_func(
+          test_func(
+            test_func(
+              Expr::from(20),
+              Expr::from(30),
+            ),
+            Expr::from(40),
+          ),
+          Expr::from(50),
+        ),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_binary_function_command_with_positive_arg_right_assoc() {
+    let input_stack = vec![10, 20, 30, 40, 50];
+    let output_stack = act_on_stack(&binary_function().assoc_right(), CommandOptions::numerical(4), input_stack);
+
+    fn test_func(a: Expr, b: Expr) -> Expr {
+      Expr::call("test_func", vec![a, b])
+    }
+
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        Expr::from(10),
+        test_func(
+          Expr::from(20),
+          test_func(
+            Expr::from(30),
+            test_func(
+              Expr::from(40),
+              Expr::from(50),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  #[test]
   fn test_binary_function_command_with_positive_arg_and_keep_arg() {
     let opts = CommandOptions::numerical(4).with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40, 50];
@@ -823,6 +947,121 @@ mod tests {
             Expr::from(40),
           ),
           Expr::from(50),
+        ),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_binary_function_command_with_positive_arg_and_keep_arg_and_right_assoc() {
+    let opts = CommandOptions::numerical(4).with_keep_modifier();
+    let input_stack = vec![10, 20, 30, 40, 50];
+    let output_stack = act_on_stack(&binary_function().assoc_right(), opts, input_stack);
+
+    fn test_func(a: Expr, b: Expr) -> Expr {
+      Expr::call("test_func", vec![a, b])
+    }
+
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        Expr::from(10),
+        Expr::from(20),
+        Expr::from(30),
+        Expr::from(40),
+        Expr::from(50),
+        test_func(
+          Expr::from(20),
+          test_func(
+            Expr::from(30),
+            test_func(
+              Expr::from(40),
+              Expr::from(50),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_binary_function_command_with_arg_zero() {
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&binary_function(), CommandOptions::numerical(0), input_stack);
+
+    fn test_func(a: Expr, b: Expr) -> Expr {
+      Expr::call("test_func", vec![a, b])
+    }
+
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        test_func(
+          test_func(
+            test_func(
+              Expr::from(10),
+              Expr::from(20),
+            ),
+            Expr::from(30),
+          ),
+          Expr::from(40),
+        ),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_binary_function_command_with_arg_zero_assoc_right() {
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&binary_function().assoc_right(), CommandOptions::numerical(0), input_stack);
+
+    fn test_func(a: Expr, b: Expr) -> Expr {
+      Expr::call("test_func", vec![a, b])
+    }
+
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        test_func(
+          Expr::from(10),
+          test_func(
+            Expr::from(20),
+            test_func(
+              Expr::from(30),
+              Expr::from(40),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_binary_function_command_arg_zero_and_keep_arg() {
+    let opts = CommandOptions::numerical(0).with_keep_modifier();
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&binary_function(), opts, input_stack);
+
+    fn test_func(a: Expr, b: Expr) -> Expr {
+      Expr::call("test_func", vec![a, b])
+    }
+
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        Expr::from(10),
+        Expr::from(20),
+        Expr::from(30),
+        Expr::from(40),
+        test_func(
+          test_func(
+            test_func(
+              Expr::from(10),
+              Expr::from(20),
+            ),
+            Expr::from(30),
+          ),
+          Expr::from(40),
         ),
       ]),
     );
@@ -950,6 +1189,38 @@ mod tests {
   fn test_binary_function_command_with_negative_arg() {
     let input_stack = vec![10, 20, 30, 40, 50];
     let output_stack = act_on_stack(&binary_function(), CommandOptions::numerical(-3), input_stack);
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        Expr::from(10),
+        Expr::call("test_func", vec![Expr::from(20), Expr::from(50)]),
+        Expr::call("test_func", vec![Expr::from(30), Expr::from(50)]),
+        Expr::call("test_func", vec![Expr::from(40), Expr::from(50)]),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_binary_function_command_with_negative_arg_explicitly_assoc_left() {
+    let input_stack = vec![10, 20, 30, 40, 50];
+    let output_stack = act_on_stack(&binary_function().assoc_left(), CommandOptions::numerical(-3), input_stack);
+    assert_eq!(
+      output_stack,
+      Stack::from(vec![
+        Expr::from(10),
+        Expr::call("test_func", vec![Expr::from(20), Expr::from(50)]),
+        Expr::call("test_func", vec![Expr::from(30), Expr::from(50)]),
+        Expr::call("test_func", vec![Expr::from(40), Expr::from(50)]),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_binary_function_command_with_negative_arg_assoc_right() {
+    // Note: Associativity does NOT affect BinaryFunctionCommand when
+    // given a negative prefix arg.
+    let input_stack = vec![10, 20, 30, 40, 50];
+    let output_stack = act_on_stack(&binary_function().assoc_right(), CommandOptions::numerical(-3), input_stack);
     assert_eq!(
       output_stack,
       Stack::from(vec![
