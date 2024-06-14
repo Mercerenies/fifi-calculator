@@ -8,6 +8,7 @@ use crate::expr::function::builder::{self, FunctionBuilder};
 use crate::expr::vector::Vector;
 use crate::expr::vector::tensor::Tensor;
 use crate::expr::prisms;
+use crate::expr::simplifier::error::SimplifierError;
 use crate::util::prism::Identity;
 
 use std::cmp::Ordering;
@@ -17,6 +18,8 @@ pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(vconcat());
   table.insert(repeat());
   table.insert(iota());
+  table.insert(head());
+  table.insert(cons());
 }
 
 fn is_empty_vector(expr: &Expr) -> bool {
@@ -75,6 +78,34 @@ pub fn iota() -> Function {
           }
         };
         Ok(vector.into())
+      })
+    )
+    .build()
+}
+
+pub fn head() -> Function {
+  FunctionBuilder::new("head")
+    .add_case(
+      builder::arity_one().of_type(prisms::ExprToVector).and_then(|vec, ctx| {
+        if vec.is_empty() {
+          ctx.errors.push(SimplifierError::custom_error("head", "head called on empty vector"));
+          Err(vec)
+        } else {
+          let mut vec = Vec::from(vec);
+          Ok(vec.swap_remove(0)) // bounds safety: We just checked if the vec was empty
+        }
+      })
+    )
+    .build()
+}
+
+pub fn cons() -> Function {
+  // TODO: This should right associate with a non-negative prefix arg :)
+  FunctionBuilder::new("cons")
+    .add_case(
+      builder::arity_two().of_types(Identity::new(), prisms::ExprToVector).and_then(|new_value, mut vec, _| {
+        vec.as_mut_vec().insert(0, new_value);
+        Ok(vec.into())
       })
     )
     .build()

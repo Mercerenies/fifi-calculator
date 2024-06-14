@@ -126,6 +126,10 @@ impl Vector {
     &mut self.data
   }
 
+  pub fn as_mut_vec(&mut self) -> &mut Vec<Expr> {
+    &mut self.data
+  }
+
   pub fn len(&self) -> usize {
     self.data.len()
   }

@@ -26,8 +26,11 @@ export class VectorButtonGrid extends ButtonGrid {
       ],
       [
         new DispatchButton("++", "vconcat", "|"),
+        new DispatchButton("::", "cons", "k"),
       ],
-      [],
+      [
+        new DispatchButton("1<sup>st</sup>", "head", "h"),
+      ],
       [],
       [],
       [

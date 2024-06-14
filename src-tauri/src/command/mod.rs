@@ -24,6 +24,9 @@ use std::collections::HashMap;
 pub fn default_dispatch_table() -> CommandDispatchTable {
   let mut map: HashMap<String, Box<dyn Command + Send + Sync>> = HashMap::new();
 
+  // TODO: We could probably get several of these automatically from
+  // the function table. That would be nice.
+
   // Nullary commands
   map.insert("+".to_string(), Box::new(BinaryFunctionCommand::named("+")));
   map.insert("-".to_string(), Box::new(BinaryFunctionCommand::named("-")));
@@ -48,6 +51,8 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("repeat".to_string(), Box::new(vector::RepeatCommand::new()));
   map.insert("vconcat".to_string(), Box::new(BinaryFunctionCommand::named("vconcat")));
   map.insert("iota".to_string(), Box::new(UnaryFunctionCommand::named("iota")));
+  map.insert("head".to_string(), Box::new(UnaryFunctionCommand::named("head")));
+  map.insert("cons".to_string(), Box::new(BinaryFunctionCommand::named("cons")));
 
   // Commands which accept a single string.
   map.insert("push_number".to_string(), Box::new(push_number_command()));
