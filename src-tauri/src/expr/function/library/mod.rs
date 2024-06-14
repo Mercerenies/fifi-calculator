@@ -11,6 +11,7 @@ mod basic;
 mod calculus;
 mod datatypes;
 mod transcendental;
+mod tensor;
 
 pub fn build_function_table() -> FunctionTable {
   let mut table = FunctionTable::new();
@@ -19,5 +20,6 @@ pub fn build_function_table() -> FunctionTable {
   calculus::append_calculus_functions(&mut table);
   datatypes::append_datatype_functions(&mut table);
   transcendental::append_transcendental_functions(&mut table);
+  tensor::append_tensor_functions(&mut table);
   table
 }

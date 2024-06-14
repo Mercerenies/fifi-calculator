@@ -43,6 +43,16 @@ pub struct LengthError {
 impl Vector {
   pub const FUNCTION_NAME: &'static str = "vector";
 
+  /// A new, empty `Vector`.
+  pub fn empty() -> Self {
+    Self { data: vec![] }
+  }
+
+  pub fn append(mut self, mut other: Self) -> Self {
+    self.data.append(&mut other.data);
+    self
+  }
+
   /// If the expression is a function call of the form `vector(...)`,
   /// returns a [`Vector`] object representing the vector arguments.
   /// If the expression is of any other form, returns an appropriate

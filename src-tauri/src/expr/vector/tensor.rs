@@ -96,6 +96,16 @@ impl Tensor {
     }
   }
 
+  /// Returns the vector contained within `self`. If `self` is a
+  /// scalar, it's wrapped in a one-element vector.
+  pub fn into_vector(self) -> Vector {
+    match self.data {
+      TensorImpl::RealScalar(n) => Vector::from(vec![Expr::from(n)]),
+      TensorImpl::ComplexScalar(c) => Vector::from(vec![Expr::from(c)]),
+      TensorImpl::Vector(v) => v,
+    }
+  }
+
   /// Checks whether arithmetic operations can be safely applied among
   /// the sequence of [`Tensor`] values. Specifically, this
   /// function succeeds if every `Tensor` which is a vector has

@@ -45,6 +45,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("substitute_vars".to_string(), Box::new(UnaryFunctionCommand::with_state(substitute_vars)));
   map.insert("pack".to_string(), Box::new(vector::PackCommand::new()));
   map.insert("unpack".to_string(), Box::new(vector::UnpackCommand::new()));
+  map.insert("vconcat".to_string(), Box::new(BinaryFunctionCommand::named("vconcat")));
 
   // Commands which accept a single string.
   map.insert("push_number".to_string(), Box::new(push_number_command()));
