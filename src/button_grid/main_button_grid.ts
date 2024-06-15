@@ -3,6 +3,7 @@ import { ButtonGridManager, ButtonGrid, GridCell } from "../button_grid.js";
 import { AlgebraButtonGrid } from "./algebra_button_grid.js";
 import { StorageButtonGrid } from "./storage_button_grid.js";
 import { VectorButtonGrid } from "./vector_button_grid.js";
+import { FormulaButtonGrid } from "./formula_button_grid.js";
 import { TranscendentalButtonGrid } from "./transcendental_button_grid.js";
 import { DispatchButton, GotoButton } from './button.js';
 import { NumericalInputButton, AlgebraicInputButton } from './button/input.js';
@@ -79,6 +80,7 @@ export class MainButtonGrid extends ButtonGrid {
         new GotoButton("<math><mi>x</mi></math>", "a", this.subgrids.algebra),
         new GotoButton(":=", "s", () => this.subgrids.storage),
         new GotoButton("[]", "v", () => this.subgrids.vector),
+        new GotoButton("≤", null, this.subgrids.formula),
       ],
     ];
   }
@@ -137,12 +139,14 @@ export class MainButtonGrid extends ButtonGrid {
 
 class Subgrids {
   readonly algebra: AlgebraButtonGrid;
+  readonly formula: FormulaButtonGrid;
   readonly storage: StorageButtonGrid;
   readonly vector: VectorButtonGrid;
   readonly transcendental: TranscendentalButtonGrid;
 
   constructor(mainGrid: MainButtonGrid, inputManager: InputBoxManager) {
     this.algebra = new AlgebraButtonGrid(mainGrid, inputManager);
+    this.formula = new FormulaButtonGrid(mainGrid, inputManager);
     this.storage = new StorageButtonGrid(mainGrid, inputManager);
     this.vector = new VectorButtonGrid(mainGrid, inputManager);
     this.transcendental = new TranscendentalButtonGrid(mainGrid, inputManager);

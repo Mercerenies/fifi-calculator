@@ -9,11 +9,22 @@ use crate::expr::function::table::FunctionTable;
 use crate::expr::prisms;
 
 pub fn append_formula_functions(table: &mut FunctionTable) {
-  // TODO: Add some functions
+  table.insert(equal_to());
+  table.insert(not_equal_to());
+  table.insert(less_than());
+  table.insert(greater_than());
+  table.insert(less_than_or_equal());
+  table.insert(greater_than_or_equal());
 }
 
 pub fn equal_to() -> Function {
   FunctionBuilder::new("=")
+    .add_case(
+      // Literal value comparison
+      builder::arity_two().both_of_type(prisms::ExprToLiteral).and_then(|left, right, _| {
+        Ok(Expr::from(left == right))
+      })
+    )
     .set_derivative( // TODO: Generalize this "pointwise derivative" pattern; make it a part of builder api
       |args, engine| {
         // Pointwise derivative
@@ -26,6 +37,12 @@ pub fn equal_to() -> Function {
 
 pub fn not_equal_to() -> Function {
   FunctionBuilder::new("!=")
+    .add_case(
+      // Literal value comparison
+      builder::arity_two().both_of_type(prisms::ExprToLiteral).and_then(|left, right, _| {
+        Ok(Expr::from(left != right))
+      })
+    )
     .set_derivative(
       |args, engine| {
         // Pointwise derivative
