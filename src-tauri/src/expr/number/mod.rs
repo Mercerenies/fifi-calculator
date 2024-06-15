@@ -48,7 +48,7 @@ where T: One + MulAssign + Clone {
 /// gives us the best of both worlds: We get the implicit upcast of a
 /// real number into a `ComplexNumber` while still having a lawful
 /// `ExprToComplex` prism.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum ComplexLike {
   Real(Number),
   Complex(ComplexNumber),
@@ -104,6 +104,20 @@ impl TryFrom<ComplexLike> for Number {
     match input {
       ComplexLike::Real(real) => Ok(real),
       ComplexLike::Complex(_) => Err(input),
+    }
+  }
+}
+
+impl PartialEq for ComplexLike {
+  fn eq(&self, other: &Self) -> bool {
+    match (self, other) {
+      (ComplexLike::Real(a), ComplexLike::Real(b)) => a == b,
+      (ComplexLike::Complex(a), ComplexLike::Complex(b)) => a == b,
+      (a, b) => {
+        // This third case technically always works, but the first two
+        // cases avoid an extra clone on `self` and `other`.
+        ComplexNumber::from(a.to_owned()) == ComplexNumber::from(b.to_owned())
+      }
     }
   }
 }
