@@ -10,6 +10,7 @@ mod arithmetic;
 mod basic;
 mod calculus;
 mod datatypes;
+mod formula;
 mod symbolic;
 mod transcendental;
 mod tensor;
@@ -20,6 +21,7 @@ pub fn build_function_table() -> FunctionTable {
   basic::append_basic_functions(&mut table);
   calculus::append_calculus_functions(&mut table);
   datatypes::append_datatype_functions(&mut table);
+  formula::append_formula_functions(&mut table);
   symbolic::append_symbolic_functions(&mut table);
   transcendental::append_transcendental_functions(&mut table);
   tensor::append_tensor_functions(&mut table);
