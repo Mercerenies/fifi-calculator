@@ -3,6 +3,7 @@ pub mod atom;
 pub mod basic_parser;
 pub mod calculus;
 pub mod function;
+pub mod literal;
 pub mod number;
 pub mod prisms;
 pub mod simplifier;
