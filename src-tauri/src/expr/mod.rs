@@ -189,6 +189,14 @@ impl From<BigInt> for Expr {
   }
 }
 
+/// Booleans are represented in the expression language as the literal
+/// integers zero and one.
+impl From<bool> for Expr {
+  fn from(b: bool) -> Expr {
+    Expr::from(number::Number::from(b))
+  }
+}
+
 impl From<i64> for Expr {
   fn from(i: i64) -> Expr {
     Expr::Atom(i.into())

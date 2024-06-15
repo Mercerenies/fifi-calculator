@@ -240,6 +240,12 @@ impl TryFrom<Number> for BigInt {
   }
 }
 
+impl From<bool> for Number {
+  fn from(b: bool) -> Number {
+    if b { Number::one() } else { Number::zero() }
+  }
+}
+
 impl From<i32> for Number {
   fn from(i: i32) -> Number {
     Number { inner: NumberImpl::Integer(Box::new(i.into())) }
