@@ -75,6 +75,12 @@ impl OperatorTable {
       Operator::new("-", Fixity::new()
                            .with_infix("-", Associativity::LEFT, Precedence::new(180))
                            .with_prefix("negate", Precedence::new(197))),
+      Operator::new("<", Fixity::new().with_infix("<", Associativity::NONE, Precedence::new(160))),
+      Operator::new(">", Fixity::new().with_infix(">", Associativity::NONE, Precedence::new(160))),
+      Operator::new("=", Fixity::new().with_infix("=", Associativity::NONE, Precedence::new(160))),
+      Operator::new("!=", Fixity::new().with_infix("!=", Associativity::NONE, Precedence::new(160))),
+      Operator::new("<=", Fixity::new().with_infix("<=", Associativity::NONE, Precedence::new(160))),
+      Operator::new(">=", Fixity::new().with_infix(">=", Associativity::NONE, Precedence::new(160))),
     ].into_iter().collect()
   }
 
