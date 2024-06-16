@@ -6,6 +6,7 @@
 //! `<=`) with expressions on both sides.
 
 use crate::expr::{Expr, TryFromExprError};
+use crate::util::prism::ErrorWithPayload;
 
 use thiserror::Error;
 
@@ -22,10 +23,26 @@ pub struct Formula {
   pub right: Expr,
 }
 
+/// An `Equation` is a [`Formula`] whose operator is
+/// [`FormulaOp::Eq`]. This type is provided as the target for a
+/// prism, since many calculator operations require an equation
+/// specifically.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Equation {
+  pub left: Expr,
+  pub right: Expr,
+}
+
 #[derive(Debug, Clone, Error)]
 #[error("Error parsing formula operator")]
 pub struct ParseFormulaOpError {
   _priv: (),
+}
+
+#[derive(Debug, Clone, Error)]
+#[error("Expecting equation")]
+pub struct FormulaToEquationError {
+  formula: Formula,
 }
 
 /// A binary relational operator which takes two expressions and represents a formula.
@@ -40,6 +57,12 @@ impl Formula {
   }
 }
 
+impl Equation {
+  pub fn new(left: Expr, right: Expr) -> Equation {
+    Equation { left, right }
+  }
+}
+
 impl FormulaOp {
   /// The symbolic name of the operator.
   pub fn name(self) -> &'static str {
@@ -50,6 +73,24 @@ impl FormulaOp {
       FormulaOp::Greater => ">",
       FormulaOp::GreaterEq => ">=",
       FormulaOp::NotEq => "!=",
+    }
+  }
+}
+
+impl From<Equation> for Formula {
+  fn from(equation: Equation) -> Formula {
+    Formula { left: equation.left, op: FormulaOp::Eq, right: equation.right }
+  }
+}
+
+impl TryFrom<Formula> for Equation {
+  type Error = FormulaToEquationError;
+
+  fn try_from(formula: Formula) -> Result<Self, Self::Error> {
+    if formula.op == FormulaOp::Eq {
+      Ok(Equation { left: formula.left, right: formula.right })
+    } else {
+      Err(FormulaToEquationError { formula })
     }
   }
 }
@@ -98,6 +139,12 @@ impl FromStr for FormulaOp {
 impl Display for FormulaOp {
   fn fmt(&self, f: &mut Formatter) -> fmt::Result {
     f.write_str(self.name())
+  }
+}
+
+impl ErrorWithPayload<Formula> for FormulaToEquationError {
+  fn recover_payload(self) -> Formula {
+    self.formula
   }
 }
 

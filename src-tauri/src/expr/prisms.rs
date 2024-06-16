@@ -4,7 +4,7 @@ use super::var::Var;
 use super::atom::Atom;
 use super::number::{Number, ComplexLike};
 use super::literal::Literal;
-use super::algebra::formula::Formula;
+use super::algebra::formula::{Formula, Equation};
 use crate::util::prism::{Prism, Only, Composed, Conversion};
 
 use num::Zero;
@@ -71,6 +71,11 @@ pub fn expr_to_literal() -> Conversion<Expr, Literal> {
 /// Prism which accepts [`Formula`] values.
 pub fn expr_to_formula() -> Conversion<Expr, Formula> {
   Conversion::new()
+}
+
+/// Prism which accepts specifically [`Equation`] values.
+pub fn expr_to_equation() -> Composed<Conversion<Expr, Formula>, Conversion<Formula, Equation>, Formula> {
+  Composed::new(expr_to_formula(), Conversion::new())
 }
 
 impl PositiveNumber {
