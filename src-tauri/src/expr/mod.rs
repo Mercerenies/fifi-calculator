@@ -16,6 +16,7 @@ pub mod walker;
 use atom::Atom;
 use var::Var;
 use var::table::VarTable;
+use crate::util::prism::ErrorWithPayload;
 
 use thiserror::Error;
 use num::{Zero, One, BigInt};
@@ -145,6 +146,12 @@ impl TryFromExprError {
       target_type: target_type.into(),
       original_expr,
     }
+  }
+}
+
+impl ErrorWithPayload<Expr> for TryFromExprError {
+  fn recover_payload(self) -> Expr {
+    self.original_expr
   }
 }
 

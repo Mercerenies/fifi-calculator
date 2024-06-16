@@ -2,6 +2,8 @@
 //! Functional-style prisms for checked downcasts.
 
 use std::marker::PhantomData;
+use std::error::{Error as StdError};
+use std::convert::TryFrom;
 
 /// A prism from `Up` to `Down` is an assertion of a subtype
 /// relationship between `Up` and `Down`. Specifically, it asserts
@@ -36,6 +38,15 @@ pub trait Prism<Up, Down> {
   fn widen_type(&self, input: Down) -> Up;
 }
 
+/// An `ErrorWithPayload<T>` is an `Error` which also contains the
+/// original value (of type `T`) on which an operation was attempted.
+///
+/// This is most commonly used with `TryFrom` implementations, where
+/// the original value can be recovered from the error type.
+pub trait ErrorWithPayload<T>: StdError {
+  fn recover_payload(self) -> T;
+}
+
 /// The identity prism, which always succeeds.
 #[derive(Debug, Clone, Default)]
 pub struct Identity {
@@ -68,6 +79,12 @@ pub struct OnVec<X> {
 #[derive(Debug, Clone, Default)]
 pub struct InOption {
   _private: (),
+}
+
+/// A prism which converts from `Up` to `Down` using [`TryFrom`], and
+/// converts from `Down` back to `Up` using [`From`].
+pub struct Conversion<Up, Down> {
+  _phantom: PhantomData<fn() -> (Up, Down)>,
 }
 
 impl Identity {
@@ -105,6 +122,20 @@ impl<X> OnVec<X> {
 impl InOption {
   pub fn new() -> Self {
     Self::default()
+  }
+}
+
+impl<Up, Down> Conversion<Up, Down>
+where Down: TryFrom<Up>,
+      Up: From<Down>,
+      <Down as TryFrom<Up>>::Error: ErrorWithPayload<Up> {
+  /// Constructs a [`Conversion`] prism from the `TryFrom` and `From`
+  /// impls for the given type.
+  ///
+  /// NOTE: It is the caller's responsibility to ensure that these two
+  /// trait implementations form a lawful prism!
+  pub fn new() -> Self {
+    Self { _phantom: PhantomData }
   }
 }
 
@@ -176,6 +207,19 @@ impl<T> Prism<Option<T>, T> for InOption {
 
   fn widen_type(&self, input: T) -> Option<T> {
     Some(input)
+  }
+}
+
+impl<Up, Down> Prism<Up, Down> for Conversion<Up, Down>
+where Down: TryFrom<Up>,
+      Up: From<Down>,
+      <Down as TryFrom<Up>>::Error: ErrorWithPayload<Up> {
+  fn narrow_type(&self, input: Up) -> Result<Down, Up> {
+    Down::try_from(input)
+      .map_err(|err| err.recover_payload())
+  }
+  fn widen_type(&self, input: Down) -> Up {
+    Up::from(input)
   }
 }
 
