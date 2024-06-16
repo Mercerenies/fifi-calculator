@@ -61,6 +61,10 @@ impl Equation {
   pub fn new(left: Expr, right: Expr) -> Equation {
     Equation { left, right }
   }
+
+  pub fn equals_zero(left: Expr) -> Equation {
+    Equation::new(left, Expr::zero())
+  }
 }
 
 impl FormulaOp {
