@@ -13,6 +13,7 @@ pub use super::vector::ExprToVector;
 pub use super::vector::tensor::ExprToTensor;
 pub use super::number::prisms::{NumberToUsize, NumberToI64};
 pub use super::literal::ExprToLiteral;
+pub use super::algebra::formula::ExprToFormula;
 
 /// Prism which downcasts an [`Expr`] to a contained [`Number`].
 #[derive(Debug, Clone, Copy, Default)]
