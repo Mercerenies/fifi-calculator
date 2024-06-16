@@ -1,4 +1,5 @@
 
+pub mod algebra;
 pub mod atom;
 pub mod basic_parser;
 pub mod calculus;
