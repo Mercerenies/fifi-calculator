@@ -17,6 +17,7 @@ use atom::Atom;
 use var::Var;
 use var::table::VarTable;
 
+use thiserror::Error;
 use num::{Zero, One, BigInt};
 
 use std::mem;
@@ -29,9 +30,11 @@ pub enum Expr {
   Call(String, Vec<Expr>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Error)]
+#[error("Failed to parse expression '{original_expr}' as {target_type}")]
 pub struct TryFromExprError {
-  original_expr: Expr,
+  pub target_type: String,
+  pub original_expr: Expr,
 }
 
 impl Expr {
@@ -136,6 +139,15 @@ impl Expr {
   }
 }
 
+impl TryFromExprError {
+  pub fn new(target_type: impl Into<String>, original_expr: Expr) -> Self {
+    Self {
+      target_type: target_type.into(),
+      original_expr,
+    }
+  }
+}
+
 /// This is a very simple display impl that doesn't handle situations
 /// such as infix operators and is mainly used for getting reasonable
 /// error output in case of a parse error. For regular program output,
@@ -217,7 +229,7 @@ impl TryFrom<Expr> for number::Number {
   fn try_from(e: Expr) -> Result<Self, Self::Error> {
     match e {
       Expr::Atom(Atom::Number(n)) => Ok(n),
-      e => Err(TryFromExprError { original_expr: e }),
+      e => Err(TryFromExprError::new("Number", e)),
     }
   }
 }
