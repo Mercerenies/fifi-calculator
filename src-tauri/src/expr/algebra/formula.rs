@@ -5,7 +5,6 @@
 //! Here, we define a "formula" as a binary relation (such as `=` or
 //! `<=`) with expressions on both sides.
 
-use crate::util::prism::Prism;
 use crate::expr::{Expr, TryFromExprError};
 
 use thiserror::Error;
@@ -22,10 +21,6 @@ pub struct Formula {
   pub op: FormulaOp,
   pub right: Expr,
 }
-
-/// A prism which parses an expression as a top-level formula.
-#[derive(Clone, Copy, Debug)]
-pub struct ExprToFormula;
 
 #[derive(Debug, Clone, Error)]
 #[error("Error parsing formula operator")]
@@ -103,19 +98,6 @@ impl FromStr for FormulaOp {
 impl Display for FormulaOp {
   fn fmt(&self, f: &mut Formatter) -> fmt::Result {
     f.write_str(self.name())
-  }
-}
-
-// TODO: We have a lot of prisms that just delegate to TryFrom in some
-// capacity. Can we make a single prism type that just does that in
-// general?
-impl Prism<Expr, Formula> for ExprToFormula {
-  fn narrow_type(&self, expr: Expr) -> Result<Formula, Expr> {
-    Formula::try_from(expr).map_err(|err| err.original_expr)
-  }
-
-  fn widen_type(&self, formula: Formula) -> Expr {
-    formula.into()
   }
 }
 

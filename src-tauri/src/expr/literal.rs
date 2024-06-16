@@ -25,10 +25,6 @@ enum LiteralImpl {
   Vector(Vec<Literal>),
 }
 
-/// A prism which parses an expression as a [`Literal`].
-#[derive(Debug, Clone, Copy, Default)]
-pub struct ExprToLiteral;
-
 impl Literal {
   pub fn from_vec(v: Vec<Literal>) -> Self {
     Literal { data: LiteralImpl::Vector(v) }
@@ -91,46 +87,36 @@ impl TryFrom<Expr> for Literal {
   }
 }
 
-impl Prism<Expr, Literal> for ExprToLiteral {
-  fn narrow_type(&self, expr: Expr) -> Result<Literal, Expr> {
-    Literal::try_from(expr).map_err(|err| err.original_expr)
-  }
-
-  fn widen_type(&self, lit: Literal) -> Expr {
-    lit.into()
-  }
-}
-
 #[cfg(test)]
 mod tests {
   use super::*;
 
-  fn expect_roundtrip_through_prism(literal: Literal) {
-    let expr = ExprToLiteral.widen_type(literal.clone());
-    let literal2 = ExprToLiteral.narrow_type(expr).expect("Roundtrip through prism failed");
+  fn expect_roundtrip(literal: Literal) {
+    let expr = Expr::from(literal.clone());
+    let literal2 = Literal::try_from(expr).expect("Roundtrip through TryFrom and From failed");
     assert_eq!(literal2, literal);
   }
 
   #[test]
-  fn test_roundtrip_number_through_prism() {
-    expect_roundtrip_through_prism(Literal::from(Number::from(3)));
-    expect_roundtrip_through_prism(Literal::from(Number::from(-2.5)));
-    expect_roundtrip_through_prism(Literal::from(ComplexNumber::new(Number::from(1), Number::from(1))));
-    expect_roundtrip_through_prism(Literal::from(ComplexNumber::new(Number::from(-2), Number::ratio(1, 2))));
+  fn test_roundtrip_number() {
+    expect_roundtrip(Literal::from(Number::from(3)));
+    expect_roundtrip(Literal::from(Number::from(-2.5)));
+    expect_roundtrip(Literal::from(ComplexNumber::new(Number::from(1), Number::from(1))));
+    expect_roundtrip(Literal::from(ComplexNumber::new(Number::from(-2), Number::ratio(1, 2))));
   }
 
   #[test]
-  fn test_roundtrip_vec_through_prism() {
-    expect_roundtrip_through_prism(Literal::from_vec(vec![]));
-    expect_roundtrip_through_prism(Literal::from_vec(vec![
+  fn test_roundtrip_vec() {
+    expect_roundtrip(Literal::from_vec(vec![]));
+    expect_roundtrip(Literal::from_vec(vec![
       Literal::from(Number::from(1)),
       Literal::from(Number::from(2)),
     ]));
   }
 
   #[test]
-  fn test_roundtrip_nested_vec_through_prism() {
-    expect_roundtrip_through_prism(Literal::from_vec(vec![
+  fn test_roundtrip_nested_vec() {
+    expect_roundtrip(Literal::from_vec(vec![
       Literal::from_vec(vec![
         Literal::from(Number::from(1)),
         Literal::from(Number::from(2)),

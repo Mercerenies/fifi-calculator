@@ -3,7 +3,9 @@ use super::Expr;
 use super::var::Var;
 use super::atom::Atom;
 use super::number::{Number, ComplexLike};
-use crate::util::prism::{Prism, Only, Composed};
+use super::literal::Literal;
+use super::algebra::formula::Formula;
+use crate::util::prism::{Prism, Only, Composed, Conversion};
 
 use num::Zero;
 
@@ -12,8 +14,6 @@ pub use super::var::StringToVar;
 pub use super::vector::ExprToVector;
 pub use super::vector::tensor::ExprToTensor;
 pub use super::number::prisms::{NumberToUsize, NumberToI64};
-pub use super::literal::ExprToLiteral;
-pub use super::algebra::formula::ExprToFormula;
 
 /// Prism which downcasts an [`Expr`] to a contained [`Number`].
 #[derive(Debug, Clone, Copy, Default)]
@@ -61,6 +61,16 @@ pub fn expr_to_usize() -> Composed<ExprToNumber, NumberToUsize, Number> {
 /// representable by an `i64`.
 pub fn expr_to_i64() -> Composed<ExprToNumber, NumberToI64, Number> {
   Composed::new(ExprToNumber, NumberToI64)
+}
+
+/// Prism which accepts [`Literal`] values.
+pub fn expr_to_literal() -> Conversion<Expr, Literal> {
+  Conversion::new()
+}
+
+/// Prism which accepts [`Formula`] values.
+pub fn expr_to_formula() -> Conversion<Expr, Formula> {
+  Conversion::new()
 }
 
 impl PositiveNumber {

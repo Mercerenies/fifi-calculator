@@ -21,7 +21,7 @@ pub fn equal_to() -> Function {
   FunctionBuilder::new("=")
     .add_case(
       // Literal value comparison
-      builder::arity_two().both_of_type(prisms::ExprToLiteral).and_then(|left, right, _| {
+      builder::arity_two().both_of_type(prisms::expr_to_literal()).and_then(|left, right, _| {
         Ok(Expr::from(left == right))
       })
     )
@@ -39,7 +39,7 @@ pub fn not_equal_to() -> Function {
   FunctionBuilder::new("!=")
     .add_case(
       // Literal value comparison
-      builder::arity_two().both_of_type(prisms::ExprToLiteral).and_then(|left, right, _| {
+      builder::arity_two().both_of_type(prisms::expr_to_literal()).and_then(|left, right, _| {
         Ok(Expr::from(left != right))
       })
     )

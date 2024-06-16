@@ -83,6 +83,7 @@ pub struct InOption {
 
 /// A prism which converts from `Up` to `Down` using [`TryFrom`], and
 /// converts from `Down` back to `Up` using [`From`].
+#[derive(Debug, Clone)]
 pub struct Conversion<Up, Down> {
   _phantom: PhantomData<fn() -> (Up, Down)>,
 }
