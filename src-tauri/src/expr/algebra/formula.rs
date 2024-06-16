@@ -6,7 +6,7 @@
 //! `<=`) with expressions on both sides.
 
 use crate::util::prism::Prism;
-use crate::expr::Expr;
+use crate::expr::{Expr, TryFromExprError};
 
 use thiserror::Error;
 
@@ -26,13 +26,6 @@ pub struct Formula {
 /// A prism which parses an expression as a top-level formula.
 #[derive(Clone, Copy, Debug)]
 pub struct ExprToFormula;
-
-// TODO: Should we consolidate these *TryFromExprError types into one?
-#[derive(Debug, Clone)]
-pub struct FormulaTryFromExprError {
-  pub original_expr: Expr,
-  _priv: (),
-}
 
 #[derive(Debug, Clone, Error)]
 #[error("Error parsing formula operator")]
@@ -73,9 +66,10 @@ impl From<Formula> for Expr {
 }
 
 impl TryFrom<Expr> for Formula {
-  type Error = FormulaTryFromExprError;
+  type Error = TryFromExprError;
 
   fn try_from(expr: Expr) -> Result<Self, Self::Error> {
+    const TYPE_NAME: &'static str = "Formula";
     if let Expr::Call(name, args) = expr {
       if args.len() == 2 {
         if let Ok(op) = FormulaOp::from_str(&name) {
@@ -83,9 +77,9 @@ impl TryFrom<Expr> for Formula {
           return Ok(Formula { left, op, right });
         }
       }
-      Err(FormulaTryFromExprError { original_expr: Expr::Call(name, args), _priv: () })
+      Err(TryFromExprError::new(TYPE_NAME, Expr::Call(name, args)))
     } else {
-      Err(FormulaTryFromExprError { original_expr: expr, _priv: () })
+      Err(TryFromExprError::new(TYPE_NAME, expr))
     }
   }
 }

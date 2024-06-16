@@ -1,11 +1,9 @@
 
-use super::Expr;
+use super::{Expr, TryFromExprError};
 use super::number::{Number, ComplexNumber, ComplexLike};
 use super::vector::Vector;
 use super::prisms::{ExprToComplex, ExprToVector};
 use crate::util::prism::Prism;
-
-use thiserror::Error;
 
 use std::convert::TryFrom;
 
@@ -51,13 +49,6 @@ impl Literal {
   }
 }
 
-#[derive(Debug, Error)]
-#[error("Expected a literal value, got {original_expr}")]
-pub struct LiteralTryFromExprError {
-  pub original_expr: Expr,
-  _priv: (),
-}
-
 impl From<ComplexLike> for Literal {
   fn from(c: ComplexLike) -> Self {
     Literal { data: LiteralImpl::Numerical(c) }
@@ -89,16 +80,13 @@ impl From<Literal> for Expr {
 }
 
 impl TryFrom<Expr> for Literal {
-  type Error = LiteralTryFromExprError;
+  type Error = TryFromExprError;
 
   fn try_from(expr: Expr) -> Result<Self, Self::Error> {
     Literal::try_from_as_complex(expr).or_else(|expr| {
       Literal::try_from_as_vector(expr)
     }).map_err(|expr| {
-      LiteralTryFromExprError {
-        original_expr: expr,
-        _priv: (),
-      }
+      TryFromExprError::new("Literal", expr)
     })
   }
 }
