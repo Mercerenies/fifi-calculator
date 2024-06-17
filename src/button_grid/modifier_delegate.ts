@@ -1,6 +1,7 @@
 
 import { KeyEventInput, KeyResponse } from '../keyboard.js';
 import * as Dispatcher from '../keyboard/dispatcher.js';
+import { CommandOptions } from '../tauri_api.js';
 
 // A ModifierDelegate can preempt key events from the button grid and
 // respond to them. It also responds to resetModifiers().

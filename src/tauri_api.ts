@@ -42,3 +42,8 @@ export enum UndoDirection {
 export enum Validator {
   VARIABLE = "variable",
 }
+
+export interface CommandOptions {
+  argument: number | null,
+  keepModifier: boolean,
+}
