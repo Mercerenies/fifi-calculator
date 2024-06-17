@@ -71,6 +71,9 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("deriv".to_string(), Box::new(calculus::DerivativeCommand::new()));
   map.insert("find_root".to_string(), Box::new(algebra::FindRootCommand::new()));
 
+  // Specialized commands
+  map.insert("move_stack_elem".to_string(), Box::new(shuffle::MoveStackElemCommand));
+
   CommandDispatchTable::from_hash_map(map)
 }
 
