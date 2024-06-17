@@ -288,6 +288,7 @@ impl From<BigRational> for Number {
 /// Constructs a floating-point number from an `f64` value.
 impl From<f64> for Number {
   fn from(f: f64) -> Number {
+    assert!(f.is_finite(), "Number::from({}) is not finite", f);
     Number { inner: NumberImpl::Float(f) }
   }
 }
