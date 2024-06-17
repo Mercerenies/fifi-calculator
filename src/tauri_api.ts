@@ -50,6 +50,7 @@ export interface CommandOptions {
 
 export interface RefreshStackPayload {
   stack: string[];
+  forceScrollDown: boolean;
 }
 
 export interface UndoAvailabilityPayload {

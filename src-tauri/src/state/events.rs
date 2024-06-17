@@ -8,9 +8,17 @@ use tauri::Manager;
 /// Instructs the frontend to re-render the stack elements with the
 /// given values.
 #[derive(Serialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct RefreshStackPayload {
   /// The stack elements, starting from the top.
   pub stack: Vec<String>,
+  /// Whether or not to force the stack view to scroll down to the
+  /// bottom immediately.
+  ///
+  /// It is generally advisable that this value be true, unless a
+  /// specific value somewhere on the stack is being modified, in
+  /// which case it may be best to leave the view where it is.
+  pub force_scroll_down: bool,
 }
 
 /// Instructs the frontend to update the states of the "Undo" and

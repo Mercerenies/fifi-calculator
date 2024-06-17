@@ -72,11 +72,15 @@ impl ApplicationState {
     Self::default()
   }
 
-  pub fn send_refresh_stack_event(&self, app_handle: &tauri::AppHandle) -> tauri::Result<()> {
+  pub fn send_refresh_stack_event(
+    &self,
+    app_handle: &tauri::AppHandle,
+    force_scroll_down: bool,
+  ) -> tauri::Result<()> {
     let state = &self.undoable_state;
     let displayed_stack: Vec<String> =
       state.main_stack.iter().map(|expr| state.display_settings.to_html(expr)).collect();
-    let payload = RefreshStackPayload { stack: displayed_stack };
+    let payload = RefreshStackPayload { stack: displayed_stack, force_scroll_down };
     app_handle.emit_all(RefreshStackPayload::EVENT_NAME, payload)
   }
 
@@ -89,7 +93,7 @@ impl ApplicationState {
   }
 
   pub fn send_all_updates(&self, app_handle: &tauri::AppHandle) -> tauri::Result<()> {
-    self.send_refresh_stack_event(app_handle)?;
+    self.send_refresh_stack_event(app_handle, true)?;
     self.send_undo_buttons_event(app_handle)?;
     Ok(())
   }
