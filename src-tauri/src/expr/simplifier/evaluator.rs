@@ -1,9 +1,7 @@
 
 use crate::expr::Expr;
 use crate::expr::function::table::FunctionTable;
-use crate::errorlist::ErrorList;
-use super::base::Simplifier;
-use super::error::SimplifierError;
+use super::base::{Simplifier, SimplifierContext};
 
 /// `FunctionEvaluator` is a [`Simplifier`] that evaluates known
 /// functions when all of the arguments have known acceptable values.
@@ -21,13 +19,13 @@ impl<'a> FunctionEvaluator<'a> {
 }
 
 impl<'a> Simplifier for FunctionEvaluator<'a> {
-  fn simplify_expr_part(&self, expr: Expr, errors: &mut ErrorList<SimplifierError>) -> Expr {
+  fn simplify_expr_part(&self, expr: Expr, ctx: &mut SimplifierContext) -> Expr {
     match expr {
       Expr::Call(function_name, args) => {
         let Some(known_function) = self.function_table.get(&function_name) else {
           return Expr::Call(function_name, args);
         };
-        match known_function.call(args, errors, self.function_table) {
+        match known_function.call(args, ctx.errors, ctx.base_simplifier, self.function_table) {
           Ok(expr) => expr,
           Err(args) => Expr::Call(function_name, args),
         }

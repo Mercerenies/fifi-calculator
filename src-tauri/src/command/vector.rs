@@ -124,7 +124,7 @@ impl Command for PackCommand {
       anyhow::ensure!(arg >= 0, "PackCommand: negative argument not supported, got {arg}");
       // Pop `arg` values and construct a vector.
       let vector = PackCommand::pop_and_construct_vector(state, context, arg as usize)?;
-      let expr = context.simplifier.simplify_expr(vector.into(), &mut errors);
+      let expr = context.simplify_expr(vector.into(), &mut errors);
       state.main_stack_mut().push(expr);
     } else {
       // Pop one value, use that to determine the length of the
@@ -139,7 +139,7 @@ impl Command for PackCommand {
           return Err(err);
         }
       };
-      let expr = context.simplifier.simplify_expr(vector.into(), &mut errors);
+      let expr = context.simplify_expr(vector.into(), &mut errors);
       if context.opts.keep_modifier {
         state.main_stack_mut().push(Expr::from(BigInt::from(arg)));
       }
@@ -164,7 +164,7 @@ impl Command for UnpackCommand {
     let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
     match stack.pop()? {
       Expr::Call(_, args) => {
-        let args = args.into_iter().map(|arg| context.simplifier.simplify_expr(arg, &mut errors));
+        let args = args.into_iter().map(|arg| context.simplify_expr(arg, &mut errors));
         stack.push_several(args);
       }
       Expr::Atom(Atom::Complex(z)) => {
@@ -203,7 +203,7 @@ impl Command for RepeatCommand {
 
     let expr = stack.pop()?;
     let expr = Expr::call("repeat", vec![expr, Expr::from(arg)]);
-    let expr = context.simplifier.simplify_expr(expr, &mut errors);
+    let expr = context.simplify_expr(expr, &mut errors);
     stack.push(expr);
 
     Ok(CommandOutput::from_errors(errors))

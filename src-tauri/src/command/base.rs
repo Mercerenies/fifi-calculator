@@ -1,7 +1,10 @@
 
 use crate::state::ApplicationState;
-use crate::expr::simplifier::Simplifier;
+use crate::expr::Expr;
+use crate::expr::simplifier::{Simplifier, SimplifierContext};
 use crate::expr::simplifier::identity::IdentitySimplifier;
+use crate::expr::simplifier::error::SimplifierError;
+use crate::errorlist::ErrorList;
 use super::options::CommandOptions;
 
 pub trait Command {
@@ -28,6 +31,13 @@ pub struct CommandContext<'a> {
 #[derive(Debug, Clone)]
 pub struct CommandOutput {
   pub errors: Vec<String>,
+}
+
+impl<'a> CommandContext<'a> {
+  pub fn simplify_expr(&self, expr: Expr, errors: &mut ErrorList<SimplifierError>) -> Expr {
+    let mut simplifier_context = SimplifierContext { base_simplifier: self.simplifier.as_ref(), errors };
+    self.simplifier.simplify_expr(expr, &mut simplifier_context)
+  }
 }
 
 impl CommandOutput {

@@ -16,7 +16,7 @@ use crate::util::stricteq::StrictEq;
 
 use num::{BigInt, Zero, One};
 
-use std::ops::MulAssign;
+use std::ops::{Add, Sub, Mul, Div, MulAssign};
 
 // Precondition: exp > 0.
 fn powi_by_repeated_square<T>(mut input: T, mut exp: BigInt) -> T
@@ -55,13 +55,6 @@ pub enum ComplexLike {
 }
 
 impl ComplexLike {
-  pub fn is_zero(&self) -> bool {
-    match self {
-      ComplexLike::Real(r) => r.is_zero(),
-      ComplexLike::Complex(z) => z.is_zero(),
-    }
-  }
-
   /// Panics if `self` is a [`ComplexLike::Complex`].
   pub fn unwrap_real(self) -> Number {
     match self {
@@ -75,6 +68,27 @@ impl ComplexLike {
     match self {
       ComplexLike::Real(_) => panic!("Cannot unwrap a real number as a complex number"),
       ComplexLike::Complex(z) => z,
+    }
+  }
+
+  pub fn to_inexact(&self) -> Self {
+    match self {
+      ComplexLike::Real(r) => ComplexLike::Real(r.to_inexact()),
+      ComplexLike::Complex(z) => ComplexLike::Complex(z.to_inexact()),
+    }
+  }
+
+  pub fn abs(&self) -> Number {
+    match self {
+      ComplexLike::Real(r) => r.abs(),
+      ComplexLike::Complex(z) => Number::from(z.abs()),
+    }
+  }
+
+  pub fn abs_sqr(&self) -> Number {
+    match self {
+      ComplexLike::Real(r) => r.abs() * r.abs(),
+      ComplexLike::Complex(z) => z.abs_sqr(),
     }
   }
 }
@@ -128,6 +142,63 @@ impl StrictEq for ComplexLike {
       (ComplexLike::Real(a), ComplexLike::Real(b)) => a.strict_eq(b),
       (ComplexLike::Complex(a), ComplexLike::Complex(b)) => a.strict_eq(b),
       _ => false
+    }
+  }
+}
+
+impl Add for ComplexLike {
+  type Output = ComplexLike;
+
+  fn add(self, other: Self) -> Self::Output {
+    match (self, other) {
+      (ComplexLike::Real(a), ComplexLike::Real(b)) => ComplexLike::Real(a + b),
+      (a, b) => ComplexLike::Complex(ComplexNumber::from(a) + ComplexNumber::from(b)),
+    }
+  }
+}
+
+impl Sub for ComplexLike {
+  type Output = ComplexLike;
+
+  fn sub(self, other: Self) -> Self::Output {
+    match (self, other) {
+      (ComplexLike::Real(a), ComplexLike::Real(b)) => ComplexLike::Real(a - b),
+      (a, b) => ComplexLike::Complex(ComplexNumber::from(a) - ComplexNumber::from(b)),
+    }
+  }
+}
+
+impl Mul for ComplexLike {
+  type Output = ComplexLike;
+
+  fn mul(self, other: Self) -> Self::Output {
+    match (self, other) {
+      (ComplexLike::Real(a), ComplexLike::Real(b)) => ComplexLike::Real(a * b),
+      (a, b) => ComplexLike::Complex(ComplexNumber::from(a) * ComplexNumber::from(b)),
+    }
+  }
+}
+
+impl Div for ComplexLike {
+  type Output = ComplexLike;
+
+  fn div(self, other: Self) -> Self::Output {
+    match (self, other) {
+      (ComplexLike::Real(a), ComplexLike::Real(b)) => ComplexLike::Real(a / b),
+      (a, b) => ComplexLike::Complex(ComplexNumber::from(a) / ComplexNumber::from(b)),
+    }
+  }
+}
+
+impl Zero for ComplexLike {
+  fn zero() -> Self {
+    ComplexLike::Real(Number::zero())
+  }
+
+  fn is_zero(&self) -> bool {
+    match self {
+      ComplexLike::Real(r) => r.is_zero(),
+      ComplexLike::Complex(z) => z.is_zero(),
     }
   }
 }

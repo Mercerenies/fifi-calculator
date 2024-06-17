@@ -1,4 +1,5 @@
 
+pub mod algebra;
 pub mod arguments;
 mod base;
 pub mod calculus;
@@ -68,6 +69,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("manual_substitute".to_string(), Box::new(variables::SubstituteVarCommand::new()));
   map.insert("store_var".to_string(), Box::new(variables::StoreVarCommand::new()));
   map.insert("deriv".to_string(), Box::new(calculus::DerivativeCommand::new()));
+  map.insert("find_root".to_string(), Box::new(algebra::FindRootCommand::new()));
 
   CommandDispatchTable::from_hash_map(map)
 }

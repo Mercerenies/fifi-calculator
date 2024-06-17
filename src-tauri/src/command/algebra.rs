@@ -1,5 +1,5 @@
 
-//! Commands for invoking the calculus subsystems.
+//! Commands for invoking the algebra subsystems.
 
 use super::arguments::{UnaryArgumentSchema, validate_schema};
 use super::base::{Command, CommandContext, CommandOutput};
@@ -13,17 +13,16 @@ use crate::stack::base::StackLike;
 use crate::stack::keepable::KeepableStack;
 
 /// This command takes a variable `v` as an argument. When executed,
-/// pops one value `expr` off the stack and pushes `deriv(expr, v)`,
-/// which will attempt to calculate the derivative of the expression
-/// `expr` in terms of the variable `v`.
+/// pops two values `expr` and `guess` off the stack and pushes
+/// `find_root(expr, v, guess)`.
 ///
 /// Respects the "keep" modifier.
 #[derive(Debug, Default)]
-pub struct DerivativeCommand {
+pub struct FindRootCommand {
   _priv: (),
 }
 
-impl DerivativeCommand {
+impl FindRootCommand {
   pub fn new() -> Self {
     Default::default()
   }
@@ -36,24 +35,23 @@ impl DerivativeCommand {
   }
 }
 
-impl Command for DerivativeCommand {
+impl Command for FindRootCommand {
   fn run_command(
     &self,
     state: &mut ApplicationState,
     args: Vec<String>,
     context: &CommandContext,
   ) -> anyhow::Result<CommandOutput> {
-    let variable_name = validate_schema(&DerivativeCommand::argument_schema(), args)?;
+    let variable_name = validate_schema(&FindRootCommand::argument_schema(), args)?;
 
-    let times = context.opts.argument.unwrap_or(1);
-    anyhow::ensure!(times > 0, "deriv() requires a positive numerical argument, got {times}");
+    // TODO: Should the numerical argument do anything for this command?
 
     let mut errors = ErrorList::new();
     state.undo_stack_mut().push_cut();
 
     let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
-    let expr = stack.pop()?;
-    let expr = Expr::call("deriv", vec![expr, Expr::Atom(Atom::Var(variable_name)), Expr::from(times)]);
+    let [expr, guess] = stack.pop_several(2)?.try_into().unwrap();
+    let expr = Expr::call("find_root", vec![expr, Expr::Atom(Atom::Var(variable_name)), guess]);
     let expr = context.simplify_expr(expr, &mut errors);
     stack.push(expr);
 

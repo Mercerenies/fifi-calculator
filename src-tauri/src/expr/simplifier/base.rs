@@ -15,7 +15,7 @@ pub trait Simplifier {
   /// generally invoke [`Simplifier::simplify_expr`] instead of
   /// calling this function directly. The former will invoke the
   /// latter recursively.
-  fn simplify_expr_part(&self, expr: Expr, errors: &mut ErrorList<SimplifierError>) -> Expr;
+  fn simplify_expr_part(&self, expr: Expr, ctx: &mut SimplifierContext) -> Expr;
 
   /// Calls [`Simplifier::simplify_expr_part`] in a post-order
   /// traversal for each node in the expression tree.
@@ -23,7 +23,12 @@ pub trait Simplifier {
   /// The default implementation runs only one time (in post-order) on
   /// the whole tree, but other simplifiers may choose to run multiple
   /// times.
-  fn simplify_expr(&self, expr: Expr, errors: &mut ErrorList<SimplifierError>) -> Expr {
-    postorder_walk_ok(expr, |e| self.simplify_expr_part(e, errors))
+  fn simplify_expr(&self, expr: Expr, ctx: &mut SimplifierContext) -> Expr {
+    postorder_walk_ok(expr, |e| self.simplify_expr_part(e, ctx))
   }
+}
+
+pub struct SimplifierContext<'a, 'b> {
+  pub base_simplifier: &'a dyn Simplifier,
+  pub errors: &'b mut ErrorList<SimplifierError>,
 }

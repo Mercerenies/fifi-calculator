@@ -1,7 +1,5 @@
 
-use super::base::Simplifier;
-use super::error::SimplifierError;
-use crate::errorlist::ErrorList;
+use super::base::{Simplifier, SimplifierContext};
 use crate::expr::Expr;
 use crate::expr::walker::postorder_walk_ok;
 
@@ -18,14 +16,14 @@ impl<S> RepeatedSimplifier<S> {
 }
 
 impl<S: Simplifier> Simplifier for RepeatedSimplifier<S> {
-  fn simplify_expr(&self, mut expr: Expr, errors: &mut ErrorList<SimplifierError>) -> Expr {
+  fn simplify_expr(&self, mut expr: Expr, ctx: &mut SimplifierContext) -> Expr {
     for _ in 0..self.times {
-      expr = postorder_walk_ok(expr, |e| self.simplify_expr_part(e, errors));
+      expr = postorder_walk_ok(expr, |e| self.simplify_expr_part(e, ctx));
     }
     expr
   }
 
-  fn simplify_expr_part(&self, expr: Expr, errors: &mut ErrorList<SimplifierError>) -> Expr {
-    self.inner.simplify_expr_part(expr, errors)
+  fn simplify_expr_part(&self, expr: Expr, ctx: &mut SimplifierContext) -> Expr {
+    self.inner.simplify_expr_part(expr, ctx)
   }
 }

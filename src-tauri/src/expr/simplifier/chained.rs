@@ -1,8 +1,6 @@
 
-use super::base::Simplifier;
-use super::error::SimplifierError;
+use super::base::{Simplifier, SimplifierContext};
 use super::identity::IdentitySimplifier;
-use crate::errorlist::ErrorList;
 use crate::expr::Expr;
 
 pub struct ChainedSimplifier {
@@ -25,8 +23,8 @@ impl ChainedSimplifier {
 }
 
 impl Simplifier for ChainedSimplifier {
-  fn simplify_expr_part(&self, expr: Expr, errors: &mut ErrorList<SimplifierError>) -> Expr {
-    let expr = self.left.simplify_expr(expr, errors);
-    self.right.simplify_expr(expr, errors)
+  fn simplify_expr_part(&self, expr: Expr, ctx: &mut SimplifierContext) -> Expr {
+    let expr = self.left.simplify_expr(expr, ctx);
+    self.right.simplify_expr(expr, ctx)
   }
 }

@@ -5,9 +5,7 @@
 use crate::expr::Expr;
 use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
-use crate::errorlist::ErrorList;
-use super::base::Simplifier;
-use super::error::SimplifierError;
+use super::base::{Simplifier, SimplifierContext};
 
 /// This simplifier removes any known identity values from
 /// expressions. For instance, the values 0, 0.0, and (0, 0) will be
@@ -33,7 +31,7 @@ impl<'a> IdentityRemover<'a> {
 }
 
 impl<'a> Simplifier for IdentityRemover<'a> {
-  fn simplify_expr_part(&self, expr: Expr, _errors: &mut ErrorList<SimplifierError>) -> Expr {
+  fn simplify_expr_part(&self, expr: Expr, _ctx: &mut SimplifierContext) -> Expr {
     match expr {
       Expr::Call(function_name, args) => {
         let Some(known_function) = self.function_table.get(&function_name) else {

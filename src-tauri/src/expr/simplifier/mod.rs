@@ -8,12 +8,10 @@ pub mod identity;
 pub mod partial;
 pub mod repeated;
 
-pub use base::Simplifier;
+pub use base::{Simplifier, SimplifierContext};
 
 use crate::expr::Expr;
 use crate::expr::function::table::FunctionTable;
-use crate::errorlist::ErrorList;
-use error::SimplifierError;
 use repeated::RepeatedSimplifier;
 
 #[derive(Debug)]
@@ -27,10 +25,10 @@ struct DefaultSimplifier<'a> {
 // frequently. So it's more efficient to just hand-write the
 // implementation we need.
 impl<'a> Simplifier for DefaultSimplifier<'a> {
-  fn simplify_expr_part(&self, mut expr: Expr, errors: &mut ErrorList<SimplifierError>) -> Expr {
-    expr = partial::IdentityRemover::new(self.function_table).simplify_expr_part(expr, errors);
-    expr = evaluator::FunctionEvaluator::new(self.function_table).simplify_expr_part(expr, errors);
-    expr = flattener::FunctionFlattener::new(self.function_table).simplify_expr_part(expr, errors);
+  fn simplify_expr_part(&self, mut expr: Expr, ctx: &mut SimplifierContext) -> Expr {
+    expr = partial::IdentityRemover::new(self.function_table).simplify_expr_part(expr, ctx);
+    expr = evaluator::FunctionEvaluator::new(self.function_table).simplify_expr_part(expr, ctx);
+    expr = flattener::FunctionFlattener::new(self.function_table).simplify_expr_part(expr, ctx);
     expr
   }
 }

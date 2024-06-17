@@ -70,6 +70,13 @@ impl ComplexNumber {
     }
   }
 
+  pub fn to_inexact(&self) -> Self {
+    Self {
+      real: self.real.to_inexact(),
+      imag: self.imag.to_inexact(),
+    }
+  }
+
   /// Computes the square of the absolute value of this complex
   /// number.
   pub fn abs_sqr(&self) -> Number {

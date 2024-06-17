@@ -87,7 +87,7 @@ impl Command for SubstituteVarCommand {
     let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
     let expr = stack.pop()?;
     let expr = Expr::call("substitute", vec![expr, Expr::from(variable_name), new_value]);
-    let expr = context.simplifier.simplify_expr(expr, &mut errors);
+    let expr = context.simplify_expr(expr, &mut errors);
     stack.push(expr);
 
     Ok(CommandOutput::from_errors(errors))

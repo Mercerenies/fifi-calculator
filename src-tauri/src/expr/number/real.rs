@@ -145,6 +145,11 @@ impl Number {
     }
   }
 
+  pub fn to_inexact(&self) -> Self {
+    let value = self.to_f64().unwrap_or(f64::NAN);
+    Number::from(value)
+  }
+
   /// Raises a `Number` to a floating point power. The result is
   /// always a floating point, which may be NaN if the value does not,
   /// mathematically, exist as a real number.

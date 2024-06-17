@@ -7,6 +7,7 @@ pub mod table;
 use flags::FunctionFlags;
 use table::FunctionTable;
 use crate::expr::Expr;
+use crate::expr::simplifier::Simplifier;
 use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::calculus::{DerivativeEngine, DifferentiationFailure, DifferentiationError};
 use crate::errorlist::ErrorList;
@@ -25,9 +26,10 @@ pub struct Function {
   body: Box<FunctionImpl>,
 }
 
-pub struct FunctionContext<'a, 'b> {
+pub struct FunctionContext<'a, 'b, 'c> {
   pub errors: &'a mut ErrorList<SimplifierError>,
-  pub function_table: &'b FunctionTable,
+  pub simplifier: &'b dyn Simplifier,
+  pub function_table: &'c FunctionTable,
   _private: (),
 }
 
@@ -65,9 +67,10 @@ impl Function {
     &self,
     args: Vec<Expr>,
     errors: &mut ErrorList<SimplifierError>,
+    simplifier: &dyn Simplifier,
     function_table: &FunctionTable,
   ) -> Result<Expr, Vec<Expr>> {
-    let context = FunctionContext { errors, function_table, _private: () };
+    let context = FunctionContext { errors, simplifier, function_table, _private: () };
     (self.body)(args, context)
   }
 

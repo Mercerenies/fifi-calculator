@@ -26,6 +26,7 @@ export class AlgebraButtonGrid extends ButtonGrid {
         new VariableSubstituteButton(this.inputManager),
       ],
       [
+        new FindRootButton(this.inputManager),
         new DerivativeButton(this.inputManager),
       ],
       [],
@@ -67,6 +68,39 @@ export class VariableSubstituteButton extends Button {
         return;
       }
       await manager.invokeMathCommand('manual_substitute', [variableName, newValue]);
+    } finally {
+      manager.resetState();
+    }
+  }
+}
+
+// TODO: Common superclass for buttons which expect one variable as
+// input and call a command with it.
+export class FindRootButton extends Button {
+  private inputManager: InputBoxManager;
+
+  constructor(inputManager: InputBoxManager) {
+    super("=0", "R");
+    this.inputManager = inputManager;
+  }
+
+  async fire(manager: ButtonGridManager): Promise<void> {
+    // Fire-and-forget a new promise that gets user input, so we don't
+    // hold up the existing input.
+    this.readAndApply(manager);
+  }
+
+  private async readAndApply(manager: ButtonGridManager): Promise<void> {
+    try {
+      const isValid = await tauri.invoke('validate_stack_size', { expected: 2 });
+      if (!isValid) {
+        return;
+      }
+      const variableName = await variableNameInput(this.inputManager);
+      if (!variableName) {
+        return;
+      }
+      await manager.invokeMathCommand('find_root', [variableName]);
     } finally {
       manager.resetState();
     }

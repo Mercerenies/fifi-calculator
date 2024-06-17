@@ -102,7 +102,7 @@ impl UnaryFunctionCommand {
       stack.pop_several(element_count)?
     };
     let values: Vec<_> = values.into_iter().map(|e| {
-      ctx.simplifier.simplify_expr(self.wrap_expr(e, state), &mut errors)
+      ctx.simplify_expr(self.wrap_expr(e, state), &mut errors)
     }).collect();
     state.main_stack_mut().push_several(values);
     Ok(CommandOutput::from_errors(errors))
@@ -121,7 +121,7 @@ impl UnaryFunctionCommand {
       // it's safe to re-insert.
       state.main_stack_mut().insert(element_index, expr.clone()).expect("Stack was too small for re-insert");
     }
-    expr.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_expr(e, state), &mut errors));
+    expr.mutate(|e| ctx.simplify_expr(self.wrap_expr(e, state), &mut errors));
     // expect safety: We just popped a value from that position, so
     // it's safe to re-insert.
     state.main_stack_mut().insert(element_index, expr).expect("Stack was too small for re-insert");
@@ -194,7 +194,7 @@ impl Command for PushConstantCommand {
     let arg = ctx.opts.argument.unwrap_or(1).max(0);
     let mut errors = ErrorList::new();
     for _ in 0..arg {
-      state.main_stack_mut().push(ctx.simplifier.simplify_expr(self.expr.clone(), &mut errors));
+      state.main_stack_mut().push(ctx.simplify_expr(self.expr.clone(), &mut errors));
     }
     Ok(CommandOutput::from_errors(errors))
   }
@@ -247,7 +247,7 @@ impl Command for BinaryFunctionCommand {
         let values = stack.pop_several(arg as usize)?;
         let result = self.reduce_exprs(values)
           .expect("Empty stack"); // expect safety: We popped at least one element off the stack
-        let result = ctx.simplifier.simplify_expr(result, &mut errors);
+        let result = ctx.simplify_expr(result, &mut errors);
         stack.push(result);
       }
       Ordering::Less => {
@@ -256,7 +256,7 @@ impl Command for BinaryFunctionCommand {
         // expect safety: We popped at least two values, so removing one is safe.
         let second_argument = values.pop().expect("Empty stack");
         for e in values.iter_mut() {
-          e.mutate(|e| ctx.simplifier.simplify_expr(self.wrap_exprs(e, second_argument.clone()), &mut errors));
+          e.mutate(|e| ctx.simplify_expr(self.wrap_exprs(e, second_argument.clone()), &mut errors));
         }
         stack.push_several(values);
       }
@@ -266,7 +266,7 @@ impl Command for BinaryFunctionCommand {
         let values = stack.pop_all();
         let result = self.reduce_exprs(values)
           .expect("Empty stack"); // expect safety: We just checked that the stack was non-empty
-        let result = ctx.simplifier.simplify_expr(result, &mut errors);
+        let result = ctx.simplify_expr(result, &mut errors);
         stack.push(result);
       }
     }
