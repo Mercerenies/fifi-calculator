@@ -2,10 +2,11 @@
 //! Commands for shuffling the stack.
 
 use super::base::{Command, CommandContext, CommandOutput};
-use super::arguments::{NullaryArgumentSchema, validate_schema};
+use super::arguments::{NullaryArgumentSchema, BinaryArgumentSchema, validate_schema};
 use crate::state::ApplicationState;
 use crate::stack::keepable::KeepableStack;
 use crate::stack::base::{StackLike, RandomAccessStackLike};
+use crate::expr::prisms::{StringToUsize, ParsedUsize};
 
 use std::cmp::Ordering;
 
@@ -20,6 +21,31 @@ pub struct SwapCommand;
 /// Duplicates the top stack value.
 #[derive(Debug, Clone)]
 pub struct DupCommand;
+
+/// General-purpose re-order command. Takes two arguments: `src_pos`
+/// and `dest_pos`. Both must be non-negative integers. The element at
+/// stack position `src_pos` is popped and then inserted as index
+/// `dest_pos`. If either index is out-of-bounds, nothing happens.
+///
+/// Note that `dest_pos` is indexed relative to the stack _after_ the
+/// value is popped!
+///
+/// `MoveStackElemCommand` does not use the numerical argument. It
+/// also does not respect the keep modifier, since no information is
+/// being destroyed in this case.
+#[derive(Debug, Clone)]
+pub struct MoveStackElemCommand;
+
+impl MoveStackElemCommand {
+  fn argument_schema() -> BinaryArgumentSchema<StringToUsize, ParsedUsize, StringToUsize, ParsedUsize> {
+    BinaryArgumentSchema::new(
+      "nonnegative integer".to_owned(),
+      StringToUsize,
+      "nonnegative integer".to_owned(),
+      StringToUsize,
+    )
+  }
+}
 
 impl Command for PopCommand {
   fn run_command(
@@ -128,11 +154,38 @@ impl Command for DupCommand {
   }
 }
 
+impl Command for MoveStackElemCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    _ctx: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    let (src_pos, dest_pos) = validate_schema(&Self::argument_schema(), args)?;
+    state.undo_stack_mut().push_cut();
+    let src_pos = usize::from(src_pos);
+    let dest_pos = usize::from(dest_pos);
+
+    let mut stack = state.main_stack_mut();
+
+    let required_stack_size = src_pos.max(dest_pos) + 1;
+    stack.check_stack_size(required_stack_size)?;
+
+    // We've validated the stack size, so we can assume future pushes
+    // and pops will succeed.
+    let value = stack.pop_nth(src_pos).expect("Stack underflow");
+    stack.insert(dest_pos, value).expect("Stack insert out of bounds");
+
+    Ok(CommandOutput::success())
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
   use crate::expr::Expr;
-  use crate::command::test_utils::{act_on_stack, act_on_stack_err};
+  use crate::command::test_utils::{act_on_stack, act_on_stack_err,
+                                   act_on_stack_with_args, act_on_stack_with_args_err};
   use crate::command::options::CommandOptions;
   use crate::stack::test_utils::stack_of;
   use crate::stack::{Stack, StackError};
@@ -618,5 +671,143 @@ mod tests {
       err,
       StackError::NotEnoughElements { expected: 3, actual: 0 },
     )
+  }
+
+  #[test]
+  fn test_move_stack() {
+    let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
+    let output_stack = act_on_stack_with_args(
+      &MoveStackElemCommand,
+      vec!["1", "3"],
+      CommandOptions::default(),
+      input_stack,
+    );
+    assert_eq!(
+      output_stack,
+      stack_of(vec![10, 20, 30, 60, 40, 50, 70]),
+    )
+  }
+
+  #[test]
+  fn test_move_stack_move_from_top() {
+    let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
+    let output_stack = act_on_stack_with_args(
+      &MoveStackElemCommand,
+      vec!["0", "3"],
+      CommandOptions::default(),
+      input_stack,
+    );
+    assert_eq!(
+      output_stack,
+      stack_of(vec![10, 20, 30, 70, 40, 50, 60]),
+    )
+  }
+
+  #[test]
+  fn test_move_stack_move_from_bottom() {
+    let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
+    let output_stack = act_on_stack_with_args(
+      &MoveStackElemCommand,
+      vec!["6", "2"],
+      CommandOptions::default(),
+      input_stack,
+    );
+    assert_eq!(
+      output_stack,
+      stack_of(vec![20, 30, 40, 50, 10, 60, 70]),
+    )
+  }
+
+  #[test]
+  fn test_move_stack_move_to_top() {
+    let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
+    let output_stack = act_on_stack_with_args(
+      &MoveStackElemCommand,
+      vec!["1", "0"],
+      CommandOptions::default(),
+      input_stack,
+    );
+    assert_eq!(
+      output_stack,
+      stack_of(vec![10, 20, 30, 40, 50, 70, 60]),
+    )
+  }
+
+  #[test]
+  fn test_move_stack_move_to_bottom() {
+    let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
+    let output_stack = act_on_stack_with_args(
+      &MoveStackElemCommand,
+      vec!["1", "6"],
+      CommandOptions::default(),
+      input_stack,
+    );
+    assert_eq!(
+      output_stack,
+      stack_of(vec![60, 10, 20, 30, 40, 50, 70]),
+    )
+  }
+
+  #[test]
+  fn test_move_stack_move_noop() {
+    let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
+    let output_stack = act_on_stack_with_args(
+      &MoveStackElemCommand,
+      vec!["4", "4"],
+      CommandOptions::default(),
+      input_stack,
+    );
+    assert_eq!(
+      output_stack,
+      stack_of(vec![10, 20, 30, 40, 50, 60, 70]),
+    )
+  }
+
+  #[test]
+  fn test_move_stack_src_out_of_bounds() {
+    let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
+    let err = act_on_stack_with_args_err(
+      &MoveStackElemCommand,
+      vec!["7", "1"],
+      CommandOptions::default(),
+      input_stack,
+    );
+    assert_eq!(err, StackError::NotEnoughElements { expected: 8, actual: 7 });
+  }
+
+  #[test]
+  fn test_move_stack_dest_out_of_bounds() {
+    let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
+    let err = act_on_stack_with_args_err(
+      &MoveStackElemCommand,
+      vec!["3", "7"],
+      CommandOptions::default(),
+      input_stack,
+    );
+    assert_eq!(err, StackError::NotEnoughElements { expected: 8, actual: 7 });
+  }
+
+  #[test]
+  fn test_move_stack_both_out_of_bounds_1() {
+    let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
+    let err = act_on_stack_with_args_err(
+      &MoveStackElemCommand,
+      vec!["8", "9"],
+      CommandOptions::default(),
+      input_stack,
+    );
+    assert_eq!(err, StackError::NotEnoughElements { expected: 10, actual: 7 });
+  }
+
+  #[test]
+  fn test_move_stack_both_out_of_bounds_2() {
+    let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
+    let err = act_on_stack_with_args_err(
+      &MoveStackElemCommand,
+      vec!["9", "8"],
+      CommandOptions::default(),
+      input_stack,
+    );
+    assert_eq!(err, StackError::NotEnoughElements { expected: 10, actual: 7 });
   }
 }

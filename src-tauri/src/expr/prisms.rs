@@ -40,6 +40,18 @@ pub struct PositiveNumber {
   data: Number,
 }
 
+/// Prism which reads a string as a non-negative integer.
+#[derive(Debug, Clone)]
+pub struct StringToUsize;
+
+/// Equivalent to `usize` but also keeps track of the string used to
+/// construct it. This ensures that the [`StringToUsize`] prism is
+/// lawful and can recover the original string on `widen_type`.
+pub struct ParsedUsize {
+  value: usize,
+  input: String,
+}
+
 /// Prism which accepts only a specific variable as the expression.
 pub fn must_be_var(var: Var) -> Only<Expr> {
   let expr = Expr::Atom(Atom::Var(var));
@@ -87,6 +99,12 @@ impl PositiveNumber {
     } else {
       Err(number)
     }
+  }
+}
+
+impl From<ParsedUsize> for usize {
+  fn from(arg: ParsedUsize) -> Self {
+    arg.value
   }
 }
 
@@ -142,5 +160,18 @@ impl Prism<Number, PositiveNumber> for NumberToPositiveNumber {
   }
   fn widen_type(&self, input: PositiveNumber) -> Number {
     input.into()
+  }
+}
+
+impl Prism<String, ParsedUsize> for StringToUsize {
+  fn narrow_type(&self, input: String) -> Result<ParsedUsize, String> {
+    if let Ok(value) = input.parse() {
+      Ok(ParsedUsize { value, input })
+    } else {
+      Err(input)
+    }
+  }
+  fn widen_type(&self, input: ParsedUsize) -> String {
+    input.input
   }
 }
