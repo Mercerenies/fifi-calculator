@@ -38,6 +38,9 @@
 .value-stack {
     overflow-y: scroll;
     height: 450px;
+    border-radius: 10px;
+    margin: 0em 1em 1em 1em;
+    background-color: #ffffff;
 }
 
 .right-panel {
@@ -233,7 +236,7 @@ button {
 }
 
 /* "Small screen" mode for mobile devices */
-@media (max-width: 818px) {
+@media (max-width: 840px) {
     .value-stack {
         height: 10em;
     }
@@ -247,6 +250,10 @@ button {
 
   a:hover {
     color: #24c8db;
+  }
+
+  .value-stack {
+    background-color: #0f0f0f98;
   }
 
   input,
