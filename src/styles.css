@@ -12,6 +12,7 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
 }
 
 .container {
@@ -26,10 +27,21 @@
 .vertical-container {
     display: flex;
     flex-direction: column;
+    height: 100%;
 }
 
 .stack-interface {
     min-width: 60%;
+    flex: 1;
+}
+
+.value-stack {
+    overflow-y: scroll;
+    height: 450px;
+}
+
+.right-panel {
+    height: 450px;
 }
 
 .input-box {
@@ -218,6 +230,13 @@ button {
   border: solid white;
   border-width: 0 3px 3px 0;
   transform: rotate(45deg);
+}
+
+/* "Small screen" mode for mobile devices */
+@media (max-width: 818px) {
+    .value-stack {
+        height: 10em;
+    }
 }
 
 @media (prefers-color-scheme: dark) {

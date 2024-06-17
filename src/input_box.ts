@@ -28,14 +28,14 @@ export class InputBoxManager {
   }
 
   isShowing(): boolean {
-    return (this.inputBox.style.display !== 'none');
+    return (this.inputBox.style.visibility !== 'hidden');
   }
 
   show(inputMethod: InputMethod, initialInput: string = ""): Promise<string | undefined> {
     return new Promise<string | undefined>((resolve, reject) => {
       this.inputMethod = inputMethod;
       this.inputSession = new ConcreteSession(this, resolve, reject);
-      this.inputBox.style.display = 'flex';
+      this.inputBox.style.visibility = 'visible';
       this.inputLabel.innerHTML = inputMethod.labelHtml;
       this.setTextBoxValue(initialInput);
       window.setTimeout(() => this.inputTextBox.focus(), 1);
@@ -46,7 +46,7 @@ export class InputBoxManager {
   }
 
   hide(): void {
-    this.inputBox.style.display = 'none';
+    this.inputBox.style.visibility = 'hidden';
     this.inputTextBox.value = "";
   }
 
