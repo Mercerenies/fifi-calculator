@@ -34,4 +34,11 @@ class TauriApi {
 
 export const TAURI = new TauriApi();
 
-export type UndoDirection = "undo" | "redo";
+export enum UndoDirection {
+  UNDO = "undo",
+  REDO = "redo",
+}
+
+export enum Validator {
+  VARIABLE = "variable",
+}

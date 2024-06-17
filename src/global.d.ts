@@ -1,17 +1,4 @@
 
-interface TauriFunctions {
-  invoke: TauriInvoke,
-}
-
-interface TauriInvoke {
-  (command: 'run_math_command', args: { commandName: string, args: string[], opts: CommandOptions }): Promise<void>;
-  (command: 'perform_undo_action', args: { direction: "undo" | "redo" }): Promise<void>;
-  (command: 'validate_stack_size', args: { expected: number }): Promise<boolean>;
-  (command: 'validate_value', args: { value: string, validator: Validator }): Promise<boolean>;
-}
-
-type Validator = "variable";
-
 interface CommandOptions {
   argument: number | null,
   keepModifier: boolean,

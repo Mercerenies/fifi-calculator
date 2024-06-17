@@ -1,6 +1,6 @@
 
 import { KeyEventInput, KeyResponse } from './keyboard.js';
-import { TAURI } from './tauri_api.js';
+import { TAURI, UndoDirection } from './tauri_api.js';
 
 export class UndoManager {
   private undoButton: HTMLButtonElement;
@@ -13,13 +13,13 @@ export class UndoManager {
 
   initListeners(): void {
     this.undoButton.addEventListener("click", () =>
-      this.doUndoAction("undo"));
+      this.doUndoAction(UndoDirection.UNDO));
 
     this.redoButton.addEventListener("click", () =>
-      this.doUndoAction("redo"));
+      this.doUndoAction(UndoDirection.REDO));
   }
 
-  private doUndoAction(direction: "undo" | "redo"): Promise<void> {
+  private doUndoAction(direction: UndoDirection): Promise<void> {
     return TAURI.performUndoAction(direction);
   }
 
@@ -35,10 +35,10 @@ export class UndoManager {
     switch (input.toEmacsSyntax()) {
       case "U":
       case "C-/":
-        this.doUndoAction("undo");
+        this.doUndoAction(UndoDirection.UNDO);
         return KeyResponse.BLOCK;
       case "D":
-        this.doUndoAction("redo");
+        this.doUndoAction(UndoDirection.REDO);
         return KeyResponse.BLOCK;
       default:
         return KeyResponse.PASS;
