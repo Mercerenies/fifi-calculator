@@ -4,8 +4,7 @@ import { backButton, Button } from './button.js';
 import { variableNameInput } from '../input_box/algebraic_input.js';
 import { FreeformInputMethod } from '../input_box/freeform_input.js';
 import { InputBoxManager } from '../input_box.js';
-
-const tauri = window.__TAURI__.tauri;
+import { TAURI } from '../tauri_api.js';
 
 export class AlgebraButtonGrid extends ButtonGrid {
   readonly rows: readonly (readonly GridCell[])[];
@@ -55,7 +54,7 @@ export class VariableSubstituteButton extends Button {
 
   private async readAndSubstitute(manager: ButtonGridManager): Promise<void> {
     try {
-      const isValid = await tauri.invoke('validate_stack_size', { expected: 1 });
+      const isValid = await TAURI.validateStackSize(1);
       if (!isValid) {
         return;
       }
@@ -92,7 +91,7 @@ export class FindRootButton extends Button {
 
   private async readAndApply(manager: ButtonGridManager): Promise<void> {
     try {
-      const isValid = await tauri.invoke('validate_stack_size', { expected: 2 });
+      const isValid = await TAURI.validateStackSize(2);
       if (!isValid) {
         return;
       }
@@ -123,7 +122,7 @@ export class DerivativeButton extends Button {
 
   private async readAndApply(manager: ButtonGridManager): Promise<void> {
     try {
-      const isValid = await tauri.invoke('validate_stack_size', { expected: 1 });
+      const isValid = await TAURI.validateStackSize(1);
       if (!isValid) {
         return;
       }

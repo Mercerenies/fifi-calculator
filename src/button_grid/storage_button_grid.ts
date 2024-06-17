@@ -4,8 +4,7 @@ import { ButtonModifiers } from './modifier_delegate.js';
 import { backButton, Button } from './button.js';
 import { variableNameInput } from '../input_box/algebraic_input.js';
 import { InputBoxManager } from '../input_box.js';
-
-const tauri = window.__TAURI__.tauri;
+import { TAURI } from '../tauri_api.js';
 
 export class StorageButtonGrid extends ButtonGrid {
   readonly rows: readonly (readonly GridCell[])[];
@@ -55,7 +54,7 @@ export class VariableStoreButton extends Button {
 
   private async readAndStore(manager: ButtonGridManager): Promise<void> {
     try {
-      const isValid = await tauri.invoke('validate_stack_size', { expected: 1 });
+      const isValid = await TAURI.validateStackSize(1);
       if (!isValid) {
         return;
       }

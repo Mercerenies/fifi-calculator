@@ -1,7 +1,6 @@
 
 import { KeyEventInput, KeyResponse } from './keyboard.js';
-
-const tauri = window.__TAURI__.tauri;
+import { TAURI } from './tauri_api.js';
 
 export class UndoManager {
   private undoButton: HTMLButtonElement;
@@ -20,8 +19,8 @@ export class UndoManager {
       this.doUndoAction("redo"));
   }
 
-  private doUndoAction(direction: "undo" | "redo") {
-    tauri.invoke('perform_undo_action', { direction });
+  private doUndoAction(direction: "undo" | "redo"): Promise<void> {
+    return TAURI.performUndoAction(direction);
   }
 
   setUndoButtonEnabled(enabled: boolean): void {

@@ -4,8 +4,7 @@
 
 import { KeyEventInput, KeyResponse } from './keyboard.js';
 import { ModifierDelegate, ButtonModifiers, modifiersToRustArgs } from './button_grid/modifier_delegate.js';
-
-const tauri = window.__TAURI__.tauri;
+import { TAURI } from './tauri_api.js';
 
 // NOTE: This should be kept up to date with the .button-grid class in
 // styles.css. If that value gets updated, update this as well!
@@ -58,11 +57,7 @@ export class ButtonGridManager {
   ): Promise<void> {
     const modifiers = this.getModifiers();
     Object.assign(modifiers, modifiersOverrides);
-    await tauri.invoke('run_math_command', {
-      commandName,
-      args,
-      opts: modifiersToRustArgs(modifiers),
-    });
+    await TAURI.runMathCommand(commandName, args, modifiersToRustArgs(modifiers));
   }
 
   private loadHtml(): void {
