@@ -60,20 +60,6 @@ where S: StackLike,
 // form as well, rather than special-casing them to Stack<T>.
 impl<'a, T, D> DelegatingStack<'a, Stack<T>, D>
 where D: StackDelegate<T> {
-  pub fn pop_nth(&mut self, index: usize) -> Result<T, StackError> {
-    let value = self.stack.pop_nth(index)?;
-    self.delegate.on_pop(index, &value);
-    Ok(value)
-  }
-
-  pub fn insert(&mut self, index: usize, element: T) -> Result<(), StackError> {
-    // Check stack size before calling the delegate, so the delegate
-    // only sees valid pushes.
-    self.check_stack_size(index)?;
-    self.delegate.on_push(index, &element);
-    self.stack.insert(index, element)
-  }
-
   /// Iterates from the bottom of the stack.
   pub fn iter(&self) -> impl DoubleEndedIterator<Item = &T> {
     self.stack.iter()
@@ -150,6 +136,20 @@ where S: RandomAccessStackLike,
       original_value: value.clone(),
       value,
     })
+  }
+
+  fn insert(&mut self, index: usize, element: S::Elem) -> Result<(), StackError> {
+    // Check stack size before calling the delegate, so the delegate
+    // only sees valid pushes.
+    self.check_stack_size(index)?;
+    self.delegate.on_push(index, &element);
+    self.stack.insert(index, element)
+  }
+
+  fn pop_nth(&mut self, index: usize) -> Result<S::Elem, StackError> {
+    let value = self.stack.pop_nth(index)?;
+    self.delegate.on_pop(index, &value);
+    Ok(value)
   }
 }
 

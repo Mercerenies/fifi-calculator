@@ -111,4 +111,17 @@ pub trait RandomAccessStackLike: StackLike {
     f(value.deref_mut());
     Ok(())
   }
+
+  /// Inserts an element at the given position, 0-indexed from the top
+  /// of the stack. `self.insert(0, x)` should be equivalent to
+  /// `self.push(x)`.
+  ///
+  /// This method shall report an error if the index is strictly
+  /// greater than `self.len()`.
+  fn insert(&mut self, index: usize, element: Self::Elem) -> Result<(), StackError>;
+
+  /// Pops the nth element (0-indexed and counting from the top) and
+  /// returns it. If out of bounds, returns None. This function does
+  /// NOT support negative indexing.
+  fn pop_nth(&mut self, index: usize) -> Result<Self::Elem, StackError>;
 }

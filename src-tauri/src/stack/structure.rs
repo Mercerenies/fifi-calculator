@@ -16,25 +16,6 @@ impl<T> Stack<T> {
     Self::default()
   }
 
-  /// Pops the nth element (0-indexed and counting from the top) and
-  /// returns it. If out of bounds, returns None. This function does
-  /// NOT support negative indexing.
-  pub fn pop_nth(&mut self, index: usize) -> Result<T, StackError> {
-    if index >= self.len() {
-      return Err(StackError::NotEnoughElements { expected: index + 1, actual: self.len() })
-    }
-    Ok(self.elements.remove(self.len() - index - 1))
-  }
-
-  /// Inserts an element at the given position, 0-indexed from the top
-  /// of the stack. `self.insert(0, x)` is equivalent to
-  /// `self.push(x)`.
-  pub fn insert(&mut self, index: usize, element: T) -> Result<(), StackError> {
-    self.check_stack_size(index)?;
-    self.elements.insert(self.len() - index, element);
-    Ok(())
-  }
-
   /// Returns either an index into the internal vector (as an `Ok`) or
   /// an appropriate [`StackError`]. If an `Ok` is returned, it is
   /// guaranteed to be in-bounds for the vector.
@@ -114,6 +95,19 @@ impl<T> RandomAccessStackLike for Stack<T> {
   fn get_mut(&mut self, index: i64) -> Result<&mut T, StackError> {
     let index = self.to_vec_index(index)?;
     Ok(&mut self.elements[index])
+  }
+
+  fn insert(&mut self, index: usize, element: T) -> Result<(), StackError> {
+    self.check_stack_size(index)?;
+    self.elements.insert(self.len() - index, element);
+    Ok(())
+  }
+
+  fn pop_nth(&mut self, index: usize) -> Result<T, StackError> {
+    if index >= self.len() {
+      return Err(StackError::NotEnoughElements { expected: index + 1, actual: self.len() })
+    }
+    Ok(self.elements.remove(self.len() - index - 1))
   }
 }
 

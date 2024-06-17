@@ -7,7 +7,7 @@ use super::arguments::{NullaryArgumentSchema, validate_schema};
 use crate::state::ApplicationState;
 use crate::expr::Expr;
 use crate::errorlist::ErrorList;
-use crate::stack::base::StackLike;
+use crate::stack::base::{StackLike, RandomAccessStackLike};
 use crate::stack::keepable::KeepableStack;
 use crate::util::reduce_right;
 

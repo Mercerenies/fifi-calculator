@@ -140,6 +140,18 @@ where S: RandomAccessStackLike,
   fn get_mut(&mut self, index: i64) -> Result<S::Mut<'_>, StackError> {
     self.stack.get_mut(index)
   }
+
+  fn insert(&mut self, index: usize, element: S::Elem) -> Result<(), StackError> {
+    self.stack.insert(index, element)
+  }
+
+  fn pop_nth(&mut self, index: usize) -> Result<S::Elem, StackError> {
+    if self.keep_semantics {
+      self.stack.get(index as i64).map(|elem| elem.clone())
+    } else {
+      self.stack.pop_nth(index)
+    }
+  }
 }
 
 #[cfg(test)]
@@ -280,5 +292,64 @@ mod tests {
     assert!(!stack.is_empty());
     assert_eq!(stack.pop().unwrap(), 0);
     assert!(!stack.is_empty());
+  }
+
+  #[test]
+  fn test_insert_with_no_keep_semantics() {
+    let mut stack = KeepableStack::new(Stack::from(vec![0, 10]), false);
+    stack.push(20);
+    stack.push(30);
+    stack.push(40);
+    stack.insert(3, 50).unwrap();
+    stack.insert(0, 60).unwrap();
+    stack.insert(7, 70).unwrap();
+    assert_eq!(stack.insert(9, 80).unwrap_err(), StackError::NotEnoughElements { expected: 9, actual: 8 });
+    let elements = stack.into_inner().into_iter().collect::<Vec<_>>();
+    assert_eq!(elements, vec![70, 0, 10, 50, 20, 30, 40, 60]);
+  }
+
+  #[test]
+  fn test_insert_with_keep_semantics() {
+    // keep_semantics do not affect insertion operations, so this
+    // should behave equivalently to
+    // test_insert_with_no_keep_semantics()
+    let mut stack = KeepableStack::new(Stack::from(vec![0, 10]), true);
+    stack.push(20);
+    stack.push(30);
+    stack.push(40);
+    stack.insert(3, 50).unwrap();
+    stack.insert(0, 60).unwrap();
+    stack.insert(7, 70).unwrap();
+    assert_eq!(stack.insert(9, 80).unwrap_err(), StackError::NotEnoughElements { expected: 9, actual: 8 });
+    let elements = stack.into_inner().into_iter().collect::<Vec<_>>();
+    assert_eq!(elements, vec![70, 0, 10, 50, 20, 30, 40, 60]);
+  }
+
+  #[test]
+  fn test_pop_nth_with_no_keep_semantics() {
+    let stack = Stack::from(vec![10, 20, 30, 40, 50]);
+    let mut stack = KeepableStack::new(stack, false);
+    assert_eq!(stack.pop_nth(0), Ok(50));
+    assert_eq!(stack.pop_nth(2), Ok(20));
+    assert_eq!(stack.pop_nth(2), Ok(10));
+    assert_eq!(stack.pop_nth(2), Err(StackError::NotEnoughElements { expected: 3, actual: 2 }));
+    let elements = stack.into_inner().into_iter().collect::<Vec<_>>();
+    assert_eq!(elements, vec![30, 40]);
+  }
+
+  #[test]
+  fn test_pop_nth_with_keep_semantics() {
+    let stack = Stack::from(vec![10, 20, 30, 40, 50]);
+    let mut stack = KeepableStack::new(stack, true);
+    assert_eq!(stack.pop_nth(0), Ok(50));
+    assert_eq!(stack.pop_nth(0), Ok(50));
+    assert_eq!(stack.pop_nth(0), Ok(50));
+    assert_eq!(stack.pop_nth(2), Ok(30));
+    assert_eq!(stack.pop_nth(2), Ok(30));
+    assert_eq!(stack.pop_nth(4), Ok(10));
+    assert_eq!(stack.pop_nth(4), Ok(10));
+    assert_eq!(stack.pop_nth(5), Err(StackError::NotEnoughElements { expected: 6, actual: 5 }));
+    let elements = stack.into_inner().into_iter().collect::<Vec<_>>();
+    assert_eq!(elements, vec![10, 20, 30, 40, 50]);
   }
 }
