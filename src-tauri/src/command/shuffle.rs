@@ -166,6 +166,12 @@ impl Command for MoveStackElemCommand {
     let src_pos = usize::from(src_pos);
     let dest_pos = usize::from(dest_pos);
 
+    if src_pos == dest_pos {
+      // This command will do nothing, so exit early to make sure we
+      // don't push anything silly onto the undo stack.
+      return Ok(CommandOutput::success());
+    }
+
     let mut stack = state.main_stack_mut();
 
     let required_stack_size = src_pos.max(dest_pos) + 1;
