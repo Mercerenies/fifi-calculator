@@ -38,6 +38,7 @@ export class StackView {
 
     this.sortable = new Sortable(ol, {
       onUpdate: (event) => this.onSortOrderUpdate(event),
+      ghostClass: 'dragging',
     });
   }
 
