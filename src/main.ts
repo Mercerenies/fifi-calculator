@@ -6,9 +6,7 @@ import { MainButtonGrid } from './button_grid/main_button_grid.js';
 import { KeyInput } from './keyboard.js';
 import * as KeyDispatcher from './keyboard/dispatcher.js';
 import { RightPanelManager } from './right_panel.js';
-
-const { listen } = window.__TAURI__.event;
-const os = window.__TAURI__.os;
+import { TAURI } from './tauri_api.js';
 
 class UiManager {
   readonly inputManager: InputBoxManager;
@@ -46,7 +44,7 @@ class UiManager {
   }
 
   static async create(): Promise<UiManager> {
-    const osType = await os.type();
+    const osType = await TAURI.osType();
     return new UiManager(osType);
   }
 
@@ -92,7 +90,7 @@ function refreshUndoButtons(uiManager: UiManager, state: UndoAvailabilityPayload
 window.addEventListener("DOMContentLoaded", async function() {
   const uiManager = await UiManager.create();
   uiManager.initListeners();
-  await listen("refresh-stack", (event) => refreshStack(event.payload.stack));
-  await listen("show-error", (event) => uiManager.notificationManager.show(event.payload.errorMessage));
-  await listen("refresh-undo-availability", (event) => refreshUndoButtons(uiManager, event.payload));
+  await TAURI.listen("refresh-stack", (event) => refreshStack(event.payload.stack));
+  await TAURI.listen("show-error", (event) => uiManager.notificationManager.show(event.payload.errorMessage));
+  await TAURI.listen("refresh-undo-availability", (event) => refreshUndoButtons(uiManager, event.payload));
 });
