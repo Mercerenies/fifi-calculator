@@ -1,12 +1,4 @@
 
-interface Window {
-  __TAURI__: {
-    tauri: TauriFunctions,
-    event: EventFunctions,
-    os: OsFunctions,
-  };
-}
-
 interface TauriFunctions {
   invoke: TauriInvoke,
 }

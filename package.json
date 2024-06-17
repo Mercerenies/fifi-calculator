@@ -16,5 +16,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "find ./src -name '*.ts' | xargs npx eslint"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^1.5.6"
   }
 }
