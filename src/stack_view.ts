@@ -14,6 +14,7 @@ export class StackView {
       const li = document.createElement("li");
       li.className = 'value-stack-element';
       li.value = newStackHtml.length - i;
+      li.dataset.stackIndex = String(newStackHtml.length - i - 1);
       li.innerHTML = elem;
       ol.appendChild(li);
     }
