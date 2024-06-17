@@ -6,7 +6,9 @@ import { MainButtonGrid } from './button_grid/main_button_grid.js';
 import { KeyInput } from './keyboard.js';
 import * as KeyDispatcher from './keyboard/dispatcher.js';
 import { RightPanelManager } from './right_panel.js';
-import { TAURI } from './tauri_api.js';
+import { TAURI, UndoAvailabilityPayload } from './tauri_api.js';
+
+import { OsType } from '@tauri-apps/api/os';
 
 class UiManager {
   readonly inputManager: InputBoxManager;

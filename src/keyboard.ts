@@ -1,6 +1,8 @@
 
 // Helpers for reading keyboard input, with modifiers.
 
+import { OsType } from '@tauri-apps/api/os';
+
 // Note: For now, for simplifiy, we're ignoring the SHIFT modifier,
 // since it changes the key code in most cases we care about. Might
 // revise this later if we decide it's useful.

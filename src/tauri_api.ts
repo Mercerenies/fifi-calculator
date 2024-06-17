@@ -1,10 +1,10 @@
 
 import * as os from '@tauri-apps/api/os';
 import { invoke } from '@tauri-apps/api/tauri';
-import { listen } from '@tauri-apps/api/event';
+import { listen, EventCallback, UnlistenFn } from '@tauri-apps/api/event';
 
 class TauriApi {
-  osType(): Promise<OsType> {
+  osType(): Promise<os.OsType> {
     return os.type()
   }
 
@@ -24,10 +24,10 @@ class TauriApi {
     return invoke('validate_value', { value, validator });
   }
 
-  listen(event: 'refresh-stack', callback: EventCallback<RefreshStackPayload>): Promise<UnlistenFunction>;
-  listen(event: 'refresh-undo-availability', callback: EventCallback<UndoAvailabilityPayload>): Promise<UnlistenFunction>;
-  listen(event: 'show-error', callback: EventCallback<ShowErrorPayload>): Promise<UnlistenFunction>;
-  listen(event: string, callback: EventCallback<any>): Promise<UnlistenFunction> {
+  listen(event: 'refresh-stack', callback: EventCallback<RefreshStackPayload>): Promise<UnlistenFn>;
+  listen(event: 'refresh-undo-availability', callback: EventCallback<UndoAvailabilityPayload>): Promise<UnlistenFn>;
+  listen(event: 'show-error', callback: EventCallback<ShowErrorPayload>): Promise<UnlistenFn>;
+  listen(event: string, callback: EventCallback<any>): Promise<UnlistenFn> {
     return listen(event, callback);
   }
 }
@@ -46,4 +46,17 @@ export enum Validator {
 export interface CommandOptions {
   argument: number | null,
   keepModifier: boolean,
+}
+
+export interface RefreshStackPayload {
+  stack: string[];
+}
+
+export interface UndoAvailabilityPayload {
+  hasUndos: boolean;
+  hasRedos: boolean;
+}
+
+export interface ShowErrorPayload {
+  errorMessage: string;
 }
