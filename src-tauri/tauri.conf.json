@@ -1,9 +1,10 @@
 {
   "build": {
-    "devPath": "../src",
-    "distDir": "../src",
+    "devPath": "http://localhost:5173",
+    "distDir": "../dist",
     "withGlobalTauri": true,
-    "beforeDevCommand": { "script": "npx tsc -w", "wait": false }
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
   },
   "package": {
     "productName": "fifi",
