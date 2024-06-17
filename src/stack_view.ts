@@ -46,7 +46,7 @@ export class StackView {
     this.valueStackDiv.scrollTo({ top: this.valueStackDiv.scrollHeight });
   }
 
-  private async onSortOrderUpdate(event: SortableEvent): Promise<void> {
+  private onSortOrderUpdate(event: SortableEvent): void {
     const { oldIndex, newIndex } = event;
     if ((oldIndex === undefined) || (newIndex === undefined)) {
       throw `Indices are undefined, got {oldIndex: ${oldIndex}, newIndex: ${newIndex}}`;
@@ -56,6 +56,8 @@ export class StackView {
     const srcIndex = this.currentStackSize - 1 - oldIndex;
     let destIndex = this.currentStackSize - 1 - newIndex;
 
-    await TAURI.runMathCommand("move_stack_elem", [String(srcIndex), String(destIndex)], defaultCommandOptions());
+    window.setTimeout(() => {
+      TAURI.runMathCommand("move_stack_elem", [String(srcIndex), String(destIndex)], defaultCommandOptions());
+    }, 1);
   }
 }
