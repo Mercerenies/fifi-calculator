@@ -72,6 +72,7 @@ function refreshStack(newStack: string[]): void {
   for (let i = 0; i < newStack.length; i++) {
     const elem = newStack[i];
     const li = document.createElement("li");
+    li.className = 'value-stack-element';
     li.value = newStack.length - i;
     li.innerHTML = elem;
     ol.appendChild(li);
