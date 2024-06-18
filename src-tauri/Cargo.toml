@@ -13,12 +13,13 @@ edition = "2021"
 # environment to run out of disk space, and I have 90GB free on the
 # relevant partition before running tests).
 doctest = false
+crate-type = ["lib", "staticlib", "cdylib"]
 
 [build-dependencies]
-tauri-build = { version = "1.5.2", features = [] }
+tauri-build = { version = "2.0.0-beta", features = [] }
 
 [dependencies]
-tauri = { version = "1.6.7", features = [ "os-all", "shell-open"] }
+tauri = { version = "2.0.0-beta", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "1.0.60"
@@ -28,6 +29,8 @@ regex = "1.10.4"
 approx = "0.5.1"
 bitflags = "2.5.0"
 anyhow = "1.0.86"
+tauri-plugin-os = "2.0.0-beta.6"
+tauri-plugin-shell = "2.0.0-beta.7"
 
 [features]
 # This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!

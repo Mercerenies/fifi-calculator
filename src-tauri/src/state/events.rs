@@ -35,7 +35,7 @@ pub struct UndoAvailabilityPayload {
 #[serde(rename_all = "camelCase")]
 pub struct ShowErrorPayload {
   /// The error message to display.
-  pub error_message: String,
+  pub error_message: String, 
 }
 
 impl RefreshStackPayload {
@@ -51,5 +51,5 @@ impl ShowErrorPayload {
 }
 
 pub fn show_error(app_handle: &tauri::AppHandle, error_message: String) -> tauri::Result<()> {
-  app_handle.emit_all(ShowErrorPayload::EVENT_NAME, ShowErrorPayload { error_message })
+  app_handle.emit(ShowErrorPayload::EVENT_NAME, ShowErrorPayload { error_message })
 }

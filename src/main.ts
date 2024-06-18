@@ -9,7 +9,7 @@ import { RightPanelManager } from './right_panel.js';
 import { TAURI, RefreshStackPayload, UndoAvailabilityPayload } from './tauri_api.js';
 import { StackView } from './stack_view.js';
 
-import { OsType } from '@tauri-apps/api/os';
+import { OsType } from '@tauri-apps/plugin-os';
 
 class UiManager {
   readonly inputManager: InputBoxManager;

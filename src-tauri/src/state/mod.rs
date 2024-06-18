@@ -81,7 +81,7 @@ impl ApplicationState {
     let displayed_stack: Vec<String> =
       state.main_stack.iter().map(|expr| state.display_settings.to_html(expr)).collect();
     let payload = RefreshStackPayload { stack: displayed_stack, force_scroll_down };
-    app_handle.emit_all(RefreshStackPayload::EVENT_NAME, payload)
+    app_handle.emit(RefreshStackPayload::EVENT_NAME, payload)
   }
 
   pub fn send_undo_buttons_event(&self, app_handle: &tauri::AppHandle) -> tauri::Result<()> {
@@ -89,7 +89,7 @@ impl ApplicationState {
       has_undos: self.undo_stack.has_undos(),
       has_redos: self.undo_stack.has_redos(),
     };
-    app_handle.emit_all(UndoAvailabilityPayload::EVENT_NAME, payload)
+    app_handle.emit(UndoAvailabilityPayload::EVENT_NAME, payload)
   }
 
   pub fn send_all_updates(&self, app_handle: &tauri::AppHandle) -> tauri::Result<()> {

@@ -1,6 +1,6 @@
 
-import * as os from '@tauri-apps/api/os';
-import { invoke } from '@tauri-apps/api/tauri';
+import * as os from '@tauri-apps/plugin-os';
+import { invoke } from '@tauri-apps/api/core';
 import { listen, EventCallback, UnlistenFn } from '@tauri-apps/api/event';
 
 class TauriApi {

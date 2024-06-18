@@ -1,7 +1,7 @@
 
 // Helpers for reading keyboard input, with modifiers.
 
-import { OsType } from '@tauri-apps/api/os';
+import { OsType } from '@tauri-apps/plugin-os';
 
 // Note: For now, for simplifiy, we're ignoring the SHIFT modifier,
 // since it changes the key code in most cases we care about. Might
@@ -88,10 +88,10 @@ export function readModifiers(event: KeyboardEvent, osType: OsType): Modifier {
     modifiers |= Modifier.CTRL;
   }
   if (event.altKey) {
-    modifiers |= (osType === "Darwin" ? Modifier.SUPER : Modifier.META);
+    modifiers |= (osType === "macos" ? Modifier.SUPER : Modifier.META);
   }
   if (event.metaKey) {
-    modifiers |= (osType === "Darwin" ? Modifier.META : Modifier.SUPER);
+    modifiers |= (osType === "macos" ? Modifier.META : Modifier.SUPER);
   }
   return modifiers;
 }
