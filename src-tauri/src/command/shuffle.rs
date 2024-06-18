@@ -182,7 +182,10 @@ impl Command for MoveStackElemCommand {
     let value = stack.pop_nth(src_pos).expect("Stack underflow");
     stack.insert(dest_pos, value).expect("Stack insert out of bounds");
 
-    Ok(CommandOutput::success())
+    Ok(
+      CommandOutput::success()
+        .set_force_scroll_down(false)
+    )
   }
 }
 

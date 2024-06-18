@@ -31,6 +31,7 @@ pub struct CommandContext<'a> {
 #[derive(Debug, Clone)]
 pub struct CommandOutput {
   errors: Vec<String>,
+  force_scroll_down: bool,
 }
 
 impl<'a> CommandContext<'a> {
@@ -44,6 +45,7 @@ impl CommandOutput {
   pub fn success() -> CommandOutput {
     CommandOutput {
       errors: vec![],
+      force_scroll_down: true,
     }
   }
 
@@ -52,6 +54,7 @@ impl CommandOutput {
         E: ToString {
     CommandOutput {
       errors: errors.into_iter().map(|e| e.to_string()).collect(),
+      force_scroll_down: true,
     }
   }
 
@@ -62,6 +65,18 @@ impl CommandOutput {
   /// Gets the error at the given index. Panics if out of bounds.
   pub fn get_error(&self, index: usize) -> &str {
     &self.errors[index]
+  }
+
+  /// Sets whether or not the UI for the stack should be forcibly
+  /// scrolled down to the bottom when this command is done executing.
+  /// The default is `true`.
+  pub fn set_force_scroll_down(mut self, force_scroll_down: bool) -> Self {
+    self.force_scroll_down = force_scroll_down;
+    self
+  }
+
+  pub fn force_scroll_down(&self) -> bool {
+    self.force_scroll_down
   }
 }
 

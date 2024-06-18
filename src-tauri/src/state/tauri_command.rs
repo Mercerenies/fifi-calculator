@@ -33,7 +33,7 @@ pub fn run_math_command(
   let output = command.run_command(state, args, &context)?;
   handle_command_output(app_handle, &output)?;
 
-  state.send_all_updates(app_handle)?;
+  state.send_all_updates(app_handle, output.force_scroll_down())?;
   Ok(())
 }
 
@@ -53,7 +53,7 @@ pub fn perform_undo_action(
     UndoDirection::Redo => state.redo(),
   };
 
-  state.send_all_updates(app_handle)?;
+  state.send_all_updates(app_handle, true)?;
   Ok(())
 }
 

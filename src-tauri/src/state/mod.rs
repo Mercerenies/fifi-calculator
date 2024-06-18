@@ -92,8 +92,8 @@ impl ApplicationState {
     app_handle.emit(UndoAvailabilityPayload::EVENT_NAME, payload)
   }
 
-  pub fn send_all_updates(&self, app_handle: &tauri::AppHandle) -> tauri::Result<()> {
-    self.send_refresh_stack_event(app_handle, true)?;
+  pub fn send_all_updates(&self, app_handle: &tauri::AppHandle, force_scroll_down: bool) -> tauri::Result<()> {
+    self.send_refresh_stack_event(app_handle, force_scroll_down)?;
     self.send_undo_buttons_event(app_handle)?;
     Ok(())
   }
