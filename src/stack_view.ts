@@ -2,7 +2,7 @@
 import { TAURI } from './tauri_api.js';
 import { defaultCommandOptions } from './button_grid/modifier_delegate.js';
 
-import Sortable, { SortableEvent } from 'sortablejs';
+import { Sortable, SortableStopEvent } from '@shopify/draggable';
 
 // Manager class for displaying the current value stack.
 export class StackView {
@@ -37,16 +37,16 @@ export class StackView {
     stack.appendChild(ol);
 
     this.sortable = new Sortable(ol, {
-      onUpdate: (event) => this.onSortOrderUpdate(event),
-      ghostClass: 'dragging',
+      draggable: 'li',
     });
+    this.sortable.on('sortable:stop', (event) => this.onSortOrderUpdate(event));
   }
 
   scrollToBottom(): void {
     this.valueStackDiv.scrollTo({ top: this.valueStackDiv.scrollHeight });
   }
 
-  private onSortOrderUpdate(event: SortableEvent): void {
+  private onSortOrderUpdate(event: SortableStopEvent): void {
     const { oldIndex, newIndex } = event;
     if ((oldIndex === undefined) || (newIndex === undefined)) {
       throw `Indices are undefined, got {oldIndex: ${oldIndex}, newIndex: ${newIndex}}`;
