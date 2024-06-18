@@ -8,6 +8,7 @@ pub mod display;
 pub mod errorlist;
 pub mod expr;
 pub mod parsing;
+pub mod runner;
 pub mod stack;
 pub mod state;
 pub mod undo;
