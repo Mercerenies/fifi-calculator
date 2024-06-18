@@ -30,7 +30,7 @@ pub struct CommandContext<'a> {
 /// that occurred.
 #[derive(Debug, Clone)]
 pub struct CommandOutput {
-  pub errors: Vec<String>,
+  errors: Vec<String>,
 }
 
 impl<'a> CommandContext<'a> {
@@ -53,6 +53,15 @@ impl CommandOutput {
     CommandOutput {
       errors: errors.into_iter().map(|e| e.to_string()).collect(),
     }
+  }
+
+  pub fn errors(&self) -> &[String] {
+    &self.errors
+  }
+
+  /// Gets the error at the given index. Panics if out of bounds.
+  pub fn get_error(&self, index: usize) -> &str {
+    &self.errors[index]
   }
 }
 

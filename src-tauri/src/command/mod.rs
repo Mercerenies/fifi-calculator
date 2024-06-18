@@ -148,7 +148,7 @@ pub(crate) mod test_utils {
     let mut context = CommandContext::default();
     context.opts = opts;
     let output = command.run_command(&mut state, args, &context).unwrap();
-    assert!(output.errors.is_empty());
+    assert!(output.errors().is_empty());
     state.into_main_stack()
   }
 

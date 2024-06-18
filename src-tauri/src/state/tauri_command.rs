@@ -115,8 +115,8 @@ pub fn handle_error_list<E: Display>(app_handle: &tauri::AppHandle, error_list: 
 /// Currently, this function only displays the *first* error to the
 /// user, for brevity's sake. This behavior may change in the future.
 pub fn handle_command_output(app_handle: &tauri::AppHandle, command_output: &CommandOutput) -> tauri::Result<()> {
-  if !command_output.errors.is_empty() {
-    show_error(app_handle, format!("Error: {}", command_output.errors[0]))
+  if !command_output.errors().is_empty() {
+    show_error(app_handle, format!("Error: {}", command_output.get_error(0)))
   } else {
     Ok(())
   }

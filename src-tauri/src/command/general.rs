@@ -39,6 +39,6 @@ mod tests {
       Ok(CommandOutput::from_errors(vec!["A", "B"]))
     });
     let result = command.run_command(&mut ApplicationState::new(), vec![], &mut CommandContext::default()).unwrap();
-    assert_eq!(result.errors, vec!["A", "B"]);
+    assert_eq!(result.errors(), &["A", "B"]);
   }
 }
