@@ -10,6 +10,10 @@ use crate::expr::function::table::FunctionTable;
 
 pub fn append_datatype_functions(table: &mut FunctionTable) {
   table.insert(vector_function());
+  table.insert(closed_interval());
+  table.insert(right_open_interval());
+  table.insert(left_open_interval());
+  table.insert(full_open_interval());
 }
 
 pub fn vector_function() -> Function {
@@ -20,5 +24,25 @@ pub fn vector_function() -> Function {
         Ok(Expr::call("vector", args))
       }
     )
+    .build()
+}
+
+pub fn closed_interval() -> Function {
+  FunctionBuilder::new("..")
+    .build()
+}
+
+pub fn right_open_interval() -> Function {
+  FunctionBuilder::new("..^")
+    .build()
+}
+
+pub fn left_open_interval() -> Function {
+  FunctionBuilder::new("^..")
+    .build()
+}
+
+pub fn full_open_interval() -> Function {
+  FunctionBuilder::new("^..^")
     .build()
 }

@@ -65,6 +65,10 @@ impl OperatorTable {
     // when it makes sense to do so. See
     // https://www.gnu.org/software/emacs/manual/html_mono/calc.html#Composition-Basics
     vec![
+      Operator::new("..", Fixity::new().with_infix("..", Associativity::NONE, Precedence::new(250))),
+      Operator::new("..^", Fixity::new().with_infix("..^", Associativity::NONE, Precedence::new(250))),
+      Operator::new("^..", Fixity::new().with_infix("^..", Associativity::NONE, Precedence::new(250))),
+      Operator::new("^..^", Fixity::new().with_infix("^..^", Associativity::NONE, Precedence::new(250))),
       Operator::new("^", Fixity::new().with_infix("^", Associativity::RIGHT, Precedence::new(200))),
       Operator::new("*", Fixity::new().with_infix("*", Associativity::FULL, Precedence::new(195))),
       Operator::new("/", Fixity::new().with_infix("/", Associativity::LEFT, Precedence::new(190))),
