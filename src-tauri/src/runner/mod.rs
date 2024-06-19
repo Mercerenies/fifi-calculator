@@ -1,6 +1,9 @@
 
 //! Cross-platform compatible main function definition.
 
+#[cfg(mobile)]
+mod mobile;
+
 use crate::command::options::CommandOptions;
 use crate::state::tauri_command::{self, handle_non_tauri_errors};
 use crate::state::validation::Validator;
