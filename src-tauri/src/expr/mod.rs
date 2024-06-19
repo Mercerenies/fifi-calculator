@@ -4,6 +4,7 @@ pub mod atom;
 pub mod basic_parser;
 pub mod calculus;
 pub mod function;
+pub mod interval;
 pub mod literal;
 pub mod number;
 pub mod prisms;
@@ -147,6 +148,11 @@ impl TryFromExprError {
       target_type: target_type.into(),
       original_expr,
     }
+  }
+
+  pub fn with_type_name(mut self, new_target_type: impl Into<String>) -> Self {
+    self.target_type = new_target_type.into();
+    self
   }
 }
 
