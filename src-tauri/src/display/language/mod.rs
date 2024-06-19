@@ -10,13 +10,42 @@ use crate::parsing::operator::Precedence;
 /// A language mode must also provide a mechanism to parse plaintext
 /// into Exprs.
 pub trait LanguageMode {
-  fn write_to_html(&self, out: &mut String, expr: &Expr, prec: Precedence);
+  fn write_to_html(&self, engine: &LanguageModeEngine, out: &mut String, expr: &Expr, prec: Precedence);
   fn parse(&self, text: &str) -> anyhow::Result<Expr>;
 
+  /// Converts `self` into a `dyn LanguageMode`. The implementation of
+  /// this method should _always_ be
+  ///
+  /// ```
+  /// fn to_trait_object(&self) -> &dyn LanguageMode {
+  ///   self
+  /// }
+  /// ```
+  ///
+  /// The reason this method exists is that `write_to_html` needs to
+  /// know the top-level language mode it was invoked on, in order to
+  /// implement open recursion and allow composition of language
+  /// modes.
+  fn to_trait_object(&self) -> &dyn LanguageMode;
+
   fn to_html(&self, expr: &Expr) -> String {
+    let engine = LanguageModeEngine { data: self.to_trait_object() };
+
     let mut out = String::new();
-    self.write_to_html(&mut out, expr, Precedence::MIN);
+    self.write_to_html(&engine, &mut out, expr, Precedence::MIN);
     out
+  }
+}
+
+/// Helper struct to implement open recursion on `LanguageMode` so
+/// that multiple language modes can be composed in a convenient way.
+pub struct LanguageModeEngine<'a> {
+  data: &'a dyn LanguageMode,
+}
+
+impl<'a> LanguageModeEngine<'a> {
+  pub fn write_to_html(&self, out: &mut String, expr: &Expr, prec: Precedence) {
+    self.data.write_to_html(self, out, expr, prec);
   }
 }
 

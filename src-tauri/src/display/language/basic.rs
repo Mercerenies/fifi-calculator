@@ -1,5 +1,5 @@
 
-use super::{LanguageMode, output_sep_by};
+use super::{LanguageMode, LanguageModeEngine, output_sep_by};
 use crate::parsing::operator::{Operator, Precedence, OperatorTable};
 use crate::parsing::operator::fixity::FixityType;
 use crate::expr::Expr;
@@ -30,16 +30,17 @@ impl BasicLanguageMode {
     Self::from_operators(OperatorTable::common_operators())
   }
 
-  fn fn_call_to_html(&self, out: &mut String, f: &str, args: &[Expr]) {
+  fn fn_call_to_html(&self, engine: &LanguageModeEngine, out: &mut String, f: &str, args: &[Expr]) {
     out.push_str(f);
     out.push('(');
-    output_sep_by(out, args.iter(), ", ", |out, e| self.write_to_html(out, e, Precedence::MIN));
+    output_sep_by(out, args.iter(), ", ", |out, e| engine.write_to_html(out, e, Precedence::MIN));
     out.push(')');
   }
 
   // TODO Take InfixProperties directly, in addition to Operator?
   fn bin_infix_op_to_html(
     &self,
+    engine: &LanguageModeEngine,
     out: &mut String,
     op: &Operator,
     left_arg: &Expr,
@@ -52,18 +53,25 @@ impl BasicLanguageMode {
     if needs_parens {
       out.push('(');
     }
-    self.write_to_html(out, left_arg, infix_props.left_precedence());
+    engine.write_to_html(out, left_arg, infix_props.left_precedence());
     out.push(' ');
     out.push_str(op.operator_name());
     out.push(' ');
-    self.write_to_html(out, right_arg, infix_props.right_precedence());
+    engine.write_to_html(out, right_arg, infix_props.right_precedence());
     if needs_parens {
       out.push(')');
     }
   }
 
   // TODO Take InfixProperties directly, in addition to Operator?
-  fn variadic_infix_op_to_html(&self, out: &mut String, op: &Operator, args: &[Expr], prec: Precedence) {
+  fn variadic_infix_op_to_html(
+    &self,
+    engine: &LanguageModeEngine,
+    out: &mut String,
+    op: &Operator,
+    args: &[Expr],
+    prec: Precedence,
+  ) {
     assert!(!args.is_empty());
     assert!(op.fixity().is_infix(), "Expected an infix operator: {:?}", op);
     let infix_props = op.fixity().as_infix().unwrap();
@@ -79,14 +87,21 @@ impl BasicLanguageMode {
         out.push(' ');
       }
       first = false;
-      self.write_to_html(out, arg, infix_props.precedence());
+      engine.write_to_html(out, arg, infix_props.precedence());
     }
     if needs_parens {
       out.push(')');
     }
   }
 
-  fn try_prefix_op_to_html(&self, out: &mut String, f: &str, args: &[Expr], prec: Precedence) -> bool {
+  fn try_prefix_op_to_html(
+    &self,
+    engine: &LanguageModeEngine,
+    out: &mut String,
+    f: &str,
+    args: &[Expr],
+    prec: Precedence,
+  ) -> bool {
     let Some(op) = self.known_operators.get_by_function_name(f, FixityType::Prefix) else {
       return false;
     };
@@ -102,14 +117,14 @@ impl BasicLanguageMode {
     }
     out.push_str(op.operator_name());
     out.push(' ');
-    self.write_to_html(out, &args[0], prefix_props.precedence());
+    engine.write_to_html(out, &args[0], prefix_props.precedence());
     if needs_parens {
       out.push(')');
     }
     true
   }
 
-  fn try_postfix_op_to_html(&self, out: &mut String, f: &str, args: &[Expr], prec: Precedence) -> bool {
+  fn try_postfix_op_to_html(&self, engine: &LanguageModeEngine, out: &mut String, f: &str, args: &[Expr], prec: Precedence) -> bool {
     let Some(op) = self.known_operators.get_by_function_name(f, FixityType::Postfix) else {
       return false;
     };
@@ -123,7 +138,7 @@ impl BasicLanguageMode {
     if needs_parens {
       out.push('(');
     }
-    self.write_to_html(out, &args[0], postfix_props.precedence());
+    engine.write_to_html(out, &args[0], postfix_props.precedence());
     out.push(' ');
     out.push_str(op.operator_name());
     if needs_parens {
@@ -133,7 +148,7 @@ impl BasicLanguageMode {
   }
 
   // Returns true if successful.
-  fn try_infix_op_to_html(&self, out: &mut String, f: &str, args: &[Expr], prec: Precedence) -> bool {
+  fn try_infix_op_to_html(&self, engine: &LanguageModeEngine, out: &mut String, f: &str, args: &[Expr], prec: Precedence) -> bool {
     let Some(op) = self.known_operators.get_by_function_name(f, FixityType::Infix) else {
       return false;
     };
@@ -146,12 +161,12 @@ impl BasicLanguageMode {
         false
       }
       2 => {
-        self.bin_infix_op_to_html(out, op, &args[0], &args[1], prec);
+        self.bin_infix_op_to_html(engine, out, op, &args[0], &args[1], prec);
         true
       }
       _ => {
         if infix_props.associativity().is_fully_assoc() {
-          self.variadic_infix_op_to_html(out, op, args, prec);
+          self.variadic_infix_op_to_html(engine, out, op, args, prec);
           true
         } else {
           false
@@ -169,15 +184,15 @@ impl BasicLanguageMode {
     number < &Number::zero() && negation_precedence < prec
   }
 
-  fn vector_to_html(&self, out: &mut String, elems: &[Expr]) {
+  fn vector_to_html(&self, engine: &LanguageModeEngine, out: &mut String, elems: &[Expr]) {
     out.push('[');
-    output_sep_by(out, elems.iter(), ", ", |out, e| self.write_to_html(out, e, Precedence::MIN));
+    output_sep_by(out, elems.iter(), ", ", |out, e| self.write_to_html(engine, out, e, Precedence::MIN));
     out.push(']');
   }
 }
 
 impl LanguageMode for BasicLanguageMode {
-  fn write_to_html(&self, out: &mut String, expr: &Expr, prec: Precedence) {
+  fn write_to_html(&self, engine: &LanguageModeEngine, out: &mut String, expr: &Expr, prec: Precedence) {
     match expr {
       Expr::Atom(Atom::Number(n)) => {
         let needs_parens = self.number_needs_parens(n, prec);
@@ -197,18 +212,22 @@ impl LanguageMode for BasicLanguageMode {
       }
       Expr::Call(f, args) => {
         if f == Vector::FUNCTION_NAME {
-          self.vector_to_html(out, args);
+          self.vector_to_html(engine, out, args);
         } else {
           let as_op =
-            self.try_infix_op_to_html(out, f, args, prec) ||
-            self.try_prefix_op_to_html(out, f, args, prec) ||
-            self.try_postfix_op_to_html(out, f, args, prec);
+            self.try_infix_op_to_html(engine, out, f, args, prec) ||
+            self.try_prefix_op_to_html(engine, out, f, args, prec) ||
+            self.try_postfix_op_to_html(engine, out, f, args, prec);
           if !as_op {
-            self.fn_call_to_html(out, f, args);
+            self.fn_call_to_html(engine, out, f, args);
           }
         }
       }
     }
+  }
+
+  fn to_trait_object(&self) -> &dyn LanguageMode {
+    self
   }
 
   fn parse(&self, text: &str) -> anyhow::Result<Expr> {
