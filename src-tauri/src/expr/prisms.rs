@@ -3,10 +3,10 @@ use super::Expr;
 use super::var::Var;
 use super::atom::Atom;
 use super::number::{Number, ComplexLike};
-use super::interval::{Interval, IntervalAny};
+use super::interval::{Interval, IntervalAny, IntervalOrNumber};
 use super::literal::Literal;
 use super::algebra::formula::{Formula, Equation};
-use crate::util::prism::{Prism, Only, Composed, Conversion};
+use crate::util::prism::{Prism, Only, Composed, Conversion, ErrorWithPayload};
 
 use num::Zero;
 
@@ -24,6 +24,10 @@ pub struct ExprToNumber; // TODO: This is just a Conversion prism :)
 /// real or a complex number.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct ExprToComplex;
+
+/// Prism which accepts either [`Interval`] values or real numbers.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ExprToIntervalLike;
 
 /// Prism which only accepts expressions which are a [`Var`].
 #[derive(Debug, Clone, Copy, Default)]
@@ -182,5 +186,26 @@ impl Prism<String, ParsedUsize> for StringToUsize {
   }
   fn widen_type(&self, input: ParsedUsize) -> String {
     input.input
+  }
+}
+
+impl Prism<Expr, IntervalOrNumber> for ExprToIntervalLike {
+  fn narrow_type(&self, input: Expr) -> Result<IntervalOrNumber, Expr> {
+    match Interval::try_from(input) {
+      Ok(interval) => Ok(IntervalOrNumber::Interval(interval)),
+      Err(err) => {
+        let input = err.recover_payload();
+        match Number::try_from(input) {
+          Ok(number) => Ok(IntervalOrNumber::Number(number)),
+          Err(err) => Err(err.recover_payload()),
+        }
+      }
+    }
+  }
+  fn widen_type(&self, input: IntervalOrNumber) -> Expr {
+    match input {
+      IntervalOrNumber::Interval(interval) => interval.into(),
+      IntervalOrNumber::Number(number) => number.into(),
+    }
   }
 }

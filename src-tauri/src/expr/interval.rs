@@ -34,7 +34,12 @@ pub struct Interval {
 
 /// The disjoint union of the types [`Interval`] and [`Number`]. This
 /// type can be used as the target of any prism that wishes to treat
-/// numbers `n` as singleton intervals `n..n`.
+/// numbers `n` as singleton intervals `n .. n`.
+#[derive(Clone, Debug)]
+pub enum IntervalOrNumber {
+  Interval(Interval),
+  Number(Number),
+}
 
 /// The type of interval. Corresponds to the four infix operators
 /// representing intervals.
@@ -128,6 +133,15 @@ impl From<Interval> for Expr {
     Expr::from(
       IntervalAny::from(interval),
     )
+  }
+}
+
+impl From<IntervalOrNumber> for Interval {
+  fn from(interval_or_number: IntervalOrNumber) -> Self {
+    match interval_or_number {
+      IntervalOrNumber::Interval(interval) => interval,
+      IntervalOrNumber::Number(number) => Interval::new(number.clone(), IntervalType::Closed, number),
+    }
   }
 }
 
