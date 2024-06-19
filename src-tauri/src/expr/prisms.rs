@@ -3,6 +3,7 @@ use super::Expr;
 use super::var::Var;
 use super::atom::Atom;
 use super::number::{Number, ComplexLike};
+use super::interval::{Interval, IntervalAny};
 use super::literal::Literal;
 use super::algebra::formula::{Formula, Equation};
 use crate::util::prism::{Prism, Only, Composed, Conversion};
@@ -88,6 +89,14 @@ pub fn expr_to_formula() -> Conversion<Expr, Formula> {
 /// Prism which accepts specifically [`Equation`] values.
 pub fn expr_to_equation() -> Composed<Conversion<Expr, Formula>, Conversion<Formula, Equation>, Formula> {
   Composed::new(expr_to_formula(), Conversion::new())
+}
+
+pub fn expr_to_any_interval() -> Conversion<Expr, IntervalAny> {
+  Conversion::new()
+}
+
+pub fn expr_to_interval() -> Conversion<Expr, Interval> {
+  Conversion::new()
 }
 
 impl PositiveNumber {

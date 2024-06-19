@@ -123,6 +123,14 @@ impl From<Interval> for IntervalAny {
   }
 }
 
+impl From<Interval> for Expr {
+  fn from(interval: Interval) -> Expr {
+    Expr::from(
+      IntervalAny::from(interval),
+    )
+  }
+}
+
 impl TryFrom<Expr> for IntervalAny {
   type Error = TryFromExprError;
 

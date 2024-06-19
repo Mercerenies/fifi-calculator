@@ -5,6 +5,7 @@ pub mod evaluator;
 pub mod flattener;
 pub mod error;
 pub mod identity;
+pub mod interval;
 pub mod partial;
 pub mod repeated;
 
@@ -29,6 +30,7 @@ impl<'a> Simplifier for DefaultSimplifier<'a> {
     expr = partial::IdentityRemover::new(self.function_table).simplify_expr_part(expr, ctx);
     expr = evaluator::FunctionEvaluator::new(self.function_table).simplify_expr_part(expr, ctx);
     expr = flattener::FunctionFlattener::new(self.function_table).simplify_expr_part(expr, ctx);
+    expr = interval::IntervalNormalizer::new().simplify_expr_part(expr, ctx);
     expr
   }
 }
