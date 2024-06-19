@@ -5,6 +5,7 @@ use crate::util::angles::Radians;
 
 use num::{Zero, One, BigInt};
 use approx::{AbsDiffEq, RelativeEq};
+use serde::{Serialize, Deserialize};
 
 use std::fmt::{self, Formatter, Display};
 use std::ops;
@@ -17,7 +18,7 @@ use std::cmp::Ordering;
 /// use this one type to do both engineering approximations (with
 /// representation [`NumberRepr::Float`]) and exact Gaussian integer
 /// mathematics (with representation [`NumberRepr::Integer`]).
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct ComplexNumber {
   real: Number,
   imag: Number,

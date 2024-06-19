@@ -6,6 +6,7 @@ use crate::util::prism::Prism;
 
 use regex::Regex;
 use once_cell::sync::Lazy;
+use serde::{Serialize, Deserialize};
 
 use std::error::{Error as StdError};
 use std::fmt::{self, Display, Formatter};
@@ -15,7 +16,8 @@ use std::fmt::{self, Display, Formatter};
 /// Variables are identified by strings. A variable's name must begin
 /// with a letter, followed by zero or more letters, digits, or
 /// apostrophes. This structure enforces these constraints.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct Var(String);
 
 /// A prism which parses a string as a variable.

@@ -2,9 +2,11 @@
 use super::number::{Number, ComplexNumber};
 use super::var::Var;
 
+use serde::{Serialize, Deserialize};
+
 use std::fmt::{self, Display, Formatter};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Atom {
   Number(Number),
   Complex(ComplexNumber),

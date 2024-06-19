@@ -11,6 +11,7 @@ use thiserror::Error;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use approx::{AbsDiffEq, RelativeEq, UlpsEq};
+use serde::{Serialize, Deserialize};
 
 use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
@@ -30,12 +31,13 @@ use std::convert::TryFrom;
 /// value, it is safe to assume that the contained `Number` is finite
 /// and real. That is, the `Number` struct in particular will never be
 /// used to store NaN or infinity constants.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct Number {
   pub(super) inner: NumberImpl,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub(super) enum NumberImpl {
   Integer(Box<BigInt>),
   Ratio(Box<BigRational>),

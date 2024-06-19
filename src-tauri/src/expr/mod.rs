@@ -20,12 +20,13 @@ use crate::util::prism::ErrorWithPayload;
 
 use thiserror::Error;
 use num::{Zero, One, BigInt};
+use serde::{Serialize, Deserialize};
 
 use std::mem;
 use std::fmt::{self, Display, Formatter};
 use std::collections::HashSet;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Expr {
   Atom(Atom),
   Call(String, Vec<Expr>),
