@@ -276,3 +276,36 @@ impl Sub for Interval {
     Interval::new(self.left - other.right, interval_type, self.right - other.left).normalize()
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_normalize_nonempty_interval() {
+    let nonempty_interval = Interval::new(Number::from(0), IntervalType::Closed, Number::from(10));
+    assert_eq!(nonempty_interval.clone().normalize(), nonempty_interval);
+    let nonempty_interval = Interval::new(Number::from(2), IntervalType::Closed, Number::from(2));
+    assert_eq!(nonempty_interval.clone().normalize(), nonempty_interval);
+  }
+
+  #[test]
+  fn test_normalize_empty_intervals() {
+    let interval = Interval::new(Number::from(2), IntervalType::Closed, Number::from(1));
+    assert_eq!(interval.normalize(), Interval::empty_at(Number::from(2)));
+    let interval = Interval::new(Number::from(2), IntervalType::LeftOpen, Number::from(1));
+    assert_eq!(interval.normalize(), Interval::empty_at(Number::from(2)));
+    let interval = Interval::new(Number::from(2), IntervalType::RightOpen, Number::from(1));
+    assert_eq!(interval.normalize(), Interval::empty_at(Number::from(2)));
+    let interval = Interval::new(Number::from(2), IntervalType::FullOpen, Number::from(1));
+    assert_eq!(interval.normalize(), Interval::empty_at(Number::from(2)));
+    let interval = Interval::new(Number::from(2), IntervalType::LeftOpen, Number::from(2));
+    assert_eq!(interval.normalize(), Interval::empty_at(Number::from(2)));
+    let interval = Interval::new(Number::from(2), IntervalType::RightOpen, Number::from(2));
+    assert_eq!(interval.normalize(), Interval::empty_at(Number::from(2)));
+    let interval = Interval::new(Number::from(2), IntervalType::FullOpen, Number::from(2));
+    assert_eq!(interval.normalize(), Interval::empty_at(Number::from(2)));
+  }
+
+  // TODO: More tests
+}
