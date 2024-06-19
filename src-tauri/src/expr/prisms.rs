@@ -17,7 +17,7 @@ pub use super::number::prisms::{NumberToUsize, NumberToI64};
 
 /// Prism which downcasts an [`Expr`] to a contained [`Number`].
 #[derive(Debug, Clone, Copy, Default)]
-pub struct ExprToNumber;
+pub struct ExprToNumber; // TODO: This is just a Conversion prism :)
 
 /// Prism which downcasts an [`Expr`] to a [`ComplexLike`], either a
 /// real or a complex number.
