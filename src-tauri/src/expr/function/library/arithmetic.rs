@@ -2,11 +2,12 @@
 //! Basic arithmetic function evaluation rules.
 
 use crate::expr::Expr;
+use crate::expr::interval::Interval;
 use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
 use crate::expr::vector::tensor::Tensor;
-use crate::expr::prisms::{ExprToNumber, ExprToComplex, ExprToVector, ExprToTensor};
+use crate::expr::prisms::{ExprToNumber, ExprToComplex, ExprToVector, ExprToTensor, expr_to_interval};
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex, pow_complex_to_real};
 use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::calculus::DifferentiationError;
@@ -68,6 +69,16 @@ pub fn addition() -> Function {
         Ok(sum.into())
       })
     )
+    .add_case(
+      // Interval addition
+      builder::any_arity().of_type(expr_to_interval()).and_then(|args, _| {
+        let sum = args.into_iter()
+          .map(Interval::from)
+          .reduce(|a, b| a + b)
+          .unwrap(); // unwrap safety: One of the earlier cases would have triggered if arglist was empty
+        Ok(Expr::from(sum))
+      })
+    )
     .set_derivative(
       |args, engine| {
         let args = engine.differentiate_each(args)?;
@@ -101,6 +112,12 @@ pub fn subtraction() -> Function {
           return Err((arg1, arg2));
         }
         Ok(Expr::from(arg1 - arg2))
+      })
+    )
+    .add_case(
+      // Interval subtraction
+      builder::arity_two().both_of_type(expr_to_interval()).and_then(|arg1, arg2, _| {
+        Ok(Expr::from(Interval::from(arg1) - Interval::from(arg2)))
       })
     )
     .set_derivative(

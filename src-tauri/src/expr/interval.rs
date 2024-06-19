@@ -10,6 +10,8 @@ use thiserror::Error;
 use num::Zero;
 
 use std::convert::TryFrom;
+use std::cmp::Ordering;
+use std::ops::{Add, Sub};
 
 /// An interval form which allows arbitrary expressions on the left
 /// and right hand sides.
@@ -25,7 +27,7 @@ pub struct IntervalAny {
 
 /// An interval form consisting of specifically real numbers on the
 /// left and right hand sides.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Interval {
   left: Number,
   interval_type: IntervalType,
@@ -83,10 +85,12 @@ impl Interval {
     Self::empty_at(Number::zero())
   }
 
-  pub fn normalize(&mut self) {
+  pub fn normalize(self) -> Self {
     if self.right < self.left || (self.right == self.left && self.interval_type != IntervalType::Closed) {
       // The interval is empty, so represent it as the empty interval.
-      *self = Self::empty();
+      Self::empty_at(self.left)
+    } else {
+      self
     }
   }
 }
@@ -108,6 +112,55 @@ impl IntervalType {
       "^.." => Ok(IntervalType::LeftOpen),
       "^..^" => Ok(IntervalType::FullOpen),
       _ => Err(ParseIntervalTypeError { _priv: () }),
+    }
+  }
+
+  /// Returns the greatest-lower-bound of `self` and `other`,
+  /// according to the `PartialOrd` instance for `IntervalType`.
+  pub fn min(self, other: IntervalType) -> IntervalType {
+    match self.partial_cmp(&other) {
+      Some(Ordering::Greater) => other,
+      Some(Ordering::Less | Ordering::Equal) => self,
+      None => IntervalType::FullOpen,
+    }
+  }
+
+  /// Returns the least-upper-bound of `self` and `other`,
+  /// according to the `PartialOrd` instance for `IntervalType`.
+  pub fn max(self, other: IntervalType) -> IntervalType {
+    match self.partial_cmp(&other) {
+      Some(Ordering::Greater | Ordering::Equal) => self,
+      Some(Ordering::Less) => other,
+      None => IntervalType::Closed,
+    }
+  }
+
+  pub fn flipped(self) -> IntervalType {
+    match self {
+      IntervalType::Closed => IntervalType::Closed,
+      IntervalType::RightOpen => IntervalType::LeftOpen,
+      IntervalType::LeftOpen => IntervalType::RightOpen,
+      IntervalType::FullOpen => IntervalType::FullOpen,
+    }
+  }
+}
+
+/// The `PartialOrd` implementation for `IntervalType` is ordered by
+/// strictness. The most strict type of ordering is a fully open one,
+/// and the least strict is a closed interval. The two half-open
+/// interval types are not comparable. That is,
+/// `IntervalType::FullOpen` is the least value of this ordering and
+/// `IntervalType::Closed` is the greatest value.
+impl PartialOrd for IntervalType {
+  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    if self == other {
+      Some(Ordering::Equal)
+    } else if self == &IntervalType::Closed || other == &IntervalType::FullOpen {
+      Some(Ordering::Greater)
+    } else if self == &IntervalType::FullOpen || other == &IntervalType::Closed {
+      Some(Ordering::Less)
+    } else {
+      None
     }
   }
 }
@@ -203,5 +256,23 @@ impl TryFrom<Expr> for Interval {
 impl ErrorWithPayload<IntervalAny> for TryFromIntervalAnyError {
   fn recover_payload(self) -> IntervalAny {
     self.original_value
+  }
+}
+
+impl Add for Interval {
+  type Output = Self;
+
+  fn add(self, other: Self) -> Self {
+    let interval_type = self.interval_type.min(other.interval_type);
+    Interval::new(self.left + other.left, interval_type, self.right + other.right).normalize()
+  }
+}
+
+impl Sub for Interval {
+  type Output = Self;
+
+  fn sub(self, other: Self) -> Self {
+    let interval_type = self.interval_type.min(other.interval_type.flipped());
+    Interval::new(self.left - other.right, interval_type, self.right - other.left).normalize()
   }
 }
