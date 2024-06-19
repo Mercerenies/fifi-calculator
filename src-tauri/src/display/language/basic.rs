@@ -33,7 +33,7 @@ impl BasicLanguageMode {
   fn fn_call_to_html(&self, out: &mut String, f: &str, args: &[Expr]) {
     out.push_str(f);
     out.push('(');
-    output_sep_by(out, args.iter(), ", ", |out, e| self.to_html_with_precedence(out, e, Precedence::MIN));
+    output_sep_by(out, args.iter(), ", ", |out, e| self.write_to_html(out, e, Precedence::MIN));
     out.push(')');
   }
 
@@ -52,11 +52,11 @@ impl BasicLanguageMode {
     if needs_parens {
       out.push('(');
     }
-    self.to_html_with_precedence(out, left_arg, infix_props.left_precedence());
+    self.write_to_html(out, left_arg, infix_props.left_precedence());
     out.push(' ');
     out.push_str(op.operator_name());
     out.push(' ');
-    self.to_html_with_precedence(out, right_arg, infix_props.right_precedence());
+    self.write_to_html(out, right_arg, infix_props.right_precedence());
     if needs_parens {
       out.push(')');
     }
@@ -79,7 +79,7 @@ impl BasicLanguageMode {
         out.push(' ');
       }
       first = false;
-      self.to_html_with_precedence(out, arg, infix_props.precedence());
+      self.write_to_html(out, arg, infix_props.precedence());
     }
     if needs_parens {
       out.push(')');
@@ -102,7 +102,7 @@ impl BasicLanguageMode {
     }
     out.push_str(op.operator_name());
     out.push(' ');
-    self.to_html_with_precedence(out, &args[0], prefix_props.precedence());
+    self.write_to_html(out, &args[0], prefix_props.precedence());
     if needs_parens {
       out.push(')');
     }
@@ -123,7 +123,7 @@ impl BasicLanguageMode {
     if needs_parens {
       out.push('(');
     }
-    self.to_html_with_precedence(out, &args[0], postfix_props.precedence());
+    self.write_to_html(out, &args[0], postfix_props.precedence());
     out.push(' ');
     out.push_str(op.operator_name());
     if needs_parens {
@@ -171,11 +171,13 @@ impl BasicLanguageMode {
 
   fn vector_to_html(&self, out: &mut String, elems: &[Expr]) {
     out.push('[');
-    output_sep_by(out, elems.iter(), ", ", |out, e| self.to_html_with_precedence(out, e, Precedence::MIN));
+    output_sep_by(out, elems.iter(), ", ", |out, e| self.write_to_html(out, e, Precedence::MIN));
     out.push(']');
   }
+}
 
-  fn to_html_with_precedence(&self, out: &mut String, expr: &Expr, prec: Precedence) {
+impl LanguageMode for BasicLanguageMode {
+  fn write_to_html(&self, out: &mut String, expr: &Expr, prec: Precedence) {
     match expr {
       Expr::Atom(Atom::Number(n)) => {
         let needs_parens = self.number_needs_parens(n, prec);
@@ -207,12 +209,6 @@ impl BasicLanguageMode {
         }
       }
     }
-  }
-}
-
-impl LanguageMode for BasicLanguageMode {
-  fn write_to_html(&self, out: &mut String, expr: &Expr) {
-    self.to_html_with_precedence(out, expr, Precedence::MIN)
   }
 
   fn parse(&self, text: &str) -> anyhow::Result<Expr> {
