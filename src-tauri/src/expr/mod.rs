@@ -33,7 +33,7 @@ pub enum Expr {
   Call(String, Vec<Expr>),
 }
 
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Clone, PartialEq, Error)]
 #[error("Failed to parse expression '{original_expr}' as {target_type}")]
 pub struct TryFromExprError {
   pub target_type: String,

@@ -18,7 +18,7 @@ use std::ops::{Add, Sub};
 ///
 /// For a variant that requires numbers as interval bounds, see
 /// [`Interval`].
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct IntervalAny {
   left: Expr,
   interval_type: IntervalType,
@@ -27,6 +27,11 @@ pub struct IntervalAny {
 
 /// An interval form consisting of specifically real numbers on the
 /// left and right hand sides.
+///
+/// An interval is said to be *normalized* if it is either (a)
+/// nonempty or (b) equal to the interval `0..^0`. Put another way,
+/// the normal form of the empty interval is `0..^0`. An interval can
+/// be normalized with [`Interval::normalize`].
 #[derive(Clone, Debug, PartialEq)]
 pub struct Interval {
   left: Number,
@@ -85,10 +90,14 @@ impl Interval {
     Self::empty_at(Number::zero())
   }
 
+  pub fn is_empty(&self) -> bool {
+    self.right < self.left || (self.right == self.left && self.interval_type != IntervalType::Closed)
+  }
+
   pub fn normalize(self) -> Self {
-    if self.right < self.left || (self.right == self.left && self.interval_type != IntervalType::Closed) {
-      // The interval is empty, so represent it as the empty interval.
-      Self::empty_at(self.left)
+    if self.is_empty() {
+      // The interval is empty, so represent it as the canonical empty interval.
+      Self::empty()
     } else {
       self
     }
@@ -263,6 +272,9 @@ impl Add for Interval {
   type Output = Self;
 
   fn add(self, other: Self) -> Self {
+    if self.is_empty() || other.is_empty() {
+      return Self::empty();
+    }
     let interval_type = self.interval_type.min(other.interval_type);
     Interval::new(self.left + other.left, interval_type, self.right + other.right).normalize()
   }
@@ -272,6 +284,9 @@ impl Sub for Interval {
   type Output = Self;
 
   fn sub(self, other: Self) -> Self {
+    if self.is_empty() || other.is_empty() {
+      return Self::empty();
+    }
     let interval_type = self.interval_type.min(other.interval_type.flipped());
     Interval::new(self.left - other.right, interval_type, self.right - other.left).normalize()
   }
@@ -292,20 +307,241 @@ mod tests {
   #[test]
   fn test_normalize_empty_intervals() {
     let interval = Interval::new(Number::from(2), IntervalType::Closed, Number::from(1));
-    assert_eq!(interval.normalize(), Interval::empty_at(Number::from(2)));
+    assert_eq!(interval.normalize(), Interval::empty());
     let interval = Interval::new(Number::from(2), IntervalType::LeftOpen, Number::from(1));
-    assert_eq!(interval.normalize(), Interval::empty_at(Number::from(2)));
+    assert_eq!(interval.normalize(), Interval::empty());
     let interval = Interval::new(Number::from(2), IntervalType::RightOpen, Number::from(1));
-    assert_eq!(interval.normalize(), Interval::empty_at(Number::from(2)));
+    assert_eq!(interval.normalize(), Interval::empty());
     let interval = Interval::new(Number::from(2), IntervalType::FullOpen, Number::from(1));
-    assert_eq!(interval.normalize(), Interval::empty_at(Number::from(2)));
+    assert_eq!(interval.normalize(), Interval::empty());
     let interval = Interval::new(Number::from(2), IntervalType::LeftOpen, Number::from(2));
-    assert_eq!(interval.normalize(), Interval::empty_at(Number::from(2)));
+    assert_eq!(interval.normalize(), Interval::empty());
     let interval = Interval::new(Number::from(2), IntervalType::RightOpen, Number::from(2));
-    assert_eq!(interval.normalize(), Interval::empty_at(Number::from(2)));
+    assert_eq!(interval.normalize(), Interval::empty());
     let interval = Interval::new(Number::from(2), IntervalType::FullOpen, Number::from(2));
-    assert_eq!(interval.normalize(), Interval::empty_at(Number::from(2)));
+    assert_eq!(interval.normalize(), Interval::empty());
   }
 
-  // TODO: More tests
+  #[test]
+  fn test_is_empty_on_nonempty_interval() {
+    let nonempty_interval = Interval::new(Number::from(0), IntervalType::Closed, Number::from(10));
+    assert!(!nonempty_interval.is_empty());
+    let nonempty_interval = Interval::new(Number::from(2), IntervalType::Closed, Number::from(2));
+    assert!(!nonempty_interval.is_empty());
+  }
+
+  #[test]
+  fn test_is_empty_on_empty_intervals() {
+    let interval = Interval::new(Number::from(2), IntervalType::Closed, Number::from(1));
+    assert!(interval.is_empty());
+    let interval = Interval::new(Number::from(2), IntervalType::LeftOpen, Number::from(1));
+    assert!(interval.is_empty());
+    let interval = Interval::new(Number::from(2), IntervalType::RightOpen, Number::from(1));
+    assert!(interval.is_empty());
+    let interval = Interval::new(Number::from(2), IntervalType::FullOpen, Number::from(1));
+    assert!(interval.is_empty());
+    let interval = Interval::new(Number::from(2), IntervalType::LeftOpen, Number::from(2));
+    assert!(interval.is_empty());
+    let interval = Interval::new(Number::from(2), IntervalType::RightOpen, Number::from(2));
+    assert!(interval.is_empty());
+    let interval = Interval::new(Number::from(2), IntervalType::FullOpen, Number::from(2));
+    assert!(interval.is_empty());
+  }
+
+  #[test]
+  fn test_interval_type_min() {
+    use IntervalType::*;
+    assert_eq!(Closed.min(Closed), Closed);
+    assert_eq!(LeftOpen.min(LeftOpen), LeftOpen);
+    assert_eq!(LeftOpen.min(RightOpen), FullOpen);
+    assert_eq!(LeftOpen.min(Closed), LeftOpen);
+    assert_eq!(FullOpen.min(RightOpen), FullOpen);
+    assert_eq!(RightOpen.min(FullOpen), FullOpen);
+    assert_eq!(FullOpen.min(FullOpen), FullOpen);
+  }
+
+  #[test]
+  fn test_interval_type_max() {
+    use IntervalType::*;
+    assert_eq!(Closed.max(Closed), Closed);
+    assert_eq!(LeftOpen.max(LeftOpen), LeftOpen);
+    assert_eq!(LeftOpen.max(RightOpen), Closed);
+    assert_eq!(LeftOpen.max(Closed), Closed);
+    assert_eq!(FullOpen.max(RightOpen), RightOpen);
+    assert_eq!(RightOpen.max(FullOpen), RightOpen);
+    assert_eq!(FullOpen.max(FullOpen), FullOpen);
+  }
+
+  #[test]
+  fn test_interval_type_partial_ordering() {
+    use IntervalType::*;
+    assert!(FullOpen <= Closed);
+    assert!(FullOpen <= LeftOpen);
+    assert!(FullOpen <= FullOpen);
+    assert!(Closed <= Closed);
+    assert!(RightOpen <= Closed);
+    assert!(LeftOpen <= Closed);
+    assert_eq!(LeftOpen.partial_cmp(&RightOpen), None);
+  }
+
+  #[test]
+  fn test_try_from_expr_for_interval_any() {
+    let expr = Expr::call("..", vec![Expr::from(0), Expr::from(1)]);
+    assert_eq!(
+      IntervalAny::try_from(expr),
+      Ok(IntervalAny::new(Expr::from(0), IntervalType::Closed, Expr::from(1))),
+    );
+    let expr = Expr::call("..^", vec![Expr::call("foo", vec![]), Expr::from(2)]);
+    assert_eq!(
+      IntervalAny::try_from(expr),
+      Ok(IntervalAny::new(Expr::call("foo", vec![]), IntervalType::RightOpen, Expr::from(2))),
+    );
+  }
+
+  #[test]
+  fn test_try_from_expr_for_interval_any_failed() {
+    let expr = Expr::call("foo", vec![Expr::from(0), Expr::from(1)]);
+    assert_eq!(
+      IntervalAny::try_from(expr),
+      Err(TryFromExprError::new(
+        "IntervalAny",
+        Expr::call("foo", vec![Expr::from(0), Expr::from(1)])
+      )),
+    );
+    let expr = Expr::call("..", vec![Expr::from(0), Expr::from(1), Expr::from(2)]);
+    assert_eq!(
+      IntervalAny::try_from(expr),
+      Err(TryFromExprError::new(
+        "IntervalAny",
+        Expr::call("..", vec![Expr::from(0), Expr::from(1), Expr::from(2)])
+      )),
+    );
+    let expr = Expr::from(0);
+    assert_eq!(
+      IntervalAny::try_from(expr),
+      Err(TryFromExprError::new(
+        "IntervalAny",
+        Expr::from(0),
+      )),
+    );
+  }
+
+  #[test]
+  fn test_try_from_expr_for_interval() {
+    let expr = Expr::call("..", vec![Expr::from(0), Expr::from(1)]);
+    assert_eq!(
+      Interval::try_from(expr),
+      Ok(Interval::new(Number::from(0), IntervalType::Closed, Number::from(1))),
+    );
+  }
+
+  #[test]
+  fn test_try_from_expr_for_interval_with_non_literal_arg() {
+    let expr = Expr::call("..^", vec![Expr::call("foo", vec![]), Expr::from(2)]);
+    assert_eq!(
+      Interval::try_from(expr),
+      Err(TryFromExprError::new(
+        "Interval",
+        Expr::call("..^", vec![Expr::call("foo", vec![]), Expr::from(2)])
+      )),
+    );
+  }
+
+  #[test]
+  fn test_try_from_expr_for_interval_failed() {
+    let expr = Expr::call("foo", vec![Expr::from(0), Expr::from(1)]);
+    assert_eq!(
+      Interval::try_from(expr),
+      Err(TryFromExprError::new(
+        "Interval",
+        Expr::call("foo", vec![Expr::from(0), Expr::from(1)])
+      )),
+    );
+    let expr = Expr::call("..", vec![Expr::from(0), Expr::from(1), Expr::from(2)]);
+    assert_eq!(
+      Interval::try_from(expr),
+      Err(TryFromExprError::new(
+        "Interval",
+        Expr::call("..", vec![Expr::from(0), Expr::from(1), Expr::from(2)])
+      )),
+    );
+    let expr = Expr::from(0);
+    assert_eq!(
+      Interval::try_from(expr),
+      Err(TryFromExprError::new(
+        "Interval",
+        Expr::from(0),
+      )),
+    );
+  }
+
+  #[test]
+  fn test_add_interval() {
+    let interval1 = Interval::new(Number::from(1), IntervalType::Closed, Number::from(2));
+    let interval2 = Interval::new(Number::from(10), IntervalType::Closed, Number::from(20));
+    assert_eq!(
+      interval1 + interval2,
+      Interval::new(Number::from(11), IntervalType::Closed, Number::from(22)),
+    );
+    let interval1 = Interval::new(Number::from(1), IntervalType::LeftOpen, Number::from(2));
+    let interval2 = Interval::new(Number::from(10), IntervalType::FullOpen, Number::from(20));
+    assert_eq!(
+      interval1 + interval2,
+      Interval::new(Number::from(11), IntervalType::FullOpen, Number::from(22)),
+    );
+    let interval1 = Interval::new(Number::from(1), IntervalType::LeftOpen, Number::from(2));
+    let interval2 = Interval::new(Number::from(10), IntervalType::RightOpen, Number::from(20));
+    assert_eq!(
+      interval1 + interval2,
+      Interval::new(Number::from(11), IntervalType::FullOpen, Number::from(22)),
+    );
+    let interval1 = Interval::new(Number::from(1), IntervalType::RightOpen, Number::from(2));
+    let interval2 = Interval::new(Number::from(10), IntervalType::RightOpen, Number::from(20));
+    assert_eq!(
+      interval1 + interval2,
+      Interval::new(Number::from(11), IntervalType::RightOpen, Number::from(22)),
+    );
+  }
+
+  #[test]
+  fn test_sub_interval() {
+    let interval1 = Interval::new(Number::from(1), IntervalType::Closed, Number::from(2));
+    let interval2 = Interval::new(Number::from(10), IntervalType::Closed, Number::from(20));
+    assert_eq!(
+      interval1 - interval2,
+      Interval::new(Number::from(-19), IntervalType::Closed, Number::from(-8)),
+    );
+    let interval1 = Interval::new(Number::from(1), IntervalType::LeftOpen, Number::from(2));
+    let interval2 = Interval::new(Number::from(10), IntervalType::FullOpen, Number::from(20));
+    assert_eq!(
+      interval1 - interval2,
+      Interval::new(Number::from(-19), IntervalType::FullOpen, Number::from(-8)),
+    );
+    let interval1 = Interval::new(Number::from(1), IntervalType::LeftOpen, Number::from(2));
+    let interval2 = Interval::new(Number::from(10), IntervalType::RightOpen, Number::from(20));
+    assert_eq!(
+      interval1 - interval2,
+      Interval::new(Number::from(-19), IntervalType::LeftOpen, Number::from(-8)),
+    );
+    let interval1 = Interval::new(Number::from(1), IntervalType::RightOpen, Number::from(2));
+    let interval2 = Interval::new(Number::from(10), IntervalType::RightOpen, Number::from(20));
+    assert_eq!(
+      interval1 - interval2,
+      Interval::new(Number::from(-19), IntervalType::FullOpen, Number::from(-8)),
+    );
+  }
+
+  #[test]
+  fn test_add_empty_intervals() {
+    let interval1 = Interval::empty_at(Number::from(19)); // Note: Not normalized
+    let interval2 = Interval::new(Number::from(1), IntervalType::Closed, Number::from(2));
+    assert_eq!(interval1 + interval2, Interval::empty());
+  }
+
+  #[test]
+  fn test_sub_empty_intervals() {
+    let interval1 = Interval::empty_at(Number::from(19)); // Note: Not normalized
+    let interval2 = Interval::new(Number::from(1), IntervalType::Closed, Number::from(2));
+    assert_eq!(interval1 - interval2, Interval::empty());
+  }
 }
