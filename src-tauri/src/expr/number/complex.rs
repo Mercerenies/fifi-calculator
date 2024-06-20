@@ -18,7 +18,7 @@ use std::cmp::Ordering;
 /// use this one type to do both engineering approximations (with
 /// representation [`NumberRepr::Float`]) and exact Gaussian integer
 /// mathematics (with representation [`NumberRepr::Integer`]).
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ComplexNumber {
   real: Number,
   imag: Number,

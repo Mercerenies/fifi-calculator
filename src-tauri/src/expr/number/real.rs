@@ -368,6 +368,12 @@ impl PartialEq for Number {
   }
 }
 
+/// Even though we use `f64` values internally to store `Number`, we
+/// can still implement `Number: Eq` because the stored `f64` values
+/// are explicitly required to be finite (see the assertion in the
+/// `From<f64> for Number` instance).
+impl Eq for Number {}
+
 impl StrictEq for Number {
   /// Compares both the representation and the value of the type. This
   /// is stricter than the standard [`PartialEq`] implementation.
@@ -429,6 +435,18 @@ impl PartialOrd for Number {
       NumberPair::Integers(left, right) => left.partial_cmp(&right),
       NumberPair::Ratios(left, right) => left.partial_cmp(&right),
       NumberPair::Floats(left, right) => left.partial_cmp(&right),
+    }
+  }
+}
+
+/// See comments on `impl Eq for Number` for details on why this is
+/// lawful, even though we use `f64` internally.
+impl Ord for Number {
+  fn cmp(&self, other: &Number) -> Ordering {
+    match NumberPair::promote(self.clone(), other.clone()) {
+      NumberPair::Integers(left, right) => left.cmp(&right),
+      NumberPair::Ratios(left, right) => left.cmp(&right),
+      NumberPair::Floats(left, right) => left.partial_cmp(&right).expect("f64 should be finite"),
     }
   }
 }
