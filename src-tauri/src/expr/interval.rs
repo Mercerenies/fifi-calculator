@@ -10,8 +10,8 @@ use thiserror::Error;
 use num::Zero;
 
 use std::convert::TryFrom;
-use std::cmp::Ordering;
-use std::ops::{Add, Sub};
+use std::cmp::{Ordering, min};
+use std::ops::{Add, Sub, Mul};
 
 /// An interval form which allows arbitrary expressions on the left
 /// and right hand sides.
@@ -64,6 +64,9 @@ pub enum IntervalType {
 }
 
 /// A [`Number`] together with its bound type.
+///
+/// Binary arithmetic operations on bounded numbers always take the
+/// stricter bound of the two arguments.
 #[derive(Clone, Debug, PartialEq)]
 pub struct BoundedNumber {
   number: Number,
@@ -143,6 +146,34 @@ impl Interval {
 impl BoundedNumber {
   pub fn new(number: Number, bound_type: BoundType) -> Self {
     Self { number, bound_type }
+  }
+
+  pub fn bound_type(&self) -> BoundType {
+    self.bound_type
+  }
+
+  pub fn number(&self) -> &Number {
+    &self.number
+  }
+
+  pub fn into_number(self) -> Number {
+    self.number
+  }
+
+  pub fn apply<F>(self, other: BoundedNumber, f: F) -> BoundedNumber
+  where F: FnOnce(Number, Number) -> Number {
+    BoundedNumber {
+      number: f(self.number, other.number),
+      bound_type: min(self.bound_type, other.bound_type), // Take the *stricter* bound
+    }
+  }
+
+  pub fn min(self, other: BoundedNumber) -> BoundedNumber {
+    self.apply(other, Number::min)
+  }
+
+  pub fn max(self, other: BoundedNumber) -> BoundedNumber {
+    self.apply(other, Number::max)
   }
 }
 
@@ -325,6 +356,30 @@ impl TryFrom<Expr> for Interval {
 impl ErrorWithPayload<IntervalAny> for TryFromIntervalAnyError {
   fn recover_payload(self) -> IntervalAny {
     self.original_value
+  }
+}
+
+impl Add for BoundedNumber {
+  type Output = Self;
+
+  fn add(self, other: Self) -> Self {
+    self.apply(other, Number::add)
+  }
+}
+
+impl Sub for BoundedNumber {
+  type Output = Self;
+
+  fn sub(self, other: Self) -> Self {
+    self.apply(other, Number::sub)
+  }
+}
+
+impl Mul for BoundedNumber {
+  type Output = Self;
+
+  fn mul(self, other: Self) -> Self {
+    self.apply(other, Number::mul)
   }
 }
 

@@ -110,6 +110,22 @@ impl Number {
     &Number::one() / self
   }
 
+  pub fn min(self, other: Number) -> Number {
+    if self < other {
+      self
+    } else {
+      other
+    }
+  }
+
+  pub fn max(self, other: Number) -> Number {
+    if self > other {
+      self
+    } else {
+      other
+    }
+  }
+
   /// Raises a `Number` to an integer power.
   ///
   /// The indeterminate form `0^0` is treated as 1.
