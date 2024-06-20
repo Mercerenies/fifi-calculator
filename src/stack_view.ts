@@ -9,12 +9,14 @@ export class StackView {
   private valueStackDiv: HTMLElement;
   private sortable: Sortable | undefined;
   private currentStackSize: number = 0;
+  private delegate: StackUpdatedDelegate;
 
-  constructor(valueStackDiv: HTMLElement) {
+  constructor(valueStackDiv: HTMLElement, delegate?: StackUpdatedDelegate) {
     this.valueStackDiv = valueStackDiv;
+    this.delegate = delegate ?? NULL_STACK_UPDATED_DELEGATE;
   }
 
-  refreshStack(newStackHtml: string[]): void {
+  async refreshStack(newStackHtml: string[]): Promise<void> {
     if (this.sortable) {
       this.sortable.destroy();
       this.sortable = undefined;
@@ -35,6 +37,7 @@ export class StackView {
     const stack = this.valueStackDiv;
     stack.innerHTML = "";
     stack.appendChild(ol);
+    await this.delegate.onStackUpdated(stack);
 
     this.sortable = new Sortable(ol, {
       draggable: 'li',
@@ -54,10 +57,20 @@ export class StackView {
     // For the stack shuffle command, we count from the top of the
     // stack, which is visually the bottom of the stack view.
     const srcIndex = this.currentStackSize - 1 - oldIndex;
-    let destIndex = this.currentStackSize - 1 - newIndex;
+    const destIndex = this.currentStackSize - 1 - newIndex;
 
     window.setTimeout(() => {
       TAURI.runMathCommand("move_stack_elem", [String(srcIndex), String(destIndex)], defaultCommandOptions());
     }, 1);
+  }
+}
+
+export interface StackUpdatedDelegate {
+  onStackUpdated(stackDiv: HTMLElement): Promise<void>;
+}
+
+export const NULL_STACK_UPDATED_DELEGATE: StackUpdatedDelegate = {
+  onStackUpdated(): Promise<void> {
+    return Promise.resolve();
   }
 }

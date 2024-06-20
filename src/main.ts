@@ -8,6 +8,7 @@ import * as KeyDispatcher from './keyboard/dispatcher.js';
 import { RightPanelManager } from './right_panel.js';
 import { TAURI, RefreshStackPayload, UndoAvailabilityPayload } from './tauri_api.js';
 import { StackView } from './stack_view.js';
+import { GraphicsEngine } from './graphics_engine.js';
 
 import { OsType } from '@tauri-apps/plugin-os';
 
@@ -70,8 +71,8 @@ class UiManager {
   }
 }
 
-function refreshStack(stackView: StackView, payload: RefreshStackPayload): void {
-  stackView.refreshStack(payload.stack);
+async function refreshStack(stackView: StackView, payload: RefreshStackPayload): Promise<void> {
+  await stackView.refreshStack(payload.stack);
   if (payload.forceScrollDown) {
     stackView.scrollToBottom();
   }
@@ -84,8 +85,9 @@ function refreshUndoButtons(uiManager: UiManager, state: UndoAvailabilityPayload
 }
 
 window.addEventListener("DOMContentLoaded", async function() {
+  const graphicsEngine = new GraphicsEngine();
   const uiManager = await UiManager.create();
-  const stackView = new StackView(Page.getValueStack());
+  const stackView = new StackView(Page.getValueStack(), graphicsEngine);
   uiManager.initListeners();
   await TAURI.listen("refresh-stack", (event) => refreshStack(stackView, event.payload));
   await TAURI.listen("show-error", (event) => uiManager.notificationManager.show(event.payload.errorMessage));
