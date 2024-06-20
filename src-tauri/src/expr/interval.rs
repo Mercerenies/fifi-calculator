@@ -32,6 +32,11 @@ pub struct IntervalAny {
 /// nonempty or (b) equal to the interval `0..^0`. Put another way,
 /// the normal form of the empty interval is `0..^0`. An interval can
 /// be normalized with [`Interval::normalize`].
+///
+/// Intervals are NOT automatically normalized, as doing so would
+/// break the prism laws (it is possible to express non-normalized
+/// intervals in the [`Expr`] language, so it shall be possible in the
+/// [`Interval`] type as well).
 #[derive(Clone, Debug, PartialEq)]
 pub struct Interval {
   left: Number,
@@ -58,6 +63,20 @@ pub enum IntervalType {
   FullOpen,
 }
 
+/// A [`Number`] together with its bound type.
+#[derive(Clone, Debug, PartialEq)]
+pub struct BoundedNumber {
+  number: Number,
+  bound_type: BoundType,
+}
+
+/// Whether or not a bound is inclusive.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum BoundType {
+  Exclusive,
+  Inclusive,
+}
+
 #[derive(Debug, Clone, Error)]
 #[error("Error parsing interval type operator")]
 pub struct ParseIntervalTypeError {
@@ -78,8 +97,17 @@ impl IntervalAny {
 }
 
 impl Interval {
+  /// Constructs a new interval. This constructor does NOT normalize
+  /// the interval.
   pub fn new(left: Number, interval_type: IntervalType, right: Number) -> Self {
     Self { left, interval_type, right }
+  }
+
+  /// Constructs a new interval from bounds. This constructor does NOT
+  /// normalize the interval.
+  pub fn from_bounds(left: BoundedNumber, right: BoundedNumber) -> Self {
+    let interval_type = IntervalType::from_bounds(left.bound_type, right.bound_type);
+    Self { left: left.number, interval_type, right: right.number }
   }
 
   pub fn empty_at(bound: Number) -> Self {
@@ -94,6 +122,14 @@ impl Interval {
     self.right < self.left || (self.right == self.left && self.interval_type != IntervalType::Closed)
   }
 
+  pub fn into_bounds(self) -> (BoundedNumber, BoundedNumber) {
+    let (left_bound, right_bound) = self.interval_type.into_bounds();
+    (
+      BoundedNumber { number: self.left, bound_type: left_bound },
+      BoundedNumber { number: self.right, bound_type: right_bound },
+    )
+  }
+
   pub fn normalize(self) -> Self {
     if self.is_empty() {
       // The interval is empty, so represent it as the canonical empty interval.
@@ -104,13 +140,37 @@ impl Interval {
   }
 }
 
+impl BoundedNumber {
+  pub fn new(number: Number, bound_type: BoundType) -> Self {
+    Self { number, bound_type }
+  }
+}
+
 impl IntervalType {
+  pub fn from_bounds(left: BoundType, right: BoundType) -> Self {
+    match (left, right) {
+      (BoundType::Inclusive, BoundType::Inclusive) => IntervalType::Closed,
+      (BoundType::Inclusive, BoundType::Exclusive) => IntervalType::RightOpen,
+      (BoundType::Exclusive, BoundType::Inclusive) => IntervalType::LeftOpen,
+      (BoundType::Exclusive, BoundType::Exclusive) => IntervalType::FullOpen,
+    }
+  }
+
   pub fn name(self) -> &'static str {
     match self {
       IntervalType::Closed => "..",
       IntervalType::RightOpen => "..^",
       IntervalType::LeftOpen => "^..",
       IntervalType::FullOpen => "^..^",
+    }
+  }
+
+  pub fn into_bounds(self) -> (BoundType, BoundType) {
+    match self {
+      IntervalType::Closed => (BoundType::Inclusive, BoundType::Inclusive),
+      IntervalType::RightOpen => (BoundType::Inclusive, BoundType::Exclusive),
+      IntervalType::LeftOpen => (BoundType::Exclusive, BoundType::Inclusive),
+      IntervalType::FullOpen => (BoundType::Exclusive, BoundType::Exclusive),
     }
   }
 
@@ -543,5 +603,21 @@ mod tests {
     let interval1 = Interval::empty_at(Number::from(19)); // Note: Not normalized
     let interval2 = Interval::new(Number::from(1), IntervalType::Closed, Number::from(2));
     assert_eq!(interval1 - interval2, Interval::empty());
+  }
+
+  #[test]
+  fn test_roundtrip_through_bounds() {
+    let interval = Interval::new(Number::from(0), IntervalType::Closed, Number::from(10));
+    let (left_bound, right_bound) = interval.clone().into_bounds();
+    assert_eq!(Interval::from_bounds(left_bound, right_bound), interval);
+    let interval = Interval::new(Number::from(0), IntervalType::LeftOpen, Number::from(10));
+    let (left_bound, right_bound) = interval.clone().into_bounds();
+    assert_eq!(Interval::from_bounds(left_bound, right_bound), interval);
+    let interval = Interval::new(Number::from(0), IntervalType::RightOpen, Number::from(10));
+    let (left_bound, right_bound) = interval.clone().into_bounds();
+    assert_eq!(Interval::from_bounds(left_bound, right_bound), interval);
+    let interval = Interval::new(Number::from(0), IntervalType::FullOpen, Number::from(10));
+    let (left_bound, right_bound) = interval.clone().into_bounds();
+    assert_eq!(Interval::from_bounds(left_bound, right_bound), interval);
   }
 }
