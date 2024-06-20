@@ -435,11 +435,7 @@ impl UlpsEq for Number {
 
 impl PartialOrd for Number {
   fn partial_cmp(&self, other: &Number) -> Option<Ordering> {
-    match NumberPair::promote(self.clone(), other.clone()) {
-      NumberPair::Integers(left, right) => left.partial_cmp(&right),
-      NumberPair::Ratios(left, right) => left.partial_cmp(&right),
-      NumberPair::Floats(left, right) => left.partial_cmp(&right),
-    }
+    Some(self.cmp(other))
   }
 }
 

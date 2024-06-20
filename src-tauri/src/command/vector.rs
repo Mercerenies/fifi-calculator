@@ -132,7 +132,7 @@ impl Command for PackCommand {
       let arg = PackCommand::pop_non_negative_integer(&mut state.main_stack_mut())?;
       // TODO (CLEANUP): Messy code pattern here to perform stack
       // cleanup in case of error.
-      let vector = match PackCommand::pop_and_construct_vector(state, context, arg as usize) {
+      let vector = match PackCommand::pop_and_construct_vector(state, context, arg) {
         Ok(vector) => vector,
         Err(err) => {
           state.main_stack_mut().push(Expr::from(BigInt::from(arg)));

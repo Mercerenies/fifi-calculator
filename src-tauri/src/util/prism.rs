@@ -140,6 +140,15 @@ where Down: TryFrom<Up>,
   }
 }
 
+impl<Up, Down> Default for Conversion<Up, Down>
+where Down: TryFrom<Up>,
+      Up: From<Down>,
+      <Down as TryFrom<Up>>::Error: ErrorWithPayload<Up> {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 impl<T> Prism<T, T> for Identity {
   fn narrow_type(&self, input: T) -> Result<T, T> {
     Ok(input)

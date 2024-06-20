@@ -109,7 +109,7 @@ impl TryFrom<Expr> for Formula {
   type Error = TryFromExprError;
 
   fn try_from(expr: Expr) -> Result<Self, Self::Error> {
-    const TYPE_NAME: &'static str = "Formula";
+    const TYPE_NAME: &str = "Formula";
     if let Expr::Call(name, args) = expr {
       if args.len() == 2 {
         if let Ok(op) = FormulaOp::from_str(&name) {

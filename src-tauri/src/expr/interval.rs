@@ -363,7 +363,7 @@ impl TryFrom<Expr> for IntervalAny {
   type Error = TryFromExprError;
 
   fn try_from(expr: Expr) -> Result<Self, Self::Error> {
-    const TYPE_NAME: &'static str = "IntervalAny";
+    const TYPE_NAME: &str = "IntervalAny";
     if let Expr::Call(name, args) = expr {
       if args.len() == 2 {
         if let Ok(op) = IntervalType::parse(&name) {
@@ -404,7 +404,7 @@ impl TryFrom<Expr> for Interval {
   type Error = TryFromExprError;
 
   fn try_from(expr: Expr) -> Result<Self, Self::Error> {
-    const TYPE_NAME: &'static str = "Interval";
+    const TYPE_NAME: &str = "Interval";
     IntervalAny::try_from(expr)
       .map_err(|err| err.with_type_name(TYPE_NAME))
       .and_then(|interval| {
