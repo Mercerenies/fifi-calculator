@@ -56,6 +56,17 @@ pub fn logarithm() -> Function {
         Ok(Expr::from(arg.log(&base)))
       })
     )
+    .add_case(
+      // Arbitrary-base logarithm of an interval with positive real base
+      builder::arity_two().of_types(prisms::expr_to_interval(), prisms::expr_to_positive_number()).and_then(|arg, base, ctx| {
+        if arg.left() <= &Number::zero() || arg.right() <= &Number::zero() {
+          ctx.errors.push(SimplifierError::custom_error("log", "Expected interval of positive reals"));
+          return Err((arg, base));
+        }
+        let base = Number::from(base);
+        Ok(Expr::from(arg.map_monotone(|x| x.log(&base))))
+      })
+    )
     .set_derivative(
       builder::arity_two_deriv("log", |arg, base, engine| {
         // Convert to ln(a) / ln(b) and do the Quotient Rule.
