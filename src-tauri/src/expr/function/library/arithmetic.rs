@@ -7,7 +7,8 @@ use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
 use crate::expr::vector::tensor::Tensor;
-use crate::expr::prisms::{ExprToNumber, ExprToComplex, ExprToVector, ExprToTensor, ExprToIntervalLike};
+use crate::expr::prisms::{ExprToNumber, ExprToComplex, ExprToVector,
+                          ExprToTensor, ExprToIntervalLike, expr_to_interval};
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex, pow_complex_to_real};
 use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::calculus::DifferentiationError;
@@ -486,6 +487,12 @@ pub fn arithmetic_negate() -> Function {
       builder::arity_one().of_type(ExprToVector).and_then(|arg, _| {
         let result = arg.map(|e| Expr::call("negate", vec![e]));
         Ok(result.into_expr())
+      })
+    )
+    .add_case(
+      // Negation of an interval
+      builder::arity_one().of_type(expr_to_interval()).and_then(|arg, _| {
+        Ok(Expr::from(- arg))
       })
     )
     .set_derivative(

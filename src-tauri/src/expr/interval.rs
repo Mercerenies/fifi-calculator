@@ -11,7 +11,7 @@ use num::Zero;
 
 use std::convert::TryFrom;
 use std::cmp::{Ordering, min};
-use std::ops::{Add, Sub, Mul};
+use std::ops::{Add, Sub, Mul, Neg};
 
 /// An interval form which allows arbitrary expressions on the left
 /// and right hand sides.
@@ -442,6 +442,15 @@ impl Mul for Interval {
 
   fn mul(self, other: Self) -> Self {
     self.apply_monotone(other, Number::mul)
+  }
+}
+
+impl Neg for Interval {
+  type Output = Self;
+
+  fn neg(self) -> Self {
+    let interval_type = self.interval_type.flipped();
+    Interval::new(-self.right, interval_type, -self.left).normalize()
   }
 }
 
