@@ -7,7 +7,7 @@ use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
 use crate::expr::vector::tensor::Tensor;
-use crate::expr::prisms::{ExprToNumber, ExprToComplex, ExprToVector, ExprToTensor, expr_to_interval};
+use crate::expr::prisms::{ExprToNumber, ExprToComplex, ExprToVector, ExprToTensor, ExprToIntervalLike};
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex, pow_complex_to_real};
 use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::calculus::DifferentiationError;
@@ -71,7 +71,7 @@ pub fn addition() -> Function {
     )
     .add_case(
       // Interval addition
-      builder::any_arity().of_type(expr_to_interval()).and_then(|args, _| {
+      builder::any_arity().of_type(ExprToIntervalLike).and_then(|args, _| {
         let sum = args.into_iter()
           .map(Interval::from)
           .reduce(|a, b| a + b)
@@ -116,7 +116,7 @@ pub fn subtraction() -> Function {
     )
     .add_case(
       // Interval subtraction
-      builder::arity_two().both_of_type(expr_to_interval()).and_then(|arg1, arg2, _| {
+      builder::arity_two().both_of_type(ExprToIntervalLike).and_then(|arg1, arg2, _| {
         Ok(Expr::from(Interval::from(arg1) - Interval::from(arg2)))
       })
     )
@@ -186,7 +186,7 @@ pub fn multiplication() -> Function {
     )
     .add_case(
       // Interval multiplication
-      builder::any_arity().of_type(expr_to_interval()).and_then(|args, _| {
+      builder::any_arity().of_type(ExprToIntervalLike).and_then(|args, _| {
         let sum = args.into_iter()
           .map(Interval::from)
           .reduce(|a, b| a * b)
@@ -260,7 +260,7 @@ pub fn division() -> Function {
       // Interval division (currently a trap case)
       //
       // TODO: Implement this once we have infinities (Issue #4)
-      builder::arity_two().both_of_type(expr_to_interval()).and_then(|arg1, arg2, ctx| {
+      builder::arity_two().both_of_type(ExprToIntervalLike).and_then(|arg1, arg2, ctx| {
         ctx.errors.push(SimplifierError::custom_error("/", "Interval division is not currently supported"));
         Err((arg1, arg2))
       })
