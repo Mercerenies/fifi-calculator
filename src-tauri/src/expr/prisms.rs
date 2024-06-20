@@ -39,7 +39,7 @@ pub struct ExprToVar;
 pub struct NumberToPositiveNumber;
 
 /// A real number which is guaranteed to be positive. This is the
-/// result type of the [`ExprToPositiveNumber`] prism.
+/// result type of the [`expr_to_positive_number`] prism.
 #[derive(Debug, Clone)]
 pub struct PositiveNumber {
   data: Number,

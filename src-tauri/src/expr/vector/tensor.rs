@@ -113,12 +113,12 @@ impl Tensor {
   /// sequence consisting of only scalars, vacuously passes this test.
   ///
   /// If this check succeeds, then arithmetic can be performed on the
-  /// vector. [`try_add`](Broadcasting::try_add),
-  /// [`try_sub`](Broadcasting::try_sub), and company will always
-  /// produce `Ok` values when reduced on the collection using
-  /// `try_fold`. In this way, it's possible to validate, in advance,
-  /// whether or not arithmetic will succeed, without partially
-  /// consuming a collection in the case that it fails.
+  /// vector. [`try_add`](Tensor::try_add),
+  /// [`try_sub`](Tensor::try_sub), and company will always produce
+  /// `Ok` values when reduced on the collection using `try_fold`. In
+  /// this way, it's possible to validate, in advance, whether or not
+  /// arithmetic will succeed, without partially consuming a
+  /// collection in the case that it fails.
   pub fn check_compatible_lengths<'a, I>(values: I) -> Result<(), LengthError>
   where I: IntoIterator<Item = &'a Tensor> {
     let mut identified_length: Option<usize> = None;

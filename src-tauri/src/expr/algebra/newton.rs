@@ -2,7 +2,7 @@
 //! Implementation of the Newton-Raphson method for finding roots to
 //! differentiable functions.
 //!
-//! See https://en.wikipedia.org/wiki/Newton%27s_method.
+//! See <https://en.wikipedia.org/wiki/Newton%27s_method>.
 
 use super::{ExprFunction, FunctionEvalError};
 use crate::expr::Expr;
