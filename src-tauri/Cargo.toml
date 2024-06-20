@@ -31,6 +31,8 @@ bitflags = "2.5.0"
 anyhow = "1.0.86"
 tauri-plugin-os = "2.0.0-beta.6"
 tauri-plugin-shell = "2.0.0-beta.7"
+ciborium = "0.2.2"
+base64 = "0.22.1"
 
 [features]
 # This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!
