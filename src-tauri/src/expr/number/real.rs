@@ -209,6 +209,10 @@ impl Number {
   /// Returns the natural logarithm of `self`. This always returns an
   /// inexact floating result. Panics if `self <= 0`.
   pub fn ln(&self) -> Number {
+    if self.is_one() && self.repr() < NumberRepr::Float {
+      // Return exact zero in this case.
+      return Number::zero();
+    }
     let x = self.to_f64().expect("Could not convert number to f64");
     assert!(x > 0.0, "Argument to Number::ln should be positive, got {}", x);
     Number::from(x.ln())
