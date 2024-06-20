@@ -106,6 +106,14 @@ impl Interval {
     Self { left, interval_type, right }
   }
 
+  pub fn left(&self) -> &Number {
+    &self.left
+  }
+
+  pub fn right(&self) -> &Number {
+    &self.right
+  }
+
   /// Constructs a new interval from bounds. This constructor does NOT
   /// normalize the interval.
   pub fn from_bounds(left: BoundedNumber, right: BoundedNumber) -> Self {
@@ -140,6 +148,21 @@ impl Interval {
     } else {
       self
     }
+  }
+
+  /// Applies a unary, monotone function to this interval to produce a
+  /// new interval. It is the caller's responsibility to ensure that
+  /// the provided function is monotonic.
+  pub fn map_monotone<F>(self, f: F) -> Interval
+  where F: Fn(Number) -> Number {
+    if self.is_empty() {
+      return Self::empty();
+    }
+    let (lower, upper) = self.into_bounds();
+    Interval::from_bounds(
+      lower.map(&f),
+      upper.map(f),
+    ).normalize()
   }
 
   /// Applies a binary, monotone function to the two intervals to
@@ -180,6 +203,14 @@ impl BoundedNumber {
 
   pub fn into_number(self) -> Number {
     self.number
+  }
+
+  pub fn map<F>(self, f: F) -> BoundedNumber
+  where F: FnOnce(Number) -> Number {
+    BoundedNumber {
+      number: f(self.number),
+      bound_type: self.bound_type,
+    }
   }
 
   pub fn apply<F>(self, other: BoundedNumber, f: F) -> BoundedNumber

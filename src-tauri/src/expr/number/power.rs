@@ -14,7 +14,9 @@ use num::{BigInt, Zero, One, ToPrimitive};
 use std::f64::consts::PI;
 
 /// Raises one real number to another real number, producing the
-/// principal value of `x^y`. The result may be a complex number.
+/// principal value of `x^y`.
+///
+/// If `x < 0`, then the result may be a complex number.
 pub fn pow_real(x: Number, y: Number) -> ComplexLike {
   match y.inner {
     NumberImpl::Integer(y) => {

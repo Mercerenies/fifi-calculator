@@ -2,11 +2,14 @@
 //! Evaluation rules for transcendental and trigonometric functions.
 
 use crate::expr::Expr;
+use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder};
 use crate::expr::prisms::{self, ExprToNumber, ExprToComplex};
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex};
+
+use num::Zero;
 
 use std::f64::consts;
 
@@ -22,6 +25,16 @@ pub fn natural_log() -> Function {
       // Natural logarithm of a positive real number
       builder::arity_one().of_type(prisms::expr_to_positive_number()).and_then(|arg, _| {
         Ok(Expr::from(Number::from(arg).ln()))
+      })
+    )
+    .add_case(
+      // Natural logarithm of interval of positive reals
+      builder::arity_one().of_type(prisms::expr_to_interval()).and_then(|arg, ctx| {
+        if arg.left() <= &Number::zero() || arg.right() <= &Number::zero() {
+          ctx.errors.push(SimplifierError::custom_error("ln", "Expected interval of positive reals"));
+          return Err(arg);
+        }
+        Ok(Expr::from(arg.map_monotone(|x| x.ln())))
       })
     )
     .set_derivative(
@@ -73,6 +86,17 @@ pub fn exponent() -> Function {
         let e = ComplexNumber::from_real(Number::from(consts::E));
         let power = pow_complex(e, arg.into());
         Ok(Expr::from(power))
+      })
+    )
+    .add_case(
+      // Interval case
+      builder::arity_one().of_type(prisms::expr_to_interval()).and_then(|arg, _| {
+        let value = arg.map_monotone(|x| {
+          let e = Number::from(consts::E);
+          // unwrap: Raising a positive constant to a power will always get a real result.
+          pow_real(e, x).unwrap_real()
+        });
+        Ok(Expr::from(value))
       })
     )
     .set_derivative(
