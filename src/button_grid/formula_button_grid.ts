@@ -30,7 +30,12 @@ export class FormulaButtonGrid extends ButtonGrid {
         new DispatchButton(">", ">", "."),
         new DispatchButton("≥", ">=", ">"),
       ],
-      [],
+      [
+        new DispatchButton("..", "..", null),
+        new DispatchButton("..^", "..^", null),
+        new DispatchButton("^..", "^..", null),
+        new DispatchButton("^..^", "^..^", null),
+      ],
       [],
       [
         backButton(this.rootGrid),
