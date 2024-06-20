@@ -7,6 +7,7 @@ pub mod command;
 pub mod display;
 pub mod errorlist;
 pub mod expr;
+pub mod graphics;
 pub mod parsing;
 pub mod runner;
 pub mod stack;
