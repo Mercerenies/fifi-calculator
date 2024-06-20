@@ -81,8 +81,10 @@ impl Command for SubstituteVarCommand {
     let mut errors = ErrorList::new();
     state.undo_stack_mut().push_cut();
 
-    let language_mode = &state.display_settings().language_mode;
-    let new_value = language_mode.parse(&new_value)?;
+    let new_value = {
+      let language_mode = &state.display_settings().language_mode();
+      language_mode.parse(&new_value)?
+    };
 
     let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
     let expr = stack.pop()?;

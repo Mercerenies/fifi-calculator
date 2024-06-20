@@ -1,5 +1,6 @@
 
 pub mod basic;
+pub mod graphics;
 
 use crate::expr::Expr;
 use crate::parsing::operator::Precedence;
