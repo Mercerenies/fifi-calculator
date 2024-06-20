@@ -184,6 +184,16 @@ pub fn multiplication() -> Function {
         Ok(product.into())
       })
     )
+    .add_case(
+      // Interval multiplication
+      builder::any_arity().of_type(expr_to_interval()).and_then(|args, _| {
+        let sum = args.into_iter()
+          .map(Interval::from)
+          .reduce(|a, b| a * b)
+          .unwrap(); // unwrap safety: One of the earlier cases would have triggered if arglist was empty
+        Ok(Expr::from(sum))
+      })
+    )
     .set_derivative(
       |args, engine| {
         let mut final_terms = Vec::with_capacity(args.len());
@@ -244,6 +254,15 @@ pub fn division() -> Function {
         // does NOT invoke Number::div or ComplexNumber::div, so
         // division by zero will NOT panic here.
         Ok(Expr::from(arg1 / arg2))
+      })
+    )
+    .add_case(
+      // Interval division (currently a trap case)
+      //
+      // TODO: Implement this once we have infinities (Issue #4)
+      builder::arity_two().both_of_type(expr_to_interval()).and_then(|arg1, arg2, ctx| {
+        ctx.errors.push(SimplifierError::custom_error("/", "Interval division is not currently supported"));
+        Err((arg1, arg2))
       })
     )
     .set_derivative(
