@@ -67,7 +67,7 @@ pub enum IntervalType {
 ///
 /// Binary arithmetic operations on bounded numbers always take the
 /// stricter bound of the two arguments.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BoundedNumber {
   number: Number,
   bound_type: BoundType,
@@ -141,6 +141,28 @@ impl Interval {
       self
     }
   }
+
+  /// Applies a binary, monotone function to the two intervals to
+  /// produce a new interval. It is the caller's responsibility to
+  /// ensure that the provided function is monotonic.
+  pub fn apply_monotone<F>(self, other: Interval, f: F) -> Interval
+  where F: Fn(Number, Number) -> Number {
+    if self.is_empty() || other.is_empty() {
+      return Self::empty();
+    }
+
+    let (left_lower, left_upper) = self.into_bounds();
+    let (right_lower, right_upper) = other.into_bounds();
+    let all_combinations = [
+      left_lower.clone().apply(right_lower.clone(), &f),
+      left_lower.clone().apply(right_upper.clone(), &f),
+      left_upper.clone().apply(right_lower, &f),
+      left_upper.apply(right_upper, &f),
+    ];
+    let lower = all_combinations.iter().cloned().reduce(BoundedNumber::min).unwrap(); // unwrap: Non-empty array
+    let upper = all_combinations.into_iter().reduce(BoundedNumber::max).unwrap(); // unwrap: Non-empty array
+    Interval::from_bounds(lower, upper).normalize()
+  }
 }
 
 impl BoundedNumber {
@@ -169,11 +191,19 @@ impl BoundedNumber {
   }
 
   pub fn min(self, other: BoundedNumber) -> BoundedNumber {
-    self.apply(other, Number::min)
+    match self.number.cmp(&other.number) {
+      Ordering::Greater => other,
+      Ordering::Less => self,
+      Ordering::Equal => BoundedNumber::new(self.number, self.bound_type.max(other.bound_type)),
+    }
   }
 
   pub fn max(self, other: BoundedNumber) -> BoundedNumber {
-    self.apply(other, Number::max)
+    match self.number.cmp(&other.number) {
+      Ordering::Greater => self,
+      Ordering::Less => other,
+      Ordering::Equal => BoundedNumber::new(self.number, self.bound_type.max(other.bound_type)),
+    }
   }
 }
 
@@ -404,6 +434,14 @@ impl Sub for Interval {
     }
     let interval_type = self.interval_type.min(other.interval_type.flipped());
     Interval::new(self.left - other.right, interval_type, self.right - other.left).normalize()
+  }
+}
+
+impl Mul for Interval {
+  type Output = Self;
+
+  fn mul(self, other: Self) -> Self {
+    self.apply_monotone(other, Number::mul)
   }
 }
 
@@ -658,6 +696,36 @@ mod tests {
     let interval1 = Interval::empty_at(Number::from(19)); // Note: Not normalized
     let interval2 = Interval::new(Number::from(1), IntervalType::Closed, Number::from(2));
     assert_eq!(interval1 - interval2, Interval::empty());
+  }
+
+  #[test]
+  fn test_mul_empty_intervals() {
+    let interval1 = Interval::empty_at(Number::from(19)); // Note: Not normalized
+    let interval2 = Interval::new(Number::from(1), IntervalType::Closed, Number::from(2));
+    assert_eq!(interval1.clone() * interval2.clone(), Interval::empty());
+    assert_eq!(interval2 * interval1, Interval::empty());
+  }
+
+  #[test]
+  fn test_mul() {
+    let interval1 = Interval::new(Number::from(1), IntervalType::RightOpen, Number::from(3));
+    let interval2 = Interval::new(Number::from(4), IntervalType::Closed, Number::from(6));
+    assert_eq!(
+      interval1 * interval2,
+      Interval::new(Number::from(4), IntervalType::RightOpen, Number::from(18)),
+    );
+    let interval1 = Interval::new(Number::from(-1), IntervalType::LeftOpen, Number::from(4));
+    let interval2 = Interval::new(Number::from(0), IntervalType::FullOpen, Number::from(12));
+    assert_eq!(
+      interval1 * interval2,
+      Interval::new(Number::from(-12), IntervalType::FullOpen, Number::from(48)),
+    );
+    let interval1 = Interval::new(Number::from(3), IntervalType::Closed, Number::from(3));
+    let interval2 = Interval::new(Number::from(0), IntervalType::FullOpen, Number::from(2));
+    assert_eq!(
+      interval1 * interval2,
+      Interval::new(Number::from(0), IntervalType::FullOpen, Number::from(6)),
+    );
   }
 
   #[test]
