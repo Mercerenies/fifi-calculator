@@ -110,6 +110,15 @@ pub struct Conversion<Up, Down> {
   _phantom: PhantomData<fn() -> (Up, Down)>,
 }
 
+/// A prism which converts from `Up` to `Down` and back using a pair
+/// of [`From`] instances. Always succeeds. It is the user's
+/// responsibility to ensure that the two `From` instances are proper
+/// inverses of one another.
+#[derive(Debug, Clone)]
+pub struct LosslessConversion<Up, Down> {
+  _phantom: PhantomData<fn() -> (Up, Down)>,
+}
+
 impl Identity {
   pub fn new() -> Self {
     Self::default()
@@ -178,10 +187,33 @@ where Down: TryFrom<Up>,
   }
 }
 
+impl<Up, Down> LosslessConversion<Up, Down>
+where Down: From<Up>,
+      Up: From<Down> {
+  /// Constructs a [`LosslessConversion`] prism from the `From` impls
+  /// for the given types.
+  ///
+  /// NOTE: It is the caller's responsibility to ensure that these two
+  /// trait implementations form a lawful prism! Specifically, the
+  /// caller must ensure that the two `From` instances are inverses of
+  /// one another.
+  pub fn new() -> Self {
+    Self { _phantom: PhantomData }
+  }
+}
+
 impl<Up, Down> Default for Conversion<Up, Down>
 where Down: TryFrom<Up>,
       Up: From<Down>,
       <Down as TryFrom<Up>>::Error: ErrorWithPayload<Up> {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
+impl<Up, Down> Default for LosslessConversion<Up, Down>
+where Down: From<Up>,
+      Up: From<Down> {
   fn default() -> Self {
     Self::new()
   }
@@ -305,6 +337,17 @@ where Down: TryFrom<Up>,
   fn narrow_type(&self, input: Up) -> Result<Down, Up> {
     Down::try_from(input)
       .map_err(|err| err.recover_payload())
+  }
+  fn widen_type(&self, input: Down) -> Up {
+    Up::from(input)
+  }
+}
+
+impl<Up, Down> Prism<Up, Down> for LosslessConversion<Up, Down>
+where Down: From<Up>,
+      Up: From<Down> {
+  fn narrow_type(&self, input: Up) -> Result<Down, Up> {
+    Ok(Down::from(input))
   }
   fn widen_type(&self, input: Down) -> Up {
     Up::from(input)

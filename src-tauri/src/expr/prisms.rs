@@ -4,9 +4,10 @@ use super::var::Var;
 use super::atom::Atom;
 use super::number::{Number, ComplexLike};
 use super::interval::{Interval, IntervalAny, IntervalOrNumber};
+use super::vector::Vector;
 use super::literal::Literal;
 use super::algebra::formula::{Formula, Equation};
-use crate::util::prism::{Prism, Only, Composed, Conversion, ErrorWithPayload};
+use crate::util::prism::{Prism, OnVec, Only, Composed, Conversion, LosslessConversion, ErrorWithPayload};
 
 use num::Zero;
 
@@ -101,6 +102,19 @@ pub fn expr_to_any_interval() -> Conversion<Expr, IntervalAny> {
 
 pub fn expr_to_interval() -> Conversion<Expr, Interval> {
   Conversion::new()
+}
+
+/// Prism which parses an [`Expr`] as a vector (in the expression
+/// language) whose constituents each pass the specified prism
+/// `inner`.
+pub fn expr_to_typed_vector<T, P>(
+  inner: P,
+) -> Composed<ExprToVector, Composed<LosslessConversion<Vector, Vec<Expr>>, OnVec<P>, Vec<Expr>>, Vector>
+where P: Prism<Expr, T> {
+  Composed::new(
+    ExprToVector,
+    Composed::new(LosslessConversion::new(), OnVec::new(inner)),
+  )
 }
 
 impl PositiveNumber {
