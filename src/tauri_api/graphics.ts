@@ -11,8 +11,6 @@ export type GraphicsDirective = PlotDirective;
 
 export interface PlotDirective {
   type: "plot";
-  xBounds: Range<number>;
-  yBounds: Range<number>;
   points: Point2D[];
 }
 
