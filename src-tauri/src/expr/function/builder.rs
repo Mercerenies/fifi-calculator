@@ -15,17 +15,17 @@ pub struct FunctionBuilder {
   flags: FunctionFlags,
   identity_predicate: Box<dyn Fn(&Expr) -> bool + Send + Sync + 'static>,
   derivative_rule: Option<Box<FunctionDeriv>>,
-  cases: Vec<Box<FunctionCase>>,
+  cases: Vec<Box<FunctionCase<Expr>>>,
 }
 
-pub type FunctionCase =
-  dyn Fn(Vec<Expr>, &mut FunctionContext) -> FunctionCaseResult + Send + Sync;
+pub type FunctionCase<T> =
+  dyn Fn(Vec<Expr>, &mut FunctionContext) -> FunctionCaseResult<T> + Send + Sync;
 
 /// Result of attempting to apply a function match case.
-pub enum FunctionCaseResult {
+pub enum FunctionCaseResult<T> {
   /// Indicates that the function evaluation succeeded, with the given
   /// result value.
-  Success(Expr),
+  Success(T),
   /// Indicates that the function case matched but evaluation failed,
   /// and returns ownership of the original arguments to the caller.
   ///
@@ -99,7 +99,7 @@ impl FunctionBuilder {
   /// Adds an evaluation case to `self`. This function is intended to
   /// be called in fluent style, and it returns `self` after
   /// modifications.
-  pub fn add_case(mut self, case: Box<FunctionCase>) -> Self {
+  pub fn add_case(mut self, case: Box<FunctionCase<Expr>>) -> Self {
     self.cases.push(case);
     self
   }
@@ -162,11 +162,11 @@ impl FunctionBuilder {
   }
 }
 
-impl FunctionCaseResult {
+impl<T> FunctionCaseResult<T> {
   /// Reports `Ok` as `Success` and `Err` as `Failure`. This function
   /// always reports a successful match, so `NoMatch` will never be
   /// returned.
-  fn from_result(expr: Result<Expr, Vec<Expr>>) -> Self {
+  fn from_result(expr: Result<T, Vec<Expr>>) -> Self {
     match expr {
       Ok(expr) => FunctionCaseResult::Success(expr),
       Err(args) => FunctionCaseResult::Failure(args),
@@ -180,8 +180,8 @@ impl<Down, P: Prism<Expr, Down>> OneArgumentMatcher<P, Down> {
     OneArgumentMatcher { arg_prism, _phantom: PhantomData }
   }
 
-  pub fn and_then<F>(self, f: F) -> Box<FunctionCase>
-  where F: Fn(Down, &mut FunctionContext) -> Result<Expr, Down> + Send + Sync + 'static,
+  pub fn and_then<T, F>(self, f: F) -> Box<FunctionCase<T>>
+  where F: Fn(Down, &mut FunctionContext) -> Result<T, Down> + Send + Sync + 'static,
         P: Send + Sync + 'static {
     Box::new(move |mut args, context| {
       if args.len() != 1 {
@@ -222,8 +222,8 @@ where P1: Prism<Expr, Down1>,
     }
   }
 
-  pub fn and_then<F>(self, f: F) -> Box<FunctionCase>
-  where F: Fn(Down1, Down2, &mut FunctionContext) -> Result<Expr, (Down1, Down2)> + Send + Sync + 'static,
+  pub fn and_then<T, F>(self, f: F) -> Box<FunctionCase<T>>
+  where F: Fn(Down1, Down2, &mut FunctionContext) -> Result<T, (Down1, Down2)> + Send + Sync + 'static,
         P1: Send + Sync + 'static,
         P2: Send + Sync + 'static {
     Box::new(move |mut args, context| {
@@ -280,8 +280,8 @@ where P1: Prism<Expr, Down1>,
     }
   }
 
-  pub fn and_then<F>(self, f: F) -> Box<FunctionCase>
-  where F: Fn(Down1, Down2, Down3, &mut FunctionContext) -> Result<Expr, (Down1, Down2, Down3)> + Send + Sync + 'static,
+  pub fn and_then<T, F>(self, f: F) -> Box<FunctionCase<T>>
+  where F: Fn(Down1, Down2, Down3, &mut FunctionContext) -> Result<T, (Down1, Down2, Down3)> + Send + Sync + 'static,
         P1: Send + Sync + 'static,
         P2: Send + Sync + 'static,
         P3: Send + Sync + 'static {
@@ -339,8 +339,8 @@ impl<Down, P: Prism<Expr, Down>> VecMatcher<P, Down> {
     }
   }
 
-  pub fn and_then<F>(self, f: F) -> Box<FunctionCase>
-  where F: Fn(Vec<Down>, &mut FunctionContext) -> Result<Expr, Vec<Down>> + Send + Sync + 'static,
+  pub fn and_then<T, F>(self, f: F) -> Box<FunctionCase<T>>
+  where F: Fn(Vec<Down>, &mut FunctionContext) -> Result<T, Vec<Down>> + Send + Sync + 'static,
         P: Send + Sync + 'static {
     let arg_prism = OnVec::new(self.arg_prism);
     Box::new(move |args, context| {
