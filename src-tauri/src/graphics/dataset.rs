@@ -107,7 +107,7 @@ impl XDataSet {
   }
 
   pub fn gen_points(&self, requested_size: Option<usize>) -> Result<Vec<Number>, LengthError> {
-    if requested_size.is_some() && requested_size != self.required_len() {
+    if requested_size.is_some() && self.required_len().is_some() && requested_size != self.required_len() {
       // unwrap: We just checked that both values are Some, not None.
       return Err(LengthError {
         expected: self.required_len().unwrap(),
