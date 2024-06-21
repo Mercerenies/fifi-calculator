@@ -6,7 +6,11 @@ pub mod payload;
 pub mod plot;
 pub mod response;
 
+use crate::expr::number::Number;
+
 use serde::{Serialize, Deserialize};
+
+use std::borrow::Borrow;
 
 /// Name of the function representing a 2D graphics object in the
 /// expression language.
@@ -39,6 +43,18 @@ impl GraphicsType {
   pub fn is_graphics_function(name: &str) -> bool {
     GraphicsType::parse(name).is_some()
   }
+}
+
+/// Most of our computations are done in the [`Number`] struct. But
+/// when we actually go to plot data, we use `f64`. This function
+/// converts an iterable of `Number` values into an iterable of `f64`
+/// values, replacing any numbers out of the range of `f64` with
+/// `f64::NAN`.
+pub fn floatify<I, T, C>(iter: I) -> C
+where I: IntoIterator<Item = T>,
+      T: Borrow<Number>,
+      C: FromIterator<f64> {
+  iter.into_iter().map(|n| n.borrow().to_f64_or_nan()).collect()
 }
 
 #[cfg(test)]

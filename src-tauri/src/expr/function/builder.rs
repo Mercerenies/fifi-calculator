@@ -107,6 +107,14 @@ impl FunctionBuilder {
     self
   }
 
+  /// Adds a graphics evaluation case to `self`. This function is
+  /// intended to be called in fluent style, and it returns `self`
+  /// after modifications.
+  pub fn add_graphics_case(mut self, case: Box<FunctionCase<GraphicsDirective>>) -> Self {
+    self.graphics_cases.push(case);
+    self
+  }
+
   /// Sets the predicate for recognizing identity values for the
   /// function being built. Modifies and returns `self`, to permit
   /// fluent-style calling.

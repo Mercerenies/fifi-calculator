@@ -163,6 +163,10 @@ impl Number {
     }
   }
 
+  pub fn to_f64_or_nan(&self) -> f64 {
+    self.to_f64().unwrap_or(f64::NAN)
+  }
+
   pub fn to_inexact(&self) -> Self {
     let value = self.to_f64().unwrap_or(f64::NAN);
     Number::from(value)
