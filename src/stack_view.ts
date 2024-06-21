@@ -28,10 +28,17 @@ export class StackView {
     for (let i = 0; i < newStackHtml.length; i++) {
       const elem = newStackHtml[i];
       const li = document.createElement("li");
+      const ordinalSpan = document.createElement("span");
+      const valueSpan = document.createElement("span");
       li.className = 'value-stack-element';
+      ordinalSpan.className = 'value-stack-element-ordinal';
+      valueSpan.className = 'value-stack-element-value';
+      ordinalSpan.innerText = String(newStackHtml.length - i) + ". ";
       li.value = newStackHtml.length - i;
       li.dataset.stackIndex = String(newStackHtml.length - i - 1);
-      li.innerHTML = elem;
+      valueSpan.innerHTML = elem;
+      li.appendChild(ordinalSpan);
+      li.appendChild(valueSpan);
       ol.appendChild(li);
     }
     const stack = this.valueStackDiv;
