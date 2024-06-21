@@ -255,6 +255,10 @@ button {
   transform: rotate(45deg);
 }
 
+.plotly-plot {
+    vertical-align: middle;
+}
+
 /* "Small screen" mode for mobile devices */
 @media (max-width: 840px) {
     .value-stack {
