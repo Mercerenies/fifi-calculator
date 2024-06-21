@@ -1,6 +1,6 @@
 
 use crate::expr::{Expr, TryFromExprError};
-use super::{GraphicsType, GRAPHICS_NAME};
+use super::GraphicsType;
 
 use serde::{Serialize, Deserialize};
 use base64::engine::general_purpose::{STANDARD as BASE64_STANDARD};

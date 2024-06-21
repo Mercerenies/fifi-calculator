@@ -4,6 +4,7 @@
 use super::{Function, FunctionContext, FunctionDeriv};
 use super::flags::FunctionFlags;
 use crate::util::prism::{Prism, Identity, OnVec};
+use crate::graphics::response::GraphicsDirective;
 use crate::expr::Expr;
 use crate::expr::simplifier::error::ArityError;
 use crate::expr::calculus::{DerivativeEngine, DifferentiationFailure, DifferentiationError};
@@ -16,6 +17,7 @@ pub struct FunctionBuilder {
   identity_predicate: Box<dyn Fn(&Expr) -> bool + Send + Sync + 'static>,
   derivative_rule: Option<Box<FunctionDeriv>>,
   cases: Vec<Box<FunctionCase<Expr>>>,
+  graphics_cases: Vec<Box<FunctionCase<GraphicsDirective>>>,
 }
 
 pub type FunctionCase<T> =
@@ -93,6 +95,7 @@ impl FunctionBuilder {
       identity_predicate: Box::new(super::no_identity_value),
       derivative_rule: None,
       cases: Vec::new(),
+      graphics_cases: Vec::new(),
     }
   }
 
@@ -135,31 +138,35 @@ impl FunctionBuilder {
   /// Consumes `self` and builds it into a completed [`Function`]
   /// value.
   pub fn build(self) -> Function {
-    let function_body = Box::new(move |mut args, mut context: FunctionContext| {
-      for case in &self.cases {
-        match case(args, &mut context) {
-          FunctionCaseResult::Success(output) => {
-            return Ok(output);
-          }
-          FunctionCaseResult::Failure(args) => {
-            return Err(args);
-          }
-          FunctionCaseResult::NoMatch(original_args) => {
-            args = original_args;
-          }
-        }
-      }
-      // No cases matched, so we refuse to evaluate the function.
-      Err(args)
-    });
     Function {
       name: self.name,
       flags: self.flags,
       identity_predicate: self.identity_predicate,
       derivative_rule: self.derivative_rule,
-      body: function_body,
+      body: build_function_body(self.cases),
+      graphics_body: build_function_body(self.graphics_cases),
     }
   }
+}
+
+fn build_function_body<T: 'static>(cases: Vec<Box<FunctionCase<T>>>) -> Box<super::FunctionImpl<T>> {
+  Box::new(move |mut args, mut context: FunctionContext| {
+    for case in &cases {
+      match case(args, &mut context) {
+        FunctionCaseResult::Success(output) => {
+          return Ok(output);
+        }
+        FunctionCaseResult::Failure(args) => {
+          return Err(args);
+        }
+        FunctionCaseResult::NoMatch(original_args) => {
+          args = original_args;
+        }
+      }
+    }
+    // No cases matched, so we refuse to evaluate the function.
+    Err(args)
+  })
 }
 
 impl<T> FunctionCaseResult<T> {

@@ -6,6 +6,7 @@ pub mod table;
 
 use flags::FunctionFlags;
 use table::FunctionTable;
+use crate::graphics::response::GraphicsDirective;
 use crate::expr::Expr;
 use crate::expr::simplifier::Simplifier;
 use crate::expr::simplifier::error::SimplifierError;
@@ -23,7 +24,8 @@ pub struct Function {
   flags: FunctionFlags,
   identity_predicate: Box<dyn Fn(&Expr) -> bool + Send + Sync + 'static>,
   derivative_rule: Option<Box<FunctionDeriv>>,
-  body: Box<FunctionImpl>,
+  body: Box<FunctionImpl<Expr>>,
+  graphics_body: Box<FunctionImpl<GraphicsDirective>>,
 }
 
 pub struct FunctionContext<'a, 'b, 'c> {
@@ -33,8 +35,8 @@ pub struct FunctionContext<'a, 'b, 'c> {
   _private: (),
 }
 
-type FunctionImpl =
-  dyn Fn(Vec<Expr>, FunctionContext) -> Result<Expr, Vec<Expr>> + Send + Sync;
+type FunctionImpl<T> =
+  dyn Fn(Vec<Expr>, FunctionContext) -> Result<T, Vec<Expr>> + Send + Sync;
 
 type FunctionDeriv =
   dyn Fn(Vec<Expr>, &DerivativeEngine) -> Result<Expr, DifferentiationFailure> + Send + Sync;
@@ -72,6 +74,18 @@ impl Function {
   ) -> Result<Expr, Vec<Expr>> {
     let context = FunctionContext { errors, simplifier, function_table, _private: () };
     (self.body)(args, context)
+  }
+
+  /// Calls the function as part of the graphics subsystem.
+  pub fn call_for_graphics(
+    &self,
+    args: Vec<Expr>,
+    errors: &mut ErrorList<SimplifierError>,
+    simplifier: &dyn Simplifier,
+    function_table: &FunctionTable,
+  ) -> Result<GraphicsDirective, Vec<Expr>> {
+    let context = FunctionContext { errors, simplifier, function_table, _private: () };
+    (self.graphics_body)(args, context)
   }
 
   pub fn differentiate(
