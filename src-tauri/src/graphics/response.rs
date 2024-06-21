@@ -12,7 +12,7 @@ pub struct GraphicsResponse {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "type")]
+#[serde(tag = "type", rename_all = "lowercase")]
 pub enum GraphicsDirective {
   Plot(PlotDirective),
 }

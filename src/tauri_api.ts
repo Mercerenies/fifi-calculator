@@ -1,4 +1,6 @@
 
+import { SerializedGraphicsPayload, GraphicsResponse } from './tauri_api/graphics.js';
+
 import * as os from '@tauri-apps/plugin-os';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, EventCallback, UnlistenFn } from '@tauri-apps/api/event';
@@ -10,6 +12,10 @@ class TauriApi {
 
   runMathCommand(commandName: string, args: string[], opts: CommandOptions): Promise<void> {
     return invoke('run_math_command', { commandName, args, opts });
+  }
+
+  renderGraphics(payload: SerializedGraphicsPayload): Promise<GraphicsResponse | null> {
+    return invoke('render_graphics', { payload });
   }
 
   performUndoAction(direction: UndoDirection): Promise<void> {
