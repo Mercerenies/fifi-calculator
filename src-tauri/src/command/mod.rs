@@ -6,9 +6,10 @@ pub mod calculus;
 pub mod dispatch;
 pub mod functional;
 pub mod general;
+pub mod input;
+pub mod nullary;
 pub mod options;
 pub mod shuffle;
-pub mod input;
 pub mod variables;
 pub mod vector;
 
@@ -29,6 +30,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   // the function table. That would be nice.
 
   // Nullary commands
+  map.insert("nop".to_string(), Box::new(nullary::NullaryCommand));
   map.insert("+".to_string(), Box::new(BinaryFunctionCommand::named("+")));
   map.insert("-".to_string(), Box::new(BinaryFunctionCommand::named("-")));
   map.insert("*".to_string(), Box::new(BinaryFunctionCommand::named("*")));

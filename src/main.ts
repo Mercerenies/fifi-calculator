@@ -3,6 +3,7 @@ import * as Page from './page.js';
 import { InputBoxManager } from './input_box.js';
 import { NotificationManager } from './notifications.js';
 import { MainButtonGrid } from './button_grid/main_button_grid.js';
+import { defaultCommandOptions } from './button_grid/modifier_delegate.js';
 import { KeyInput } from './keyboard.js';
 import * as KeyDispatcher from './keyboard/dispatcher.js';
 import { RightPanelManager } from './right_panel.js';
@@ -92,4 +93,8 @@ window.addEventListener("DOMContentLoaded", async function() {
   await TAURI.listen("refresh-stack", (event) => refreshStack(stackView, event.payload));
   await TAURI.listen("show-error", (event) => uiManager.notificationManager.show(event.payload.errorMessage));
   await TAURI.listen("refresh-undo-availability", (event) => refreshUndoButtons(uiManager, event.payload));
+
+  // Send a nop command, just to flush the stack and undo buttons in
+  // case we were resumed from a paused state.
+  await TAURI.runMathCommand("nop", [], defaultCommandOptions());
 });
