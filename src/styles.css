@@ -335,4 +335,8 @@ button {
   .svg-icon {
       filter: invert(1);
   }
+
+  .plotly-plot {
+      filter: invert(75%);
+  }
 }

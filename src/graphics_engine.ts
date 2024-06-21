@@ -29,16 +29,24 @@ export class GraphicsEngine implements StackUpdatedDelegate {
       console.warn('Failed to render graphics');
       return;
     }
-    const traces = await Promise.all(response.directives.map(async (directive) => {
+    const data = await Promise.all(response.directives.map(async (directive) => {
       switch (directive.type) {
       case "plot":
         return await this.plotToTrace(directive);
       }
     }));
+    const layout = {
+      showlegend: false,
+      margin: { b: 40, l: 40, r: 40, t: 40 },
+      plot_bgcolor: "rgba(0, 0, 0, 0)",
+      paper_bgcolor: "rgba(0, 0, 0, 0)",
+    } as const;
+
     const div = document.createElement('div');
-    const plot = await Plotly.newPlot(div, traces);
+    const plot = await Plotly.newPlot(div, data, layout);
     const image = await Plotly.toImage(plot, { width: 300, height: 300, format: 'png' });
     const imgTag = document.createElement('img');
+    imgTag.className = "plotly-plot";
     imgTag.src = image;
     element.innerHTML = "";
     element.appendChild(imgTag);
