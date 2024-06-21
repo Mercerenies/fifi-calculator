@@ -96,6 +96,18 @@ where I: DoubleEndedIterator,
   iter.rev().reduce(|a, b| f(b, a))
 }
 
+/// If the iterator consists of exactly one value, returns that value.
+/// Otherwise, returns `None`.
+pub fn into_singleton<I: IntoIterator>(iter: I) -> Option<I::Item> {
+  let mut iter = iter.into_iter();
+  let first_elem = iter.next()?;
+  if iter.next().is_none() {
+    Some(first_elem)
+  } else {
+    None
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -187,5 +199,20 @@ mod tests {
   fn test_reduce_right_on_non_associative_operation_with_singleton_list() {
     let list = vec![66];
     assert_eq!(reduce_right(list.into_iter(), |_, _| panic!("Should not be called!")), Some(66));
+  }
+
+  #[test]
+  fn test_into_singleton_on_empty() {
+    let list: [i64; 0] = [];
+    assert_eq!(into_singleton(list), None);
+  }
+
+  #[test]
+  fn test_into_singleton() {
+    assert_eq!(into_singleton([10]), Some(10));
+    assert_eq!(into_singleton([10, 20]), None);
+    assert_eq!(into_singleton([10, 20, 30]), None);
+    assert_eq!(into_singleton([10, 10, 10, 10, 10]), None);
+    assert_eq!(into_singleton(iter::repeat(0)), None);
   }
 }
