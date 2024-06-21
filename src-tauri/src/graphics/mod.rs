@@ -2,6 +2,7 @@
 //! Support for plotting and graphical output.
 
 pub mod payload;
+pub mod plot;
 pub mod response;
 
 use serde::{Serialize, Deserialize};
