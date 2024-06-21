@@ -1,6 +1,9 @@
 
 import { StackUpdatedDelegate } from './stack_view.js';
 import { TAURI } from './tauri_api.js';
+import { PlotDirective } from './tauri_api/graphics.js';
+
+import Plotly from 'plotly.js-dist-min';
 
 // Engine for managing calls to the backend's graphics components for
 // producing plots and graphs.
@@ -26,6 +29,32 @@ export class GraphicsEngine implements StackUpdatedDelegate {
       console.warn('Failed to render graphics');
       return;
     }
-    console.log(response);
+    const traces = await Promise.all(response.directives.map(async (directive) => {
+      switch (directive.type) {
+      case "plot":
+        return await this.plotToTrace(directive);
+      }
+    }));
+    const div = document.createElement('div');
+    const plot = await Plotly.newPlot(div, traces);
+    const image = await Plotly.toImage(plot, { width: 300, height: 300, format: 'png' });
+    const imgTag = document.createElement('img');
+    imgTag.src = image;
+    element.innerHTML = "";
+    element.appendChild(imgTag);
   }
+
+  private async plotToTrace(plot: PlotDirective): Promise<ScatterTrace> {
+    return {
+      x: plot.points.map((p) => p.x),
+      y: plot.points.map((p) => p.y),
+      type: 'scatter',
+    };
+  }
+}
+
+export interface ScatterTrace {
+  x: number[];
+  y: number[];
+  type: 'scatter';
 }
