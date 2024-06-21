@@ -1,6 +1,7 @@
 
 //! Support for plotting and graphical output.
 
+pub mod dataset;
 pub mod payload;
 pub mod plot;
 pub mod response;
