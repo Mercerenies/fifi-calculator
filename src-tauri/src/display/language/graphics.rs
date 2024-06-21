@@ -2,10 +2,7 @@
 use super::{LanguageMode, LanguageModeEngine};
 use crate::expr::Expr;
 use crate::parsing::operator::Precedence;
-use crate::graphics::payload::GraphicsPayload;
-
-use base64::engine::general_purpose::{STANDARD as BASE64_STANDARD};
-use base64::Engine;
+use crate::graphics::payload::{GraphicsPayload, SerializedGraphicsPayload};
 
 use std::convert::TryFrom;
 use std::fmt::Write;
@@ -32,12 +29,9 @@ impl<'a, L: LanguageMode + ?Sized> GraphicsLanguageMode<'a, L> {
   }
 
   fn write_graphics_payload(&self, out: &mut String, payload: &GraphicsPayload) {
-    let payload = {
-      let mut bytes = Vec::<u8>::new();
-      ciborium::into_writer(payload, &mut bytes).expect("Failed to serialize graphics payload");
-      BASE64_STANDARD.encode(&bytes)
-    };
-    write!(out, r#"<span data-graphics-flag="true" data-graphics-payload="{}">"#, payload)
+    let serialized_payload = SerializedGraphicsPayload::new(payload)
+      .expect("Failed to serialize graphics payload");
+    write!(out, r#"<span data-graphics-flag="true" data-graphics-payload="{}">"#, serialized_payload)
       .expect("Failed to write graphics payload to string");
   }
 }
