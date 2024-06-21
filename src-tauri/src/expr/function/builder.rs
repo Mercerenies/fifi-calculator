@@ -150,6 +150,13 @@ impl FunctionBuilder {
 }
 
 fn build_function_body<T: 'static>(cases: Vec<Box<FunctionCase<T>>>) -> Box<super::FunctionImpl<T>> {
+  if cases.is_empty() {
+    // If there are no cases (for instance, `graphics_body` for a
+    // function which is not used in graphics), return a much simpler
+    // closure, for efficiency reasons.
+    return Box::new(|args, _| Err(args));
+  }
+
   Box::new(move |mut args, mut context: FunctionContext| {
     for case in &cases {
       match case(args, &mut context) {
