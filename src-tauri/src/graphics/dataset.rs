@@ -106,7 +106,7 @@ impl XDataSet {
     self.required_len().is_some()
   }
 
-  pub fn gen_points(&self, requested_size: Option<usize>) -> Result<Vec<Number>, LengthError> {
+  pub fn gen_exact_points(&self, requested_size: Option<usize>) -> Result<Vec<Number>, LengthError> {
     if requested_size.is_some() && self.required_len().is_some() && requested_size != self.required_len() {
       // unwrap: We just checked that both values are Some, not None.
       return Err(LengthError {
@@ -123,6 +123,12 @@ impl XDataSet {
         XDataSetImpl::Number(starting) => XDataSet::gen_points_from_step(starting.to_owned(), size),
       },
     )
+  }
+
+  pub fn gen_points(&self) -> Vec<Number> {
+    // unwrap: Calling gen_exact_points with no specified size will
+    // always return Ok.
+    self.gen_exact_points(None).unwrap()
   }
 
   fn gen_points_from_interval(min: Number, max: Number, size: usize) -> Vec<Number> {

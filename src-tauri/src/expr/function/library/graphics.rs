@@ -5,7 +5,10 @@ use crate::expr::function::Function;
 use crate::expr::function::builder::{self, FunctionBuilder};
 use crate::expr::function::table::FunctionTable;
 use crate::expr::simplifier::error::SimplifierError;
+use crate::expr::algebra::ExprFunction;
 use crate::expr::prisms;
+use crate::util::into_singleton;
+use crate::util::prism::Identity;
 use crate::graphics::dataset::ExprToXDataSet;
 use crate::graphics::plot::PlotDirective;
 use crate::graphics::response::GraphicsDirective;
@@ -40,6 +43,18 @@ pub fn plot_function() -> Function {
             }
           }
         })
+    )
+    .add_graphics_case(
+      // X dataset with formula in Y position.
+      builder::arity_two().of_types(ExprToXDataSet::new(), Identity::new()).and_then(|x, y, ctx| {
+        let Some(free_var) = into_singleton(y.clone().free_vars()) else {
+          ctx.errors.push(SimplifierError::custom_error("plot", "expected a formula in one free variable"));
+          return Err((x, y));
+        };
+        let func = ExprFunction::new(y, free_var, ctx.simplifier);
+        let plot = PlotDirective::from_expr_function(&x.into(), &func);
+        Ok(GraphicsDirective::Plot(plot))
+      })
     )
     .build()
 }
