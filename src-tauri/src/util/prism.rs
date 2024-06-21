@@ -1,6 +1,8 @@
 
 //! Functional-style prisms for checked downcasts.
 
+use either::Either;
+
 use std::marker::PhantomData;
 use std::error::{Error as StdError};
 use std::convert::TryFrom;
@@ -69,10 +71,30 @@ pub struct Only<T> {
   value: T,
 }
 
-/// Lift a type-checker into each element of a `Vec`.
+/// Lift a prism into each element of a `Vec`.
 #[derive(Debug, Clone)]
 pub struct OnVec<X> {
   inner: X,
+}
+
+/// Lift a pair of prisms into the two sides of a tuple.
+#[derive(Debug, Clone)]
+pub struct OnTuple2<X, Y> {
+  left: X,
+  right: Y,
+}
+
+/// Lifts a pair of prisms into the two sides of an [`Either`].
+///
+/// WARNING: The `Prism` instance for this type is only lawful if the
+/// two constituent prisms are disjoint. That is, there must be no
+/// single input value such that both disjunction prisms would succeed
+/// on that value. It is the responsibility of the user of this
+/// structure to ensure that this condition is met.
+#[derive(Debug, Clone)]
+pub struct DisjPrism<X, Y> {
+  left: X,
+  right: Y,
 }
 
 /// Prism viewing the value on the inside of an `Option`.
@@ -117,6 +139,22 @@ impl<T> Only<T> {
 impl<X> OnVec<X> {
   pub fn new(inner: X) -> Self {
     Self { inner }
+  }
+}
+
+impl<X, Y> OnTuple2<X, Y> {
+  pub fn new(left: X, right: Y) -> Self {
+    Self { left, right }
+  }
+}
+
+impl<X, Y> DisjPrism<X, Y> {
+  /// Constructs a `DisjPrism`. See the [struct-level
+  /// documentation](DisjPrism) for more details on the preconditions
+  /// required of this type. It is the caller's responsibility to
+  /// ensure that these preconditions are met.
+  pub fn new(left: X, right: Y) -> Self {
+    Self { left, right }
   }
 }
 
@@ -207,6 +245,46 @@ where X: Prism<Up, Down> {
 
   fn widen_type(&self, input: Vec<Down>) -> Vec<Up> {
     input.into_iter().map(|i| self.inner.widen_type(i)).collect()
+  }
+}
+
+impl<X, Y, Up1, Down1, Up2, Down2> Prism<(Up1, Up2), (Down1, Down2)> for OnTuple2<X, Y>
+where X: Prism<Up1, Down1>,
+      Y: Prism<Up2, Down2> {
+  fn narrow_type(&self, (up1, up2): (Up1, Up2)) -> Result<(Down1, Down2), (Up1, Up2)> {
+    match self.left.narrow_type(up1) {
+      Err(up1) => Err((up1, up2)),
+      Ok(down1) => {
+        match self.right.narrow_type(up2) {
+          Err(up2) => Err((self.left.widen_type(down1), up2)),
+          Ok(down2) => Ok((down1, down2)),
+        }
+      }
+    }
+  }
+
+  fn widen_type(&self, (down1, down2): (Down1, Down2)) -> (Up1, Up2) {
+    (self.left.widen_type(down1), self.right.widen_type(down2))
+  }
+}
+
+impl<X, Y, Up, Down1, Down2> Prism<Up, Either<Down1, Down2>> for DisjPrism<X, Y>
+where X: Prism<Up, Down1>,
+      Y: Prism<Up, Down2> {
+  fn narrow_type(&self, up: Up) -> Result<Either<Down1, Down2>, Up> {
+    match self.left.narrow_type(up) {
+      Ok(down1) => Ok(Either::Left(down1)),
+      Err(up) => {
+        self.right.narrow_type(up).map(Either::Right)
+      }
+    }
+  }
+
+  fn widen_type(&self, input: Either<Down1, Down2>) -> Up {
+    match input {
+      Either::Left(down1) => self.left.widen_type(down1),
+      Either::Right(down2) => self.right.widen_type(down2),
+    }
   }
 }
 
