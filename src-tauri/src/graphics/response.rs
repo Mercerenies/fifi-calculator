@@ -8,7 +8,7 @@ use serde::{Serialize, Deserialize};
 
 use std::ops::Range;
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct GraphicsResponse {
   pub directives: Vec<GraphicsDirective>,
 }
@@ -31,5 +31,11 @@ impl GraphicsDirective {
     match self {
       GraphicsDirective::Plot(_) => GraphicsType::TwoDimensional,
     }
+  }
+}
+
+impl GraphicsResponse {
+  pub fn new() -> Self {
+    Self::default()
   }
 }

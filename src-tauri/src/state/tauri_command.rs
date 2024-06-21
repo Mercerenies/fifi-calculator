@@ -11,6 +11,8 @@ use crate::errorlist::ErrorList;
 use crate::expr::simplifier::default_simplifier;
 use crate::expr::function::table::FunctionTable;
 use crate::stack::base::StackLike;
+use crate::graphics::payload::SerializedGraphicsPayload;
+use crate::graphics::response::GraphicsResponse;
 
 use std::fmt::Display;
 
@@ -35,6 +37,30 @@ pub fn run_math_command(
 
   state.send_all_updates(app_handle, output.force_scroll_down())?;
   Ok(())
+}
+
+/// Renders a `graphics` command in the expression language into a set
+/// of directives for the frontend to follow.
+pub fn render_graphics(
+  function_table: &FunctionTable,
+  app_handle: &tauri::AppHandle,
+  payload: SerializedGraphicsPayload,
+) -> anyhow::Result<Option<GraphicsResponse>> {
+  let simplifier = default_simplifier(function_table);
+  let mut errors = ErrorList::new();
+
+  let payload = payload.try_deserialize()?;
+  let response = match payload.compile(&mut errors, simplifier.as_ref(), function_table) {
+    Err(err) => {
+      err.report_to_user(app_handle)?;
+      None
+    }
+    Ok(response) => {
+      Some(response)
+    }
+  };
+  handle_error_list(app_handle, errors)?;
+  Ok(response)
 }
 
 /// Runs the given undo action.
@@ -125,12 +151,13 @@ pub fn handle_command_output(app_handle: &tauri::AppHandle, command_output: &Com
 /// Handles any errors *except* [`tauri::Error`] by displaying them to
 /// the user in a notification box. `tauri::Error` values are passed
 /// through and not handled.
-pub fn handle_non_tauri_errors(
+pub fn handle_non_tauri_errors_or<T>(
   app_handle: &tauri::AppHandle,
-  value: anyhow::Result<()>,
-) -> Result<(), tauri::Error> {
+  value: anyhow::Result<T>,
+  default: T,
+) -> Result<T, tauri::Error> {
   match value {
-    Ok(()) => Ok(()),
+    Ok(value) => Ok(value),
     Err(err) => {
       match err.downcast::<tauri::Error>() {
         Ok(tauri_error) => {
@@ -140,9 +167,16 @@ pub fn handle_non_tauri_errors(
         Err(other_error) => {
           // non-Tauri error, display it and recover.
           show_error(app_handle, format!("Error: {}", other_error))?;
-          Ok(())
+          Ok(default)
         }
       }
     }
   }
+}
+
+pub fn handle_non_tauri_errors<T: Default>(
+  app_handle: &tauri::AppHandle,
+  value: anyhow::Result<T>,
+) -> Result<T, tauri::Error> {
+  handle_non_tauri_errors_or(app_handle, value, T::default())
 }
