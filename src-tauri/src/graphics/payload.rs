@@ -1,5 +1,6 @@
 
 use crate::expr::{Expr, TryFromExprError};
+use super::{GraphicsType, GRAPHICS_NAME};
 
 use serde::{Serialize, Deserialize};
 use base64::engine::general_purpose::{STANDARD as BASE64_STANDARD};
@@ -8,10 +9,6 @@ use base64::Engine;
 use std::convert::TryFrom;
 use std::fmt::{self, Display, Formatter};
 use std::io::Cursor;
-
-/// Name of the function representing a 2D graphics object in the
-/// expression language.
-pub const GRAPHICS_NAME: &str = "graphics";
 
 /// A `GraphicsPayload` represents an function call expression whose
 /// function is a graphics directive.
@@ -29,12 +26,6 @@ pub struct GraphicsPayload {
 #[serde(transparent)]
 pub struct SerializedGraphicsPayload {
   base64: String,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum GraphicsType {
-  #[serde(rename = "2D")]
-  TwoDimensional,
 }
 
 impl GraphicsPayload {
@@ -64,29 +55,6 @@ impl GraphicsPayload {
     } else {
       false
     }
-  }
-}
-
-impl GraphicsType {
-  pub fn function_name(&self) -> &'static str {
-    match self {
-      GraphicsType::TwoDimensional => GRAPHICS_NAME,
-    }
-  }
-
-  pub fn parse(name: &str) -> Option<Self> {
-    if name == GRAPHICS_NAME {
-      Some(GraphicsType::TwoDimensional)
-    } else {
-      None
-    }
-  }
-
-  /// Returns true if `name` is a function name representing a
-  /// graphics function. This function returns true if and only if
-  /// [`GraphicsType::parse`] would succeed on the same input.
-  pub fn is_graphics_function(name: &str) -> bool {
-    GraphicsType::parse(name).is_some()
   }
 }
 
@@ -159,12 +127,6 @@ mod tests {
     assert!(!GraphicsPayload::is_graphics_directive(&expr));
     let expr = Expr::call("GrApHiCs", vec![]);
     assert!(!GraphicsPayload::is_graphics_directive(&expr));
-  }
-
-  #[test]
-  fn test_parse_graphics_type() {
-    assert_eq!(GraphicsType::parse("graphics"), Some(GraphicsType::TwoDimensional));
-    assert_eq!(GraphicsType::parse("xyzxyz"), None);
   }
 
   #[test]
