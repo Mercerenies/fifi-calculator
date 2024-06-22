@@ -57,4 +57,8 @@ impl<'a, L: LanguageMode + ?Sized> LanguageMode for GraphicsLanguageMode<'a, L> 
   fn to_trait_object(&self) -> &dyn LanguageMode {
     self
   }
+
+  fn to_reversible_language_mode(&self) -> &dyn LanguageMode {
+    self.inner.to_reversible_language_mode()
+  }
 }

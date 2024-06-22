@@ -18,6 +18,10 @@ class TauriApi {
     return invoke('render_graphics', { payload });
   }
 
+  getEditableStackElem(stackIndex: number): Promise<string> {
+    return invoke('get_editable_stack_elem', { stackIndex });
+  }
+
   performUndoAction(direction: UndoDirection): Promise<void> {
     return invoke('perform_undo_action', { direction });
   }

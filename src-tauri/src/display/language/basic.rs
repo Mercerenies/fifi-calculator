@@ -230,6 +230,10 @@ impl LanguageMode for BasicLanguageMode {
     self
   }
 
+  fn to_reversible_language_mode(&self) -> &dyn LanguageMode {
+    self
+  }
+
   fn parse(&self, text: &str) -> anyhow::Result<Expr> {
     let parser = ExprParser::new(&self.known_operators);
     let expr = parser.tokenize_and_parse(text)?;

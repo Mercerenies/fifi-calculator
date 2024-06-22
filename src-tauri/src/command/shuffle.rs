@@ -6,7 +6,11 @@ use super::arguments::{NullaryArgumentSchema, BinaryArgumentSchema, validate_sch
 use crate::state::ApplicationState;
 use crate::stack::keepable::KeepableStack;
 use crate::stack::base::{StackLike, RandomAccessStackLike};
+use crate::expr::Expr;
 use crate::expr::prisms::{StringToUsize, ParsedUsize};
+use crate::util::prism::Identity;
+use crate::display::language::LanguageMode;
+use crate::errorlist::ErrorList;
 
 use std::cmp::Ordering;
 
@@ -36,6 +40,18 @@ pub struct DupCommand;
 #[derive(Debug, Clone)]
 pub struct MoveStackElemCommand;
 
+/// General-purpose replacement command. Takes two arguments: `pos`
+/// and `value`. The former must be a non-negative integer, and the
+/// latter will be parsed as an expression using the current language
+/// mode.
+///
+/// If the index is out-of-bounds, nothing happens.
+///
+/// This command does not use the numerical argument or the keep
+/// modifier.
+#[derive(Debug, Clone)]
+pub struct ReplaceStackElemCommand;
+
 impl MoveStackElemCommand {
   fn argument_schema() -> BinaryArgumentSchema<StringToUsize, ParsedUsize, StringToUsize, ParsedUsize> {
     BinaryArgumentSchema::new(
@@ -44,6 +60,21 @@ impl MoveStackElemCommand {
       "nonnegative integer".to_owned(),
       StringToUsize,
     )
+  }
+}
+
+impl ReplaceStackElemCommand {
+  fn argument_schema() -> BinaryArgumentSchema<StringToUsize, ParsedUsize, Identity, String> {
+    BinaryArgumentSchema::new(
+      "nonnegative integer".to_owned(),
+      StringToUsize,
+      "any".to_owned(),
+      Identity::new(),
+    )
+  }
+
+  fn try_parse(&self, arg: String, language_mode: &dyn LanguageMode) -> anyhow::Result<Expr> {
+    language_mode.parse(&arg)
   }
 }
 
@@ -188,16 +219,42 @@ impl Command for MoveStackElemCommand {
     )
   }
 }
+impl Command for ReplaceStackElemCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    ctx: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    let (index, value) = validate_schema(&Self::argument_schema(), args)?;
+
+    let mut errors = ErrorList::new();
+    let index = usize::from(index);
+    state.undo_stack_mut().push_cut();
+
+    let expr = self.try_parse(value, state.display_settings().language_mode().as_ref())?;
+    let expr = ctx.simplify_expr(expr, &mut errors);
+
+    let mut stack = state.main_stack_mut();
+    let mut stack_elem = stack.get_mut(index as i64)?;
+    *stack_elem = expr;
+    Ok(
+      CommandOutput::from_errors(errors)
+        .set_force_scroll_down(false)
+    )
+  }
+}
 
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::expr::Expr;
   use crate::command::test_utils::{act_on_stack, act_on_stack_err,
-                                   act_on_stack_with_args, act_on_stack_with_args_err};
+                                   act_on_stack_with_args, act_on_stack_with_args_err,
+                                   act_on_stack_with_args_any_err};
   use crate::command::options::CommandOptions;
   use crate::stack::test_utils::stack_of;
   use crate::stack::{Stack, StackError};
+  use crate::expr::basic_parser::ParseError;
 
   #[test]
   fn test_simple_pop() {
@@ -818,5 +875,32 @@ mod tests {
       input_stack,
     );
     assert_eq!(err, StackError::NotEnoughElements { expected: 10, actual: 7 });
+  }
+
+  #[test]
+  fn test_replace_stack_elem() {
+    let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
+    let output_stack = act_on_stack_with_args(
+      &ReplaceStackElemCommand,
+      vec!["2", "99"],
+      CommandOptions::default(),
+      input_stack,
+    );
+    assert_eq!(
+      output_stack,
+      stack_of(vec![10, 20, 30, 40, 99, 60, 70]),
+    )
+  }
+
+  #[test]
+  fn test_replace_stack_elem_parse_failure() {
+    let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
+    let err = act_on_stack_with_args_any_err(
+      &ReplaceStackElemCommand,
+      vec!["2", "("],
+      CommandOptions::default(),
+      input_stack,
+    );
+    assert!(err.is::<ParseError>(), "Expected ParseError, got {:?}", err);
   }
 }

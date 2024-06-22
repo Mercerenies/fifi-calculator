@@ -10,7 +10,8 @@ use crate::command::options::CommandOptions;
 use crate::errorlist::ErrorList;
 use crate::expr::simplifier::default_simplifier;
 use crate::expr::function::table::FunctionTable;
-use crate::stack::base::StackLike;
+use crate::stack::StackError;
+use crate::stack::base::{StackLike, RandomAccessStackLike};
 use crate::graphics::payload::SerializedGraphicsPayload;
 use crate::graphics::response::GraphicsResponse;
 
@@ -61,6 +62,17 @@ pub fn render_graphics(
   };
   handle_error_list(app_handle, errors)?;
   Ok(response)
+}
+
+/// Returns a parser-friendly string representation of the given
+/// element on the stack, using the current language mode. Produces a
+/// [`StackError`] if the index is out of bounds.
+pub fn get_editable_stack_elem(
+  state: &mut ApplicationState,
+  stack_index: usize,
+) -> Result<String, StackError> {
+  let elem = state.main_stack().get(stack_index as i64)?;
+  Ok(state.display_settings().to_html(elem))
 }
 
 /// Runs the given undo action.

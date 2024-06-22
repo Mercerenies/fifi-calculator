@@ -79,6 +79,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
 
   // Specialized commands
   map.insert("move_stack_elem".to_string(), Box::new(shuffle::MoveStackElemCommand));
+  map.insert("replace_stack_elem".to_string(), Box::new(shuffle::ReplaceStackElemCommand));
 
   CommandDispatchTable::from_hash_map(map)
 }

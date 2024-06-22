@@ -29,6 +29,15 @@ pub trait LanguageMode {
   /// modes.
   fn to_trait_object(&self) -> &dyn LanguageMode;
 
+  /// Converts `self` into a `LanguageMode` which is the inverse of
+  /// the `write_to_html` implementation.
+  ///
+  /// Many language modes, in order to produce pretty output, have
+  /// parsers that are incompatible with their renderer. This function
+  /// produces a renderer which is compatible with the parser, even if
+  /// it might be simpler than `self`.
+  fn to_reversible_language_mode(&self) -> &dyn LanguageMode;
+
   fn to_html(&self, expr: &Expr) -> String {
     let engine = LanguageModeEngine { data: self.to_trait_object() };
 

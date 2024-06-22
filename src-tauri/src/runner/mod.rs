@@ -8,6 +8,7 @@ use crate::command::options::CommandOptions;
 use crate::state::tauri_command::{self, handle_non_tauri_errors};
 use crate::state::validation::Validator;
 use crate::state::{TauriApplicationState, UndoDirection};
+use crate::state::events::show_error;
 use crate::graphics::payload::SerializedGraphicsPayload;
 use crate::graphics::response::GraphicsResponse;
 
@@ -21,6 +22,7 @@ pub fn run_application() {
     .invoke_handler(tauri::generate_handler![
       run_math_command,
       render_graphics,
+      get_editable_stack_elem,
       perform_undo_action,
       validate_stack_size,
       validate_value
@@ -69,6 +71,22 @@ fn render_graphics(
       payload,
     ),
   )
+}
+
+#[tauri::command]
+fn get_editable_stack_elem(
+  app_state: tauri::State<TauriApplicationState>,
+  app_handle: tauri::AppHandle,
+  stack_index: usize,
+) -> Result<String, tauri::Error> {
+  let mut state = app_state.state.lock().expect("poisoned mutex");
+  match tauri_command::get_editable_stack_elem(&mut state, stack_index) {
+    Ok(s) => Ok(s),
+    Err(err) => {
+      show_error(&app_handle, format!("Error: {}", err))?;
+      Ok(String::from(""))
+    }
+  }
 }
 
 #[tauri::command]
