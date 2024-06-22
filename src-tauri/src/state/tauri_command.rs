@@ -72,7 +72,7 @@ pub fn get_editable_stack_elem(
   stack_index: usize,
 ) -> Result<String, StackError> {
   let elem = state.main_stack().get(stack_index as i64)?;
-  Ok(state.display_settings().to_html(elem))
+  Ok(state.display_settings().to_html_for_parsing(elem))
 }
 
 /// Runs the given undo action.

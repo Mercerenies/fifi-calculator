@@ -20,7 +20,13 @@ impl DisplaySettings {
 
 impl DisplaySettings {
   pub fn to_html(&self, expr: &Expr) -> String {
-    self.language_mode().to_html(expr)
+    let language_mode = self.language_mode();
+    language_mode.to_html(expr)
+  }
+  pub fn to_html_for_parsing(&self, expr: &Expr) -> String {
+    let language_mode = self.language_mode();
+    let language_mode = language_mode.to_reversible_language_mode();
+    language_mode.to_html(expr)
   }
 }
 
