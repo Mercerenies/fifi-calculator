@@ -4,8 +4,8 @@ import { FreeformInputMethod } from './freeform_input.js';
 import { defaultCommandOptions } from '../button_grid/modifier_delegate.js';
 import { TAURI, Validator } from '../tauri_api.js';
 
-const ALGEBRAIC_INPUT_PROMPT = "Alg:";
-const VARIABLE_NAME_INPUT_PROMPT = "Var:";
+export const ALGEBRAIC_INPUT_PROMPT = "Alg:";
+export const VARIABLE_NAME_INPUT_PROMPT = "Var:";
 
 export async function algebraicInputToStack(manager: InputBoxManager, initialInput: string = ""): Promise<void> {
   const text = await manager.show(new FreeformInputMethod(ALGEBRAIC_INPUT_PROMPT), initialInput);

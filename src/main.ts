@@ -37,6 +37,7 @@ class UiManager {
       redoButton: Page.getRedoButton(),
       radiobuttonsDiv: Page.getTouchModesDiv(),
       valueStackDiv: Page.getValueStack(),
+      inputManager: this.inputManager,
     });
     this.osType = osType;
 

@@ -1,20 +1,21 @@
 
 import { StackUpdatedDelegate } from './stack_view.js';
-import { TAURI } from './tauri_api.js';
-import { defaultCommandOptions } from './button_grid/modifier_delegate.js';
-
-import { Sortable, SortableStopEvent } from '@shopify/draggable';
+import { InputBoxManager } from './input_box.js';
+import { DragTouchMode } from './touch_mode/drag.js';
+import { EditTouchMode } from './touch_mode/edit.js';
 
 // Manager for the "Touch Mode" radiobuttons which control what
 // happens when you click/drag a stack element.
 export class TouchModeManager implements StackUpdatedDelegate {
   private radiobuttonsDiv: HTMLElement;
-  private valueStackDiv: HTMLElement;
   private touchMode: TouchMode = NULL_TOUCH_MODE;
+  readonly valueStackDiv: HTMLElement;
+  readonly inputManager: InputBoxManager;
 
   constructor(args: TouchModeManagerArgs) {
     this.radiobuttonsDiv = args.radiobuttonsDiv;
     this.valueStackDiv = args.valueStackDiv;
+    this.inputManager = args.inputManager;
   }
 
   initListeners(): void {
@@ -29,11 +30,11 @@ export class TouchModeManager implements StackUpdatedDelegate {
       }
       inputElem.addEventListener('change', () => {
         this.touchMode.uninitTouchMode();
-        this.touchMode = touchModeFactory(this.valueStackDiv);
+        this.touchMode = touchModeFactory(this);
         this.updateTouchMode();
       });
       if ((inputElem as HTMLInputElement).checked) {
-        this.touchMode = touchModeFactory(this.valueStackDiv);
+        this.touchMode = touchModeFactory(this);
         // NOTE: Don't call updateTouchMode, as the HTML may not have
         // been fully set up by this point. The first stack update
         // will trigger the init call.
@@ -53,12 +54,18 @@ export class TouchModeManager implements StackUpdatedDelegate {
 export interface TouchModeManagerArgs {
   radiobuttonsDiv: HTMLElement;
   valueStackDiv: HTMLElement;
+  inputManager: InputBoxManager;
 }
 
-export const TouchModeFactories: Record<string, (elem: HTMLElement) => TouchMode> = {
-  DRAG: (elem) => new DragTouchMode(elem),
+export interface TouchModeFactoryContext {
+  valueStackDiv: HTMLElement;
+  inputManager: InputBoxManager;
+}
+
+export const TouchModeFactories: Record<string, (ctx: TouchModeFactoryContext) => TouchMode> = {
+  DRAG: (ctx) => new DragTouchMode(ctx),
   VIEW: () => NULL_TOUCH_MODE, // TODO
-  EDIT: () => NULL_TOUCH_MODE, // TODO
+  EDIT: (ctx) => new EditTouchMode(ctx),
 };
 
 export interface TouchMode {
@@ -69,50 +76,4 @@ export interface TouchMode {
 const NULL_TOUCH_MODE: TouchMode = {
   initTouchMode() {},
   uninitTouchMode() {},
-}
-
-export class DragTouchMode implements TouchMode {
-  private valueStackDiv: HTMLElement;
-  private sortable: Sortable | undefined;
-
-  constructor(valueStackDiv: HTMLElement) {
-    this.valueStackDiv = valueStackDiv;
-  }
-
-  initTouchMode(): void {
-    this.uninitTouchMode(); // un-init any existing touch mode
-
-    const orderedList = this.valueStackDiv.querySelector('ol');
-    if (!orderedList) {
-      console.warn("Could not find <ol> in value stack div");
-      return;
-    }
-    this.sortable = new Sortable(orderedList, {
-      draggable: 'li',
-    });
-    this.sortable.on('sortable:stop', (event) => this.onSortOrderUpdate(event));
-  }
-
-  uninitTouchMode(): void {
-    if (this.sortable) {
-      this.sortable.destroy();
-      this.sortable = undefined;
-    }
-  }
-
-  private onSortOrderUpdate(event: SortableStopEvent): void {
-    const { oldIndex, newIndex } = event;
-    if ((oldIndex === undefined) || (newIndex === undefined)) {
-      throw `Indices are undefined, got {oldIndex: ${oldIndex}, newIndex: ${newIndex}}`;
-    }
-    // For the stack shuffle command, we count from the top of the
-    // stack, which is visually the bottom of the stack view.
-    const currentStackSize = Number(this.valueStackDiv.dataset.stackLength);
-    const srcIndex = currentStackSize - 1 - oldIndex;
-    const destIndex = currentStackSize - 1 - newIndex;
-
-    window.setTimeout(() => {
-      TAURI.runMathCommand("move_stack_elem", [String(srcIndex), String(destIndex)], defaultCommandOptions());
-    }, 1);
-  }
 }
