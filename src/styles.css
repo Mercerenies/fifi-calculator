@@ -205,7 +205,7 @@ button {
     font-style: italic;
 }
 
-.checkbox-container {
+.toggleable-container {
     position: relative;
     padding: 0.32em 0.2em 0.32em 35px;
     cursor: pointer;
@@ -214,8 +214,8 @@ button {
     user-select: none;
 }
 
-/* Hide the default checkbox */
-.checkbox-container input {
+/* Hide the default checkbox/radiobox */
+.toggleable-container input {
     position: absolute;
     opacity: 0;
     cursor: pointer;
@@ -223,7 +223,7 @@ button {
     height: 0;
 }
 
-.checkbox-container .checkmark {
+.toggleable-container .toggleable {
     position: absolute;
     top: 0;
     left: 0;
@@ -231,40 +231,47 @@ button {
     width: 25px;
     background-color: #fff;
     border: 1px solid transparent;
-    border-radius: 8px;
     box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
     transition: border-color 0.25s;
 }
 
-.checkbox-container:hover .checkmark {
+.toggleable-container .checkmark {
+    border-radius: 8px;
+}
+
+.toggleable-container .radiobox {
+    border-radius: 20px;
+}
+
+.toggleable-container:hover .toggleable {
     border-color: #396cd8;
 }
 
-.checkbox-container:not(:active) input:checked ~ .checkmark {
+.toggleable-container:not(:active) input:checked ~ .toggleable {
     background-color: #2196F3;
 }
 
-.checkbox-container:active .checkmark {
+.toggleable-container:active .toggleable {
   border-color: #396cd8;
   background-color: #e8e8e8;
 }
 
-.checkbox-container:active input:checked ~ .checkmark {
+.toggleable-container:active input:checked ~ .toggleable {
   border-color: #396cf8;
   background-color: #46B6F3
 }
 
-.checkbox-container .checkmark:after {
+.toggleable-container .toggleable:after {
     content: "";
     position: absolute;
     display: none;
 }
 
-.checkbox-container input:checked ~ .checkmark:after {
+.toggleable-container input:checked ~ .toggleable:after {
     display: block;
 }
 
-.checkbox-container .checkmark:after {
+.toggleable-container .checkmark:after {
   left: 9px;
   top: 5px;
   width: 5px;
@@ -272,6 +279,15 @@ button {
   border: solid white;
   border-width: 0 3px 3px 0;
   transform: rotate(45deg);
+}
+
+.toggleable-container .radiobox:after {
+  top: 9px;
+  left: 9px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: white;
 }
 
 .plotly-plot {
@@ -326,27 +342,31 @@ button {
       background-color: #44444498;
   }
 
-  .checkbox-container .checkmark {
+  .toggleable-container .toggleable {
       background-color: #0f0f0f98;
   }
 
-  .checkbox-container:not(:active) input:checked ~ .checkmark {
+  .toggleable-container:not(:active) input:checked ~ .toggleable {
       background-color: #1166A3;
   }
 
-  .checkbox-container:active .checkmark {
+  .toggleable-container:active .toggleable {
       border-color: #396cd8;
       background-color: #0f0f0f69;
   }
 
-  .checkbox-container:active input:checked ~ .checkmark {
+  .toggleable-container:active input:checked ~ .toggleable {
       border-color: #396cf8;
       background-color: #014673;
   }
 
-  .checkbox-container .checkmark:after {
+  .toggleable-container .checkmark:after {
       border: solid black;
       border-width: 0 3px 3px 0;
+  }
+
+  .toggleable-container .radiobox:after {
+      background-color: black;
   }
 
   .notification-box-contents {

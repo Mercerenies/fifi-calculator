@@ -76,6 +76,16 @@ export interface StackUpdatedDelegate {
   onStackUpdated(stackDiv: HTMLElement): Promise<void>;
 }
 
+export namespace StackUpdatedDelegate {
+  export function several(delegates: StackUpdatedDelegate[]): StackUpdatedDelegate {
+    return {
+      onStackUpdated(stackDiv: HTMLElement): Promise<void> {
+        return Promise.all(delegates.map((delegate) => delegate.onStackUpdated(stackDiv))).then(() => undefined);
+      }
+    };
+  }
+}
+
 export const NULL_STACK_UPDATED_DELEGATE: StackUpdatedDelegate = {
   onStackUpdated(): Promise<void> {
     return Promise.resolve();

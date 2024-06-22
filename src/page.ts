@@ -13,6 +13,7 @@ export const ElementIds = {
   PREFIX_ARG_PANEL: 'prefix-arg-panel',
   MODIFIER_ARG_PANEL: 'modifier-arg-panel',
   MODIFIER_ARG_KEEP_ARG_CHECKBOX: 'modifier-arg-keep-arg',
+  TOUCH_MODES: 'touch-modes',
   UNDO_BUTTON: 'undo-button',
   REDO_BUTTON: 'redo-button',
 };
@@ -68,6 +69,10 @@ export function getModifierArgPanel(): HTMLElement {
 
 export function getModifierArgKeepArgCheckbox(): HTMLInputElement {
   return getElement(ElementIds.MODIFIER_ARG_KEEP_ARG_CHECKBOX) as HTMLInputElement;
+}
+
+export function getTouchModesDiv(): HTMLElement {
+  return getElement(ElementIds.TOUCH_MODES);
 }
 
 export function getUndoButton(): HTMLButtonElement {

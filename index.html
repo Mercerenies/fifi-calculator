@@ -34,10 +34,27 @@
           <button class="prefix-arg" data-prefix-arg="4" ><math><mi>u</mi> <mo>+</mo> <mn>4</mn></math></button>
         </div>
         <div id="modifier-arg-panel" class="button-panel-below-grid">
-          <label class="checkbox-container">
+          <label class="checkbox-container toggleable-container">
             Keep
             <input id="modifier-arg-keep-arg" type="checkbox"></input>
-            <span class="checkmark"></span>
+            <span class="checkmark toggleable"></span>
+          </label>
+        </div>
+        <div id="touch-modes" class="button-panel-below-grid">
+          <label class="radiobox-container toggleable-container">
+            Drag
+            <input data-touch-mode="DRAG" name="touch-mode" type="radio" checked></input>
+            <span class="radiobox toggleable"></span>
+          </label>
+          <label class="radiobox-container toggleable-container">
+            View
+            <input data-touch-mode="VIEW" name="touch-mode" type="radio"></input>
+            <span class="radiobox toggleable"></span>
+          </label>
+          <label class="radiobox-container toggleable-container">
+            Edit
+            <input data-touch-mode="EDIT" name="touch-mode" type="radio"></input>
+            <span class="radiobox toggleable"></span>
           </label>
         </div>
         <div class="button-panel-below-grid">

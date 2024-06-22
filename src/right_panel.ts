@@ -8,6 +8,7 @@ import { PrefixArgumentDelegate } from "./prefix_argument/prefix_delegate.js";
 import { PrefixArgumentDisplay } from "./prefix_argument/display.js";
 import { ModifierArgPanel, ModifierArgumentsManager } from "./modifier_arg_panel.js";
 import { UndoManager } from './undo_manager.js';
+import { TouchModeManager } from './touch_mode.js';
 
 export class RightPanelManager {
   readonly prefixArgStateMachine: PrefixArgStateMachine;
@@ -16,10 +17,12 @@ export class RightPanelManager {
   readonly undoManager: UndoManager;
   readonly modifierArgManager: ModifierArgumentsManager;
   readonly modifierArgPanel: ModifierArgPanel;
+  readonly touchModeManager: TouchModeManager;
 
   constructor(args: RightPanelArguments) {
     this.prefixArgStateMachine = new PrefixArgStateMachine();
     this.modifierArgManager = new ModifierArgumentsManager();
+    this.touchModeManager = new TouchModeManager(args);
 
     const modifierDelegate = delegates([
       new PrefixArgumentDelegate(this.prefixArgStateMachine),
@@ -47,6 +50,7 @@ export class RightPanelManager {
     this.prefixArgDisplay.initListeners();
     this.modifierArgPanel.initListeners();
     this.undoManager.initListeners();
+    this.touchModeManager.initListeners();
   }
 }
 
@@ -57,5 +61,7 @@ export interface RightPanelArguments {
   initialGrid: ButtonGrid,
   undoButton: HTMLButtonElement,
   redoButton: HTMLButtonElement,
+  radiobuttonsDiv: HTMLElement;
+  valueStackDiv: HTMLElement;
   displayBoxId?: string,
 }
