@@ -82,6 +82,10 @@
     background-color: #ccc;
 }
 
+.value-stack-element:active {
+    background-color: #ccc;
+}
+
 .right-panel {
     height: 450px;
 }
@@ -324,7 +328,11 @@ button {
   }
 
   .value-stack-element.draggable-source--is-dragging {
-    background-color: #888;
+      background-color: #888;
+  }
+
+  .value-stack-element:active {
+      background-color: #888;
   }
 
   input,
