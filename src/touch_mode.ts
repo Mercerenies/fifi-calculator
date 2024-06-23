@@ -3,6 +3,7 @@ import { StackUpdatedDelegate } from './stack_view.js';
 import { InputBoxManager } from './input_box.js';
 import { DragTouchMode } from './touch_mode/drag.js';
 import { EditTouchMode } from './touch_mode/edit.js';
+import { UiManager } from './ui_manager.js';
 
 // Manager for the "Touch Mode" radiobuttons which control what
 // happens when you click/drag a stack element.
@@ -10,12 +11,12 @@ export class TouchModeManager implements StackUpdatedDelegate {
   private radiobuttonsDiv: HTMLElement;
   private touchMode: TouchMode = NULL_TOUCH_MODE;
   readonly valueStackDiv: HTMLElement;
-  readonly inputManager: InputBoxManager;
+  readonly uiManager: UiManager;
 
   constructor(args: TouchModeManagerArgs) {
     this.radiobuttonsDiv = args.radiobuttonsDiv;
     this.valueStackDiv = args.valueStackDiv;
-    this.inputManager = args.inputManager;
+    this.uiManager = args.uiManager;
   }
 
   initListeners(): void {
@@ -54,12 +55,12 @@ export class TouchModeManager implements StackUpdatedDelegate {
 export interface TouchModeManagerArgs {
   radiobuttonsDiv: HTMLElement;
   valueStackDiv: HTMLElement;
-  inputManager: InputBoxManager;
+  uiManager: UiManager;
 }
 
 export interface TouchModeFactoryContext {
   valueStackDiv: HTMLElement;
-  inputManager: InputBoxManager;
+  uiManager: UiManager;
 }
 
 export const TouchModeFactories: Record<string, (ctx: TouchModeFactoryContext) => TouchMode> = {

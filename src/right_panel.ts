@@ -10,6 +10,7 @@ import { ModifierArgPanel, ModifierArgumentsManager } from "./modifier_arg_panel
 import { UndoManager } from './undo_manager.js';
 import { TouchModeManager } from './touch_mode.js';
 import { InputBoxManager } from './input_box.js';
+import { UiManager } from './ui_manager.js';
 
 export class RightPanelManager {
   readonly prefixArgStateMachine: PrefixArgStateMachine;
@@ -64,6 +65,6 @@ export interface RightPanelArguments {
   redoButton: HTMLButtonElement,
   radiobuttonsDiv: HTMLElement;
   valueStackDiv: HTMLElement;
-  inputManager: InputBoxManager,
+  uiManager: UiManager,
   displayBoxId?: string,
 }

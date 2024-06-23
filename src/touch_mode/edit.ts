@@ -14,7 +14,7 @@ export class EditTouchMode implements TouchMode {
 
   constructor(context: TouchModeFactoryContext) {
     this.valueStackDiv = context.valueStackDiv;
-    this.inputManager = context.inputManager;
+    this.inputManager = context.uiManager.inputManager;
   }
 
   initTouchMode(): void {
