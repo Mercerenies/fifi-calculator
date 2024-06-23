@@ -7,6 +7,7 @@ import * as KeyDispatcher from './keyboard/dispatcher.js';
 import { RightPanelManager } from './right_panel.js';
 import * as Page from './page.js';
 import { TAURI } from './tauri_api.js';
+import { showPopup, PopupDisplayArgs } from './popup_display.js';
 
 import { OsType } from '@tauri-apps/plugin-os';
 
@@ -71,5 +72,19 @@ export class UiManager {
     }
 
     this.keyHandler.onKeyDown(input);
+  }
+
+  showPopup(newHtml: string, backButtonQuerySelector?: string): void {
+    const args: PopupDisplayArgs = {
+      newHtml,
+      backButtonQuerySelector,
+      onInit: () => {
+        document.body.removeEventListener("keydown", this.keyEventListener);
+      },
+      onReturn: () => {
+        document.body.addEventListener("keydown", this.keyEventListener);
+      },
+    };
+    showPopup(args);
   }
 }
