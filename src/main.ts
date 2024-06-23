@@ -20,6 +20,7 @@ class UiManager {
   readonly osType: OsType;
 
   private keyHandler: KeyDispatcher.KeyEventHandler;
+  private keyEventListener: (event: KeyboardEvent) => Promise<void>;
 
   constructor(osType: OsType) {
     this.inputManager = new InputBoxManager({
@@ -49,6 +50,7 @@ class UiManager {
       this.rightPanelManager.undoManager,
       this.rightPanelManager.buttonGrid,
     ]);
+    this.keyEventListener = (event) => this.dispatchOnKey(event);
   }
 
   static async create(): Promise<UiManager> {
@@ -60,7 +62,7 @@ class UiManager {
     this.inputManager.initListeners();
     this.notificationManager.initListeners();
     this.rightPanelManager.initListeners();
-    document.body.addEventListener("keydown", (event) => this.dispatchOnKey(event));
+    document.body.addEventListener("keydown", this.keyEventListener);
   }
 
   private async dispatchOnKey(event: KeyboardEvent): Promise<void> {

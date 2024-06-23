@@ -64,7 +64,7 @@ export interface TouchModeFactoryContext {
 
 export const TouchModeFactories: Record<string, (ctx: TouchModeFactoryContext) => TouchMode> = {
   DRAG: (ctx) => new DragTouchMode(ctx),
-  VIEW: () => NULL_TOUCH_MODE, // TODO
+  VIEW: () => NULL_TOUCH_MODE, // TODO /////
   EDIT: (ctx) => new EditTouchMode(ctx),
 };
 
