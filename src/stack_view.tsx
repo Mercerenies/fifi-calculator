@@ -1,4 +1,6 @@
 
+import { jsx, HtmlText } from './jsx.js';
+
 // Manager class for displaying the current value stack.
 export class StackView {
   private valueStackDiv: HTMLElement;
@@ -11,23 +13,25 @@ export class StackView {
 
   async refreshStack(newStackHtml: string[]): Promise<void> {
     this.valueStackDiv.dataset.stackLength = String(newStackHtml.length);
-    const ol = document.createElement("ol");
+    const listItems = [];
     for (let i = 0; i < newStackHtml.length; i++) {
       const elem = newStackHtml[i];
-      const li = document.createElement("li");
-      const ordinalSpan = document.createElement("span");
-      const valueSpan = document.createElement("span");
-      li.className = 'value-stack-element';
-      ordinalSpan.className = 'value-stack-element-ordinal';
-      valueSpan.className = 'value-stack-element-value';
-      ordinalSpan.innerText = String(newStackHtml.length - i) + ". ";
-      li.value = newStackHtml.length - i;
-      li.dataset.stackIndex = String(newStackHtml.length - i - 1);
-      valueSpan.innerHTML = elem;
-      li.appendChild(ordinalSpan);
-      li.appendChild(valueSpan);
-      ol.appendChild(li);
+      const index = newStackHtml.length - i;
+      const li = (
+        <li class='value-stack-element' data-stack-index={index - 1} value={index}>
+          <span class='value-stack-element-ordinal'>
+            {index}.&nbsp;
+          </span>
+          <span class='value-stack-element-value'>
+            <HtmlText content={elem} />
+          </span>
+        </li>
+      );
+      listItems.push(li);
     }
+    const ol = (
+      <ol>{listItems}</ol>
+    );
     const stack = this.valueStackDiv;
     stack.innerHTML = "";
     stack.appendChild(ol);
