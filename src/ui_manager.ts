@@ -74,7 +74,7 @@ export class UiManager {
     this.keyHandler.onKeyDown(input);
   }
 
-  showPopup(newHtml: string, backButtonQuerySelector?: string): void {
+  showPopup(newHtml: string | HTMLElement, backButtonQuerySelector?: string): void {
     const args: PopupDisplayArgs = {
       newHtml,
       backButtonQuerySelector,

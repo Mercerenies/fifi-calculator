@@ -1,12 +1,18 @@
 
 export function showPopup(args: PopupDisplayArgs): void {
-  const oldHtml = document.body.innerHTML;
-  document.body.innerHTML = args.newHtml;
+  const oldHtml = [...document.body.children];
+  if (args.newHtml instanceof HTMLElement) {
+    document.body.innerHTML = "";
+    document.body.appendChild(args.newHtml);
+  } else {
+    document.body.innerHTML = args.newHtml;
+  }
 
   let keyListener: undefined | ((e: KeyboardEvent) => void) = undefined;
   const onReturn = () => {
     args.onReturn();
-    document.body.innerHTML = oldHtml;
+    document.body.innerHTML = "";
+    document.body.append(...oldHtml);
     if (keyListener != undefined) {
       document.body.removeEventListener("keydown", keyListener);
       keyListener = undefined;
@@ -17,6 +23,7 @@ export function showPopup(args: PopupDisplayArgs): void {
       onReturn();
     }
   };
+  document.body.addEventListener("keydown", keyListener);
 
   if (args.backButtonQuerySelector) {
     initBackButton(args.backButtonQuerySelector, onReturn);
@@ -35,7 +42,7 @@ function initBackButton(query: string, onReturn: () => void): void {
 }
 
 export interface PopupDisplayArgs {
-  newHtml: string;
+  newHtml: string | HTMLElement;
   backButtonQuerySelector?: string;
 
   onInit(): void;

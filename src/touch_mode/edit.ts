@@ -2,40 +2,23 @@
 import { TAURI } from '../tauri_api.js';
 import { defaultCommandOptions } from '../button_grid/modifier_delegate.js';
 import { InputBoxManager } from '../input_box.js';
-import { TouchMode, TouchModeFactoryContext } from '../touch_mode.js';
+import { TouchModeFactoryContext } from '../touch_mode.js';
+import { ClickableTouchMode } from './clickable.js';
 import { FreeformInputMethod } from '../input_box/freeform_input.js';
 
 const EDIT_INPUT_PROMPT = "Edit:";
 
-export class EditTouchMode implements TouchMode {
-  private valueStackDiv: HTMLElement;
+export class EditTouchMode extends ClickableTouchMode {
   private inputManager: InputBoxManager;
-  private unregisterFunctions: (() => void)[] = [];
 
   constructor(context: TouchModeFactoryContext) {
-    this.valueStackDiv = context.valueStackDiv;
+    super(context);
     this.inputManager = context.uiManager.inputManager;
   }
 
-  initTouchMode(): void {
-    this.uninitTouchMode();
-
-    const stackElems = this.valueStackDiv.querySelectorAll('li.value-stack-element');
-    for (const elem of stackElems) {
-      const fn = () => {
-        const frame = Number((elem as HTMLElement).dataset.stackIndex);
-        editStackFrame(this.inputManager, frame);
-      };
-      elem.addEventListener('click', fn);
-      this.unregisterFunctions.push(() => elem.removeEventListener('click', fn));
-    }
-  }
-
-  uninitTouchMode(): void {
-    for (const fn of this.unregisterFunctions) {
-      fn();
-    }
-    this.unregisterFunctions = [];
+  onClick(elem: HTMLElement): void {
+    const frame = Number((elem as HTMLElement).dataset.stackIndex);
+    editStackFrame(this.inputManager, frame);
   }
 }
 

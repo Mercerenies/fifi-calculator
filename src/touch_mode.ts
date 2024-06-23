@@ -3,6 +3,7 @@ import { StackUpdatedDelegate } from './stack_view.js';
 import { InputBoxManager } from './input_box.js';
 import { DragTouchMode } from './touch_mode/drag.js';
 import { EditTouchMode } from './touch_mode/edit.js';
+import { ViewTouchMode } from './touch_mode/view.js';
 import { UiManager } from './ui_manager.js';
 
 // Manager for the "Touch Mode" radiobuttons which control what
@@ -65,7 +66,7 @@ export interface TouchModeFactoryContext {
 
 export const TouchModeFactories: Record<string, (ctx: TouchModeFactoryContext) => TouchMode> = {
   DRAG: (ctx) => new DragTouchMode(ctx),
-  VIEW: () => NULL_TOUCH_MODE, // TODO /////
+  VIEW: (ctx) => new ViewTouchMode(ctx),
   EDIT: (ctx) => new EditTouchMode(ctx),
 };
 
