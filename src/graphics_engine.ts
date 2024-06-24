@@ -1,7 +1,7 @@
 
 import { StackUpdatedDelegate } from './stack_view.js';
 import { TAURI } from './tauri_api.js';
-import { PlotDirective } from './tauri_api/graphics.js';
+import { GraphicsDirective, PlotDirective } from './tauri_api/graphics.js';
 
 import Plotly from 'plotly.js-dist-min';
 
@@ -21,48 +21,92 @@ export class GraphicsEngine implements StackUpdatedDelegate {
       console.warn('Graphics element missing payload', element);
       return;
     }
-    const response = await TAURI.renderGraphics(payload);
-    if (response == undefined) {
-      // This warning might be redundant, as we probably already
-      // reported something to the user via the notifications
-      // interface, but it isn't hurting.
-      console.warn('Failed to render graphics');
-      return;
-    }
-    const data = await Promise.all(response.directives.map(async (directive) => {
-      switch (directive.type) {
-      case "plot":
-        return await this.plotToTrace(directive);
-      }
-    }));
-    const layout = {
-      showlegend: false,
-      margin: { b: 40, l: 40, r: 40, t: 40 },
-      plot_bgcolor: "rgba(0, 0, 0, 0)",
-      paper_bgcolor: "rgba(0, 0, 0, 0)",
-    } as const;
-
-    const div = document.createElement('div');
-    const plot = await Plotly.newPlot(div, data, layout);
-    const image = await Plotly.toImage(plot, { width: 300, height: 300, format: 'png' });
-    const imgTag = document.createElement('img');
-    imgTag.className = "plotly-plot";
-    imgTag.src = image;
+    const renderTarget = new ImageTagRenderTarget();
+    renderPlotTo(payload, renderTarget);
     element.innerHTML = "";
-    element.appendChild(imgTag);
-  }
-
-  private async plotToTrace(plot: PlotDirective): Promise<ScatterTrace> {
-    return {
-      x: plot.points.map((p) => p.x),
-      y: plot.points.map((p) => p.y),
-      type: 'scatter',
-    };
+    element.appendChild(renderTarget.imgTag);
   }
 }
 
-export interface ScatterTrace {
-  x: number[];
-  y: number[];
-  type: 'scatter';
+export interface RenderTarget {
+  getHtmlRenderTarget(): HTMLElement;
+  postprocess(plot: Plotly.PlotlyHTMLElement): Promise<void>;
+}
+
+export class ImageTagRenderTarget implements RenderTarget {
+  readonly imgTag: HTMLImageElement;
+
+  constructor(imgTag?: HTMLImageElement) {
+    if (imgTag == undefined) {
+      this.imgTag = document.createElement('img');
+      this.imgTag.className = "plotly-plot";
+    } else {
+      this.imgTag = imgTag;
+    }
+  }
+
+  getHtmlRenderTarget(): HTMLDivElement {
+    return document.createElement('div');
+  }
+
+  async postprocess(plot: Plotly.PlotlyHTMLElement): Promise<void> {
+    const image = await Plotly.toImage(plot, { width: 300, height: 300, format: 'png' });
+    this.imgTag.src = image;
+  }
+}
+
+// Render target which directly renders to some HTML element, with
+// full Plotly interactivity enabled.
+export class DirectRenderTarget implements RenderTarget {
+  readonly target: HTMLElement;
+
+  constructor(target: HTMLElement) {
+    this.target = target;
+  }
+
+  getHtmlRenderTarget(): HTMLElement {
+    return this.target;
+  }
+
+  postprocess(): Promise<void> {
+    // Don't need to do anything after rendering.
+    return Promise.resolve();
+  }
+}
+
+export async function renderPlotTo(payloadBase64: string, renderTarget: RenderTarget): Promise<void> {
+  const response = await TAURI.renderGraphics(payloadBase64);
+  if (response == undefined) {
+    // This might be redundant, as we probably already reported
+    // something to the user via the notifications interface, but it
+    // isn't hurting.
+    throw "Failed to render graphics";
+  }
+  const data = response.directives.map(directiveToTrace);
+  const plot = await Plotly.newPlot(renderTarget.getHtmlRenderTarget(), data, plotLayout());
+  await renderTarget.postprocess(plot);
+}
+
+function plotLayout(): Partial<Plotly.Layout> {
+  return {
+    showlegend: false,
+    margin: { b: 40, l: 40, r: 40, t: 40 },
+    plot_bgcolor: "rgba(0, 0, 0, 0)",
+    paper_bgcolor: "rgba(0, 0, 0, 0)",
+  };
+}
+
+function directiveToTrace(directive: GraphicsDirective): Plotly.Data {
+  switch (directive.type) {
+  case "plot":
+    return plotToTrace(directive);
+  }
+}
+
+function plotToTrace(plot: PlotDirective): Partial<Plotly.PlotData> {
+  return {
+    x: plot.points.map((p) => p.x),
+    y: plot.points.map((p) => p.y),
+    type: 'scatter',
+  };
 }
