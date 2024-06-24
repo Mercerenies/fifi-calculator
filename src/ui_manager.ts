@@ -7,7 +7,8 @@ import * as KeyDispatcher from './keyboard/dispatcher.js';
 import { RightPanelManager } from './right_panel.js';
 import * as Page from './page.js';
 import { TAURI } from './tauri_api.js';
-import { showPopup, PopupDisplayArgs } from './popup_display.js';
+import { showPopup, PopupDisplayArgs, PopupDisplayHtml } from './popup_display.js';
+import { Fragment } from './jsx.js';
 
 import { OsType } from '@tauri-apps/plugin-os';
 
@@ -74,7 +75,7 @@ export class UiManager {
     this.keyHandler.onKeyDown(input);
   }
 
-  showPopup(newHtml: string | HTMLElement, backButtonQuerySelector?: string): void {
+  showPopup(newHtml: PopupDisplayHtml, backButtonQuerySelector?: string): void {
     const args: PopupDisplayArgs = {
       newHtml,
       backButtonQuerySelector,
@@ -87,4 +88,5 @@ export class UiManager {
     };
     showPopup(args);
   }
+
 }

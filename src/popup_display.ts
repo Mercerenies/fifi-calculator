@@ -1,9 +1,14 @@
 
+import { Fragment, isFragment } from './jsx.js';
+
 export function showPopup(args: PopupDisplayArgs): void {
   const oldHtml = [...document.body.children];
   if (args.newHtml instanceof HTMLElement) {
     document.body.innerHTML = "";
     document.body.appendChild(args.newHtml);
+  } else if (isFragment(args.newHtml)) {
+    document.body.innerHTML = "";
+    document.body.append(...args.newHtml.elements);
   } else {
     document.body.innerHTML = args.newHtml;
   }
@@ -42,9 +47,11 @@ function initBackButton(query: string, onReturn: () => void): void {
 }
 
 export interface PopupDisplayArgs {
-  newHtml: string | HTMLElement;
+  newHtml: PopupDisplayHtml;
   backButtonQuerySelector?: string;
 
   onInit(): void;
   onReturn(): void;
 }
+
+export type PopupDisplayHtml = string | HTMLElement | Fragment;

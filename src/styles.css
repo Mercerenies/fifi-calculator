@@ -298,6 +298,18 @@ button {
     vertical-align: middle;
 }
 
+.viewable-button-bar {
+    display: flex;
+    flex-direction: row;
+}
+
+.viewable-display-main {
+    font-size: 1.25em;
+    width: 100%;
+    min-height: 10em;
+    text-align: center;
+}
+
 /* "Small screen" mode for mobile devices */
 @media (max-width: 840px) {
     .value-stack {

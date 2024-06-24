@@ -5,6 +5,7 @@
 export type Stringy = string | number;
 
 export interface HtmlAttrs {
+  id: string;
   class: string;
 };
 
@@ -59,7 +60,7 @@ function dataify(key: string): string {
   return key.replace(/-([a-z])/, (_, letter) => letter.toUpperCase());
 }
 
-export function HtmlText(props: { content: string }): _Fragment {
+export function HtmlText(props: { content: string }): Fragment {
   const parser = new DOMParser();
   const htmlDoc = parser.parseFromString(props.content, 'text/html');
   return {
@@ -68,14 +69,14 @@ export function HtmlText(props: { content: string }): _Fragment {
   };
 }
 
-export function Fragment(props: { children: Node[] }): _Fragment {
+export function Fragment(props: { children: Node[] }): Fragment {
   return {
     __isFragment: true,
     elements: props.children,
   };
 }
 
-export interface _Fragment {
+export interface Fragment {
   readonly __isFragment: true;
   readonly elements: Node[];
 }
@@ -92,12 +93,21 @@ export function flatten<T>(arr: NestedArray<T>): T[] {
   }
 }
 
+export function isFragment(obj: any): obj is Fragment {
+  return typeof obj === 'object' && obj.__isFragment;
+}
+
 declare global {
   namespace JSX {
     interface IntrinsicElements {
       ol: Partial<HtmlAttrs & DataAttrs>,
       li: Partial<HtmlAttrs & DataAttrs & { value: Stringy }>,
       span: Partial<HtmlAttrs & DataAttrs>,
+      div: Partial<HtmlAttrs & DataAttrs>,
+      button: Partial<HtmlAttrs & DataAttrs>,
+      header: Partial<HtmlAttrs & DataAttrs>,
+      main: Partial<HtmlAttrs & DataAttrs>,
+      footer: Partial<HtmlAttrs & DataAttrs>,
     }
   }
 }
