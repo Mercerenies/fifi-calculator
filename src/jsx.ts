@@ -63,22 +63,47 @@ function dataify(key: string): string {
 export function HtmlText(props: { content: string }): Fragment {
   const parser = new DOMParser();
   const htmlDoc = parser.parseFromString(props.content, 'text/html');
-  return {
-    __isFragment: true,
-    elements: [...htmlDoc.body.childNodes],
-  };
+  return new Fragment([...htmlDoc.body.childNodes]);
 }
 
-export function Fragment(props: { children: Node[] }): Fragment {
-  return {
-    __isFragment: true,
-    elements: props.children,
-  };
-}
-
-export interface Fragment {
-  readonly __isFragment: true;
+export class Fragment {
   readonly elements: Node[];
+
+  constructor(childrenOrProps: Node[] | { children: Node[] }) {
+    if (Array.isArray(childrenOrProps)) {
+      this.elements = childrenOrProps;
+    } else {
+      this.elements = childrenOrProps.children;
+    }
+  }
+
+  querySelector(selector: string): Node | null {
+    for (const element of this.elements) {
+      if (element instanceof HTMLElement) {
+        if (element.matches(selector)) {
+          return element;
+        }
+        const found = element.querySelector(selector);
+        if (found != null) {
+          return found;
+        }
+      }
+    }
+    return null;
+  }
+
+  querySelectorAll(selector: string): Node[] {
+    const elements = [];
+    for (const element of this.elements) {
+      if (element instanceof HTMLElement) {
+        if (element.matches(selector)) {
+          elements.push(element);
+        }
+        elements.push(...element.querySelectorAll(selector));
+      }
+    }
+    return elements;
+  }
 }
 
 export function flatten<T>(arr: NestedArray<T>): T[] {
