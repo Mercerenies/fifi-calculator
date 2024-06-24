@@ -73,7 +73,12 @@ export class DirectRenderTarget implements RenderTarget {
   }
 }
 
-export async function renderPlotTo(payloadBase64: string, renderTarget: RenderTarget): Promise<void> {
+export async function renderPlotTo(
+  payloadBase64: string,
+  renderTarget: RenderTarget,
+  layout: Partial<Plotly.Layout> = {},
+  config: Partial<Plotly.Config> = {},
+): Promise<void> {
   const response = await TAURI.renderGraphics(payloadBase64);
   if (response == undefined) {
     // This might be redundant, as we probably already reported
@@ -82,17 +87,24 @@ export async function renderPlotTo(payloadBase64: string, renderTarget: RenderTa
     throw "Failed to render graphics";
   }
   const data = response.directives.map(directiveToTrace);
-  const plot = await Plotly.newPlot(renderTarget.getHtmlRenderTarget(), data, plotLayout());
+  const finalLayout = Object.assign(defaultPlotLayout(), layout);
+  const finalConfig = Object.assign(defaultPlotConfig(), config);
+
+  const plot = await Plotly.newPlot(renderTarget.getHtmlRenderTarget(), data, finalLayout, finalConfig);
   await renderTarget.postprocess(plot);
 }
 
-function plotLayout(): Partial<Plotly.Layout> {
+function defaultPlotLayout(): Partial<Plotly.Layout> {
   return {
     showlegend: false,
     margin: { b: 40, l: 40, r: 40, t: 40 },
     plot_bgcolor: "rgba(0, 0, 0, 0)",
     paper_bgcolor: "rgba(0, 0, 0, 0)",
   };
+}
+
+function defaultPlotConfig(): Partial<Plotly.Config> {
+  return {};
 }
 
 function directiveToTrace(directive: GraphicsDirective): Plotly.Data {

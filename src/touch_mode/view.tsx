@@ -48,7 +48,7 @@ function getHtmlToDisplay(contentElem: HTMLElement): JSX.Element {
     const div = document.createElement("div");
     div.className = "plotly-interactive-plot";
     const renderTarget = new DirectRenderTarget(div);
-    renderPlotTo(payload, renderTarget);
+    renderPlotTo(payload, renderTarget, {}, { responsive: true });
     return div;
   } else {
     // Show as plaintext
