@@ -14,4 +14,5 @@ export class ViewTouchMode extends ClickableTouchMode {
   onClick(elem: HTMLElement): void {
     this.uiManager.showPopup(elem, undefined);
   }
+
 }
