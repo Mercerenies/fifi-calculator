@@ -186,7 +186,7 @@ impl BasicLanguageMode {
 
   fn vector_to_html(&self, engine: &LanguageModeEngine, out: &mut String, elems: &[Expr]) {
     out.push('[');
-    output_sep_by(out, elems.iter(), ", ", |out, e| self.write_to_html(engine, out, e, Precedence::MIN));
+    output_sep_by(out, elems.iter(), ", ", |out, e| engine.write_to_html(out, e, Precedence::MIN));
     out.push(']');
   }
 }
