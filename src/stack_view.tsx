@@ -1,5 +1,5 @@
 
-import { jsx, HtmlText } from './jsx.js';
+import { jsx, HtmlText, toNodes } from './jsx.js';
 
 // Manager class for displaying the current value stack.
 export class StackView {
@@ -34,7 +34,7 @@ export class StackView {
     );
     const stack = this.valueStackDiv;
     stack.innerHTML = "";
-    stack.appendChild(ol);
+    stack.append(...toNodes(ol));
     await this.delegate.onStackUpdated(stack);
   }
 

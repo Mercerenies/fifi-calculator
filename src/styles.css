@@ -406,4 +406,8 @@ button {
   .plotly-plot {
       filter: invert(75%);
   }
+
+  .plotly-interactive-plot {
+      filter: invert(75%);
+  }
 }

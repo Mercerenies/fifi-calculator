@@ -32,7 +32,7 @@ export function jsx(tagOrCtor: string | { new (attrs: any): any }, attrs: Record
       }
     }
     for (const child of flattenedChildren) {
-      if (child.__isFragment) {
+      if (isFragment(child)) {
         element.append(...child.elements);
       } else {
         element.appendChild(nodify(child));
@@ -119,7 +119,15 @@ export function flatten<T>(arr: NestedArray<T>): T[] {
 }
 
 export function isFragment(obj: any): obj is Fragment {
-  return typeof obj === 'object' && obj.__isFragment;
+  return obj instanceof Fragment;
+}
+
+export function toNodes(element: JSX.Element): Node[] {
+  if (element instanceof Fragment) {
+    return element.elements;
+  } else {
+    return [element];
+  }
 }
 
 declare global {
@@ -134,5 +142,6 @@ declare global {
       main: Partial<HtmlAttrs & DataAttrs>,
       footer: Partial<HtmlAttrs & DataAttrs>,
     }
+    type Element = HTMLElement | Fragment;
   }
 }
