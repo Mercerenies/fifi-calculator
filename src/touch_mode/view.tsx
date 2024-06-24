@@ -3,7 +3,7 @@ import { UiManager } from '../ui_manager.js';
 import { TouchModeFactoryContext } from '../touch_mode.js';
 import { ClickableTouchMode } from './clickable.js';
 import { jsx, HtmlText, Fragment } from '../jsx.js';
-import { DirectRenderTarget, getGraphicsElements, getGraphicsPayload, renderPlotTo } from '../graphics_engine.js';
+import { DirectRenderTarget, getGraphicsElements, getGraphicsPayload, renderPlotTo } from '../graphics.js';
 
 export class ViewTouchMode extends ClickableTouchMode {
   private uiManager: UiManager;

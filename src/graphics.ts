@@ -5,28 +5,26 @@ import { GraphicsDirective, PlotDirective } from './tauri_api/graphics.js';
 
 import Plotly from 'plotly.js-dist-min';
 
-// Engine for managing calls to the backend's graphics components for
-// producing plots and graphs. (TODO: This is just a stack delegate
-// now; rename it?)
-export class GraphicsEngine implements StackUpdatedDelegate {
+// StackUpdatedDelegate instance for rendering plots.
+export const GRAPHICS_DELEGATE: StackUpdatedDelegate = {
   onStackUpdated(stackDiv: HTMLElement): Promise<void> {
     const graphicsElements = [...getGraphicsElements(stackDiv)];
     return Promise.all(
-      graphicsElements.map((element) => this.renderGraphics(element as HTMLElement)),
+      graphicsElements.map((element) => renderGraphics(element as HTMLElement)),
     ).then(() => undefined);
   }
+};
 
-  private async renderGraphics(element: HTMLElement): Promise<void> {
-    const payload = getGraphicsPayload(element);
-    if (payload == undefined) {
-      console.warn('Graphics element missing payload', element);
-      return;
-    }
-    const renderTarget = new ImageTagRenderTarget();
-    renderPlotTo(payload, renderTarget);
-    element.innerHTML = "";
-    element.appendChild(renderTarget.imgTag);
+async function renderGraphics(element: HTMLElement): Promise<void> {
+  const payload = getGraphicsPayload(element);
+  if (payload == undefined) {
+    console.warn('Graphics element missing payload', element);
+    return;
   }
+  const renderTarget = new ImageTagRenderTarget();
+  renderPlotTo(payload, renderTarget);
+  element.innerHTML = "";
+  element.appendChild(renderTarget.imgTag);
 }
 
 export interface RenderTarget {

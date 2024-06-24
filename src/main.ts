@@ -4,7 +4,7 @@ import { UiManager } from './ui_manager.js';
 import { defaultCommandOptions } from './button_grid/modifier_delegate.js';
 import { TAURI, RefreshStackPayload, UndoAvailabilityPayload } from './tauri_api.js';
 import { StackView, StackUpdatedDelegate } from './stack_view.js';
-import { GraphicsEngine } from './graphics_engine.js';
+import { GRAPHICS_DELEGATE } from './graphics.js';
 
 async function refreshStack(stackView: StackView, payload: RefreshStackPayload): Promise<void> {
   await stackView.refreshStack(payload.stack);
@@ -20,12 +20,11 @@ function refreshUndoButtons(uiManager: UiManager, state: UndoAvailabilityPayload
 }
 
 window.addEventListener("DOMContentLoaded", async function() {
-  const graphicsEngine = new GraphicsEngine();
   const uiManager = await UiManager.create();
   const stackView = new StackView(
     Page.getValueStack(),
     StackUpdatedDelegate.several([
-      graphicsEngine,
+      GRAPHICS_DELEGATE,
       uiManager.rightPanelManager.touchModeManager,
     ]),
   );
