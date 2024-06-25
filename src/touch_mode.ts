@@ -1,6 +1,5 @@
 
 import { StackUpdatedDelegate } from './stack_view.js';
-import { InputBoxManager } from './input_box.js';
 import { DragTouchMode } from './touch_mode/drag.js';
 import { EditTouchMode } from './touch_mode/edit.js';
 import { ViewTouchMode } from './touch_mode/view.js';
@@ -76,6 +75,10 @@ export interface TouchMode {
 }
 
 const NULL_TOUCH_MODE: TouchMode = {
-  initTouchMode() {},
-  uninitTouchMode() {},
+  initTouchMode() {
+    // NULL_TOUCH_MODE does nothing on init.
+  },
+  uninitTouchMode() {
+    // NULL_TOUCH_MODE does nothing on uninit.
+  },
 }

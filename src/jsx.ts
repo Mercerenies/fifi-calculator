@@ -9,16 +9,14 @@ export interface HtmlAttrs {
   class: string;
 };
 
-export interface DataAttrs {
-  [key: `data-${string}`]: Stringy;
-}
+export type DataAttrs = Record<`data-${string}`, Stringy>;
 
 export type NestedArray<T> = T | NestedArray<T>[];
 
 export function jsx(tag: string, attrs: Record<string, Stringy> | null, ...children: NestedArray<HTMLElement | string>[]): HTMLElement;
-export function jsx<T, S>(ctor: { new (attrs: T): S }, attrs: T | null): S;
-export function jsx<T, S, U>(ctor: { new (attrs: T & { children: U[] }): S }, attrs: T | null, ...children: NestedArray<U>[]): S;
-export function jsx(tagOrCtor: string | { new (attrs: any): any }, attrs: Record<string, any> | null, ...children: NestedArray<any>[]): any {
+export function jsx<T, S>(ctor: new (attrs: T) => S, attrs: T | null): S;
+export function jsx<T, S, U>(ctor: new (attrs: T & { children: U[] }) => S, attrs: T | null, ...children: NestedArray<U>[]): S;
+export function jsx(tagOrCtor: string | (new (attrs: any) => any), attrs: Record<string, any> | null, ...children: NestedArray<any>[]): any {
   const flattenedChildren = flatten(children);
   if (typeof tagOrCtor === 'string') {
     const element = document.createElement(tagOrCtor);

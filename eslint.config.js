@@ -18,6 +18,9 @@ export default tseslint.config(
         "ignoreParameters": true,
         "ignoreProperties": true,
       }],
+      "@typescript-eslint/no-namespace": ["error", {
+        "allowDeclarations": true,
+      }],
     },
   },
 );
