@@ -56,7 +56,7 @@ pub struct Identity {
 }
 
 /// Composition of two prisms.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Composed<X, Y, B> {
   left: X,
   right: Y,
@@ -229,6 +229,16 @@ where Down: From<Up>,
       Up: From<Down> {
   fn default() -> Self {
     Self::new()
+  }
+}
+
+impl<X: Clone, Y: Clone, B> Clone for Composed<X, Y, B> {
+  fn clone(&self) -> Self {
+    Self {
+      left: self.left.clone(),
+      right: self.right.clone(),
+      _phantom: PhantomData,
+    }
   }
 }
 

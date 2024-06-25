@@ -4,7 +4,6 @@ use super::var::Var;
 use super::atom::Atom;
 use super::number::{Number, ComplexLike};
 use super::interval::{Interval, IntervalAny, IntervalOrNumber};
-use super::vector::Vector;
 use super::literal::Literal;
 use super::algebra::formula::{Formula, Equation};
 use crate::util::prism::{Prism, OnVec, Only, Composed, Conversion,
@@ -54,6 +53,7 @@ pub struct StringToUsize;
 /// Equivalent to `usize` but also keeps track of the string used to
 /// construct it. This ensures that the [`StringToUsize`] prism is
 /// lawful and can recover the original string on `widen_type`.
+#[derive(Debug, Clone)]
 pub struct ParsedUsize {
   value: usize,
   input: String,
@@ -66,19 +66,19 @@ pub fn must_be_var(var: Var) -> Only<Expr> {
 }
 
 /// Prism which accepts only positive real numbers.
-pub fn expr_to_positive_number() -> Composed<ExprToNumber, NumberToPositiveNumber, Number> {
+pub fn expr_to_positive_number() -> impl Prism<Expr, PositiveNumber> + Clone {
   Composed::new(ExprToNumber, NumberToPositiveNumber)
 }
 
 /// Prism which only accepts expressions containing [`Number`] values
 /// representable by a `usize`.
-pub fn expr_to_usize() -> Composed<ExprToNumber, NumberToUsize, Number> {
+pub fn expr_to_usize() -> impl Prism<Expr, usize> + Clone {
   Composed::new(ExprToNumber, NumberToUsize)
 }
 
 /// Prism which only accepts expressions containing [`Number`] values
 /// representable by an `i64`.
-pub fn expr_to_i64() -> Composed<ExprToNumber, NumberToI64, Number> {
+pub fn expr_to_i64() -> impl Prism<Expr, i64> + Clone {
   Composed::new(ExprToNumber, NumberToI64)
 }
 
@@ -93,7 +93,7 @@ pub fn expr_to_formula() -> Conversion<Expr, Formula> {
 }
 
 /// Prism which accepts specifically [`Equation`] values.
-pub fn expr_to_equation() -> Composed<Conversion<Expr, Formula>, Conversion<Formula, Equation>, Formula> {
+pub fn expr_to_equation() -> impl Prism<Expr, Equation> + Clone {
   Composed::new(expr_to_formula(), Conversion::new())
 }
 
@@ -108,10 +108,8 @@ pub fn expr_to_interval() -> Conversion<Expr, Interval> {
 /// Prism which parses an [`Expr`] as a vector (in the expression
 /// language) whose constituents each pass the specified prism
 /// `inner`.
-pub fn expr_to_typed_vector<T, P>(
-  inner: P,
-) -> Composed<ExprToVector, Composed<LosslessConversion<Vector, Vec<Expr>>, OnVec<P>, Vec<Expr>>, Vector>
-where P: Prism<Expr, T> {
+pub fn expr_to_typed_vector<T, P>(inner: P) -> impl Prism<Expr, Vec<T>> + Clone
+where P: Prism<Expr, T> + Clone {
   Composed::new(
     ExprToVector,
     Composed::new(LosslessConversion::new(), OnVec::new(inner)),
@@ -121,10 +119,8 @@ where P: Prism<Expr, T> {
 /// Prism which parses an [`Expr`] as a vector (in the expression
 /// language), as though through [`expr_to_typed_vector`], but which
 /// only accepts vectors of the given length.
-pub fn expr_to_typed_array<const N: usize, T, P>(
-  inner: P,
-) -> Composed<Composed<ExprToVector, Composed<LosslessConversion<Vector, Vec<Expr>>, OnVec<P>, Vec<Expr>>, Vector>, VecToArray<N>, Vec<T>> // TODO: This type signature makes me question my life choices.
-where P: Prism<Expr, T> {
+pub fn expr_to_typed_array<const N: usize, T, P>(inner: P) -> impl Prism<Expr, [T; N]> + Clone
+where P: Prism<Expr, T> + Clone {
   Composed::new(
     expr_to_typed_vector(inner),
     VecToArray::new(),
