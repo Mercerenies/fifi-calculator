@@ -10,3 +10,4 @@ Simple stack-based calculator app written in Rust using Tauri.
 * "Undo Left" SVG Vector: https://www.svgrepo.com/svg/529263/undo-left
 * "Undo Right" SVG Vector: https://www.svgrepo.com/svg/529267/undo-right
 * "Back" SVG Vector: https://www.svgrepo.com/svg/500472/back
+* "Graph" SVG Vector: https://www.svgrepo.com/svg/502683/graph

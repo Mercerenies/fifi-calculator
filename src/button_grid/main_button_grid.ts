@@ -5,6 +5,7 @@ import { StorageButtonGrid } from "./storage_button_grid.js";
 import { VectorButtonGrid } from "./vector_button_grid.js";
 import { FormulaButtonGrid } from "./formula_button_grid.js";
 import { TranscendentalButtonGrid } from "./transcendental_button_grid.js";
+import { GraphingButtonGrid } from "./graphing_button_grid.js";
 import { DispatchButton, GotoButton } from './button.js';
 import { NumericalInputButton, AlgebraicInputButton } from './button/input.js';
 import { InputBoxManager } from '../input_box.js';
@@ -26,6 +27,10 @@ function swapSvg(): HTMLElement {
 
 function dupSvg(): HTMLElement {
   return svg('assets/duplicate.svg', {alt: "dup"});
+}
+
+function graphSvg(): HTMLElement {
+  return svg('assets/graph.svg', {alt: "graph"});
 }
 
 export class MainButtonGrid extends ButtonGrid {
@@ -78,9 +83,10 @@ export class MainButtonGrid extends ButtonGrid {
       ],
       [
         new GotoButton("<math><mi>x</mi></math>", "a", this.subgrids.algebra),
-        new GotoButton(":=", "s", () => this.subgrids.storage),
-        new GotoButton("[]", "v", () => this.subgrids.vector),
+        new GotoButton(":=", "s", this.subgrids.storage),
+        new GotoButton("[]", "v", this.subgrids.vector),
         new GotoButton("≤", null, this.subgrids.formula),
+        new GotoButton(graphSvg(), "g", this.subgrids.graphing),
       ],
     ];
   }
@@ -143,6 +149,7 @@ class Subgrids {
   readonly storage: StorageButtonGrid;
   readonly vector: VectorButtonGrid;
   readonly transcendental: TranscendentalButtonGrid;
+  readonly graphing: GraphingButtonGrid;
 
   constructor(mainGrid: MainButtonGrid, inputManager: InputBoxManager) {
     this.algebra = new AlgebraButtonGrid(mainGrid, inputManager);
@@ -150,5 +157,6 @@ class Subgrids {
     this.storage = new StorageButtonGrid(mainGrid, inputManager);
     this.vector = new VectorButtonGrid(mainGrid, inputManager);
     this.transcendental = new TranscendentalButtonGrid(mainGrid, inputManager);
+    this.graphing = new GraphingButtonGrid(mainGrid, inputManager);
   }
 }
