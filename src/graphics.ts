@@ -29,6 +29,7 @@ async function renderGraphics(element: HTMLElement): Promise<void> {
 
 export interface RenderTarget {
   getHtmlRenderTarget(): HTMLElement;
+  preprocess(base64Payload: string): Promise<RenderPreprocessResult>;
   postprocess(plot: Plotly.PlotlyHTMLElement): Promise<void>;
 }
 
@@ -42,6 +43,10 @@ export class ImageTagRenderTarget implements RenderTarget {
     } else {
       this.imgTag = imgTag;
     }
+  }
+
+  preprocess(base64Payload: string): Promise<RenderPreprocessResult> {
+    return Promise.resolve("continue");
   }
 
   getHtmlRenderTarget(): HTMLDivElement {
@@ -63,6 +68,10 @@ export class DirectRenderTarget implements RenderTarget {
     this.target = target;
   }
 
+  preprocess(): Promise<RenderPreprocessResult> {
+    return Promise.resolve("continue");
+  }
+
   getHtmlRenderTarget(): HTMLElement {
     return this.target;
   }
@@ -73,12 +82,18 @@ export class DirectRenderTarget implements RenderTarget {
   }
 }
 
+export type RenderPreprocessResult = "stop" | "continue";
+
 export async function renderPlotTo(
   payloadBase64: string,
   renderTarget: RenderTarget,
   layout: Partial<Plotly.Layout> = {},
   config: Partial<Plotly.Config> = {},
 ): Promise<void> {
+  const preprocessResult = await renderTarget.preprocess(payloadBase64);
+  if (preprocessResult === "stop") {
+    return;
+  }
   const response = await TAURI.renderGraphics(payloadBase64);
   if (response == undefined) {
     // This might be redundant, as we probably already reported
