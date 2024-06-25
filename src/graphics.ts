@@ -122,7 +122,7 @@ function plotToTrace(plot: PlotDirective): Partial<Plotly.PlotData> {
   };
 }
 
-export function getGraphicsElements(element: HTMLElement): NodeListOf<HTMLElement> {
+export function getGraphicsElements<R>(element: QuerySelectable<R>): R {
   return element.querySelectorAll('[data-graphics-flag]');
 }
 
@@ -131,4 +131,8 @@ export function getGraphicsPayload(element: HTMLElement): string | undefined {
     return undefined;
   }
   return element.dataset.graphicsPayload;
+}
+
+export interface QuerySelectable<R> {
+  querySelectorAll(selector: string): R;
 }

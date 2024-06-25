@@ -60,11 +60,17 @@ function dataify(key: string): string {
   return key.replace(/-([a-z])/, (_, letter) => letter.toUpperCase());
 }
 
-export function HtmlText(props: { content: string }): Fragment {
-  const parser = new DOMParser();
-  const htmlDoc = parser.parseFromString(props.content, 'text/html');
-  return new Fragment([...htmlDoc.body.childNodes]);
+export interface _HtmlText {
+  (propsOrStr: string | { content: string }): Fragment;
+  new (propsOrStr: string | { content: string }): Fragment;
 }
+
+export const HtmlText = function HtmlText(propsOrStr: string | { content: string }): Fragment {
+  const content = (typeof propsOrStr === 'string') ? propsOrStr : propsOrStr.content;
+  const parser = new DOMParser();
+  const htmlDoc = parser.parseFromString(content, 'text/html');
+  return new Fragment([...htmlDoc.body.childNodes]);
+} as _HtmlText;
 
 export class Fragment {
   readonly elements: Node[];

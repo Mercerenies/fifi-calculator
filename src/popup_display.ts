@@ -1,6 +1,8 @@
 
 import { Fragment, isFragment } from './jsx.js';
 
+let POPUP_NESTING_COUNTER = 0;
+
 export function showPopup(args: PopupDisplayArgs): void {
   const oldHtml = [...document.body.children];
   if (args.newHtml instanceof HTMLElement) {
@@ -13,8 +15,11 @@ export function showPopup(args: PopupDisplayArgs): void {
     document.body.innerHTML = args.newHtml;
   }
 
+  POPUP_NESTING_COUNTER++;
+  const nestingCounter = POPUP_NESTING_COUNTER;
   let keyListener: undefined | ((e: KeyboardEvent) => void) = undefined;
   const onReturn = () => {
+    POPUP_NESTING_COUNTER--;
     args.onReturn();
     document.body.innerHTML = "";
     document.body.append(...oldHtml);
@@ -24,7 +29,7 @@ export function showPopup(args: PopupDisplayArgs): void {
     }
   };
   keyListener = (event) => {
-    if (event.key === "Escape") {
+    if ((event.key === "Escape") && (nestingCounter == POPUP_NESTING_COUNTER)) {
       onReturn();
     }
   };

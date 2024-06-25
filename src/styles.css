@@ -161,8 +161,7 @@ h1 {
   text-align: center;
 }
 
-input,
-button {
+input, button {
   border-radius: 8px;
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
@@ -200,8 +199,7 @@ button.undo-redo {
     padding: 0.6em 0.5em;
 }
 
-input,
-button {
+input, button {
   outline: none;
 }
 
@@ -347,8 +345,7 @@ button {
       background-color: #888;
   }
 
-  input,
-  button {
+  input, button {
     color: #ffffff;
     background-color: #0f0f0f98;
   }
