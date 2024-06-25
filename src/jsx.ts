@@ -16,6 +16,7 @@ export type NestedArray<T> = T | NestedArray<T>[];
 export function jsx(tag: string, attrs: Record<string, Stringy> | null, ...children: NestedArray<HTMLElement | string>[]): HTMLElement;
 export function jsx<T, S>(ctor: new (attrs: T) => S, attrs: T | null): S;
 export function jsx<T, S, U>(ctor: new (attrs: T & { children: U[] }) => S, attrs: T | null, ...children: NestedArray<U>[]): S;
+/* eslint-disable-next-line @typescript-eslint/no-explicit-any */
 export function jsx(tagOrCtor: string | (new (attrs: any) => any), attrs: Record<string, any> | null, ...children: NestedArray<any>[]): any {
   const flattenedChildren = flatten(children);
   if (typeof tagOrCtor === 'string') {
@@ -122,7 +123,7 @@ export function flatten<T>(arr: NestedArray<T>): T[] {
   }
 }
 
-export function isFragment(obj: any): obj is Fragment {
+export function isFragment(obj: unknown): obj is Fragment {
   return obj instanceof Fragment;
 }
 
