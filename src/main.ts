@@ -38,3 +38,4 @@ window.addEventListener("DOMContentLoaded", async function() {
   // case we were resumed from a paused state.
   await TAURI.runMathCommand("nop", [], defaultCommandOptions());
 });
+

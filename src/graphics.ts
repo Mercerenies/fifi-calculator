@@ -2,6 +2,7 @@
 import { StackUpdatedDelegate } from './stack_view.js';
 import { TAURI } from './tauri_api.js';
 import { GraphicsDirective, PlotDirective } from './tauri_api/graphics.js';
+import { GLOBAL_IMAGE_CACHE } from './graphics/image_cache.js';
 
 import Plotly from 'plotly.js-dist-min';
 
@@ -30,22 +31,32 @@ async function renderGraphics(element: HTMLElement): Promise<void> {
 export interface RenderTarget {
   getHtmlRenderTarget(): HTMLElement;
   preprocess(base64Payload: string): Promise<RenderPreprocessResult>;
-  postprocess(plot: Plotly.PlotlyHTMLElement): Promise<void>;
+  postprocess(plot: Plotly.PlotlyHTMLElement, base64Payload: string): Promise<void>;
 }
 
 export class ImageTagRenderTarget implements RenderTarget {
   readonly imgTag: HTMLImageElement;
 
-  constructor(imgTag?: HTMLImageElement) {
-    if (imgTag == undefined) {
+  private useImageCache: boolean;
+
+  constructor(args: Partial<ImageTagRenderTargetArgs> = {}) {
+    if (args.imgTag == undefined) {
       this.imgTag = document.createElement('img');
       this.imgTag.className = "plotly-plot";
     } else {
-      this.imgTag = imgTag;
+      this.imgTag = args.imgTag;
     }
+    this.useImageCache = args.useImageCache ?? true;
   }
 
   preprocess(base64Payload: string): Promise<RenderPreprocessResult> {
+    if (this.useImageCache) {
+      const imageUrl = GLOBAL_IMAGE_CACHE.get(base64Payload);
+      if (imageUrl !== undefined) {
+        this.imgTag.src = imageUrl;
+        return Promise.resolve("stop");
+      }
+    }
     return Promise.resolve("continue");
   }
 
@@ -53,10 +64,18 @@ export class ImageTagRenderTarget implements RenderTarget {
     return document.createElement('div');
   }
 
-  async postprocess(plot: Plotly.PlotlyHTMLElement): Promise<void> {
+  async postprocess(plot: Plotly.PlotlyHTMLElement, base64Payload: string): Promise<void> {
     const image = await Plotly.toImage(plot, { width: 300, height: 300, format: 'png' });
+    if (this.useImageCache) {
+      GLOBAL_IMAGE_CACHE.set(base64Payload, image);
+    }
     this.imgTag.src = image;
   }
+}
+
+export interface ImageTagRenderTargetArgs {
+  imgTag: HTMLImageElement;
+  useImageCache: boolean;
 }
 
 // Render target which directly renders to some HTML element, with
@@ -106,7 +125,7 @@ export async function renderPlotTo(
   const finalConfig = Object.assign(defaultPlotConfig(), config);
 
   const plot = await Plotly.newPlot(renderTarget.getHtmlRenderTarget(), data, finalLayout, finalConfig);
-  await renderTarget.postprocess(plot);
+  await renderTarget.postprocess(plot, payloadBase64);
 }
 
 function defaultPlotLayout(): Partial<Plotly.Layout> {
