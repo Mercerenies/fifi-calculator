@@ -47,7 +47,7 @@ pub struct XDataSetExpr {
 /// * Intervals of literal real numbers (with any interval type).
 ///
 /// * Literal real numbers.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ExprToXDataSet {
   _priv: (),
 }
@@ -107,12 +107,14 @@ impl XDataSet {
   }
 
   pub fn gen_exact_points(&self, requested_size: Option<usize>) -> Result<Vec<Number>, LengthError> {
-    if requested_size.is_some() && self.required_len().is_some() && requested_size != self.required_len() {
-      // unwrap: We just checked that both values are Some, not None.
-      return Err(LengthError {
-        expected: self.required_len().unwrap(),
-        actual: requested_size.unwrap(),
-      });
+    if let (Some(requested_size), Some(required_size)) = (requested_size, self.required_len()) {
+      if requested_size != required_size {
+        // unwrap: We just checked that both values are Some, not None.
+        return Err(LengthError {
+          expected: required_size,
+          actual: requested_size,
+        });
+      }
     }
 
     let size = requested_size.unwrap_or_else(|| self.preferred_len());
