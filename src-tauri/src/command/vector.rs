@@ -167,13 +167,6 @@ impl Command for UnpackCommand {
         let args = args.into_iter().map(|arg| context.simplify_expr(arg, &mut errors));
         stack.push_several(args);
       }
-      Expr::Atom(Atom::Complex(z)) => {
-        // Note: No sense in running a simplifier on the
-        // clearly-literal real numbers here.
-        let (real, imag) = z.into_parts();
-        stack.push(Expr::from(real));
-        stack.push(Expr::from(imag));
-      }
       expr @ Expr::Atom(Atom::Number(_) | Atom::Var(_)) => {
         if !context.opts.keep_modifier {
           // If we actually popped the value, then push it back since

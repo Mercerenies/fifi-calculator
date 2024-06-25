@@ -17,6 +17,7 @@ pub mod walker;
 use atom::Atom;
 use var::Var;
 use var::table::VarTable;
+use number::{Number, ComplexNumber};
 use crate::util::prism::ErrorWithPayload;
 
 use thiserror::Error;
@@ -42,11 +43,11 @@ pub struct TryFromExprError {
 
 impl Expr {
   pub fn zero() -> Expr {
-    Expr::Atom(number::Number::zero().into())
+    Expr::Atom(Number::zero().into())
   }
 
   pub fn one() -> Expr {
-    Expr::Atom(number::Number::one().into())
+    Expr::Atom(Number::one().into())
   }
 
   /// Returns true if this expression is literally equal to zero. This
@@ -59,7 +60,13 @@ impl Expr {
   pub fn is_zero(&self) -> bool {
     match self {
       Expr::Atom(Atom::Number(n)) => n.is_zero(),
-      Expr::Atom(Atom::Complex(z)) => z.is_zero(),
+      Expr::Call(f, args) => {
+        if f == ComplexNumber::FUNCTION_NAME && args.len() == 2 {
+          args[0].is_zero() && args[1].is_zero()
+        } else {
+          false
+        }
+      }
       _ => false,
     }
   }
@@ -70,7 +77,13 @@ impl Expr {
   pub fn is_one(&self) -> bool {
     match self {
       Expr::Atom(Atom::Number(n)) => n.is_one(),
-      Expr::Atom(Atom::Complex(z)) => z.is_one(),
+      Expr::Call(f, args) => {
+        if f == ComplexNumber::FUNCTION_NAME && args.len() == 2 {
+          args[0].is_one() && args[1].is_zero()
+        } else {
+          false
+        }
+      }
       _ => false,
     }
   }
@@ -199,15 +212,16 @@ impl From<Var> for Expr {
   }
 }
 
-impl From<number::Number> for Expr {
-  fn from(n: number::Number) -> Expr {
+impl From<Number> for Expr {
+  fn from(n: Number) -> Expr {
     Expr::Atom(n.into())
   }
 }
 
-impl From<number::ComplexNumber> for Expr {
-  fn from(z: number::ComplexNumber) -> Expr {
-    Expr::Atom(z.into())
+impl From<ComplexNumber> for Expr {
+  fn from(z: ComplexNumber) -> Expr {
+    let (real, imag) = z.into_parts();
+    Expr::call(ComplexNumber::FUNCTION_NAME, vec![Expr::from(real), Expr::from(imag)])
   }
 }
 
@@ -221,7 +235,7 @@ impl From<BigInt> for Expr {
 /// integers zero and one.
 impl From<bool> for Expr {
   fn from(b: bool) -> Expr {
-    Expr::from(number::Number::from(b))
+    Expr::from(Number::from(b))
   }
 }
 
@@ -237,7 +251,7 @@ impl From<f64> for Expr {
   }
 }
 
-impl TryFrom<Expr> for number::Number {
+impl TryFrom<Expr> for Number {
   type Error = TryFromExprError;
 
   fn try_from(e: Expr) -> Result<Self, Self::Error> {

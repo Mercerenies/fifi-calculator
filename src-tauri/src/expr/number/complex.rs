@@ -25,6 +25,8 @@ pub struct ComplexNumber {
 }
 
 impl ComplexNumber {
+  pub const FUNCTION_NAME: &'static str = "complex";
+
   pub fn new(real: Number, imag: Number) -> Self {
     Self { real, imag }
   }

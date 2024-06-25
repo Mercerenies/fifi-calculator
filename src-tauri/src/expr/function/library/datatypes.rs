@@ -10,6 +10,7 @@ use crate::expr::function::table::FunctionTable;
 
 pub fn append_datatype_functions(table: &mut FunctionTable) {
   table.insert(vector_function());
+  table.insert(complex_function());
   table.insert(closed_interval());
   table.insert(right_open_interval());
   table.insert(left_open_interval());
@@ -22,6 +23,17 @@ pub fn vector_function() -> Function {
       |args, engine| {
         let args = engine.differentiate_each(args)?;
         Ok(Expr::call("vector", args))
+      }
+    )
+    .build()
+}
+
+pub fn complex_function() -> Function {
+  FunctionBuilder::new("complex")
+    .set_derivative(
+      |args, engine| {
+        let args = engine.differentiate_each(args)?;
+        Ok(Expr::call("complex", args))
       }
     )
     .build()

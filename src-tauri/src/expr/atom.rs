@@ -1,5 +1,5 @@
 
-use super::number::{Number, ComplexNumber};
+use super::number::Number;
 use super::var::Var;
 
 use serde::{Serialize, Deserialize};
@@ -9,7 +9,6 @@ use std::fmt::{self, Display, Formatter};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Atom {
   Number(Number),
-  Complex(ComplexNumber),
   Var(Var),
 }
 
@@ -37,17 +36,10 @@ impl From<f64> for Atom {
   }
 }
 
-impl From<ComplexNumber> for Atom {
-  fn from(n: ComplexNumber) -> Self {
-    Self::Complex(n)
-  }
-}
-
 impl Display for Atom {
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
     match self {
       Atom::Number(n) => write!(f, "{n}"),
-      Atom::Complex(n) => write!(f, "{n}"),
       Atom::Var(v) => write!(f, "{v}"),
     }
   }

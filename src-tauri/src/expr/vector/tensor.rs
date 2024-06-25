@@ -4,12 +4,13 @@
 
 use super::{Vector, ExprToVector, LengthError};
 use crate::expr::Expr;
-use crate::expr::atom::Atom;
-use crate::expr::number::{Number, ComplexNumber};
+use crate::expr::number::{Number, ComplexNumber, ComplexLike};
+use crate::expr::prisms::ExprToComplex;
 use crate::util;
-use crate::util::prism::Prism;
+use crate::util::prism::{Prism, DisjPrism};
 
 use num::{Zero, One};
+use either::Either;
 
 use std::ops::{Add, Sub, Mul, Div};
 
@@ -263,8 +264,8 @@ impl Div for Tensor {
 impl From<Tensor> for Expr {
   fn from(b: Tensor) -> Expr {
     match b.data {
-      TensorImpl::RealScalar(n) => Expr::Atom(Atom::Number(n)),
-      TensorImpl::ComplexScalar(c) => Expr::Atom(Atom::Complex(c)),
+      TensorImpl::RealScalar(n) => n.into(),
+      TensorImpl::ComplexScalar(c) => c.into(),
       TensorImpl::Vector(v) => v.into_expr(),
     }
   }
@@ -272,13 +273,12 @@ impl From<Tensor> for Expr {
 
 impl Prism<Expr, Tensor> for ExprToTensor {
   fn narrow_type(&self, expr: Expr) -> Result<Tensor, Expr> {
-    match expr {
-      Expr::Atom(Atom::Number(n)) => Ok(Tensor::real_scalar(n)),
-      Expr::Atom(Atom::Complex(c)) => Ok(Tensor::complex_scalar(c)),
-      expr => {
-        ExprToVector.narrow_type(expr).map(Tensor::vector)
-      }
-    }
+    let prism = DisjPrism::new(ExprToComplex, ExprToVector);
+    prism.narrow_type(expr).map(|either| match either {
+      Either::Left(ComplexLike::Real(r)) => Tensor::real_scalar(r),
+      Either::Left(ComplexLike::Complex(c)) => Tensor::complex_scalar(c),
+      Either::Right(v) => Tensor::vector(v),
+    })
   }
   fn widen_type(&self, b: Tensor) -> Expr {
     b.into()

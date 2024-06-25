@@ -66,7 +66,7 @@ impl<'a> DerivativeEngine<'a> {
         };
         known_function.differentiate(args, self)
       }
-      Expr::Atom(Atom::Number(_) | Atom::Complex(_)) => {
+      Expr::Atom(Atom::Number(_)) => {
         Ok(Expr::zero())
       }
       Expr::Atom(Atom::Var(var)) => {

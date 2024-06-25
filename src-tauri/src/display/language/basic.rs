@@ -3,7 +3,7 @@ use super::{LanguageMode, LanguageModeEngine, output_sep_by};
 use crate::parsing::operator::{Operator, Precedence, OperatorTable};
 use crate::parsing::operator::fixity::FixityType;
 use crate::expr::Expr;
-use crate::expr::number::Number;
+use crate::expr::number::{Number, ComplexNumber};
 use crate::expr::atom::Atom;
 use crate::expr::basic_parser::ExprParser;
 use crate::expr::vector::Vector;
@@ -189,6 +189,15 @@ impl BasicLanguageMode {
     output_sep_by(out, elems.iter(), ", ", |out, e| engine.write_to_html(out, e, Precedence::MIN));
     out.push(']');
   }
+
+  fn complex_to_html(&self, engine: &LanguageModeEngine, out: &mut String, args: &[Expr]) {
+    assert_eq!(args.len(), 2, "Expecting slice of two Exprs, got {:?}", args);
+    out.push('(');
+    engine.write_to_html(out, &args[0], Precedence::MIN);
+    out.push_str(", ");
+    engine.write_to_html(out, &args[1], Precedence::MIN);
+    out.push(')');
+  }
 }
 
 impl LanguageMode for BasicLanguageMode {
@@ -204,14 +213,13 @@ impl LanguageMode for BasicLanguageMode {
           out.push(')');
         }
       }
-      Expr::Atom(Atom::Complex(z)) => {
-        out.push_str(&z.to_string());
-      }
       Expr::Atom(Atom::Var(v)) => {
         out.push_str(&v.to_string());
       }
       Expr::Call(f, args) => {
-        if f == Vector::FUNCTION_NAME {
+        if f == ComplexNumber::FUNCTION_NAME && args.len() == 2 {
+          self.complex_to_html(engine, out, args);
+        } else if f == Vector::FUNCTION_NAME {
           self.vector_to_html(engine, out, args);
         } else {
           let as_op =

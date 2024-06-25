@@ -2,11 +2,11 @@
 use super::Expr;
 use super::var::Var;
 use super::atom::Atom;
-use super::number::{Number, ComplexLike};
+use super::number::{Number, ComplexNumber, ComplexLike};
 use super::interval::{Interval, IntervalAny, IntervalOrNumber};
 use super::literal::Literal;
 use super::algebra::formula::{Formula, Equation};
-use crate::util::prism::{Prism, OnVec, Only, Composed, Conversion,
+use crate::util::prism::{Prism, OnVec, OnTuple2, Only, Composed, Conversion,
                          LosslessConversion, VecToArray, ErrorWithPayload};
 
 use num::Zero;
@@ -165,15 +165,25 @@ impl Prism<Expr, ComplexLike> for ExprToComplex {
   fn narrow_type(&self, input: Expr) -> Result<ComplexLike, Expr> {
     match input {
       Expr::Atom(Atom::Number(r)) => Ok(ComplexLike::Real(r)),
-      Expr::Atom(Atom::Complex(z)) => Ok(ComplexLike::Complex(z)),
+      Expr::Call(function_name, args) => {
+        if function_name == ComplexNumber::FUNCTION_NAME && args.len() == 2 {
+          let [a, b] = args.try_into().unwrap();
+          match OnTuple2::both(ExprToNumber).narrow_type((a, b)) {
+            Err((a, b)) => Err(Expr::Call(function_name, vec![a, b])),
+            Ok((a, b)) => Ok(ComplexLike::Complex(ComplexNumber::new(a, b))),
+          }
+        } else {
+          Err(Expr::Call(function_name, args))
+        }
+      }
       _ => Err(input),
     }
   }
 
   fn widen_type(&self, input: ComplexLike) -> Expr {
     match input {
-      ComplexLike::Real(r) => Expr::Atom(Atom::Number(r)),
-      ComplexLike::Complex(z) => Expr::Atom(Atom::Complex(z)),
+      ComplexLike::Real(r) => r.into(),
+      ComplexLike::Complex(z) => z.into(),
     }
   }
 }
