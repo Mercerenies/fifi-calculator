@@ -21,7 +21,9 @@ export class GraphingButtonGrid extends ButtonGrid {
       [
         new DispatchButton("y=", "plot", "f"),
       ],
-      [],
+      [
+        new DispatchButton("xy", "xy", null),
+      ],
       [],
       [],
       [],

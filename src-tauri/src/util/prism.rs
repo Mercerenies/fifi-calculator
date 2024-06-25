@@ -164,6 +164,12 @@ impl<X, Y> OnTuple2<X, Y> {
   }
 }
 
+impl<X: Clone> OnTuple2<X, X> {
+  pub fn both(inner: X) -> Self {
+    Self::new(inner.clone(), inner)
+  }
+}
+
 impl<X, Y> DisjPrism<X, Y> {
   /// Constructs a `DisjPrism`. See the [struct-level
   /// documentation](DisjPrism) for more details on the preconditions

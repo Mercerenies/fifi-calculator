@@ -11,6 +11,10 @@ pub struct Point2D {
   pub y: f64,
 }
 
+impl Point2D {
+  pub const NAN: Point2D = Point2D { x: f64::NAN, y: f64::NAN };
+}
+
 impl Display for Point2D {
   fn fmt(&self, f: &mut Formatter) -> fmt::Result {
     write!(f, "({}, {})", self.x, self.y)

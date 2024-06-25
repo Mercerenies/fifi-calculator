@@ -10,7 +10,7 @@ use crate::expr::Expr;
 use crate::expr::number::{ComplexLike, Number};
 use crate::expr::var::Var;
 use crate::expr::simplifier::{Simplifier, SimplifierContext};
-use crate::expr::prisms::ExprToComplex;
+use crate::expr::prisms::{ExprToNumber, ExprToComplex};
 
 use thiserror::Error;
 
@@ -42,34 +42,32 @@ impl<'a> ExprFunction<'a> {
     }
   }
 
-  /// Evaluates the function at the given position, expecting a
-  /// numerical result.
-  pub fn eval_at(&self, value: ComplexLike) -> Result<ComplexLike, FunctionEvalError> {
+  /// Evaluates the function at the given position, expecting a value
+  /// compatible with the given prism.
+  pub fn eval_at<E, P, Down>(&self, value: E, expected: &'static str, prism: &P) -> Result<Down, FunctionEvalError>
+  where P: Prism<Expr, Down>,
+        E: Into<Expr> {
     let evaluated_value = self.expr.clone().substitute_var(self.var.clone(), value.into());
     let evaluated_value = self.simplify_expr(evaluated_value);
-    ExprToComplex.narrow_type(evaluated_value)
+    prism.narrow_type(evaluated_value)
       .map_err(|evaluated_value| FunctionEvalError {
         evaluated_value,
         function: self.expr.clone(),
-        expected: "numerical literal",
+        expected,
         _priv: (),
       })
+  }
+
+  /// Evaluates the function at the given position, expecting a
+  /// numerical result.
+  pub fn eval_at_complex(&self, value: ComplexLike) -> Result<ComplexLike, FunctionEvalError> {
+    self.eval_at(value, "numerical literal", &ExprToComplex)
   }
 
   /// Evaluates the function at the given position, expecting a real
   /// numerical result.
   pub fn eval_at_real(&self, value: Number) -> Result<Number, FunctionEvalError> {
-    match self.eval_at(ComplexLike::Real(value))? {
-      ComplexLike::Real(r) => Ok(r),
-      ComplexLike::Complex(z) => {
-        Err(FunctionEvalError {
-          evaluated_value: z.into(),
-          function: self.expr.clone(),
-          expected: "real number",
-          _priv: (),
-        })
-      }
-    }
+    self.eval_at(value, "real number", &ExprToNumber)
   }
 
   fn simplify_expr(&self, expr: Expr) -> Expr {

@@ -96,12 +96,12 @@ impl<'a> NewtonRaphsonFunction<'a> {
   }
 
   pub fn eval_at(&self, value: ComplexLike) -> Result<ComplexLike, NewtonRaphsonError> {
-    let x = self.function.eval_at(value)?;
+    let x = self.function.eval_at_complex(value)?;
     Ok(x)
   }
 
   pub fn eval_deriv_at(&self, value: ComplexLike) -> Result<ComplexLike, NewtonRaphsonError> {
-    let x = self.derivative.eval_at(value)?;
+    let x = self.derivative.eval_at_complex(value)?;
     Ok(x)
   }
 }

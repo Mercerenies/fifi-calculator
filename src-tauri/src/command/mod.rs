@@ -68,6 +68,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("^..".to_string(), Box::new(BinaryFunctionCommand::named("^..")));
   map.insert("^..^".to_string(), Box::new(BinaryFunctionCommand::named("^..^")));
   map.insert("plot".to_string(), Box::new(graphics::PlotCommand::new()));
+  map.insert("xy".to_string(), Box::new(BinaryFunctionCommand::named("xy")));
 
   // Commands which accept a single string.
   map.insert("push_number".to_string(), Box::new(push_number_command()));

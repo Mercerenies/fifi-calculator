@@ -51,8 +51,14 @@ pub fn plot_function() -> Function {
           ctx.errors.push(SimplifierError::custom_error("plot", "expected a formula in one free variable"));
           return Err((x, y));
         };
+        let is_parametric_function = PlotDirective::is_parametric_function(&y);
         let func = ExprFunction::new(y, free_var, ctx.simplifier);
-        let plot = PlotDirective::from_expr_function(&x.into(), &func);
+        let plot =
+          if is_parametric_function {
+            PlotDirective::from_parametric_function(&x.into(), &func)
+          } else {
+            PlotDirective::from_expr_function(&x.into(), &func)
+          };
         Ok(GraphicsDirective::Plot(plot))
       })
     )
