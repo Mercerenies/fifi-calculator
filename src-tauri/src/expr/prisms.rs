@@ -7,7 +7,8 @@ use super::interval::{Interval, IntervalAny, IntervalOrNumber};
 use super::vector::Vector;
 use super::literal::Literal;
 use super::algebra::formula::{Formula, Equation};
-use crate::util::prism::{Prism, OnVec, Only, Composed, Conversion, LosslessConversion, ErrorWithPayload};
+use crate::util::prism::{Prism, OnVec, Only, Composed, Conversion,
+                         LosslessConversion, VecToArray, ErrorWithPayload};
 
 use num::Zero;
 
@@ -114,6 +115,19 @@ where P: Prism<Expr, T> {
   Composed::new(
     ExprToVector,
     Composed::new(LosslessConversion::new(), OnVec::new(inner)),
+  )
+}
+
+/// Prism which parses an [`Expr`] as a vector (in the expression
+/// language), as though through [`expr_to_typed_vector`], but which
+/// only accepts vectors of the given length.
+pub fn expr_to_typed_array<const N: usize, T, P>(
+  inner: P,
+) -> Composed<Composed<ExprToVector, Composed<LosslessConversion<Vector, Vec<Expr>>, OnVec<P>, Vec<Expr>>, Vector>, VecToArray<N>, Vec<T>> // TODO: This type signature makes me question my life choices.
+where P: Prism<Expr, T> {
+  Composed::new(
+    expr_to_typed_vector(inner),
+    VecToArray::new(),
   )
 }
 

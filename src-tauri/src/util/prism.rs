@@ -119,6 +119,13 @@ pub struct LosslessConversion<Up, Down> {
   _phantom: PhantomData<fn() -> (Up, Down)>,
 }
 
+/// Prism which converts a vector to an array of the given (constant)
+/// size.
+#[derive(Debug, Clone, Default)]
+pub struct VecToArray<const N: usize> {
+  _private: (),
+}
+
 impl Identity {
   pub fn new() -> Self {
     Self::default()
@@ -199,6 +206,12 @@ where Down: From<Up>,
   /// one another.
   pub fn new() -> Self {
     Self { _phantom: PhantomData }
+  }
+}
+
+impl<const N: usize> VecToArray<N> {
+  pub fn new() -> Self {
+    Self { _private: () }
   }
 }
 
@@ -351,6 +364,16 @@ where Down: From<Up>,
   }
   fn widen_type(&self, input: Down) -> Up {
     Up::from(input)
+  }
+}
+
+impl<const N: usize, T> Prism<Vec<T>, [T; N]> for VecToArray<N> {
+  fn narrow_type(&self, input: Vec<T>) -> Result<[T; N], Vec<T>> {
+    input.try_into()
+  }
+
+  fn widen_type(&self, input: [T; N]) -> Vec<T> {
+    input.into()
   }
 }
 

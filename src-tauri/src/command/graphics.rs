@@ -5,10 +5,15 @@ use super::arguments::{NullaryArgumentSchema, validate_schema};
 use super::base::{Command, CommandContext, CommandOutput};
 use crate::errorlist::ErrorList;
 use crate::expr::Expr;
+use crate::expr::vector::ExprToVector;
+use crate::expr::prisms::expr_to_typed_array;
 use crate::state::ApplicationState;
 use crate::stack::base::StackLike;
 use crate::stack::keepable::KeepableStack;
 use crate::graphics::GRAPHICS_NAME;
+use crate::util::prism::{Prism, Identity, OnVec};
+
+use std::cmp::Ordering;
 
 /// This command pops two values off the stack. The top is treated as
 /// the Y values and the next value down is treated as the X values.
@@ -29,6 +34,10 @@ impl PlotCommand {
   fn argument_schema() -> NullaryArgumentSchema {
     NullaryArgumentSchema::new()
   }
+
+  fn basic_plot(x_values: Expr, y_values: Expr) -> Expr {
+    Expr::call("plot", vec![x_values, y_values])
+  }
 }
 
 impl Command for PlotCommand {
@@ -40,19 +49,232 @@ impl Command for PlotCommand {
   ) -> anyhow::Result<CommandOutput> {
     validate_schema(&PlotCommand::argument_schema(), args)?;
 
-    // TODO: Numerical arg
-
+    let arg = context.opts.argument.unwrap_or(1);
     let mut errors = ErrorList::new();
     state.undo_stack_mut().push_cut();
-
     let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
-    let [x_values, y_values] = stack.pop_several(2)?.try_into().unwrap();
-    let expr = Expr::call(GRAPHICS_NAME, vec![
-      Expr::call("plot", vec![x_values, y_values]),
-    ]);
-    let expr = context.simplify_expr(expr, &mut errors);
-    stack.push(expr);
+
+    match arg.cmp(&0) {
+      Ordering::Greater => {
+        // Pop N y-values and one x-value.
+        let (x_values, y_values_vec) = {
+          let mut all_values = stack.pop_several((arg + 1) as usize)?;
+          let x_values = all_values.remove(0);
+          (x_values, all_values)
+        };
+        let expr = Expr::call(
+          GRAPHICS_NAME,
+          y_values_vec.into_iter().map(|y_values| PlotCommand::basic_plot(x_values.clone(), y_values)).collect(),
+        );
+        let expr = context.simplify_expr(expr, &mut errors);
+        stack.push(expr);
+      }
+      Ordering::Less => {
+        // Pop N 2-vectors of x- and y- values.
+        let all_values: Vec<Expr> = stack.pop_several((- arg) as usize)?;
+        let xy_values: Vec<[Expr; 2]> =
+          match OnVec::new(expr_to_typed_array(Identity::new())).narrow_type(all_values) {
+            Err(all_values) => {
+              // Failure, restore the stack and report an error.
+              if !context.opts.keep_modifier {
+                stack.push_several(all_values);
+              }
+              anyhow::bail!("Expecting 2-vectors of X and Y values");
+            }
+            Ok(xy_values) => xy_values,
+          };
+        let expr = Expr::call(
+          GRAPHICS_NAME,
+          xy_values.into_iter().map(|[x_values, y_values]| PlotCommand::basic_plot(x_values, y_values)).collect(),
+        );
+        let expr = context.simplify_expr(expr, &mut errors);
+        stack.push(expr);
+      }
+      Ordering::Equal => {
+        // Pop two values, y-values must be a vector.
+        let [x_values, y_values] = stack.pop_several(2)?.try_into().unwrap();
+        match ExprToVector.narrow_type(y_values) {
+          Err(y_values) => {
+            // Failure, restore the stack and report an error.
+            if !context.opts.keep_modifier {
+              stack.push_several([x_values, y_values]);
+            }
+            anyhow::bail!("Expecting vector of Y values");
+          }
+          Ok(y_values_vec) => {
+            let expr = Expr::call(
+              GRAPHICS_NAME,
+              y_values_vec.into_iter().map(|y_values| PlotCommand::basic_plot(x_values.clone(), y_values)).collect(),
+            );
+            let expr = context.simplify_expr(expr, &mut errors);
+            stack.push(expr);
+          }
+        }
+      }
+    }
 
     Ok(CommandOutput::from_errors(errors))
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::command::test_utils::{act_on_stack, act_on_stack_any_err};
+  use crate::command::options::CommandOptions;
+  use crate::stack::test_utils::stack_of;
+
+  #[test]
+  fn test_basic_plot_command() {
+    let opts = CommandOptions::default();
+    let input_stack = vec![10, 20];
+    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack);
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::call("graphics", vec![Expr::call("plot", vec![Expr::from(10), Expr::from(20)])]),
+    ]));
+  }
+
+  #[test]
+  fn test_basic_plot_command_with_keep_modifier() {
+    let opts = CommandOptions::default().with_keep_modifier();
+    let input_stack = vec![10, 20];
+    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack);
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("graphics", vec![Expr::call("plot", vec![Expr::from(10), Expr::from(20)])]),
+    ]));
+  }
+
+  #[test]
+  fn test_plot_command_with_positive_prefix_arg() {
+    let opts = CommandOptions::numerical(2);
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack);
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::call("graphics", vec![
+        Expr::call("plot", vec![Expr::from(20), Expr::from(30)]),
+        Expr::call("plot", vec![Expr::from(20), Expr::from(40)]),
+      ]),
+    ]));
+  }
+
+  #[test]
+  fn test_plot_command_with_positive_prefix_arg_and_keep_arg() {
+    let opts = CommandOptions::numerical(2).with_keep_modifier();
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack);
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::from(30),
+      Expr::from(40),
+      Expr::call("graphics", vec![
+        Expr::call("plot", vec![Expr::from(20), Expr::from(30)]),
+        Expr::call("plot", vec![Expr::from(20), Expr::from(40)]),
+      ]),
+    ]));
+  }
+
+  #[test]
+  fn test_plot_command_with_zero_prefix_arg() {
+    let opts = CommandOptions::numerical(0);
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::call("vector", vec![Expr::from(20), Expr::from(30)]),
+    ];
+    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack);
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::call("graphics", vec![
+        Expr::call("plot", vec![Expr::from(10), Expr::from(20)]),
+        Expr::call("plot", vec![Expr::from(10), Expr::from(30)]),
+      ]),
+    ]));
+  }
+
+  #[test]
+  fn test_plot_command_with_zero_prefix_arg_and_keep_modifier() {
+    let opts = CommandOptions::numerical(0).with_keep_modifier();
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::call("vector", vec![Expr::from(20), Expr::from(30)]),
+    ];
+    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack);
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::call("vector", vec![Expr::from(20), Expr::from(30)]),
+      Expr::call("graphics", vec![
+        Expr::call("plot", vec![Expr::from(10), Expr::from(20)]),
+        Expr::call("plot", vec![Expr::from(10), Expr::from(30)]),
+      ]),
+    ]));
+  }
+
+  #[test]
+  fn test_plot_command_with_zero_prefix_arg_and_invalid_y_arg() {
+    let opts = CommandOptions::numerical(0);
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::from(20),
+    ];
+    let err = act_on_stack_any_err(&PlotCommand::new(), opts, input_stack);
+    assert_eq!(err.to_string(), "Expecting vector of Y values");
+  }
+
+  #[test]
+  fn test_plot_command_with_negative_prefix_arg() {
+    let opts = CommandOptions::numerical(-3);
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::call("vector", vec![Expr::from(20), Expr::from(30)]),
+      Expr::call("vector", vec![Expr::from(40), Expr::from(50)]),
+      Expr::call("vector", vec![Expr::from(60), Expr::from(70)]),
+    ];
+    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack);
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::call("graphics", vec![
+        Expr::call("plot", vec![Expr::from(20), Expr::from(30)]),
+        Expr::call("plot", vec![Expr::from(40), Expr::from(50)]),
+        Expr::call("plot", vec![Expr::from(60), Expr::from(70)]),
+      ]),
+    ]));
+  }
+
+  #[test]
+  fn test_plot_command_with_negative_prefix_arg_and_keep_modifier() {
+    let opts = CommandOptions::numerical(-3).with_keep_modifier();
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::call("vector", vec![Expr::from(20), Expr::from(30)]),
+      Expr::call("vector", vec![Expr::from(40), Expr::from(50)]),
+      Expr::call("vector", vec![Expr::from(60), Expr::from(70)]),
+    ];
+    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack);
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::call("vector", vec![Expr::from(20), Expr::from(30)]),
+      Expr::call("vector", vec![Expr::from(40), Expr::from(50)]),
+      Expr::call("vector", vec![Expr::from(60), Expr::from(70)]),
+      Expr::call("graphics", vec![
+        Expr::call("plot", vec![Expr::from(20), Expr::from(30)]),
+        Expr::call("plot", vec![Expr::from(40), Expr::from(50)]),
+        Expr::call("plot", vec![Expr::from(60), Expr::from(70)]),
+      ]),
+    ]));
+  }
+
+  #[test]
+  fn test_plot_command_with_zero_prefix_arg_and_non_vector_stack_value() {
+    let opts = CommandOptions::numerical(-4);
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::call("vector", vec![Expr::from(20), Expr::from(30)]),
+      Expr::call("vector", vec![Expr::from(40), Expr::from(50)]),
+      Expr::call("vector", vec![Expr::from(60), Expr::from(70)]),
+    ];
+    let err = act_on_stack_any_err(&PlotCommand::new(), opts, input_stack);
+    assert_eq!(err.to_string(), "Expecting 2-vectors of X and Y values");
   }
 }
