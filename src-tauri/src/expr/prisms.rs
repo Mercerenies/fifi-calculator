@@ -17,6 +17,16 @@ pub use super::vector::ExprToVector;
 pub use super::vector::tensor::ExprToTensor;
 pub use super::number::prisms::{NumberToUsize, NumberToI64};
 
+/// An expression which is literally equal to the value zero.
+#[derive(Debug, Clone)]
+pub struct LiteralZero {
+  expr: Expr,
+}
+
+/// Prism which only accepts the zero value.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ExprToZero;
+
 /// Prism which downcasts an [`Expr`] to a contained [`Number`].
 #[derive(Debug, Clone, Copy, Default)]
 pub struct ExprToNumber; // TODO: This is just a Conversion prism :)
@@ -139,6 +149,12 @@ impl PositiveNumber {
   }
 }
 
+impl LiteralZero {
+  pub fn new(arg: Expr) -> Result<LiteralZero, Expr> {
+    ExprToZero.narrow_type(arg)
+  }
+}
+
 impl From<ParsedUsize> for usize {
   fn from(arg: ParsedUsize) -> Self {
     arg.value
@@ -148,6 +164,25 @@ impl From<ParsedUsize> for usize {
 impl From<PositiveNumber> for Number {
   fn from(arg: PositiveNumber) -> Self {
     arg.data
+  }
+}
+
+impl From<LiteralZero> for Expr {
+  fn from(arg: LiteralZero) -> Self {
+    arg.expr
+  }
+}
+
+impl Prism<Expr, LiteralZero> for ExprToZero {
+  fn narrow_type(&self, input: Expr) -> Result<LiteralZero, Expr> {
+    if input.is_zero() {
+      Ok(LiteralZero { expr: input })
+    } else {
+      Err(input)
+    }
+  }
+  fn widen_type(&self, input: LiteralZero) -> Expr {
+    input.expr
   }
 }
 
