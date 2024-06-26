@@ -69,7 +69,7 @@ impl ReplaceStackElemCommand {
       "nonnegative integer".to_owned(),
       StringToUsize,
       "any".to_owned(),
-      Identity::new(),
+      Identity,
     )
   }
 

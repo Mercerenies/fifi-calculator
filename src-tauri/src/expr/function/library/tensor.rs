@@ -52,7 +52,7 @@ pub fn vconcat() -> Function {
 pub fn repeat() -> Function {
   FunctionBuilder::new("repeat")
     .add_case(
-      builder::arity_two().of_types(Identity::new(), prisms::expr_to_usize()).and_then(|value, len, _| {
+      builder::arity_two().of_types(Identity, prisms::expr_to_usize()).and_then(|value, len, _| {
         let vector: Vector = repeated(value, len);
         Ok(vector.into())
       })
@@ -102,7 +102,7 @@ pub fn head() -> Function {
 pub fn cons() -> Function {
   FunctionBuilder::new("cons")
     .add_case(
-      builder::arity_two().of_types(Identity::new(), prisms::ExprToVector).and_then(|new_value, mut vec, _| {
+      builder::arity_two().of_types(Identity, prisms::ExprToVector).and_then(|new_value, mut vec, _| {
         vec.as_mut_vec().insert(0, new_value);
         Ok(vec.into())
       })

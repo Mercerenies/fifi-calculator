@@ -51,7 +51,7 @@ impl SubstituteVarCommand {
       "variable name".to_owned(),
       StringToVar::new(),
       "any argument".to_owned(),
-      Identity::new(),
+      Identity,
     )
   }
 }

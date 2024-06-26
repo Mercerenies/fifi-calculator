@@ -30,7 +30,7 @@ pub fn append_symbolic_functions(table: &mut FunctionTable) {
 pub fn substitute_function() -> Function {
   FunctionBuilder::new("substitute")
     .add_case(
-      builder::arity_three().of_types(Identity::new(), prisms::ExprToVar, Identity::new())
+      builder::arity_three().of_types(Identity, prisms::ExprToVar, Identity)
         .and_then(|haystack, needle, replacement, _| {
           Ok(haystack.substitute_var(needle, replacement))
         })
@@ -59,7 +59,7 @@ pub fn find_root_function() -> Function {
     )
     // Find root of arbitrary expression
     .add_case(
-      builder::arity_three().of_types(Identity::new(), prisms::ExprToVar, prisms::ExprToComplex)
+      builder::arity_three().of_types(Identity, prisms::ExprToVar, prisms::ExprToComplex)
         .and_then(|expr, var, initial_guess, ctx| {
           // TODO: Consider how possible it is to clean up the
           // clone()s here.

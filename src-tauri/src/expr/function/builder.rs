@@ -385,31 +385,31 @@ impl<Down, P: Prism<Expr, Down>> VecMatcher<P, Down> {
 
 pub fn arity_one() -> OneArgumentMatcher<Identity, Expr> {
   OneArgumentMatcher {
-    arg_prism: Identity::new(),
+    arg_prism: Identity,
     _phantom: PhantomData,
   }
 }
 
 pub fn arity_two() -> TwoArgumentMatcher<Identity, Identity, Expr, Expr> {
   TwoArgumentMatcher {
-    first_arg_prism: Identity::new(),
-    second_arg_prism: Identity::new(),
+    first_arg_prism: Identity,
+    second_arg_prism: Identity,
     _phantom: PhantomData,
   }
 }
 
 pub fn arity_three() -> ThreeArgumentMatcher<Identity, Identity, Identity, Expr, Expr, Expr> {
   ThreeArgumentMatcher {
-    first_arg_prism: Identity::new(),
-    second_arg_prism: Identity::new(),
-    third_arg_prism: Identity::new(),
+    first_arg_prism: Identity,
+    second_arg_prism: Identity,
+    third_arg_prism: Identity,
     _phantom: PhantomData,
   }
 }
 
 pub fn any_arity() -> VecMatcher<Identity, Expr> {
   VecMatcher {
-    arg_prism: Identity::new(),
+    arg_prism: Identity,
     min_length: 0,
     max_length: usize::MAX,
     _phantom: PhantomData,
@@ -418,7 +418,7 @@ pub fn any_arity() -> VecMatcher<Identity, Expr> {
 
 pub fn non_zero_arity() -> VecMatcher<Identity, Expr> {
   VecMatcher {
-    arg_prism: Identity::new(),
+    arg_prism: Identity,
     min_length: 1,
     max_length: usize::MAX,
     _phantom: PhantomData,

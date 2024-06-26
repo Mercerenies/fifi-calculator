@@ -46,7 +46,7 @@ pub fn plot_function() -> Function {
     )
     .add_graphics_case(
       // X dataset with formula in Y position.
-      builder::arity_two().of_types(ExprToXDataSet::new(), Identity::new()).and_then(|x, y, ctx| {
+      builder::arity_two().of_types(ExprToXDataSet::new(), Identity).and_then(|x, y, ctx| {
         let Some(free_var) = into_singleton(y.clone().free_vars()) else {
           ctx.errors.push(SimplifierError::custom_error("plot", "expected a formula in one free variable"));
           return Err((x, y));

@@ -8,9 +8,7 @@ use std::convert::TryFrom;
 
 /// The identity prism, which always succeeds.
 #[derive(Debug, Clone, Default)]
-pub struct Identity {
-  _private: (),
-}
+pub struct Identity;
 
 /// Composition of two prisms.
 #[derive(Debug)]
@@ -91,12 +89,6 @@ where Narrow: Fn(Up) -> Down,
 #[derive(Debug, Clone, Default)]
 pub struct VecToArray<const N: usize> {
   _private: (),
-}
-
-impl Identity {
-  pub fn new() -> Self {
-    Self::default()
-  }
 }
 
 impl<X, Y, B> Composed<X, Y, B> {
@@ -446,9 +438,8 @@ mod tests {
 
   #[test]
   fn test_identity_prism() {
-    let identity = Identity::new();
-    assert_eq!(identity.narrow_type(100), Ok(100));
-    assert_eq!(identity.widen_type(100), 100);
+    assert_eq!(Identity.narrow_type(100), Ok(100));
+    assert_eq!(Identity.widen_type(100), 100);
   }
 
   #[test]

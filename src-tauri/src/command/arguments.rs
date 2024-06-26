@@ -96,7 +96,7 @@ impl UnaryArgumentSchema<Identity, String> {
   /// Helper function for a unary argument schema which accepts any
   /// one argument.
   pub fn any() -> Self {
-    Self::new("any".to_owned(), Identity::new())
+    Self::new("any".to_owned(), Identity)
   }
 }
 
@@ -299,7 +299,7 @@ mod tests {
 
   #[test]
   fn test_unary_argument_schema_identity_prism() {
-    let schema = UnaryArgumentSchema::new("any".to_owned(), Identity::new());
+    let schema = UnaryArgumentSchema::new("any".to_owned(), Identity);
 
     // Successes
     schema.validate(vec![String::from("xyz")]).unwrap();
@@ -339,7 +339,7 @@ mod tests {
 
   #[test]
   fn test_binary_argument_schema_identity_prism() {
-    let schema = BinaryArgumentSchema::new("any".to_owned(), Identity::new(), "any".to_owned(), Identity::new());
+    let schema = BinaryArgumentSchema::new("any".to_owned(), Identity, "any".to_owned(), Identity);
 
     // Successes
     schema.validate(vec![String::from("xyz"), String::from("9")]).unwrap();

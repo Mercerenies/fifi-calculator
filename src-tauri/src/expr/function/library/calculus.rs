@@ -23,12 +23,12 @@ pub fn append_calculus_functions(table: &mut FunctionTable) {
 pub fn deriv() -> Function {
   FunctionBuilder::new("deriv")
     .add_case(
-      builder::arity_two().of_types(Identity::new(), ExprToVar).and_then(|expr, var, context| {
+      builder::arity_two().of_types(Identity, ExprToVar).and_then(|expr, var, context| {
         nth_derivative(expr, var, 1, context).map_err(|(expr, var, _)| (expr, var))
       })
     )
     .add_case(
-      builder::arity_three().of_types(Identity::new(), ExprToVar, ExprToNumber).and_then(|expr, var, n, context| {
+      builder::arity_three().of_types(Identity, ExprToVar, ExprToNumber).and_then(|expr, var, n, context| {
         let n: BigInt = match BigInt::try_from(n) {
           Ok(n) => n,
           Err(err) => {

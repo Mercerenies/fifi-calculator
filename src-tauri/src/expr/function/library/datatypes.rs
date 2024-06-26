@@ -34,7 +34,7 @@ pub fn complex_function() -> Function {
   FunctionBuilder::new("complex")
     .add_case(
       // Zero imaginary part
-      builder::arity_two().of_types(Identity::new(), prisms::ExprToZero).and_then(|a, _, _| {
+      builder::arity_two().of_types(Identity, prisms::ExprToZero).and_then(|a, _, _| {
         Ok(a)
       })
     )

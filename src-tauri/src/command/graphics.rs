@@ -73,7 +73,7 @@ impl Command for PlotCommand {
         // Pop N 2-vectors of x- and y- values.
         let all_values: Vec<Expr> = stack.pop_several((- arg) as usize)?;
         let xy_values: Vec<[Expr; 2]> =
-          match OnVec::new(expr_to_typed_array(Identity::new())).narrow_type(all_values) {
+          match OnVec::new(expr_to_typed_array(Identity)).narrow_type(all_values) {
             Err(all_values) => {
               // Failure, restore the stack and report an error.
               if !context.opts.keep_modifier {
