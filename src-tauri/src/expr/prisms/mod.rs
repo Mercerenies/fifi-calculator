@@ -1,4 +1,8 @@
 
+mod matcher;
+
+pub use matcher::{MatcherSpec, MatchedExpr};
+
 use super::Expr;
 use super::var::Var;
 use super::atom::Atom;
