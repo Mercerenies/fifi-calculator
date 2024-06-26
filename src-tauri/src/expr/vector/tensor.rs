@@ -7,7 +7,7 @@ use crate::expr::Expr;
 use crate::expr::number::{Number, ComplexNumber, ComplexLike};
 use crate::expr::prisms::ExprToComplex;
 use crate::util;
-use crate::util::prism::{Prism, DisjPrism};
+use crate::util::prism::{Prism, PrismExt};
 
 use num::{Zero, One};
 use either::Either;
@@ -273,7 +273,7 @@ impl From<Tensor> for Expr {
 
 impl Prism<Expr, Tensor> for ExprToTensor {
   fn narrow_type(&self, expr: Expr) -> Result<Tensor, Expr> {
-    let prism = DisjPrism::new(ExprToComplex, ExprToVector);
+    let prism = ExprToComplex.or(ExprToVector);
     prism.narrow_type(expr).map(|either| match either {
       Either::Left(ComplexLike::Real(r)) => Tensor::real_scalar(r),
       Either::Left(ComplexLike::Complex(c)) => Tensor::complex_scalar(c),

@@ -10,7 +10,7 @@ use super::number::{Number, ComplexNumber, ComplexLike};
 use super::interval::{Interval, IntervalAny, IntervalOrNumber};
 use super::literal::Literal;
 use super::algebra::formula::{Formula, Equation};
-use crate::util::prism::{Prism, OnVec, OnTuple2, Only, Composed, Conversion,
+use crate::util::prism::{Prism, PrismExt, OnVec, OnTuple2, Only, Conversion,
                          LosslessConversion, VecToArray, ErrorWithPayload};
 
 use num::Zero;
@@ -81,19 +81,19 @@ pub fn must_be_var(var: Var) -> Only<Expr> {
 
 /// Prism which accepts only positive real numbers.
 pub fn expr_to_positive_number() -> impl Prism<Expr, PositiveNumber> + Clone {
-  Composed::new(ExprToNumber, NumberToPositiveNumber)
+  ExprToNumber.composed(NumberToPositiveNumber)
 }
 
 /// Prism which only accepts expressions containing [`Number`] values
 /// representable by a `usize`.
 pub fn expr_to_usize() -> impl Prism<Expr, usize> + Clone {
-  Composed::new(ExprToNumber, NumberToUsize)
+  ExprToNumber.composed(NumberToUsize)
 }
 
 /// Prism which only accepts expressions containing [`Number`] values
 /// representable by an `i64`.
 pub fn expr_to_i64() -> impl Prism<Expr, i64> + Clone {
-  Composed::new(ExprToNumber, NumberToI64)
+  ExprToNumber.composed(NumberToI64)
 }
 
 /// Prism which accepts [`Literal`] values.
@@ -108,7 +108,7 @@ pub fn expr_to_formula() -> Conversion<Expr, Formula> {
 
 /// Prism which accepts specifically [`Equation`] values.
 pub fn expr_to_equation() -> impl Prism<Expr, Equation> + Clone {
-  Composed::new(expr_to_formula(), Conversion::new())
+  expr_to_formula().composed(Conversion::new())
 }
 
 pub fn expr_to_any_interval() -> Conversion<Expr, IntervalAny> {
@@ -124,10 +124,9 @@ pub fn expr_to_interval() -> Conversion<Expr, Interval> {
 /// `inner`.
 pub fn expr_to_typed_vector<T, P>(inner: P) -> impl Prism<Expr, Vec<T>> + Clone
 where P: Prism<Expr, T> + Clone {
-  Composed::new(
-    ExprToVector,
-    Composed::new(LosslessConversion::new(), OnVec::new(inner)),
-  )
+  ExprToVector
+    .composed(LosslessConversion::new())
+    .composed(OnVec::new(inner))
 }
 
 /// Prism which parses an [`Expr`] as a vector (in the expression
@@ -135,10 +134,8 @@ where P: Prism<Expr, T> + Clone {
 /// only accepts vectors of the given length.
 pub fn expr_to_typed_array<const N: usize, T, P>(inner: P) -> impl Prism<Expr, [T; N]> + Clone
 where P: Prism<Expr, T> + Clone {
-  Composed::new(
-    expr_to_typed_vector(inner),
-    VecToArray::new(),
-  )
+  expr_to_typed_vector(inner)
+    .composed(VecToArray::new())
 }
 
 impl PositiveNumber {

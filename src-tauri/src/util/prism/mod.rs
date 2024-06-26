@@ -2,10 +2,12 @@
 //! Functional-style prisms for checked downcasts.
 
 mod instances;
+mod ext;
 
 pub use instances::{Identity, Composed, Only, OnVec, OnTuple2,
                     DisjPrism, InOption, Conversion, LosslessConversion,
                     Iso, VecToArray};
+pub use ext::PrismExt;
 
 use std::error::{Error as StdError};
 

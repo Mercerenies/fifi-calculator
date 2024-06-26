@@ -5,7 +5,7 @@ use crate::expr::Expr;
 use crate::expr::number::Number;
 use crate::expr::interval::Interval;
 use crate::expr::prisms;
-use crate::util::prism::{Prism, DisjPrism};
+use crate::util::prism::{Prism, PrismExt};
 
 use thiserror::Error;
 use either::Either;
@@ -34,7 +34,7 @@ enum XDataSetImpl {
 /// expression while `XDataSet` does not.
 #[derive(Debug, Clone, PartialEq)]
 pub struct XDataSetExpr {
-  data: Either<Vec<Number>, Either<Interval, Number>>,
+  data: Either<Either<Vec<Number>, Interval>, Number>,
 }
 
 /// Prism which attempts to parse an `Expr` as a `XDataSetExpr`.
@@ -161,14 +161,10 @@ impl ExprToXDataSet {
     Self { _priv: () }
   }
 
-  fn inner_prism() -> impl Prism<Expr, Either<Vec<Number>, Either<Interval, Number>>> {
-    DisjPrism::new(
-      prisms::expr_to_typed_vector(prisms::ExprToNumber),
-      DisjPrism::new(
-        prisms::expr_to_interval(),
-        prisms::ExprToNumber,
-      ),
-    )
+  fn inner_prism() -> impl Prism<Expr, Either<Either<Vec<Number>, Interval>, Number>> {
+    prisms::expr_to_typed_vector(prisms::ExprToNumber)
+      .or(prisms::expr_to_interval())
+      .or(prisms::ExprToNumber)
   }
 }
 
@@ -186,12 +182,12 @@ impl Prism<Expr, XDataSetExpr> for ExprToXDataSet {
 impl From<XDataSetExpr> for XDataSet {
   fn from(data: XDataSetExpr) -> Self {
     let data = match data.data {
-      Either::Left(vec) => XDataSetImpl::Vector(vec),
-      Either::Right(Either::Left(interval)) => {
+      Either::Left(Either::Left(vec)) => XDataSetImpl::Vector(vec),
+      Either::Left(Either::Right(interval)) => {
         let (min, max) = interval.into_bounds();
         XDataSetImpl::Interval(min.into_number(), max.into_number())
       }
-      Either::Right(Either::Right(number)) => XDataSetImpl::Number(number),
+      Either::Right(number) => XDataSetImpl::Number(number),
     };
     Self { data }
   }
