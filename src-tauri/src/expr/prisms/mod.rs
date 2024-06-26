@@ -12,6 +12,7 @@ use super::literal::Literal;
 use super::algebra::formula::{Formula, Equation};
 use crate::util::prism::{Prism, PrismExt, OnVec, OnTuple2, Only, Conversion,
                          LosslessConversion, VecToArray, ErrorWithPayload};
+use crate::graphics::GRAPHICS_NAME;
 
 use num::Zero;
 
@@ -26,6 +27,14 @@ pub use super::number::prisms::{NumberToUsize, NumberToI64};
 pub struct LiteralZero {
   expr: Expr,
 }
+
+/// An expression which is a 2D graphics primitive.
+#[derive(Debug, Clone)]
+pub struct Graphics2D {
+  inner_expr: MatchedExpr<Graphics2DSpec>,
+}
+
+pub struct Graphics2DSpec;
 
 /// Prism which only accepts the zero value.
 #[derive(Debug, Clone, Copy, Default)]
@@ -156,6 +165,32 @@ impl LiteralZero {
   }
 }
 
+impl Graphics2D {
+  pub fn into_args(self) -> Vec<Expr> {
+    self.inner_expr.into_args()
+  }
+
+  pub fn args(&self) -> &[Expr] {
+    self.inner_expr.args()
+  }
+
+  pub fn prism() -> impl Prism<Expr, Graphics2D> + Clone {
+    Graphics2DSpec::prism().rmap(|inner_expr| Graphics2D { inner_expr }, |gfx| gfx.inner_expr)
+  }
+}
+
+impl From<Graphics2D> for MatchedExpr<Graphics2DSpec> {
+  fn from(gfx: Graphics2D) -> Self {
+    gfx.inner_expr
+  }
+}
+
+impl From<MatchedExpr<Graphics2DSpec>> for Graphics2D {
+  fn from(arg: MatchedExpr<Graphics2DSpec>) -> Self {
+    Graphics2D { inner_expr: arg }
+  }
+}
+
 impl From<ParsedUsize> for usize {
   fn from(arg: ParsedUsize) -> Self {
     arg.value
@@ -172,6 +207,12 @@ impl From<LiteralZero> for Expr {
   fn from(arg: LiteralZero) -> Self {
     arg.expr
   }
+}
+
+impl MatcherSpec for Graphics2DSpec {
+  const MIN_ARITY: usize = 0;
+  const MAX_ARITY: usize = usize::MAX;
+  const FUNCTION_NAME: &'static str = GRAPHICS_NAME;
 }
 
 impl Prism<Expr, LiteralZero> for ExprToZero {

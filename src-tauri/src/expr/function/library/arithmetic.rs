@@ -7,11 +7,12 @@ use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
 use crate::expr::vector::tensor::Tensor;
-use crate::expr::prisms::{ExprToNumber, ExprToComplex, ExprToVector,
+use crate::expr::prisms::{self, ExprToNumber, ExprToComplex, ExprToVector,
                           ExprToTensor, ExprToIntervalLike, expr_to_interval};
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex, pow_complex_to_real};
 use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::calculus::DifferentiationError;
+use crate::graphics::GRAPHICS_NAME;
 
 use num::{Zero, One};
 
@@ -78,6 +79,15 @@ pub fn addition() -> Function {
           .reduce(|a, b| a + b)
           .unwrap(); // unwrap safety: One of the earlier cases would have triggered if arglist was empty
         Ok(Expr::from(sum))
+      })
+    )
+    .add_case(
+      // Graphics object concatenation
+      builder::any_arity().of_type(prisms::Graphics2D::prism()).and_then(|args, _| {
+        let args = args.into_iter()
+          .flat_map(prisms::Graphics2D::into_args)
+          .collect();
+        Ok(Expr::call(GRAPHICS_NAME, args))
       })
     )
     .set_derivative(
