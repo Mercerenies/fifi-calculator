@@ -55,6 +55,14 @@ pub struct MatchedExpr<S: MatcherSpec> {
 }
 
 impl<S: MatcherSpec> MatchedExpr<S> {
+  /// Borrows the arguments to the matched expression.
+  pub fn args(&self) -> &[Expr] {
+    let Expr::Call(_, args) = &self.inner_expr else {
+      panic!("MatchedExpr::inner_expr must be an Expr::Call");
+    };
+    args
+  }
+
   /// Returns the arguments to the matched expression.
   pub fn into_args(self) -> Vec<Expr> {
     let Expr::Call(_, args) = self.inner_expr else {
