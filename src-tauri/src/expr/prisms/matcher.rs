@@ -4,9 +4,11 @@
 use crate::expr::{Expr, TryFromExprError};
 use crate::util::prism::Conversion;
 
+use thiserror::Error;
+
 use std::convert::{AsRef, TryFrom};
 use std::marker::PhantomData;
-use std::fmt::{self, Debug, Formatter};
+use std::fmt::{self, Display, Debug, Formatter};
 
 /// A `MatcherSpec` is a type-level object used to specify the desired
 /// top-level shape of an expression. None of the functions or
@@ -54,7 +56,38 @@ pub struct MatchedExpr<S: MatcherSpec> {
   _phantom: PhantomData<fn() -> S>,
 }
 
+#[derive(Debug, Clone, Error)]
+pub struct ArgsLengthError {
+  args: Vec<Expr>,
+  min_expected: usize,
+  max_expected: usize,
+}
+
 impl<S: MatcherSpec> MatchedExpr<S> {
+  pub fn new(args: Vec<Expr>) -> Result<Self, ArgsLengthError> {
+    if args.len() < S::MIN_ARITY || args.len() > S::MAX_ARITY {
+      Err(ArgsLengthError {
+        args,
+        min_expected: S::MIN_ARITY,
+        max_expected: S::MAX_ARITY,
+      })
+    } else {
+      Ok(Self {
+        inner_expr: Expr::call(S::FUNCTION_NAME, args),
+        _phantom: PhantomData,
+      })
+    }
+  }
+
+  /// Constructs a `MatchedExpr` with the given arity and matching the
+  /// given spec. Panics if the number of arguments is incorrect.
+  pub fn new_or_panic(args: Vec<Expr>) -> Self {
+    match Self::new(args) {
+      Ok(m) => m,
+      Err(e) => panic!("{}", e),
+    }
+  }
+
   /// Borrows the arguments to the matched expression.
   pub fn args(&self) -> &[Expr] {
     let Expr::Call(_, args) = &self.inner_expr else {
@@ -99,6 +132,18 @@ impl<S: MatcherSpec> PartialEq for MatchedExpr<S> {
   }
 }
 
+impl Display for ArgsLengthError {
+  fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    if self.min_expected == self.max_expected {
+      write!(f, "Incorrect number of arguments: expected {}, actual {}",
+             self.min_expected, self.args.len())
+    } else {
+      write!(f, "Incorrect number of arguments: expected {} to {}, actual {}",
+             self.min_expected, self.max_expected, self.args.len())
+    }
+  }
+}
+
 // Manual impl of Debug so that we don't require `S: Debug`.
 impl<S: MatcherSpec> Debug for MatchedExpr<S> {
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -113,12 +158,17 @@ impl<S: MatcherSpec> TryFrom<Expr> for MatchedExpr<S> {
   type Error = TryFromExprError;
 
   fn try_from(expr: Expr) -> Result<Self, Self::Error> {
-    if let Expr::Call(function_name, args) = &expr {
-      if function_name == S::FUNCTION_NAME && args.len() >= S::MIN_ARITY && args.len() <= S::MAX_ARITY {
-        return Ok(MatchedExpr { inner_expr: expr, _phantom: PhantomData });
+    if let Expr::Call(function_name, args) = expr {
+      if function_name == S::FUNCTION_NAME {
+        Self::new(args).map_err(|err| {
+          TryFromExprError::new(S::FUNCTION_NAME, Expr::Call(function_name, err.args))
+        })
+      } else {
+        Err(TryFromExprError::new(S::FUNCTION_NAME, Expr::Call(function_name, args)))
       }
+    } else {
+      Err(TryFromExprError::new(S::FUNCTION_NAME, expr))
     }
-    Err(TryFromExprError::new(S::FUNCTION_NAME, expr))
   }
 }
 
