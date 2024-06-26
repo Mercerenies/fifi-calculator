@@ -115,7 +115,17 @@ pub struct Conversion<Up, Down> {
 /// responsibility to ensure that the two `From` instances are proper
 /// inverses of one another.
 #[derive(Debug, Clone)]
-pub struct LosslessConversion<Up, Down> {
+pub struct LosslessConversion<Up, Down> { // TODO: This is just Iso.
+  _phantom: PhantomData<fn() -> (Up, Down)>,
+}
+
+/// A prism which always succeeds by running the given functions.
+#[derive(Debug, Clone)]
+pub struct Iso<Up, Down, Narrow, Widen>
+where Narrow: Fn(Up) -> Down,
+      Widen: Fn(Down) -> Up {
+  narrow: Narrow,
+  widen: Widen,
   _phantom: PhantomData<fn() -> (Up, Down)>,
 }
 
@@ -212,6 +222,14 @@ where Down: From<Up>,
   /// one another.
   pub fn new() -> Self {
     Self { _phantom: PhantomData }
+  }
+}
+
+impl<Up, Down, Narrow, Widen> Iso<Up, Down, Narrow, Widen>
+where Narrow: Fn(Up) -> Down,
+      Widen: Fn(Down) -> Up {
+  pub fn new(narrow: Narrow, widen: Widen) -> Self {
+    Self { narrow, widen, _phantom: PhantomData }
   }
 }
 
@@ -380,6 +398,17 @@ where Down: From<Up>,
   }
   fn widen_type(&self, input: Down) -> Up {
     Up::from(input)
+  }
+}
+
+impl<Up, Down, Narrow, Widen> Prism<Up, Down> for Iso<Up, Down, Narrow, Widen>
+where Narrow: Fn(Up) -> Down,
+      Widen: Fn(Down) -> Up {
+  fn narrow_type(&self, input: Up) -> Result<Down, Up> {
+    Ok((self.narrow)(input))
+  }
+  fn widen_type(&self, input: Down) -> Up {
+    (self.widen)(input)
   }
 }
 
