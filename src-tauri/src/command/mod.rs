@@ -61,6 +61,8 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("signum".to_string(), Box::new(UnaryFunctionCommand::named("signum")));
   map.insert("conj".to_string(), Box::new(UnaryFunctionCommand::named("conj")));
   map.insert("arg".to_string(), Box::new(UnaryFunctionCommand::named("arg")));
+  map.insert("re".to_string(), Box::new(UnaryFunctionCommand::named("re")));
+  map.insert("im".to_string(), Box::new(UnaryFunctionCommand::named("im")));
   map.insert("=".to_string(), Box::new(BinaryFunctionCommand::named("=")));
   map.insert("!=".to_string(), Box::new(BinaryFunctionCommand::named("!=")));
   map.insert("<".to_string(), Box::new(BinaryFunctionCommand::named("<")));

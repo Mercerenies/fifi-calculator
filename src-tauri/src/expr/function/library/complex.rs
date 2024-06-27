@@ -20,6 +20,8 @@ use std::f64::consts;
 pub fn append_complex_functions(table: &mut FunctionTable) {
   table.insert(conjugate());
   table.insert(arg());
+  table.insert(re());
+  table.insert(im());
 }
 
 pub fn conjugate() -> Function {
@@ -40,6 +42,30 @@ pub fn arg() -> Function {
       builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
         let angle = ComplexNumber::from(arg).angle();
         Ok(Expr::from(angle.0))
+      })
+    )
+    .build()
+}
+
+pub fn re() -> Function {
+  FunctionBuilder::new("re")
+    .add_case(
+      // Real part of a complex number
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
+        let arg = ComplexNumber::from(arg);
+        Ok(arg.into_parts().0.into())
+      })
+    )
+    .build()
+}
+
+pub fn im() -> Function {
+  FunctionBuilder::new("im")
+    .add_case(
+      // Imaginary part of a complex number
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
+        let arg = ComplexNumber::from(arg);
+        Ok(arg.into_parts().1.into())
       })
     )
     .build()

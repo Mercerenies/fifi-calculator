@@ -30,7 +30,10 @@ export class TranscendentalButtonGrid extends ButtonGrid {
         new DispatchButton("sgn", "signum", "s"),
         new DispatchButton("arg", "arg", "G"),
       ],
-      [],
+      [
+        new DispatchButton("re", "re", "r"),
+        new DispatchButton("im", "im", "i"),
+      ],
       [],
       [
         backButton(this.rootGrid),
