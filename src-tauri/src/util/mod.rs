@@ -2,6 +2,7 @@
 //! Various utility functions.
 
 pub mod angles;
+pub mod matrix;
 pub mod point;
 pub mod prism;
 pub mod stricteq;
