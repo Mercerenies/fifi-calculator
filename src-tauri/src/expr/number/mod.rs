@@ -202,3 +202,16 @@ impl Zero for ComplexLike {
     }
   }
 }
+
+impl One for ComplexLike {
+  fn one() -> Self {
+    ComplexLike::Real(Number::one())
+  }
+
+  fn is_one(&self) -> bool {
+    match self {
+      ComplexLike::Real(r) => r.is_one(),
+      ComplexLike::Complex(z) => z.is_one(),
+    }
+  }
+}

@@ -64,6 +64,11 @@ impl ComplexNumber {
     Self { real: Number::zero(), imag }
   }
 
+  /// Complex conjugate of `self`.
+  pub fn conj(self) -> Self {
+    Self { real: self.real, imag: -self.imag }
+  }
+
   /// Constructs an (inexact) complex number from polar coordinates,
   /// with `phi` represented in radians.
   pub fn from_polar_inexact(r: f64, phi: Radians<f64>) -> Self {
@@ -94,7 +99,8 @@ impl ComplexNumber {
   }
 
   /// Computes the polar angle of this complex number, as an `f64`.
-  /// The returned angle is in radians.
+  /// The returned angle is in radians from `-pi` to `pi` (including
+  /// the upper bound but not the lower).
   ///
   /// If `self.is_zero()`, then this returns zero.
   pub fn angle(&self) -> Radians<f64> {
