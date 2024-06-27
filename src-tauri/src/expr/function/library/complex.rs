@@ -6,16 +6,11 @@
 //! Evaluation rules for transcendental and trigonometric functions.
 
 use crate::expr::Expr;
-use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder};
-use crate::expr::prisms::{self, ExprToNumber, ExprToComplex};
-use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex};
-
-use num::Zero;
-
-use std::f64::consts;
+use crate::expr::prisms::ExprToComplex;
+use crate::expr::number::ComplexNumber;
 
 pub fn append_complex_functions(table: &mut FunctionTable) {
   table.insert(conjugate());
