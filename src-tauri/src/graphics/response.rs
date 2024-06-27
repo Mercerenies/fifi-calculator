@@ -3,6 +3,7 @@
 
 use super::GraphicsType;
 use super::plot::PlotDirective;
+use super::contour_plot::ContourPlotDirective;
 
 use serde::{Serialize, Deserialize};
 
@@ -15,12 +16,14 @@ pub struct GraphicsResponse {
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum GraphicsDirective {
   Plot(PlotDirective),
+  ContourPlot(ContourPlotDirective),
 }
 
 impl GraphicsDirective {
   pub fn graphics_type(&self) -> GraphicsType {
     match self {
       GraphicsDirective::Plot(_) => GraphicsType::TwoDimensional,
+      GraphicsDirective::ContourPlot(_) => GraphicsType::TwoDimensional,
     }
   }
 }

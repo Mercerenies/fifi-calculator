@@ -16,7 +16,7 @@ use std::fmt::{self, Display, Formatter};
 /// Variables are identified by strings. A variable's name must begin
 /// with a letter, followed by zero or more letters, digits, or
 /// apostrophes. This structure enforces these constraints.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Var(String);
 

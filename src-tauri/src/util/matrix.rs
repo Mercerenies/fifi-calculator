@@ -38,6 +38,28 @@ impl<T> Matrix<T> {
     Ok(Matrix { body })
   }
 
+  pub fn from_generator<F>(height: usize, width: usize, mut generator: F) -> Self
+  where F: FnMut(MatrixIndex) -> T {
+    let body = (0..height)
+      .map(|y| (0..width).map(|x| generator(MatrixIndex { y, x })).collect())
+      .collect();
+    Matrix::new(body).unwrap()
+  }
+
+  pub fn of_value(height: usize, width: usize, value: T) -> Self
+  where T: Clone {
+    Matrix::from_generator(height, width, |_| value.clone())
+  }
+
+  pub fn of_default(height: usize, width: usize) -> Self
+  where T: Default {
+    Matrix::from_generator(height, width, |_| T::default())
+  }
+
+  pub fn empty() -> Self {
+    Matrix::from_generator(0, 0, |_| panic!("Matrix::empty called"))
+  }
+
   pub fn into_row_major(self) -> Vec<Vec<T>> {
     self.body
   }
@@ -68,6 +90,28 @@ impl<T> Matrix<T> {
 
   pub fn into_items(self) -> impl Iterator<Item = T> {
     self.body.into_iter().flatten()
+  }
+
+  pub fn width(&self) -> usize {
+    self.body
+      .first()
+      .map(|row| row.len())
+      .unwrap_or_default()
+  }
+
+  pub fn height(&self) -> usize {
+    self.body.len()
+  }
+
+  pub fn map<F, U>(self, mut f: F) -> Matrix<U>
+  where F: FnMut(T) -> U {
+    Matrix {
+      body: self
+        .body
+        .into_iter()
+        .map(|row| row.into_iter().map(|item| f(item)).collect())
+        .collect(),
+    }
   }
 }
 
@@ -105,5 +149,18 @@ impl<T: Serialize> Serialize for Matrix<T> {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
   where S: serde::Serializer {
     self.body.serialize(serializer)
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_roundtrip_serialize() {
+    let matrix = Matrix::from_generator(5, 5, |idx| idx.y + idx.x);
+    let json = serde_json::to_string(&matrix).unwrap();
+    let deserialized_matrix: Matrix<usize> = serde_json::from_str(&json).unwrap();
+    assert_eq!(deserialized_matrix, matrix);
   }
 }

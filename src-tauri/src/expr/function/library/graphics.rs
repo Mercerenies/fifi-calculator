@@ -1,21 +1,25 @@
 
 //! Functions that represent graphical data in the language.
 
+use crate::expr::Expr;
+use crate::expr::number::Number;
 use crate::expr::function::Function;
 use crate::expr::function::builder::{self, FunctionBuilder};
 use crate::expr::function::table::FunctionTable;
 use crate::expr::simplifier::error::SimplifierError;
-use crate::expr::algebra::ExprFunction;
+use crate::expr::algebra::{ExprFunction, ExprFunction2};
 use crate::expr::prisms;
-use crate::util::into_singleton;
-use crate::util::prism::Identity;
+use crate::util::{into_singleton, into_ordered};
+use crate::util::prism::{Identity, Prism};
 use crate::graphics::dataset::ExprToXDataSet;
 use crate::graphics::plot::PlotDirective;
+use crate::graphics::contour_plot::ContourPlotDirective;
 use crate::graphics::response::GraphicsDirective;
 
 pub fn append_graphics_functions(table: &mut FunctionTable) {
   table.insert(graphics_function());
   table.insert(plot_function());
+  table.insert(contour_plot_function());
 }
 
 /// The two-dimensional `graphics` directive. We don't actually define
@@ -63,4 +67,56 @@ pub fn plot_function() -> Function {
       })
     )
     .build()
+}
+
+pub fn contour_plot_function() -> Function {
+  FunctionBuilder::new("contourplot")
+    .add_graphics_case(
+      // Explicit vector of Z values.
+      builder::arity_three().of_types(ExprToXDataSet::new(), ExprToXDataSet::new(), vec_vec_number_prism())
+        .and_then(|x, y, z, ctx| {
+          match ContourPlotDirective::from_points(&x.clone().into(), &y.clone().into(), z.clone()) {
+            Err(err) => {
+              ctx.errors.push(SimplifierError::new("contourplot", err));
+              Err((x, y, z))
+            }
+            Ok(plot) => {
+              Ok(GraphicsDirective::ContourPlot(plot))
+            }
+          }
+        })
+    )
+    .add_graphics_case(
+      // Formula in Z position.
+      builder::arity_three().of_types(ExprToXDataSet::new(), ExprToXDataSet::new(), Identity)
+        .and_then(|x, y, z, ctx| {
+          let free_vars = into_ordered(z.clone().free_vars());
+          let contour_plot = match free_vars.len() {
+            1 => {
+              let [var] = free_vars.try_into().unwrap();
+              let func = ExprFunction::new(z, var, ctx.simplifier);
+              ContourPlotDirective::from_complex_function(&x.into(), &y.into(), &func)
+            }
+            2 => {
+              let [var1, var2] = free_vars.try_into().unwrap();
+              let func = ExprFunction2::new(z, var1, var2, ctx.simplifier);
+              ContourPlotDirective::from_expr_function2(&x.into(), &y.into(), &func)
+            }
+            _ => {
+              ctx.errors.push(
+                SimplifierError::custom_error("contourplot", "expected a formula in one or two free variables"),
+              );
+              return Err((x, y, z));
+            }
+          };
+          Ok(GraphicsDirective::ContourPlot(contour_plot))
+        })
+    )
+    .build()
+}
+
+fn vec_vec_number_prism() -> impl Prism<Expr, Vec<Vec<Number>>> {
+  prisms::expr_to_typed_vector(
+    prisms::expr_to_typed_vector(prisms::ExprToNumber),
+  )
 }

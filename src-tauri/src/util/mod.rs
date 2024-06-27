@@ -109,6 +109,14 @@ pub fn into_singleton<I: IntoIterator>(iter: I) -> Option<I::Item> {
   }
 }
 
+/// Converts an iterator into an ordered collection of its elements.
+pub fn into_ordered<I: IntoIterator>(iter: I) -> Vec<I::Item>
+where I::Item: Ord {
+  let mut res = iter.into_iter().collect::<Vec<_>>();
+  res.sort();
+  res
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
