@@ -85,6 +85,8 @@ impl OperatorTable {
       Operator::new("!=", Fixity::new().with_infix("!=", Associativity::NONE, Precedence::new(160))),
       Operator::new("<=", Fixity::new().with_infix("<=", Associativity::NONE, Precedence::new(160))),
       Operator::new(">=", Fixity::new().with_infix(">=", Associativity::NONE, Precedence::new(160))),
+      Operator::new("&&", Fixity::new().with_infix("&&", Associativity::FULL, Precedence::new(110))),
+      Operator::new("||", Fixity::new().with_infix("||", Associativity::FULL, Precedence::new(100))),
     ].into_iter().collect()
   }
 

@@ -9,6 +9,7 @@ use crate::expr::function::table::FunctionTable;
 mod arithmetic;
 mod basic;
 mod calculus;
+mod complex;
 mod datatypes;
 mod formula;
 mod graphics;
@@ -21,6 +22,7 @@ pub fn build_function_table() -> FunctionTable {
   arithmetic::append_arithmetic_functions(&mut table);
   basic::append_basic_functions(&mut table);
   calculus::append_calculus_functions(&mut table);
+  complex::append_complex_functions(&mut table);
   datatypes::append_datatype_functions(&mut table);
   formula::append_formula_functions(&mut table);
   graphics::append_graphics_functions(&mut table);

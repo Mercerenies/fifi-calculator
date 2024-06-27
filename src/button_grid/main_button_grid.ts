@@ -60,13 +60,14 @@ export class MainButtonGrid extends ButtonGrid {
       ],
       [
         new DispatchButton("-", "-", "-"),
+        new DispatchButton("<math><mo fence='true'>|</mo><mo>·</mo><mo fence='true'>|</mo></math>", "abs", "A"),
       ],
       [
         new DispatchButton("<math><mo>&times;</mo></math>", "*", "*"),
         new DispatchButton("<math><mo>&times;</mo><mi>i</mi></math>", "*i", null),
         new DispatchButton("<math><mo>&plusmn;</mo></math>", "negate", "n"),
         new DispatchButton("<math><msup><mi>x</mi><mi>y</mi></msup></math>", "^", "^"),
-        new GotoButton("<math><mi>ξ</mi></math>", null, this.subgrids.transcendental),
+        new GotoButton("<math><mi>ξ</mi></math>", "f", this.subgrids.transcendental),
       ],
       [
         new DispatchButton("&divide;", "/", "/"),
@@ -94,15 +95,17 @@ export class MainButtonGrid extends ButtonGrid {
   async onUnhandledKey(input: KeyEventInput, manager: ButtonGridManager): Promise<KeyResponse> {
     const key = input.toEmacsSyntax();
 
-    const transcendentalResult = await this.tryDelegateToTranscendentalGrid(manager, key);
-    if (transcendentalResult !== null) {
-      return transcendentalResult;
+    if (["L", "B", "E", "G", "J"].includes(key)) {
+      const transcendentalTable = this.subgrids.transcendental.getKeyMappingTable();
+      await transcendentalTable[key].fire(manager);
+      return KeyResponse.BLOCK;
     }
 
     // Emacs compatibility: Forward "|" to vector button grid.
     if (key == "|") {
       const vectorTable = this.subgrids.vector.getKeyMappingTable();
-      vectorTable[key].fire(manager);
+      await vectorTable[key].fire(manager);
+      return KeyResponse.BLOCK;
     }
 
     if (MainButtonGrid.NUMERICAL_INPUT_START_KEYS.has(key)) {

@@ -57,6 +57,10 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("iota".to_string(), Box::new(UnaryFunctionCommand::named("iota")));
   map.insert("head".to_string(), Box::new(UnaryFunctionCommand::named("head")));
   map.insert("cons".to_string(), Box::new(BinaryFunctionCommand::named("cons").assoc_right()));
+  map.insert("abs".to_string(), Box::new(UnaryFunctionCommand::named("abs")));
+  map.insert("signum".to_string(), Box::new(UnaryFunctionCommand::named("signum")));
+  map.insert("conj".to_string(), Box::new(UnaryFunctionCommand::named("conj")));
+  map.insert("arg".to_string(), Box::new(UnaryFunctionCommand::named("arg")));
   map.insert("=".to_string(), Box::new(BinaryFunctionCommand::named("=")));
   map.insert("!=".to_string(), Box::new(BinaryFunctionCommand::named("!=")));
   map.insert("<".to_string(), Box::new(BinaryFunctionCommand::named("<")));

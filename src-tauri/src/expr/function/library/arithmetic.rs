@@ -6,6 +6,7 @@ use crate::expr::interval::Interval;
 use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
+use crate::expr::vector::Vector;
 use crate::expr::vector::tensor::Tensor;
 use crate::expr::prisms::{self, ExprToNumber, ExprToComplex, ExprToVector,
                           ExprToTensor, ExprToIntervalLike, expr_to_interval};
@@ -27,6 +28,8 @@ pub fn append_arithmetic_functions(table: &mut FunctionTable) {
   table.insert(modulo());
   table.insert(floor_division());
   table.insert(arithmetic_negate());
+  table.insert(abs());
+  table.insert(signum());
 }
 
 pub fn addition() -> Function {
@@ -511,4 +514,83 @@ pub fn arithmetic_negate() -> Function {
       })
     )
     .build()
+}
+
+pub fn abs() -> Function {
+  FunctionBuilder::new("abs")
+    .add_case(
+      // Real number abs
+      builder::arity_one().of_type(ExprToNumber).and_then(|arg, _| {
+        Ok(Expr::from(arg.abs()))
+      })
+    )
+    .add_case(
+      // Complex number abs
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
+        let arg = ComplexNumber::from(arg);
+        Ok(Expr::from(arg.abs()))
+      })
+    )
+    .add_case(
+      // Norm of a vector
+      builder::arity_one().of_type(ExprToVector).and_then(|arg, _| {
+        Ok(vector_norm(arg))
+      })
+    )
+    .set_derivative(
+      builder::arity_one_deriv("abs", |arg, engine| {
+        Ok(Expr::call("*", vec![
+          Expr::call("signum", vec![arg.clone()]),
+          engine.differentiate(arg)?,
+        ]))
+      })
+    )
+    .build()
+}
+
+pub fn signum() -> Function {
+  FunctionBuilder::new("signum")
+    .add_case(
+      // Real number signum
+      builder::arity_one().of_type(ExprToNumber).and_then(|arg, _| {
+        Ok(Expr::from(arg.signum()))
+      })
+    )
+    .add_case(
+      // Complex number signum
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
+        let arg = ComplexNumber::from(arg);
+        if arg.is_zero() {
+          // Corner case
+          Ok(Expr::from(arg))
+        } else {
+          let abs = ComplexNumber::from_real(Number::from(arg.abs()));
+          Ok(Expr::from(arg / abs))
+        }
+      })
+    )
+    .add_case(
+      // Normalized vector
+      builder::arity_one().of_type(ExprToVector).and_then(|arg, _| {
+        let norm = vector_norm(arg.clone());
+        Ok(Expr::call("/", vec![
+          arg.into(),
+          Expr::call("||", vec![norm, Expr::from(Number::from(1))]), // Corner case: If vector is zero, return zero
+        ]))
+      })
+    )
+    .set_derivative(
+      builder::arity_one_deriv("signum", |_, _| {
+        Ok(Expr::zero())
+      })
+    )
+    .build()
+}
+
+fn vector_norm(vec: Vector) -> Expr {
+  let addends = vec.into_iter().map(|x| Expr::call("^", vec![x, Expr::from(2)])).collect();
+  Expr::call("^", vec![
+    Expr::call("+", addends),
+    Expr::from(Number::ratio(1, 2)),
+  ])
 }
