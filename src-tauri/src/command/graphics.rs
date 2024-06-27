@@ -20,6 +20,21 @@ use std::cmp::Ordering;
 /// Produces a two-dimensional graphics value which plots the given X
 /// and Y coordinates.
 ///
+/// If given a positive numerical argument N, then N + 1 values are
+/// popped, the top of which is treated as a shared X coordinate
+/// dataset. A total of N graphs will be produced in this case. A lack
+/// of numerical argument is treated as a numerical argument of 1.
+///
+/// If the numerical argument is zero, then two values are popped. The
+/// first is the X dataset, and the second must be a vector. Each
+/// element of the latter vector is treated as a separate Y dataset
+/// for plotting purposes.
+///
+/// If the numerical argument is some negative value -N, then N values
+/// are popped from the stack. Each value must be a vector of two
+/// elements, which are treated as the X- and Y- coordinates of a
+/// plot.
+///
 /// Respects the "keep" modifier.
 #[derive(Debug, Default)]
 pub struct PlotCommand {
