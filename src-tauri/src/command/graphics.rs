@@ -41,6 +41,22 @@ pub struct PlotCommand {
   _priv: (),
 }
 
+/// This command pops three values off the stack: An X interval, a Y
+/// interval, and an output dataset. Produces a two-dimensional
+/// graphics value which acts as a contour plot.
+///
+/// If given an explicit numerical argument, then the output dataset
+/// shall produce complex numbers. In this case, the output dataset
+/// must be a formula (not a vector of vectors), and two contour plots
+/// are pushed onto the stack. These two plots represent the real and
+/// imaginary components of the output dataset, respectively.
+///
+/// Respects the "keep" modifier.
+#[derive(Debug, Default)]
+pub struct ContourPlotCommand {
+  _priv: (),
+}
+
 impl PlotCommand {
   pub fn new() -> Self {
     Default::default()
@@ -52,6 +68,20 @@ impl PlotCommand {
 
   fn basic_plot(x_values: Expr, y_values: Expr) -> Expr {
     Expr::call("plot", vec![x_values, y_values])
+  }
+}
+
+impl ContourPlotCommand {
+  pub fn new() -> Self {
+    Default::default()
+  }
+
+  fn argument_schema() -> NullaryArgumentSchema {
+    NullaryArgumentSchema::new()
+  }
+
+  fn contour_plot(x_values: Expr, y_values: Expr, output_dataset: Expr) -> Expr {
+    Expr::call("contourplot", vec![x_values, y_values, output_dataset])
   }
 }
 
@@ -126,6 +156,58 @@ impl Command for PlotCommand {
           }
         }
       }
+    }
+
+    Ok(CommandOutput::from_errors(errors))
+  }
+}
+
+impl Command for ContourPlotCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    context: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    validate_schema(&ContourPlotCommand::argument_schema(), args)?;
+
+    let should_produce_vector = context.opts.argument.is_some();
+    let mut errors = ErrorList::new();
+    state.undo_stack_mut().push_cut();
+    let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
+
+    if should_produce_vector {
+      // Vector of two contour plots
+      let [x_values, y_values, data_values] = stack.pop_several(3)?.try_into().unwrap();
+      let real_data_values = Expr::call("re", vec![data_values.clone()]);
+      let imag_data_values = Expr::call("im", vec![data_values]);
+      // Real part
+      let expr = Expr::call(
+        GRAPHICS_NAME,
+        vec![
+          ContourPlotCommand::contour_plot(x_values.clone(), y_values.clone(), real_data_values),
+        ],
+      );
+      let expr = context.simplify_expr(expr, &mut errors);
+      stack.push(expr);
+      // Imag part
+      let expr = Expr::call(
+        GRAPHICS_NAME,
+        vec![
+          ContourPlotCommand::contour_plot(x_values, y_values, imag_data_values),
+        ],
+      );
+      let expr = context.simplify_expr(expr, &mut errors);
+      stack.push(expr);
+    } else {
+      // Single contour plot
+      let [x_values, y_values, data_values] = stack.pop_several(3)?.try_into().unwrap();
+      let expr = Expr::call(
+        GRAPHICS_NAME,
+        vec![ContourPlotCommand::contour_plot(x_values, y_values, data_values)],
+      );
+      let expr = context.simplify_expr(expr, &mut errors);
+      stack.push(expr);
     }
 
     Ok(CommandOutput::from_errors(errors))
@@ -291,5 +373,65 @@ mod tests {
     ];
     let err = act_on_stack_any_err(&PlotCommand::new(), opts, input_stack);
     assert_eq!(err.to_string(), "Expecting 2-vectors of X and Y values");
+  }
+
+  #[test]
+  fn test_contour_plot_command() {
+    let opts = CommandOptions::default();
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&ContourPlotCommand::new(), opts, input_stack);
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::call("graphics", vec![Expr::call("contourplot", vec![Expr::from(20), Expr::from(30), Expr::from(40)])]),
+    ]));
+  }
+
+  #[test]
+  fn test_contour_plot_command_with_numerical_arg() {
+    let opts = CommandOptions::numerical(10);
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&ContourPlotCommand::new(), opts, input_stack);
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::call("graphics", vec![
+        Expr::call("contourplot", vec![Expr::from(20), Expr::from(30), Expr::call("re", vec![Expr::from(40)])]),
+      ]),
+      Expr::call("graphics", vec![
+        Expr::call("contourplot", vec![Expr::from(20), Expr::from(30), Expr::call("im", vec![Expr::from(40)])]),
+      ]),
+    ]));
+  }
+
+  #[test]
+  fn test_contour_plot_command_with_keep_arg() {
+    let opts = CommandOptions::default().with_keep_modifier();
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&ContourPlotCommand::new(), opts, input_stack);
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::from(30),
+      Expr::from(40),
+      Expr::call("graphics", vec![Expr::call("contourplot", vec![Expr::from(20), Expr::from(30), Expr::from(40)])]),
+    ]));
+  }
+
+  #[test]
+  fn test_contour_plot_command_with_numerical_arg_and_keep_arg() {
+    let opts = CommandOptions::numerical(10).with_keep_modifier();
+    let input_stack = vec![10, 20, 30, 40];
+    let output_stack = act_on_stack(&ContourPlotCommand::new(), opts, input_stack);
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::from(30),
+      Expr::from(40),
+      Expr::call("graphics", vec![
+        Expr::call("contourplot", vec![Expr::from(20), Expr::from(30), Expr::call("re", vec![Expr::from(40)])]),
+      ]),
+      Expr::call("graphics", vec![
+        Expr::call("contourplot", vec![Expr::from(20), Expr::from(30), Expr::call("im", vec![Expr::from(40)])]),
+      ]),
+    ]));
   }
 }
