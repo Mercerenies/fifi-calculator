@@ -1,4 +1,4 @@
-name: Rust
+name: Clippy Style Checker
 
 on:
   push:
@@ -10,12 +10,16 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  style-checker:
 
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
+    - name: Install Clippy
+      run: |
+        rustup update
+        rustup component add clippy
     - name: Install Dependencies
       run: |
         sudo apt-get update
@@ -24,7 +28,7 @@ jobs:
       run: |
         cd src-tauri
         cargo build --verbose
-    - name: Run tests
+    - name: Run Clippy
       run: |
         cd src-tauri
-        cargo test --verbose
+        cargo clippy

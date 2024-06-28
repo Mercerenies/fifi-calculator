@@ -1,0 +1,24 @@
+name: Typescript Type-checking
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  style-checker:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Dev Dependencies
+      run: |
+        npm install --save-dev
+    - name: Check Types
+      run: |
+        npx tsc
