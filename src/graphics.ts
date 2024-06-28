@@ -1,7 +1,7 @@
 
 import { StackUpdatedDelegate } from './stack_view.js';
 import { TAURI } from './tauri_api.js';
-import { GraphicsDirective, PlotDirective } from './tauri_api/graphics.js';
+import { GraphicsDirective, PlotDirective, ContourPlotDirective } from './tauri_api/graphics.js';
 import { GLOBAL_IMAGE_CACHE } from './graphics/image_cache.js';
 
 import Plotly from 'plotly.js-dist-min';
@@ -145,6 +145,8 @@ function directiveToTrace(directive: GraphicsDirective): Plotly.Data {
   switch (directive.type) {
   case "plot":
     return plotToTrace(directive);
+  case "contourplot":
+    return contourPlotToTrace(directive);
   }
 }
 
@@ -153,6 +155,15 @@ function plotToTrace(plot: PlotDirective): Partial<Plotly.PlotData> {
     x: plot.points.map((p) => p.x),
     y: plot.points.map((p) => p.y),
     type: 'scatter',
+  };
+}
+
+function contourPlotToTrace(contourPlot: ContourPlotDirective): Partial<Plotly.PlotData> {
+  return {
+    x: contourPlot.xValues,
+    y: contourPlot.yValues,
+    z: contourPlot.zValues,
+    type: 'contour',
   };
 }
 

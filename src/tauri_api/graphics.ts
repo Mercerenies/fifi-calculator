@@ -7,11 +7,18 @@ export interface GraphicsResponse {
   directives: GraphicsDirective[];
 }
 
-export type GraphicsDirective = PlotDirective;
+export type GraphicsDirective = PlotDirective | ContourPlotDirective;
 
 export interface PlotDirective {
   type: "plot";
   points: Point2D[];
+}
+
+export interface ContourPlotDirective {
+  type: "contourplot";
+  xValues: number[];
+  yValues: number[];
+  zValues: number[][];
 }
 
 export interface Range<T> {

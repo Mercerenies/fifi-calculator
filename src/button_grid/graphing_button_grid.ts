@@ -20,6 +20,7 @@ export class GraphingButtonGrid extends ButtonGrid {
     return [
       [
         new DispatchButton("y=", "plot", "f"),
+        new DispatchButton("con", "contourplot", "c"),
       ],
       [
         new DispatchButton("xy", "xy", null),
