@@ -10,6 +10,7 @@ export class NumericalInputMethod implements InputMethod {
   static AUTO_SUBMIT_KEYS = new Set(["*", "/", "^"]);
 
   labelHtml: string = "#:";
+  inputType: "number" = "number";
 
   async onKeyDown(input: KeyEventInput, session: InputBoxSession): Promise<KeyResponse> {
     const key = input.toEmacsSyntax();

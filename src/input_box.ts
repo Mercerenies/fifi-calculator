@@ -36,6 +36,7 @@ export class InputBoxManager {
       this.inputMethod = inputMethod;
       this.inputSession = new ConcreteSession(this, resolve, reject);
       this.inputBox.style.visibility = 'visible';
+      this.inputTextBox.type = inputMethod.inputType;
       this.inputLabel.innerHTML = inputMethod.labelHtml;
       this.setTextBoxValue(initialInput);
       window.setTimeout(() => this.inputTextBox.focus(), 1);
@@ -124,6 +125,7 @@ export interface InputMethod {
   // the user clicks away from the textbox without submitting.
   readonly persistsWhenUnfocused?: boolean;
   readonly labelHtml: string;
+  readonly inputType: "text" | "number";
 
   onKeyDown(event: KeyEventInput, session: InputBoxSession): Promise<KeyResponse>;
 }
@@ -131,6 +133,7 @@ export interface InputMethod {
 // Null Object implementation of InputMethod.
 export class NullaryInputMethod implements InputMethod {
   labelHtml: string = "";
+  inputType: "text" = "text";
 
   async onKeyDown(): Promise<KeyResponse> {
     return KeyResponse.PASS;

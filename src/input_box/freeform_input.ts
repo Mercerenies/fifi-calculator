@@ -5,9 +5,11 @@ import { KeyResponse, KeyEventInput } from '../keyboard.js';
 // General-purpose input method that responds to ESCAPE and Enter and nothing else.
 export class FreeformInputMethod implements InputMethod {
   readonly labelHtml: string;
+  readonly inputType: "text" | "number";
 
-  constructor(labelHtml: string) {
+  constructor(labelHtml: string, inputType: "text" | "number" = "text") {
     this.labelHtml = labelHtml;
+    this.inputType = inputType;
   }
 
   async onKeyDown(input: KeyEventInput, session: InputBoxSession): Promise<KeyResponse> {
