@@ -21,6 +21,7 @@ export default tseslint.config(
       "@typescript-eslint/no-namespace": ["error", {
         "allowDeclarations": true,
       }],
+      "@typescript-eslint/consistent-generic-constructors": "off"
     },
   },
 );

@@ -133,7 +133,7 @@ export interface InputMethod {
 // Null Object implementation of InputMethod.
 export class NullaryInputMethod implements InputMethod {
   labelHtml: string = "";
-  inputType: "text" = "text";
+  inputType: "text" = "text" as const;
 
   async onKeyDown(): Promise<KeyResponse> {
     return KeyResponse.PASS;

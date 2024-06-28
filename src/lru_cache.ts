@@ -59,6 +59,7 @@ interface HeadNode<T> {
 type Node<T> = DataNode<T> | HeadNode<T>;
 
 function isHeadNode<T>(node: Node<T>): node is HeadNode<T> {
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
   return (node as any).__isHead;
 }
 
@@ -77,6 +78,7 @@ function remove<T>(elem: Node<T>): void {
 }
 
 function headNode<T>(): HeadNode<T> {
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
   const headNode: any = { __isHead: true };
   headNode.prev = headNode;
   headNode.next = headNode;
@@ -84,6 +86,7 @@ function headNode<T>(): HeadNode<T> {
 }
 
 function dataNode<T>(data: T): DataNode<T> {
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
   const node: any = { data };
   node.prev = node;
   node.next = node;
