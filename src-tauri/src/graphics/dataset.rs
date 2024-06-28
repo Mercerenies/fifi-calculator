@@ -27,6 +27,20 @@ enum XDataSetImpl {
   Number(Number),
 }
 
+/// The reason for generating the data points. This will influence how
+/// many points are generated, to maximize the efficiency of the
+/// program.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GenReason {
+  /// Generation as a single axis, such as the independent variable of
+  /// a plot.
+  OneDimensional,
+  /// Generation as one of a pair of axes, such as an independent
+  /// variable of a contour plot. Since this will be used as one of a
+  /// pair, it will have a smaller default sample size.
+  TwoDimensional,
+}
+
 /// An [`Expr`] which can be reasonably interpreted as an
 /// [`XDataSet`]. `XDataSet` implements `From<XDataSetExpr>`, and this
 /// type is mainly used as the target for a prism, since
@@ -61,7 +75,8 @@ pub struct LengthError {
 
 impl XDataSet {
   pub const STEP_DATA_POINTS: usize = 30;
-  pub const INTERVAL_DATA_POINTS: usize = 200;
+  pub const INTERVAL_DATA_POINTS_ONE_DIM: usize = 200;
+  pub const INTERVAL_DATA_POINTS_TWO_DIM: usize = 50;
 
   /// An enumerated data set, consisting of exactly the indicated
   /// points.
@@ -94,11 +109,20 @@ impl XDataSet {
     }
   }
 
-  pub fn preferred_len(&self) -> usize {
+  pub fn preferred_len(&self, reason: GenReason) -> usize {
     match &self.data {
-      XDataSetImpl::Vector(v) => v.len(),
-      XDataSetImpl::Interval(_, _) => Self::INTERVAL_DATA_POINTS,
-      XDataSetImpl::Number(_) => Self::STEP_DATA_POINTS,
+      XDataSetImpl::Vector(v) => {
+        v.len()
+      }
+      XDataSetImpl::Interval(_, _) => {
+        match reason {
+          GenReason::OneDimensional => Self::INTERVAL_DATA_POINTS_ONE_DIM,
+          GenReason::TwoDimensional => Self::INTERVAL_DATA_POINTS_TWO_DIM,
+        }
+      }
+      XDataSetImpl::Number(_) => {
+        Self::STEP_DATA_POINTS
+      }
     }
   }
 
@@ -106,7 +130,11 @@ impl XDataSet {
     self.required_len().is_some()
   }
 
-  pub fn gen_exact_points(&self, requested_size: Option<usize>) -> Result<Vec<Number>, LengthError> {
+  pub fn gen_exact_points(
+    &self,
+    requested_size: Option<usize>,
+    reason: GenReason,
+  ) -> Result<Vec<Number>, LengthError> {
     if let (Some(requested_size), Some(required_size)) = (requested_size, self.required_len()) {
       if requested_size != required_size {
         // unwrap: We just checked that both values are Some, not None.
@@ -117,7 +145,7 @@ impl XDataSet {
       }
     }
 
-    let size = requested_size.unwrap_or_else(|| self.preferred_len());
+    let size = requested_size.unwrap_or_else(|| self.preferred_len(reason));
     Ok(
       match &self.data {
         XDataSetImpl::Vector(v) => v.clone(),
@@ -127,10 +155,10 @@ impl XDataSet {
     )
   }
 
-  pub fn gen_points(&self) -> Vec<Number> {
+  pub fn gen_points(&self, reason: GenReason) -> Vec<Number> {
     // unwrap: Calling gen_exact_points with no specified size will
     // always return Ok.
-    self.gen_exact_points(None).unwrap()
+    self.gen_exact_points(None, reason).unwrap()
   }
 
   fn gen_points_from_interval(min: Number, max: Number, size: usize) -> Vec<Number> {

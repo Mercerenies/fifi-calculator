@@ -5,7 +5,7 @@ use crate::util::matrix::{Matrix, MatrixDimsError};
 use crate::expr::number::{Number, ComplexNumber};
 use crate::expr::algebra::{ExprFunction, ExprFunction2};
 use crate::expr::prisms::ExprToNumber;
-use super::dataset::{XDataSet, LengthError};
+use super::dataset::{XDataSet, LengthError, GenReason};
 use super::floatify;
 
 use thiserror::Error;
@@ -44,8 +44,8 @@ impl ContourPlotDirective {
   ) -> Result<ContourPlotDirective, ContourPlotError> {
     let z_values = Matrix::new(z_values)?;
 
-    let x_values = x_dataset.gen_exact_points(Some(z_values.width()))?;
-    let y_values = y_dataset.gen_exact_points(Some(z_values.height()))?;
+    let x_values = x_dataset.gen_exact_points(Some(z_values.width()), GenReason::TwoDimensional)?;
+    let y_values = y_dataset.gen_exact_points(Some(z_values.height()), GenReason::TwoDimensional)?;
 
     let x_values: Vec<_> = floatify(x_values);
     let y_values: Vec<_> = floatify(y_values);
@@ -59,8 +59,8 @@ impl ContourPlotDirective {
     y_dataset: &XDataSet,
     z_function: &ExprFunction2,
   ) -> ContourPlotDirective {
-    let x_values = x_dataset.gen_points();
-    let y_values = y_dataset.gen_points();
+    let x_values = x_dataset.gen_points(GenReason::TwoDimensional);
+    let y_values = y_dataset.gen_points(GenReason::TwoDimensional);
 
     let z_values = Matrix::from_generator(y_values.len(), x_values.len(), |idx| {
       // TODO: If enough of these fail (percentage-wise) we should
@@ -82,8 +82,8 @@ impl ContourPlotDirective {
     y_dataset: &XDataSet,
     z_function: &ExprFunction,
   ) -> ContourPlotDirective {
-    let x_values = x_dataset.gen_points();
-    let y_values = y_dataset.gen_points();
+    let x_values = x_dataset.gen_points(GenReason::TwoDimensional);
+    let y_values = y_dataset.gen_points(GenReason::TwoDimensional);
 
     let z_values = Matrix::from_generator(y_values.len(), x_values.len(), |idx| {
       // TODO: If enough of these fail (percentage-wise) we should

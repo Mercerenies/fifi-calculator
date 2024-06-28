@@ -7,7 +7,7 @@ use crate::expr::Expr;
 use crate::expr::number::Number;
 use crate::expr::algebra::ExprFunction;
 use crate::expr::prisms::ExprToNumber;
-use super::dataset::{XDataSet, LengthError};
+use super::dataset::{XDataSet, LengthError, GenReason};
 use super::floatify;
 
 use serde::{Serialize, Deserialize};
@@ -40,7 +40,7 @@ impl PlotDirective {
   }
 
   pub fn from_points(x_dataset: &XDataSet, y_points: &[Number]) -> Result<PlotDirective, LengthError> {
-    let x_points = x_dataset.gen_exact_points(Some(y_points.len()))?;
+    let x_points = x_dataset.gen_exact_points(Some(y_points.len()), GenReason::OneDimensional)?;
     assert!(x_points.len() == y_points.len(), "Expected two vectors of equal length");
 
     let x_points: Vec<_> = floatify(x_points);
@@ -53,7 +53,7 @@ impl PlotDirective {
   }
 
   pub fn from_expr_function(x_dataset: &XDataSet, y_function: &ExprFunction) -> PlotDirective {
-    let x_points = x_dataset.gen_points();
+    let x_points = x_dataset.gen_points(GenReason::OneDimensional);
     let y_points = x_points.clone().into_iter().map(|x| {
       // TODO: If enough of these fail (percentage-wise) we should
       // probably report some sort of generic error to the user.
@@ -72,7 +72,7 @@ impl PlotDirective {
   }
 
   pub fn from_parametric_function(t_dataset: &XDataSet, xy_function: &ExprFunction) -> PlotDirective {
-    let t_points = t_dataset.gen_points();
+    let t_points = t_dataset.gen_points(GenReason::OneDimensional);
     let xy_points = t_points.clone().into_iter().map(|t| {
       // TODO: If enough of these fail (percentage-wise) we should
       // probably report some sort of generic error to the user.
