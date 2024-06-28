@@ -73,7 +73,7 @@ export class MainButtonGrid extends ButtonGrid {
         new DispatchButton("&divide;", "/", "/"),
         new DispatchButton("%", "%", "%"),
         new DispatchButton("&lfloor;&divide;&rfloor;", "div", "\\"),
-        new DispatchButton("=", "substitute_vars", "="),
+        new DispatchButton("<span class='mathy-text'>x=</span>", "substitute_vars", "="),
       ],
       [
         new DispatchButton(discardSvg(), "pop", "Backspace"),
