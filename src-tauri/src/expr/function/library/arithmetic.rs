@@ -8,7 +8,7 @@ use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
 use crate::expr::vector::Vector;
 use crate::expr::vector::tensor::Tensor;
-use crate::expr::prisms::{self, ExprToNumber, ExprToComplex, ExprToVector,
+use crate::expr::prisms::{self, expr_to_number, ExprToComplex, ExprToVector,
                           ExprToTensor, ExprToIntervalLike, expr_to_interval};
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex, pow_complex_to_real};
 use crate::expr::simplifier::error::SimplifierError;
@@ -44,7 +44,7 @@ pub fn addition() -> Function {
     )
     .add_case(
       // Real number addition
-      builder::any_arity().of_type(ExprToNumber).and_then(|args, _| {
+      builder::any_arity().of_type(expr_to_number()).and_then(|args, _| {
         let sum = args.into_iter().reduce(|a, b| a + b).unwrap_or(Number::zero());
         Ok(Expr::from(sum))
       })
@@ -106,7 +106,7 @@ pub fn subtraction() -> Function {
   FunctionBuilder::new("-")
     .add_case(
       // Real number subtraction
-      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, _| {
+      builder::arity_two().both_of_type(expr_to_number()).and_then(|arg1, arg2, _| {
         let difference = arg1 - arg2;
         Ok(Expr::from(difference))
       })
@@ -168,7 +168,7 @@ pub fn multiplication() -> Function {
     )
     .add_case(
       // Real number multiplication
-      builder::any_arity().of_type(ExprToNumber).and_then(|args, _| {
+      builder::any_arity().of_type(expr_to_number()).and_then(|args, _| {
         let product = args.into_iter().reduce(|a, b| a * b).unwrap_or(Number::one());
         Ok(Expr::from(product))
       })
@@ -233,7 +233,7 @@ pub fn division() -> Function {
   FunctionBuilder::new("/")
     .add_case(
       // Real number division
-      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, context| {
+      builder::arity_two().both_of_type(expr_to_number()).and_then(|arg1, arg2, context| {
         if arg2.is_zero() {
           context.errors.push(SimplifierError::division_by_zero("/"));
           return Err((arg1, arg2));
@@ -305,7 +305,7 @@ pub fn power() -> Function {
   FunctionBuilder::new("^")
     .add_case(
       // Real number power function
-      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, context| {
+      builder::arity_two().both_of_type(expr_to_number()).and_then(|arg1, arg2, context| {
         if arg1.is_zero() && arg2.is_zero() {
           context.errors.push(SimplifierError::zero_to_zero_power("^"));
           return Err((arg1, arg2));
@@ -320,7 +320,7 @@ pub fn power() -> Function {
     )
     .add_case(
       // Complex-to-real number power function
-      builder::arity_two().of_types(ExprToComplex, ExprToNumber).and_then(|arg1, arg2, context| {
+      builder::arity_two().of_types(ExprToComplex, expr_to_number()).and_then(|arg1, arg2, context| {
         if arg1.is_zero() && arg2.is_zero() {
           context.errors.push(SimplifierError::zero_to_zero_power("^"));
           return Err((arg1, arg2));
@@ -423,7 +423,7 @@ pub fn modulo() -> Function {
   FunctionBuilder::new("%")
     .add_case(
       // Real modulo
-      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, context| {
+      builder::arity_two().both_of_type(expr_to_number()).and_then(|arg1, arg2, context| {
         if arg2.is_zero() {
           context.errors.push(SimplifierError::division_by_zero("%"));
           return Err((arg1, arg2));
@@ -462,7 +462,7 @@ pub fn floor_division() -> Function {
   FunctionBuilder::new("div")
     .add_case(
       // Real floor div
-      builder::arity_two().both_of_type(ExprToNumber).and_then(|arg1, arg2, context| {
+      builder::arity_two().both_of_type(expr_to_number()).and_then(|arg1, arg2, context| {
         if arg2.is_zero() {
           context.errors.push(SimplifierError::division_by_zero("div"));
           return Err((arg1, arg2));
@@ -484,7 +484,7 @@ pub fn arithmetic_negate() -> Function {
   FunctionBuilder::new("negate")
     .add_case(
       // Real number negation
-      builder::arity_one().of_type(ExprToNumber).and_then(|arg, _| {
+      builder::arity_one().of_type(expr_to_number()).and_then(|arg, _| {
         Ok(Expr::from(- arg))
       })
     )
@@ -520,7 +520,7 @@ pub fn abs() -> Function {
   FunctionBuilder::new("abs")
     .add_case(
       // Real number abs
-      builder::arity_one().of_type(ExprToNumber).and_then(|arg, _| {
+      builder::arity_one().of_type(expr_to_number()).and_then(|arg, _| {
         Ok(Expr::from(arg.abs()))
       })
     )
@@ -552,7 +552,7 @@ pub fn signum() -> Function {
   FunctionBuilder::new("signum")
     .add_case(
       // Real number signum
-      builder::arity_one().of_type(ExprToNumber).and_then(|arg, _| {
+      builder::arity_one().of_type(expr_to_number()).and_then(|arg, _| {
         Ok(Expr::from(arg.signum()))
       })
     )

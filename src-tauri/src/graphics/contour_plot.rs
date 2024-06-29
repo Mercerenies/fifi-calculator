@@ -4,7 +4,7 @@
 use crate::util::matrix::{Matrix, MatrixDimsError};
 use crate::expr::number::{Number, ComplexNumber};
 use crate::expr::algebra::{ExprFunction, ExprFunction2};
-use crate::expr::prisms::ExprToNumber;
+use crate::expr::prisms::expr_to_number;
 use super::dataset::{XDataSet, LengthError, GenReason};
 use super::floatify;
 
@@ -89,7 +89,7 @@ impl ContourPlotDirective {
       // TODO: If enough of these fail (percentage-wise) we should
       // probably report some sort of generic error to the user.
       let input = ComplexNumber::new(x_values[idx.x].clone(), y_values[idx.y].clone());
-      match z_function.eval_at(input, "real number", &ExprToNumber) {
+      match z_function.eval_at(input, "real number", &expr_to_number()) {
         Err(_) => f64::NAN,
         Ok(res) => res.to_f64_or_nan(),
       }

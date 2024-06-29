@@ -6,7 +6,7 @@ use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder};
-use crate::expr::prisms::{self, ExprToNumber, ExprToComplex};
+use crate::expr::prisms::{self, expr_to_number, ExprToComplex};
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex};
 
 use num::Zero;
@@ -85,7 +85,7 @@ pub fn exponent() -> Function {
   FunctionBuilder::new("exp")
     .add_case(
       // Real number case
-      builder::arity_one().of_type(ExprToNumber).and_then(|arg, _| {
+      builder::arity_one().of_type(expr_to_number()).and_then(|arg, _| {
         let e = Number::from(consts::E);
         let power = pow_real(e, arg);
         Ok(Expr::from(power))

@@ -10,7 +10,7 @@ use crate::expr::Expr;
 use crate::expr::number::{ComplexLike, Number};
 use crate::expr::var::Var;
 use crate::expr::simplifier::{Simplifier, SimplifierContext};
-use crate::expr::prisms::{ExprToNumber, ExprToComplex};
+use crate::expr::prisms::{expr_to_number, ExprToComplex};
 
 use thiserror::Error;
 
@@ -76,7 +76,7 @@ impl<'a> ExprFunction<'a> {
   /// Evaluates the function at the given position, expecting a real
   /// numerical result.
   pub fn eval_at_real(&self, value: Number) -> Result<Number, FunctionEvalError> {
-    self.eval_at(value, "real number", &ExprToNumber)
+    self.eval_at(value, "real number", &expr_to_number())
   }
 
   fn simplify_expr(&self, expr: Expr) -> Expr {
@@ -137,6 +137,6 @@ impl<'a> ExprFunction2<'a> {
   /// Evaluates the function at the given position, expecting a real
   /// numerical result.
   pub fn eval_at_real(&self, first_value: Number, second_value: Number) -> Result<Number, FunctionEvalError> {
-    self.eval_at(first_value, second_value, "real number", &ExprToNumber)
+    self.eval_at(first_value, second_value, "real number", &expr_to_number())
   }
 }

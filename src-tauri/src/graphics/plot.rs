@@ -6,7 +6,7 @@ use crate::util::prism::{Prism, OnTuple2};
 use crate::expr::Expr;
 use crate::expr::number::Number;
 use crate::expr::algebra::ExprFunction;
-use crate::expr::prisms::ExprToNumber;
+use crate::expr::prisms::expr_to_number;
 use super::dataset::{XDataSet, LengthError, GenReason};
 use super::floatify;
 
@@ -106,7 +106,7 @@ impl Prism<Expr, ParametricResult> for ExprToParametricResult {
       return Err(Expr::Call(name, args));
     }
     let [x, y] = args.try_into().unwrap();
-    match OnTuple2::both(ExprToNumber).narrow_type((x, y)) {
+    match OnTuple2::both(expr_to_number()).narrow_type((x, y)) {
       Err((x, y)) => Err(Expr::Call(name, vec![x, y])),
       Ok((x, y)) => Ok(ParametricResult { x_coord: x, y_coord: y }),
     }

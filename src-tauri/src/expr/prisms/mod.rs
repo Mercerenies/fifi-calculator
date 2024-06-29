@@ -40,10 +40,6 @@ pub struct Graphics2DSpec;
 #[derive(Debug, Clone, Copy, Default)]
 pub struct ExprToZero;
 
-/// Prism which downcasts an [`Expr`] to a contained [`Number`].
-#[derive(Debug, Clone, Copy, Default)]
-pub struct ExprToNumber; // TODO: This is just a Conversion prism :)
-
 /// Prism which downcasts an [`Expr`] to a [`ComplexLike`], either a
 /// real or a complex number.
 #[derive(Debug, Clone, Copy, Default)]
@@ -88,21 +84,26 @@ pub fn must_be_var(var: Var) -> Only<Expr> {
   Only::new(expr)
 }
 
+/// Prism which only accepts real numerical literals.
+pub fn expr_to_number() -> impl Prism<Expr, Number> + Clone {
+  Conversion::new()
+}
+
 /// Prism which accepts only positive real numbers.
 pub fn expr_to_positive_number() -> impl Prism<Expr, PositiveNumber> + Clone {
-  ExprToNumber.composed(NumberToPositiveNumber)
+  expr_to_number().composed(NumberToPositiveNumber)
 }
 
 /// Prism which only accepts expressions containing [`Number`] values
 /// representable by a `usize`.
 pub fn expr_to_usize() -> impl Prism<Expr, usize> + Clone {
-  ExprToNumber.composed(NumberToUsize)
+  expr_to_number().composed(NumberToUsize)
 }
 
 /// Prism which only accepts expressions containing [`Number`] values
 /// representable by an `i64`.
 pub fn expr_to_i64() -> impl Prism<Expr, i64> + Clone {
-  ExprToNumber.composed(NumberToI64)
+  expr_to_number().composed(NumberToI64)
 }
 
 /// Prism which accepts [`Literal`] values.
@@ -228,16 +229,6 @@ impl Prism<Expr, LiteralZero> for ExprToZero {
   }
 }
 
-impl Prism<Expr, Number> for ExprToNumber {
-  fn narrow_type(&self, input: Expr) -> Result<Number, Expr> {
-    Number::try_from(input).map_err(|err| err.original_expr)
-  }
-
-  fn widen_type(&self, input: Number) -> Expr {
-    Expr::from(input)
-  }
-}
-
 impl Prism<Expr, ComplexLike> for ExprToComplex {
   fn narrow_type(&self, input: Expr) -> Result<ComplexLike, Expr> {
     match input {
@@ -245,7 +236,7 @@ impl Prism<Expr, ComplexLike> for ExprToComplex {
       Expr::Call(function_name, args) => {
         if function_name == ComplexNumber::FUNCTION_NAME && args.len() == 2 {
           let [a, b] = args.try_into().unwrap();
-          match OnTuple2::both(ExprToNumber).narrow_type((a, b)) {
+          match OnTuple2::both(expr_to_number()).narrow_type((a, b)) {
             Err((a, b)) => Err(Expr::Call(function_name, vec![a, b])),
             Ok((a, b)) => Ok(ComplexLike::Complex(ComplexNumber::new(a, b))),
           }

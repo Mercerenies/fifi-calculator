@@ -35,7 +35,7 @@ pub fn plot_function() -> Function {
   FunctionBuilder::new("plot")
     .add_graphics_case(
       // X dataset with explicit vector of Y coordinates.
-      builder::arity_two().of_types(ExprToXDataSet::new(), prisms::expr_to_typed_vector(prisms::ExprToNumber))
+      builder::arity_two().of_types(ExprToXDataSet::new(), prisms::expr_to_typed_vector(prisms::expr_to_number()))
         .and_then(|x, y, ctx| {
           match PlotDirective::from_points(&x.clone().into(), &y) {
             Err(err) => {
@@ -117,6 +117,6 @@ pub fn contour_plot_function() -> Function {
 
 fn vec_vec_number_prism() -> impl Prism<Expr, Vec<Vec<Number>>> {
   prisms::expr_to_typed_vector(
-    prisms::expr_to_typed_vector(prisms::ExprToNumber),
+    prisms::expr_to_typed_vector(prisms::expr_to_number()),
   )
 }

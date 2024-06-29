@@ -9,7 +9,7 @@ use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::function::{Function, FunctionContext};
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder};
-use crate::expr::prisms::{ExprToVar, ExprToNumber};
+use crate::expr::prisms::{ExprToVar, expr_to_number};
 use crate::expr::calculus::differentiate;
 
 use num::{BigInt, ToPrimitive};
@@ -28,7 +28,7 @@ pub fn deriv() -> Function {
       })
     )
     .add_case(
-      builder::arity_three().of_types(Identity, ExprToVar, ExprToNumber).and_then(|expr, var, n, context| {
+      builder::arity_three().of_types(Identity, ExprToVar, expr_to_number()).and_then(|expr, var, n, context| {
         let n: BigInt = match BigInt::try_from(n) {
           Ok(n) => n,
           Err(err) => {

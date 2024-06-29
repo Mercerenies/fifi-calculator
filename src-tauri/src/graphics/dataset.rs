@@ -190,9 +190,9 @@ impl ExprToXDataSet {
   }
 
   fn inner_prism() -> impl Prism<Expr, Either<Either<Vec<Number>, Interval>, Number>> {
-    prisms::expr_to_typed_vector(prisms::ExprToNumber)
+    prisms::expr_to_typed_vector(prisms::expr_to_number())
       .or(prisms::expr_to_interval())
-      .or(prisms::ExprToNumber)
+      .or(prisms::expr_to_number())
   }
 }
 
