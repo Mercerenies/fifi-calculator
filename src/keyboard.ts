@@ -14,17 +14,48 @@ export enum Modifier {
   ALL = 7,
 }
 
+const LETTERS = {
+  A: 1, B: 1, C: 1, D: 1, E: 1, F: 1, G: 1, H: 1, I: 1, J: 1, K: 1, L: 1, M: 1,
+  N: 1, O: 1, P: 1, Q: 1, R: 1, S: 1, T: 1, U: 1, V: 1, W: 1, X: 1, Y: 1, Z: 1,
+};
+
 const MODIFIER_KEY_NAMES = new Set([
   "Alt", "AltGr", "Shift", "Control", "Hyper", "Meta",
 ])
 
 export class KeyInput {
-  readonly key: string;
-  readonly modifiers: Modifier;
+  private _key: string;
+  private _modifiers: Modifier;
 
   constructor(key: string, modifiers: Modifier = 0) {
-    this.key = key;
-    this.modifiers = modifiers;
+    this._key = key;
+    this._modifiers = modifiers;
+    this.normalizeSelf();
+  }
+
+  get key(): string {
+    return this._key;
+  }
+
+  get modifiers(): Modifier {
+    return this._modifiers;
+  }
+
+  // Normalize the key inputs in the same way that Emacs does. This is
+  // mainly an Emacs compatibility thing, and in most cases it won't
+  // change the input.
+  private normalizeSelf() {
+    if ((this.modifiers != Modifier.NONE) && (this.key in LETTERS)) {
+      this._key = this.key.toLowerCase();
+    }
+    switch (this.toEmacsSyntax()) {
+    case "C-i":
+      this._key = "Tab";
+      this._modifiers = Modifier.NONE;
+    case "C-m":
+      this._key = "Enter";
+      this._modifiers = Modifier.NONE;
+    }
   }
 
   // Returns undefined if the keyboard event represents a modifier key
