@@ -1,7 +1,7 @@
 
 import { InputBoxManager } from '../input_box.js';
 import { FreeformInputMethod } from './freeform_input.js';
-import { TAURI, Validator, defaultCommandOptions } from '../tauri_api.js';
+import { TAURI, defaultCommandOptions } from '../tauri_api.js';
 
 export const STRING_INPUT_PROMPT = "Str:";
 
