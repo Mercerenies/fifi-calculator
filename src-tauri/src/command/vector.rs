@@ -167,7 +167,7 @@ impl Command for UnpackCommand {
         let args = args.into_iter().map(|arg| context.simplify_expr(arg, &mut errors));
         stack.push_several(args);
       }
-      expr @ Expr::Atom(Atom::Number(_) | Atom::Var(_)) => {
+      expr @ Expr::Atom(Atom::Number(_) | Atom::Var(_) | Atom::String(_)) => {
         if !context.opts.keep_modifier {
           // If we actually popped the value, then push it back since
           // this is an error condition.

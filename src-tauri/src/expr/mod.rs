@@ -206,6 +206,18 @@ impl From<Atom> for Expr {
   }
 }
 
+impl From<String> for Expr {
+  fn from(s: String) -> Expr {
+    Expr::Atom(s.into())
+  }
+}
+
+impl From<&str> for Expr {
+  fn from(s: &str) -> Expr {
+    String::from(s).into()
+  }
+}
+
 impl From<Var> for Expr {
   fn from(v: Var) -> Expr {
     Expr::Atom(v.into())

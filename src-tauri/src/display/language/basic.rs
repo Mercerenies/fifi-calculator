@@ -4,7 +4,7 @@ use crate::parsing::operator::{Operator, Precedence, OperatorTable};
 use crate::parsing::operator::fixity::FixityType;
 use crate::expr::Expr;
 use crate::expr::number::{Number, ComplexNumber};
-use crate::expr::atom::Atom;
+use crate::expr::atom::{Atom, write_escaped_str};
 use crate::expr::basic_parser::ExprParser;
 use crate::expr::vector::Vector;
 
@@ -216,6 +216,9 @@ impl LanguageMode for BasicLanguageMode {
       Expr::Atom(Atom::Var(v)) => {
         out.push_str(&v.to_string());
       }
+      Expr::Atom(Atom::String(s)) => {
+        write_escaped_str(out, s).unwrap(); // unwrap: impl Write for String doesn't fail.
+      }
       Expr::Call(f, args) => {
         if f == ComplexNumber::FUNCTION_NAME && args.len() == 2 {
           self.complex_to_html(engine, out, args);
@@ -258,6 +261,13 @@ mod tests {
   fn test_atoms() {
     let mode = BasicLanguageMode::default();
     assert_eq!(mode.to_html(&Expr::from(9)), "9");
+    assert_eq!(mode.to_html(&Expr::var("x").unwrap()), "x");
+    assert_eq!(mode.to_html(&Expr::from(r#"abc"def\"#)), r#""abc\"def\\""#);
+  }
+
+  #[test]
+  fn test_complex_numbers() {
+    let mode = BasicLanguageMode::default();
     assert_eq!(
       mode.to_html(&Expr::from(ComplexNumber::new(Number::from(2), Number::from(-2)))),
       "(2, -2)",

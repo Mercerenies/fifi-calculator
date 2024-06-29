@@ -4,17 +4,42 @@ use super::var::Var;
 
 use serde::{Serialize, Deserialize};
 
-use std::fmt::{self, Display, Formatter};
+use std::fmt::{self, Write, Display, Formatter};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Atom {
   Number(Number),
+  String(String),
   Var(Var),
+}
+
+/// Writes a string, using supported escape sequences from Rust when
+/// necessary.
+pub fn write_escaped_str(f: &mut impl Write, s: &str) -> fmt::Result {
+  f.write_char('"')?;
+  for c in s.chars() {
+    match c {
+      '"' => f.write_str("\\\"")?,
+      '\0' => f.write_str("\\0")?,
+      '\\' => f.write_str("\\\\")?,
+      '\n' => f.write_str("\\n")?,
+      '\t' => f.write_str("\\t")?,
+      '\r' => f.write_str("\\r")?,
+      c => f.write_char(c)?,
+    }
+  }
+  f.write_char('"')
 }
 
 impl From<Number> for Atom {
   fn from(n: Number) -> Self {
     Self::Number(n)
+  }
+}
+
+impl From<String> for Atom {
+  fn from(s: String) -> Self {
+    Self::String(s)
   }
 }
 
@@ -41,6 +66,29 @@ impl Display for Atom {
     match self {
       Atom::Number(n) => write!(f, "{n}"),
       Atom::Var(v) => write!(f, "{v}"),
+      Atom::String(s) => write_escaped_str(f, s),
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_write_escaped_str_simple() {
+    let s = "hello world";
+    let mut buf = String::new();
+    write_escaped_str(&mut buf, s).unwrap();
+    assert_eq!(buf, "\"hello world\"");
+  }
+
+  #[test]
+  fn test_write_escaped_str_with_escapes() {
+    let s = r#"hello
+wo\rl""d"#;
+    let mut buf = String::new();
+    write_escaped_str(&mut buf, s).unwrap();
+    assert_eq!(buf, r#""hello\nwo\\rl\"\"d""#);
   }
 }
