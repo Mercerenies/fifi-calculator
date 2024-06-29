@@ -3,6 +3,7 @@ use super::number::Number;
 use super::var::Var;
 
 use serde::{Serialize, Deserialize};
+use thiserror::Error;
 
 use std::fmt::{self, Write, Display, Formatter};
 
@@ -11,6 +12,12 @@ pub enum Atom {
   Number(Number),
   String(String),
   Var(Var),
+}
+
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
+#[error("Invalid escape sequence '\\{character}'")]
+pub struct InvalidEscapeError {
+  pub character: char,
 }
 
 /// Writes a string, using supported escape sequences from Rust when
@@ -29,6 +36,18 @@ pub fn write_escaped_str(f: &mut impl Write, s: &str) -> fmt::Result {
     }
   }
   f.write_char('"')
+}
+
+pub fn process_escape_char(character: char) -> Result<char, InvalidEscapeError> {
+  match character {
+    '"' => Ok('"'),
+    '\\' => Ok('\\'),
+    '0' => Ok('\0'),
+    'n' => Ok('\n'),
+    't' => Ok('\t'),
+    'r' => Ok('\r'),
+    character => Err(InvalidEscapeError { character }),
+  }
 }
 
 impl From<Number> for Atom {

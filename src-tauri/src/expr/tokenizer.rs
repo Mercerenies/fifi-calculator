@@ -1,6 +1,7 @@
 
 use super::number::{Number, ParseNumberError};
 use super::var::Var;
+use super::atom::{write_escaped_str, process_escape_char, InvalidEscapeError};
 use crate::parsing::operator::{Operator, OperatorTable};
 use crate::parsing::source::{Span, SourceOffset};
 use crate::parsing::tokenizer::TokenizerState;
@@ -28,6 +29,7 @@ pub struct Token {
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenData {
   Number(Number),
+  String(String),
   Var(Var),
   Operator(Operator),
   FunctionCallStart(String),
@@ -41,12 +43,21 @@ pub enum TokenData {
 #[derive(Debug, Clone, Error, PartialEq)]
 #[non_exhaustive]
 pub enum TokenizerError {
+  /// Unexpected EOF during tokenization. This error variant should
+  /// ONLY be used in situations where it is valid to cancel
+  /// tokenization and simply terminate the process. That is, it
+  /// should NOT be used if EOF is encountered in an unusual state,
+  /// such as in the middle of a string literal.
   #[error("Expected token, but found EOF at {0}")]
   UnexpectedEOF(SourceOffset),
+  #[error("Un-terminated string literal at {0}")]
+  UnterminatedString(SourceOffset),
   #[error("Expected token, but found '{0}' at {1}")]
   UnexpectedChar(char, SourceOffset),
   #[error("Failed to parse number")]
-  ParseNumberError(#[from] ParseNumberError)
+  ParseNumberError(#[from] ParseNumberError),
+  #[error("{0}")]
+  InvalidEscapeError(#[from] InvalidEscapeError),
 }
 
 impl<'a> ExprTokenizer<'a> {
@@ -79,6 +90,8 @@ impl<'a> ExprTokenizer<'a> {
   pub fn read_one_token(&self, state: &mut TokenizerState<'_>) -> Result<Token, TokenizerError> {
     if let Some(tok) = self.read_char_token(state) {
       Ok(tok)
+    } else if let Some(res) = self.read_string_token(state) {
+      res
     } else if let Some(tok) = self.read_function_call_token(state) {
       Ok(tok)
     } else if let Some(tok) = self.read_variable_token(state) {
@@ -116,6 +129,44 @@ impl<'a> ExprTokenizer<'a> {
     } else {
       None
     }
+  }
+
+  fn read_string_token(&self, state: &mut TokenizerState<'_>) -> Option<Result<Token, TokenizerError>> {
+    let span_start = state.current_pos();
+    let Some(_) = state.read_literal("\"") else {
+      return None;
+    };
+    Some(self.read_string_token_committed(state, span_start))
+  }
+
+  fn read_string_token_committed(
+    &self,
+    state: &mut TokenizerState<'_>,
+    span_start: SourceOffset,
+  ) -> Result<Token, TokenizerError> {
+    let mut s = String::new();
+    while let Some(ch) = state.peek() {
+      state.advance(1);
+      match ch {
+        '"' => {
+          let span_end = state.current_pos();
+          let span = Span::new(span_start, span_end);
+          let token = Token::new(TokenData::String(s), span);
+          return Ok(token);
+        }
+        '\\' => {
+          let Some(next_char) = state.peek() else {
+            return Err(TokenizerError::UnterminatedString(state.current_pos()));
+          };
+          state.advance(1);
+          s.push(process_escape_char(next_char)?);
+        }
+        ch => {
+          s.push(ch);
+        }
+      }
+    }
+    Err(TokenizerError::UnterminatedString(state.current_pos()))
   }
 
   fn read_function_call_token(&self, state: &mut TokenizerState<'_>) -> Option<Token> {
@@ -172,6 +223,7 @@ impl Display for TokenData {
     match self {
       TokenData::Number(n) => write!(f, "{n}"),
       TokenData::Var(v) => write!(f, "{v}"),
+      TokenData::String(s) => write_escaped_str(f, &s),
       TokenData::Operator(op) => write!(f, "{}", op.operator_name()),
       TokenData::FunctionCallStart(name) => write!(f, "{name}("),
       TokenData::LeftParen => write!(f, "("),
@@ -396,5 +448,50 @@ mod tests {
     let err = tokenizer.read_tokens(&mut state).unwrap_err();
     assert!(matches!(err, TokenizerError::ParseNumberError(_)));
     assert_eq!(state.current_pos(), SourceOffset(0));
+  }
+
+  #[test]
+  fn test_token_stream_on_string() {
+    let table = sample_operator_table();
+    let tokenizer = ExprTokenizer::new(&table);
+
+    let mut state = TokenizerState::new(r#" "a\"b" "#);
+    let tokens = tokenizer.read_tokens(&mut state).unwrap();
+    assert_eq!(
+      tokens,
+      vec![
+        Token::new(TokenData::String("a\"b".to_owned()), span(1, 7)),
+      ],
+    )
+  }
+
+  #[test]
+  fn test_token_stream_on_string_with_bad_escape_sequence() {
+    let table = sample_operator_table();
+    let tokenizer = ExprTokenizer::new(&table);
+
+    let mut state = TokenizerState::new(r#" "a\9b" "#);
+    let err = tokenizer.read_tokens(&mut state).unwrap_err();
+    assert_eq!(err, TokenizerError::InvalidEscapeError(InvalidEscapeError { character: '9' }));
+  }
+
+  #[test]
+  fn test_token_stream_nonterminated_string() {
+    let table = sample_operator_table();
+    let tokenizer = ExprTokenizer::new(&table);
+
+    let mut state = TokenizerState::new(r#""a"#);
+    let err = tokenizer.read_tokens(&mut state).unwrap_err();
+    assert_eq!(err, TokenizerError::UnterminatedString(SourceOffset(2)));
+  }
+
+  #[test]
+  fn test_token_stream_nonterminated_string_in_escape() {
+    let table = sample_operator_table();
+    let tokenizer = ExprTokenizer::new(&table);
+
+    let mut state = TokenizerState::new(r#""a\"#);
+    let err = tokenizer.read_tokens(&mut state).unwrap_err();
+    assert_eq!(err, TokenizerError::UnterminatedString(SourceOffset(3)));
   }
 }
