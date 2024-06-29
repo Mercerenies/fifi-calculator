@@ -1,8 +1,7 @@
 
 import { InputBoxManager } from '../input_box.js';
 import { FreeformInputMethod } from './freeform_input.js';
-import { defaultCommandOptions } from '../button_grid/modifier_delegate.js';
-import { TAURI, Validator } from '../tauri_api.js';
+import { TAURI, Validator, defaultCommandOptions } from '../tauri_api.js';
 
 export const ALGEBRAIC_INPUT_PROMPT = "Alg:";
 export const VARIABLE_NAME_INPUT_PROMPT = "Var:";

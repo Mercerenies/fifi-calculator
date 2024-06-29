@@ -1,8 +1,7 @@
 
 import { InputMethod, InputBoxSession, InputBoxManager } from '../input_box.js';
 import { KeyResponse, KeyEventInput } from '../keyboard.js';
-import { defaultCommandOptions } from '../button_grid/modifier_delegate.js';
-import { TAURI } from '../tauri_api.js';
+import { TAURI, defaultCommandOptions } from '../tauri_api.js';
 
 // Input method that accepts numerical input.
 export class NumericalInputMethod implements InputMethod {

@@ -1,6 +1,5 @@
 
-import { TAURI } from '../tauri_api.js';
-import { defaultCommandOptions } from '../button_grid/modifier_delegate.js';
+import { TAURI, defaultCommandOptions } from '../tauri_api.js';
 import { TouchMode, TouchModeFactoryContext } from '../touch_mode.js';
 
 import { Sortable, SortableStopEvent } from '@shopify/draggable';

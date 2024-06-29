@@ -53,11 +53,6 @@ export function modifiersToRustArgs(modifiers: ButtonModifiers): CommandOptions 
   };
 }
 
-// TODO: Move this to tauri_api.ts
-export function defaultCommandOptions(): CommandOptions {
-  return modifiersToRustArgs(defaultModifiers());
-}
-
 export function defaultModifiers(): ButtonModifiers {
   return {
     prefixArgument: undefined,

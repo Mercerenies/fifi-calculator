@@ -1,6 +1,5 @@
 
-import { TAURI } from '../tauri_api.js';
-import { defaultCommandOptions } from '../button_grid/modifier_delegate.js';
+import { TAURI, defaultCommandOptions } from '../tauri_api.js';
 import { InputBoxManager } from '../input_box.js';
 import { TouchModeFactoryContext } from '../touch_mode.js';
 import { ClickableTouchMode } from './clickable.js';

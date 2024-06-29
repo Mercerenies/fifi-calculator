@@ -1,5 +1,6 @@
 
 import { SerializedGraphicsPayload, GraphicsResponse } from './tauri_api/graphics.js';
+import { modifiersToRustArgs, defaultModifiers } from './button_grid/modifier_delegate.js';
 
 import * as os from '@tauri-apps/plugin-os';
 import { invoke } from '@tauri-apps/api/core';
@@ -76,4 +77,8 @@ export interface ModelinePayload {
 
 export interface ShowErrorPayload {
   errorMessage: string;
+}
+
+export function defaultCommandOptions(): CommandOptions {
+  return modifiersToRustArgs(defaultModifiers());
 }

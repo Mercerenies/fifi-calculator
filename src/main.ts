@@ -1,8 +1,8 @@
 
 import * as Page from './page.js';
 import { UiManager } from './ui_manager.js';
-import { defaultCommandOptions } from './button_grid/modifier_delegate.js';
-import { TAURI, RefreshStackPayload, UndoAvailabilityPayload, ModelinePayload } from './tauri_api.js';
+import { TAURI, RefreshStackPayload, UndoAvailabilityPayload,
+         ModelinePayload, defaultCommandOptions } from './tauri_api.js';
 import { StackView, StackUpdatedDelegate } from './stack_view.js';
 import { GRAPHICS_DELEGATE } from './graphics.js';
 
