@@ -36,6 +36,7 @@ class TauriApi {
 
   listen(event: 'refresh-stack', callback: EventCallback<RefreshStackPayload>): Promise<UnlistenFn>;
   listen(event: 'refresh-undo-availability', callback: EventCallback<UndoAvailabilityPayload>): Promise<UnlistenFn>;
+  listen(event: 'refresh-modeline', callback: EventCallback<ModelinePayload>): Promise<UnlistenFn>;
   listen(event: 'show-error', callback: EventCallback<ShowErrorPayload>): Promise<UnlistenFn>;
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
   listen(event: string, callback: EventCallback<any>): Promise<UnlistenFn> {
@@ -67,6 +68,10 @@ export interface RefreshStackPayload {
 export interface UndoAvailabilityPayload {
   hasUndos: boolean;
   hasRedos: boolean;
+}
+
+export interface ModelinePayload {
+  modelineText: string;
 }
 
 export interface ShowErrorPayload {

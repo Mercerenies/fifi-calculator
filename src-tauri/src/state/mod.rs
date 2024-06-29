@@ -7,7 +7,7 @@ pub mod tauri_command;
 pub mod undo;
 pub mod validation;
 
-use events::{RefreshStackPayload, UndoAvailabilityPayload};
+use events::{RefreshStackPayload, UndoAvailabilityPayload, ModelinePayload};
 use delegate::UndoingDelegate;
 use crate::stack::{Stack, DelegatingStack};
 use crate::expr::Expr;
@@ -92,10 +92,28 @@ impl ApplicationState {
     app_handle.emit(UndoAvailabilityPayload::EVENT_NAME, payload)
   }
 
+  pub fn send_modeline_event(&self, app_handle: &tauri::AppHandle) -> tauri::Result<()> {
+    let payload = ModelinePayload {
+      modeline_text: self.modeline(),
+    };
+    app_handle.emit(ModelinePayload::EVENT_NAME, payload)
+  }
+
   pub fn send_all_updates(&self, app_handle: &tauri::AppHandle, force_scroll_down: bool) -> tauri::Result<()> {
     self.send_refresh_stack_event(app_handle, force_scroll_down)?;
     self.send_undo_buttons_event(app_handle)?;
+    self.send_modeline_event(app_handle)?;
     Ok(())
+  }
+
+  pub fn modeline(&self) -> String {
+    let mut modeline = String::new();
+    if self.display_settings().is_graphics_enabled {
+      modeline.push('G');
+    } else {
+      modeline.push('-');
+    }
+    modeline
   }
 
   pub fn display_settings(&self) -> &DisplaySettings {

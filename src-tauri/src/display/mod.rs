@@ -7,14 +7,25 @@ use language::basic::BasicLanguageMode;
 use language::graphics::GraphicsLanguageMode;
 
 pub struct DisplaySettings {
-  base_language_mode: Box<dyn LanguageMode + Send + Sync>,
+  pub base_language_mode: Box<dyn LanguageMode + Send + Sync>,
+  pub is_graphics_enabled: bool,
 }
 
 impl DisplaySettings {
+  pub fn new(language_mode: impl LanguageMode + Send + Sync + 'static) -> Self {
+    DisplaySettings {
+      base_language_mode: Box::new(language_mode),
+      is_graphics_enabled: true,
+    }
+  }
+
   pub fn language_mode(&self) -> Box<dyn LanguageMode + '_> {
-    Box::new(
-      GraphicsLanguageMode::new(self.base_language_mode.as_ref()),
-    )
+    let base_language_mode = self.base_language_mode.as_ref();
+    if self.is_graphics_enabled {
+      Box::new(GraphicsLanguageMode::new(base_language_mode))
+    } else {
+      Box::new(base_language_mode)
+    }
   }
 }
 
@@ -32,9 +43,7 @@ impl DisplaySettings {
 
 impl Default for DisplaySettings {
   fn default() -> Self {
-    let base_language_mode = Box::new(BasicLanguageMode::from_common_operators());
-    DisplaySettings {
-      base_language_mode,
-    }
+    let base_language_mode = BasicLanguageMode::from_common_operators();
+    DisplaySettings::new(base_language_mode)
   }
 }

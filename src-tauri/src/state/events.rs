@@ -30,12 +30,19 @@ pub struct UndoAvailabilityPayload {
   pub has_redos: bool,
 }
 
+/// Instructs the frontend to update the modeline.
+#[derive(Serialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelinePayload {
+  pub modeline_text: String,
+}
+
 /// Instructs the frontend to render an error message to the user.
 #[derive(Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ShowErrorPayload {
   /// The error message to display.
-  pub error_message: String, 
+  pub error_message: String,
 }
 
 impl RefreshStackPayload {
@@ -44,6 +51,10 @@ impl RefreshStackPayload {
 
 impl UndoAvailabilityPayload {
   pub const EVENT_NAME: &'static str = "refresh-undo-availability";
+}
+
+impl ModelinePayload {
+  pub const EVENT_NAME: &'static str = "refresh-modeline";
 }
 
 impl ShowErrorPayload {

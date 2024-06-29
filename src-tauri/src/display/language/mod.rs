@@ -59,6 +59,25 @@ impl<'a> LanguageModeEngine<'a> {
   }
 }
 
+/// Implementation of `LanguageMode` lifted to a reference type.
+impl<'a, T: LanguageMode + ?Sized> LanguageMode for &'a T {
+  fn write_to_html(&self, engine: &LanguageModeEngine, out: &mut String, expr: &Expr, prec: Precedence) {
+    (**self).write_to_html(engine, out, expr, prec);
+  }
+
+  fn parse(&self, text: &str) -> anyhow::Result<Expr> {
+    (**self).parse(text)
+  }
+
+  fn to_trait_object(&self) -> &dyn LanguageMode {
+    (**self).to_trait_object()
+  }
+
+  fn to_reversible_language_mode(&self) -> &dyn LanguageMode {
+    (**self).to_reversible_language_mode()
+  }
+}
+
 /// Helper function to output a list of values, separated by a chosen
 /// delimiter.
 pub fn output_sep_by<T, I, F>(

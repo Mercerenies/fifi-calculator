@@ -16,6 +16,7 @@ export const ElementIds = {
   TOUCH_MODES: 'touch-modes',
   UNDO_BUTTON: 'undo-button',
   REDO_BUTTON: 'redo-button',
+  MODELINE_BAR: 'modeline-bar',
 };
 
 function getElement(id: string): HTMLElement {
@@ -81,4 +82,8 @@ export function getUndoButton(): HTMLButtonElement {
 
 export function getRedoButton(): HTMLButtonElement {
   return getElement(ElementIds.REDO_BUTTON) as HTMLButtonElement;
+}
+
+export function getModelineBar(): HTMLElement {
+  return getElement(ElementIds.MODELINE_BAR);
 }

@@ -6,6 +6,7 @@ import { VectorButtonGrid } from "./vector_button_grid.js";
 import { FormulaButtonGrid } from "./formula_button_grid.js";
 import { TranscendentalButtonGrid } from "./transcendental_button_grid.js";
 import { GraphingButtonGrid } from "./graphing_button_grid.js";
+import { DisplayButtonGrid } from "./display_button_grid.js";
 import { DispatchButton, GotoButton } from './button.js';
 import { NumericalInputButton, AlgebraicInputButton } from './button/input.js';
 import { InputBoxManager } from '../input_box.js';
@@ -57,6 +58,8 @@ export class MainButtonGrid extends ButtonGrid {
     return [
       [
         new DispatchButton("+", "+", "+"),
+        new NumericalInputButton(this.inputManager),
+        new AlgebraicInputButton(this.inputManager),
       ],
       [
         new DispatchButton("-", "-", "-"),
@@ -67,7 +70,6 @@ export class MainButtonGrid extends ButtonGrid {
         new DispatchButton("<math><mo>&times;</mo><mi>i</mi></math>", "*i", null),
         new DispatchButton("<math><mo>&plusmn;</mo></math>", "negate", "n"),
         new DispatchButton("<math><msup><mi>x</mi><mi>y</mi></msup></math>", "^", "^"),
-        new GotoButton("<math><mi>ξ</mi></math>", "f", this.subgrids.transcendental),
       ],
       [
         new DispatchButton("&divide;", "/", "/"),
@@ -79,8 +81,8 @@ export class MainButtonGrid extends ButtonGrid {
         new DispatchButton(discardSvg(), "pop", "Backspace"),
         new DispatchButton(swapSvg(), "swap", "Tab"),
         new DispatchButton(dupSvg(), "dup", "Enter"),
-        new NumericalInputButton(this.inputManager),
-        new AlgebraicInputButton(this.inputManager),
+        new GotoButton("<math><mi>ξ</mi></math>", "f", this.subgrids.transcendental),
+        new GotoButton("out", "d", this.subgrids.display),
       ],
       [
         new GotoButton("<math><mi>x</mi></math>", "a", this.subgrids.algebra),
@@ -153,6 +155,7 @@ class Subgrids {
   readonly vector: VectorButtonGrid;
   readonly transcendental: TranscendentalButtonGrid;
   readonly graphing: GraphingButtonGrid;
+  readonly display: DisplayButtonGrid;
 
   constructor(mainGrid: MainButtonGrid, inputManager: InputBoxManager) {
     this.algebra = new AlgebraButtonGrid(mainGrid, inputManager);
@@ -161,5 +164,6 @@ class Subgrids {
     this.vector = new VectorButtonGrid(mainGrid, inputManager);
     this.transcendental = new TranscendentalButtonGrid(mainGrid, inputManager);
     this.graphing = new GraphingButtonGrid(mainGrid, inputManager);
+    this.display = new DisplayButtonGrid(mainGrid, inputManager);
   }
 }

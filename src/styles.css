@@ -308,10 +308,25 @@ input, button {
     text-align: center;
 }
 
+.modeline-bar {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    padding: 0.4em 1.0em;
+    font-family: monospace, monospace;
+    background-color: #f6f6f6;
+}
+
 /* "Small screen" mode for mobile devices */
 @media (max-width: 840px) {
     .value-stack {
         height: 10em;
+    }
+
+    .modeline-bar {
+        padding: 0.4em 0.4em;
+        font-family: monospace, monospace;
     }
 }
 
@@ -406,5 +421,9 @@ input, button {
 
   .plotly-interactive-plot {
       filter: invert(75%);
+  }
+
+  .modeline-bar {
+      background-color: #2f2f2f;
   }
 }
