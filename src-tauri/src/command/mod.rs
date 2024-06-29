@@ -88,6 +88,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   // Variable-related commands
   map.insert("manual_substitute".to_string(), Box::new(variables::SubstituteVarCommand::new()));
   map.insert("store_var".to_string(), Box::new(variables::StoreVarCommand::new()));
+  map.insert("unbind_var".to_string(), Box::new(variables::UnbindVarCommand::new()));
   map.insert("deriv".to_string(), Box::new(calculus::DerivativeCommand::new()));
   map.insert("find_root".to_string(), Box::new(algebra::FindRootCommand::new()));
 

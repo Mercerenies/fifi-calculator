@@ -25,7 +25,9 @@ export class StorageButtonGrid extends ButtonGrid {
         new VariableStoreButton(":=", "t", this.inputManager, false),
         new VariableStoreButton(":=<sup>K</sup>", "s", this.inputManager, true),
       ],
-      [],
+      [
+        new VariableUnbindButton(this.inputManager),
+      ],
       [],
       [],
       [],
@@ -73,6 +75,33 @@ export class VariableStoreButton extends Button {
       return { keepModifier: true };
     } else {
       return {};
+    }
+  }
+}
+
+export class VariableUnbindButton extends Button {
+  private inputManager: InputBoxManager;
+
+  constructor(inputManager: InputBoxManager) {
+    super("<math><mo lspace='0' rspace='0'>↚</mo></math>", "u");
+    this.inputManager = inputManager;
+  }
+
+  async fire(manager: ButtonGridManager): Promise<void> {
+    // Fire-and-forget a new promise that gets user input, so we don't
+    // hold up the existing input.
+    this.readAndStore(manager);
+  }
+
+  private async readAndStore(manager: ButtonGridManager): Promise<void> {
+    try {
+      const variableName = await variableNameInput(this.inputManager);
+      if (!variableName) {
+        return;
+      }
+      await manager.invokeMathCommand('unbind_var', [variableName]);
+    } finally {
+      manager.resetState();
     }
   }
 }

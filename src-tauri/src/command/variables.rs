@@ -41,6 +41,14 @@ pub struct StoreVarCommand {
   _priv: (),
 }
 
+/// This command takes one argument: a variable name. The command
+/// unbinds the variable with the given name. If the variable was not
+/// bound, nothing happens.
+#[derive(Debug, Default)]
+pub struct UnbindVarCommand {
+  _priv: (),
+}
+
 impl SubstituteVarCommand {
   pub fn new() -> SubstituteVarCommand {
     SubstituteVarCommand { _priv: () }
@@ -59,6 +67,19 @@ impl SubstituteVarCommand {
 impl StoreVarCommand {
   pub fn new() -> StoreVarCommand {
     StoreVarCommand { _priv: () }
+  }
+
+  fn argument_schema() -> UnaryArgumentSchema<StringToVar, Var> {
+    UnaryArgumentSchema::new(
+      "variable name".to_owned(),
+      StringToVar::new(),
+    )
+  }
+}
+
+impl UnbindVarCommand {
+  pub fn new() -> UnbindVarCommand {
+    UnbindVarCommand { _priv: () }
   }
 
   fn argument_schema() -> UnaryArgumentSchema<StringToVar, Var> {
@@ -114,6 +135,27 @@ impl Command for StoreVarCommand {
     let expr = stack.pop()?;
     state.variable_table_mut().insert(variable_name.clone(), expr.clone());
     state.undo_stack_mut().push_change(UpdateVarChange::new(variable_name, old_value, Some(expr)));
+
+    Ok(CommandOutput::success())
+  }
+}
+
+impl Command for UnbindVarCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    _context: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    let variable_name = validate_schema(&UnbindVarCommand::argument_schema(), args)?;
+
+    validate_non_reserved_var_name(&variable_name)?;
+    state.undo_stack_mut().push_cut();
+
+    let old_value = state.variable_table().get(&variable_name).cloned();
+
+    state.variable_table_mut().remove(&variable_name);
+    state.undo_stack_mut().push_change(UpdateVarChange::new(variable_name, old_value, None));
 
     Ok(CommandOutput::success())
   }
