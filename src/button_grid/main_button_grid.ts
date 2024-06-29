@@ -8,7 +8,7 @@ import { TranscendentalButtonGrid } from "./transcendental_button_grid.js";
 import { GraphingButtonGrid } from "./graphing_button_grid.js";
 import { DisplayButtonGrid } from "./display_button_grid.js";
 import { DispatchButton, GotoButton } from './button.js';
-import { NumericalInputButton, AlgebraicInputButton } from './button/input.js';
+import { NumericalInputButton, AlgebraicInputButton, StringInputButton } from './button/input.js';
 import { InputBoxManager } from '../input_box.js';
 import { numericalInputToStack } from '../input_box/numerical_input.js';
 import { KeyEventInput, KeyResponse } from '../keyboard.js';
@@ -60,6 +60,7 @@ export class MainButtonGrid extends ButtonGrid {
         new DispatchButton("+", "+", "+"),
         new NumericalInputButton(this.inputManager),
         new AlgebraicInputButton(this.inputManager),
+        new StringInputButton(this.inputManager),
       ],
       [
         new DispatchButton("-", "-", "-"),

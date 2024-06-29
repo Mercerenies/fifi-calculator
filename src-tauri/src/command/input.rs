@@ -71,6 +71,12 @@ pub fn push_expr_command() -> PushInputCommand<impl Fn(String, &dyn LanguageMode
   PushInputCommand::new(|arg, language_mode| language_mode.parse(&arg))
 }
 
+/// A `PushInputCommand` which pushes a literal string onto the stack.
+/// Always succeeds.
+pub fn push_string_command() -> PushInputCommand<impl Fn(String, &dyn LanguageMode) -> anyhow::Result<Expr>> {
+  PushInputCommand::new(|arg, _| Ok(Expr::from(arg)))
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -140,5 +146,22 @@ mod tests {
     let err = push_expr_command().run_command(&mut state, vec![String::from("x +")], &context).unwrap_err();
     assert_eq!(state.into_main_stack(), stack_of(vec![10, 20, 30])); // Stack should be unchanged.
     assert_eq!(err.to_string(), "Operator parsing error: Failed to parse operator chain: + at 2-3");
+  }
+
+  #[test]
+  fn test_push_string_command() {
+    let input_stack = vec![10, 20, 30];
+    let output_stack = act_on_stack_with_args(
+      &push_string_command(),
+      vec!["hello"],
+      CommandOptions::default(),
+      input_stack,
+    );
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::from(30),
+      Expr::from("hello"),
+    ]));
   }
 }

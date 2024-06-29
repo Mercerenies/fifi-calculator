@@ -18,7 +18,6 @@ pub mod vector;
 pub use base::{Command, CommandContext, CommandOutput};
 use functional::{UnaryFunctionCommand, BinaryFunctionCommand};
 use dispatch::CommandDispatchTable;
-use input::{push_number_command, push_expr_command};
 use crate::expr::Expr;
 use crate::expr::number::ComplexNumber;
 use crate::state::ApplicationState;
@@ -80,8 +79,9 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("toggle_graphics".to_string(), Box::new(display::toggle_graphics_command()));
 
   // Commands which accept a single string.
-  map.insert("push_number".to_string(), Box::new(push_number_command()));
-  map.insert("push_expr".to_string(), Box::new(push_expr_command()));
+  map.insert("push_number".to_string(), Box::new(input::push_number_command()));
+  map.insert("push_expr".to_string(), Box::new(input::push_expr_command()));
+  map.insert("push_string".to_string(), Box::new(input::push_string_command()));
 
   // Variable-related commands
   map.insert("manual_substitute".to_string(), Box::new(variables::SubstituteVarCommand::new()));
