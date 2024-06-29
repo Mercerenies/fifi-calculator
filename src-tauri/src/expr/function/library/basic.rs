@@ -26,6 +26,7 @@ pub fn identity_function() -> Function {
     .build()
 }
 
+// TODO: Should work on strings and vectors of literals as well
 pub fn or_function() -> Function {
   // Python-style "or" which returns the first argument which is not
   // zero.
@@ -43,6 +44,7 @@ pub fn or_function() -> Function {
     .build()
 }
 
+// TODO: Should work on strings and vectors of literals as well
 pub fn and_function() -> Function {
   // Python-style "and" which returns the first argument which is
   // considered to be zero.

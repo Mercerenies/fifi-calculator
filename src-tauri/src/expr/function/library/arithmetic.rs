@@ -8,12 +8,14 @@ use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
 use crate::expr::vector::Vector;
 use crate::expr::vector::tensor::Tensor;
-use crate::expr::prisms::{self, expr_to_number, ExprToComplex, ExprToVector,
-                          ExprToTensor, ExprToIntervalLike, expr_to_interval};
+use crate::expr::prisms::{self, expr_to_number, expr_to_string,
+                          ExprToComplex, ExprToVector, ExprToTensor,
+                          ExprToIntervalLike, expr_to_interval, expr_to_usize};
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex, pow_complex_to_real};
 use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::calculus::DifferentiationError;
 use crate::graphics::GRAPHICS_NAME;
+use crate::util::repeated;
 
 use num::{Zero, One};
 
@@ -72,6 +74,12 @@ pub fn addition() -> Function {
         let sum = args.into_iter()
           .fold(Tensor::zero(), Tensor::add);
         Ok(sum.into())
+      })
+    )
+    .add_case(
+      // String concatenation
+      builder::any_arity().of_type(expr_to_string()).and_then(|args, _| {
+        Ok(Expr::from(args.join("")))
       })
     )
     .add_case(
@@ -150,6 +158,13 @@ pub fn multiplication() -> Function {
       // Unary simplification
       builder::arity_one().and_then(|arg, _| {
         Ok(arg)
+      })
+    )
+    .add_case(
+      // String repetition
+      builder::arity_two().of_types(expr_to_string(), expr_to_usize()).and_then(|s, n, _| {
+        let repeated_str: String = repeated(s, n.into());
+        Ok(Expr::from(repeated_str))
       })
     )
     .add_case(

@@ -9,6 +9,7 @@ use crate::errorlist::ErrorList;
 use crate::expr::Expr;
 use crate::expr::prisms;
 use crate::expr::atom::Atom;
+use crate::expr::number::Number;
 use crate::expr::vector::Vector;
 use crate::expr::simplifier::error::DomainError;
 use crate::state::ApplicationState;
@@ -167,7 +168,11 @@ impl Command for UnpackCommand {
         let args = args.into_iter().map(|arg| context.simplify_expr(arg, &mut errors));
         stack.push_several(args);
       }
-      expr @ Expr::Atom(Atom::Number(_) | Atom::Var(_) | Atom::String(_)) => {
+      Expr::Atom(Atom::String(s)) => {
+        let chars = s.chars().map(|c| Expr::from(Number::from(c as usize)));
+        stack.push_several(chars);
+      }
+      expr @ Expr::Atom(Atom::Number(_) | Atom::Var(_)) => {
         if !context.opts.keep_modifier {
           // If we actually popped the value, then push it back since
           // this is an error condition.

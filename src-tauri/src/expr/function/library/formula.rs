@@ -61,6 +61,12 @@ pub fn less_than() -> Function {
         Ok(Expr::from(left < right))
       })
     )
+    .add_case(
+      // String comparison
+      builder::arity_two().both_of_type(prisms::expr_to_string()).and_then(|left, right, _| {
+        Ok(Expr::from(left < right))
+      })
+    )
     .set_derivative(
       |args, engine| {
         // Pointwise derivative
@@ -76,6 +82,12 @@ pub fn less_than_or_equal() -> Function {
     .add_case(
       // Real number comparison
       builder::arity_two().both_of_type(prisms::expr_to_number()).and_then(|left, right, _| {
+        Ok(Expr::from(left <= right))
+      })
+    )
+    .add_case(
+      // String comparison
+      builder::arity_two().both_of_type(prisms::expr_to_string()).and_then(|left, right, _| {
         Ok(Expr::from(left <= right))
       })
     )
@@ -97,6 +109,12 @@ pub fn greater_than() -> Function {
         Ok(Expr::from(left > right))
       })
     )
+    .add_case(
+      // String comparison
+      builder::arity_two().both_of_type(prisms::expr_to_string()).and_then(|left, right, _| {
+        Ok(Expr::from(left > right))
+      })
+    )
     .set_derivative(
       |args, engine| {
         // Pointwise derivative
@@ -112,6 +130,12 @@ pub fn greater_than_or_equal() -> Function {
     .add_case(
       // Real number comparison
       builder::arity_two().both_of_type(prisms::expr_to_number()).and_then(|left, right, _| {
+        Ok(Expr::from(left >= right))
+      })
+    )
+    .add_case(
+      // String comparison
+      builder::arity_two().both_of_type(prisms::expr_to_string()).and_then(|left, right, _| {
         Ok(Expr::from(left >= right))
       })
     )

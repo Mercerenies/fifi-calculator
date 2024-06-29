@@ -39,6 +39,12 @@ pub fn vconcat() -> Function {
         Ok(sum.into())
       })
     )
+    .add_case(
+      // String concatenation
+      builder::any_arity().of_type(prisms::expr_to_string()).and_then(|args, _| {
+        Ok(Expr::from(args.join("")))
+      })
+    )
     .set_derivative(
       |args, engine| {
         // Pointwise derivative, similar to vectors.

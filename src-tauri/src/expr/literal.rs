@@ -2,7 +2,7 @@
 use super::{Expr, TryFromExprError};
 use super::number::{Number, ComplexNumber, ComplexLike};
 use super::vector::Vector;
-use super::prisms::{ExprToComplex, ExprToVector};
+use super::prisms::{ExprToComplex, ExprToVector, expr_to_string};
 use crate::util::prism::Prism;
 
 use std::convert::TryFrom;
@@ -22,6 +22,7 @@ pub struct Literal {
 #[derive(Debug, Clone, PartialEq)]
 enum LiteralImpl {
   Numerical(ComplexLike),
+  String(String),
   Vector(Vec<Literal>),
 }
 
@@ -32,6 +33,10 @@ impl Literal {
 
   fn try_from_as_complex(expr: Expr) -> Result<Self, Expr> {
     ExprToComplex.narrow_type(expr).map(|c| Literal { data: LiteralImpl::Numerical(c) })
+  }
+
+  fn try_from_as_string(expr: Expr) -> Result<Self, Expr> {
+    expr_to_string().narrow_type(expr).map(|s| Literal { data: LiteralImpl::String(s) })
   }
 
   fn try_from_as_vector(expr: Expr) -> Result<Self, Expr> {
@@ -51,6 +56,12 @@ impl From<ComplexLike> for Literal {
   }
 }
 
+impl From<String> for Literal {
+  fn from(s: String) -> Self {
+    Literal { data: LiteralImpl::String(s) }
+  }
+}
+
 impl From<Number> for Literal {
   fn from(n: Number) -> Self {
     ComplexLike::Real(n).into()
@@ -66,6 +77,7 @@ impl From<ComplexNumber> for Literal {
 impl From<Literal> for Expr {
   fn from(lit: Literal) -> Self {
     match lit.data {
+      LiteralImpl::String(s) => s.into(),
       LiteralImpl::Numerical(n) => n.into(),
       LiteralImpl::Vector(v) => {
         let v: Vector = v.into_iter().map(Expr::from).collect();
@@ -81,6 +93,8 @@ impl TryFrom<Expr> for Literal {
   fn try_from(expr: Expr) -> Result<Self, Self::Error> {
     Literal::try_from_as_complex(expr).or_else(|expr| {
       Literal::try_from_as_vector(expr)
+    }).or_else(|expr| {
+      Literal::try_from_as_string(expr)
     }).map_err(|expr| {
       TryFromExprError::new("Literal", expr)
     })
