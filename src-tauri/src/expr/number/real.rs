@@ -681,9 +681,9 @@ mod tests {
     assert_roundtrip_display(Number::from(BigInt::from_slice(Sign::Plus, &[9, 10, 100, 488, 22, 3])));
     assert_roundtrip_display(Number::from(BigInt::from_slice(Sign::Minus, &[9, 100, 488, 10, 22, 3])));
     // Rational numbers
-    assert_roundtrip_display(Number::ratio(BigInt::from(9), BigInt::from(100)));
-    assert_roundtrip_display(Number::ratio(BigInt::from(-100), BigInt::from(3)));
-    assert_roundtrip_display(Number::ratio(BigInt::from(38324), BigInt::from(288)));
+    assert_roundtrip_display(Number::ratio(9, 100));
+    assert_roundtrip_display(Number::ratio(-100, 3));
+    assert_roundtrip_display(Number::ratio(38324, 288));
     // Floats
     assert_roundtrip_display(Number::from(9.1));
     assert_roundtrip_display(Number::from(3.1415));
@@ -706,15 +706,15 @@ mod tests {
   fn test_parse_ratio() {
     assert_strict_eq!(
       Number::from_str("1:2").unwrap(),
-      Number::ratio(BigInt::from(1), BigInt::from(2)),
+      Number::ratio(1, 2),
     );
     assert_strict_eq!(
       Number::from_str("-7:9").unwrap(),
-      Number::ratio(BigInt::from(-7), BigInt::from(9)),
+      Number::ratio(-7, 9),
     );
     assert_strict_eq!(
       Number::from_str("7:-9").unwrap(),
-      Number::ratio(BigInt::from(-7), BigInt::from(9)),
+      Number::ratio(-7, 9),
     );
     assert_eq!(Number::from_str("1:0"), Err(ParseNumberError {}));
   }
@@ -733,8 +733,8 @@ mod tests {
     assert_eq!(Number::one().repr(), NumberRepr::Integer);
     assert_eq!(Number::from(BigInt::from(9)).repr(), NumberRepr::Integer);
     assert_eq!(Number::from(999).repr(), NumberRepr::Integer);
-    assert_eq!(Number::ratio(BigInt::from(1), BigInt::from(2)).repr(), NumberRepr::Ratio);
-    assert_eq!(Number::ratio(BigInt::from(-1), BigInt::from(9)).repr(), NumberRepr::Ratio);
+    assert_eq!(Number::ratio(1, 2).repr(), NumberRepr::Ratio);
+    assert_eq!(Number::ratio(-1, 9).repr(), NumberRepr::Ratio);
     assert_eq!(Number::from(BigRational::new(BigInt::from(-1), BigInt::from(9))).repr(), NumberRepr::Ratio);
     assert_eq!(Number::from(9.9).repr(), NumberRepr::Float);
   }
@@ -743,9 +743,9 @@ mod tests {
   fn test_ratio_repr_simplification() {
     // If we explicitly construct a rational number but it can be
     // represented as an integer, we should use the integer repr.
-    assert_eq!(Number::ratio(BigInt::from(2), BigInt::from(1)).repr(), NumberRepr::Integer);
-    assert_eq!(Number::ratio(BigInt::from(3), BigInt::from(3)).repr(), NumberRepr::Integer);
-    assert_eq!(Number::ratio(BigInt::from(9), BigInt::from(-3)).repr(), NumberRepr::Integer);
+    assert_eq!(Number::ratio(2, 1).repr(), NumberRepr::Integer);
+    assert_eq!(Number::ratio(3, 3).repr(), NumberRepr::Integer);
+    assert_eq!(Number::ratio(9, -3).repr(), NumberRepr::Integer);
   }
 
   #[test]
