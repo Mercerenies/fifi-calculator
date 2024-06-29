@@ -78,6 +78,10 @@ impl ComplexNumber {
     }
   }
 
+  pub fn to_polar(&self) -> (f64, Radians<f64>) {
+    (self.abs(), self.angle())
+  }
+
   pub fn to_inexact(&self) -> Self {
     Self {
       real: self.real.to_inexact(),
@@ -111,6 +115,13 @@ impl ComplexNumber {
       let imag = self.imag.to_f64().unwrap_or(f64::NAN);
       Radians::atan2(imag, real)
     }
+  }
+
+  /// Returns the natural logarithm, with the imaginary part in the
+  /// `(-pi, pi]` branch cut. Panics if `self.is_zero()`.
+  pub fn ln(&self) -> ComplexNumber {
+    let (magn, angle) = self.to_polar();
+    ComplexNumber::new(Number::from(magn.ln()), Number::from(angle.0))
   }
 
   pub fn recip(&self) -> ComplexNumber {

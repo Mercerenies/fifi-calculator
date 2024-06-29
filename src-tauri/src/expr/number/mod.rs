@@ -209,6 +209,7 @@ impl One for ComplexLike {
   }
 
   fn is_one(&self) -> bool {
+    dbg!(self);
     match self {
       ComplexLike::Real(r) => r.is_one(),
       ComplexLike::Complex(z) => z.is_one(),

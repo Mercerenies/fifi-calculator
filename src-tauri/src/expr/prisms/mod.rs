@@ -14,7 +14,7 @@ use crate::util::prism::{Prism, PrismExt, OnVec, OnTuple2, Only, Conversion,
                          LosslessConversion, VecToArray, ErrorWithPayload};
 use crate::graphics::GRAPHICS_NAME;
 
-use num::Zero;
+use num::{Zero, One};
 
 // Re-export some useful expression-adjacent prisms.
 pub use super::var::StringToVar;
@@ -162,6 +162,14 @@ impl PositiveNumber {
     } else {
       Err(number)
     }
+  }
+
+  pub fn is_zero(&self) -> bool {
+    self.data.is_zero()
+  }
+
+  pub fn is_one(&self) -> bool {
+    self.data.is_one()
   }
 }
 

@@ -9,7 +9,7 @@ use crate::expr::function::builder::{self, FunctionBuilder};
 use crate::expr::prisms::{self, expr_to_number, ExprToComplex};
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex};
 
-use num::Zero;
+use num::{Zero, One};
 
 use std::f64::consts;
 
@@ -25,6 +25,18 @@ pub fn natural_log() -> Function {
       // Natural logarithm of a positive real number
       builder::arity_one().of_type(prisms::expr_to_positive_number()).and_then(|arg, _| {
         Ok(Expr::from(Number::from(arg).ln()))
+      })
+    )
+    .add_case(
+      // Natural logarithm of a non-zero complex number
+      builder::arity_one().of_type(prisms::ExprToComplex).and_then(|arg, ctx| {
+        if arg.is_zero() {
+          // TODO: Negative infinity
+          ctx.errors.push(SimplifierError::custom_error("ln", "Expected non-zero complex number"));
+          return Err(arg);
+        }
+        let arg = ComplexNumber::from(arg);
+        Ok(Expr::from(arg.ln()))
       })
     )
     .add_case(
@@ -50,10 +62,31 @@ pub fn logarithm() -> Function {
   FunctionBuilder::new("log")
     .add_case(
       // Arbitrary-base logarithm with positive real arguments
-      builder::arity_two().both_of_type(prisms::expr_to_positive_number()).and_then(|arg, base, _| {
+      builder::arity_two().both_of_type(prisms::expr_to_positive_number()).and_then(|arg, base, ctx| {
+        if base.is_one() {
+          ctx.errors.push(SimplifierError::division_by_zero("log"));
+          return Err((arg, base));
+        }
         let arg = Number::from(arg);
         let base = Number::from(base);
         Ok(Expr::from(arg.log(&base)))
+      })
+    )
+    .add_case(
+      // Arbitrary-base logarithm with non-zero complex arguments
+      builder::arity_two().both_of_type(prisms::ExprToComplex).and_then(|arg, base, ctx| {
+        // TODO: Infinity handling
+        if arg.is_zero() || base.is_zero() {
+          ctx.errors.push(SimplifierError::custom_error("log", "Expected non-zero complex arguments"));
+          return Err((arg, base));
+        }
+        if base.is_one() {
+          ctx.errors.push(SimplifierError::division_by_zero("log"));
+          return Err((arg, base));
+        }
+        let arg = ComplexNumber::from(arg);
+        let base = ComplexNumber::from(base);
+        Ok(Expr::from(arg.ln() / base.ln()))
       })
     )
     .add_case(
