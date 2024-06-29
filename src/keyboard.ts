@@ -52,9 +52,11 @@ export class KeyInput {
     case "C-i":
       this._key = "Tab";
       this._modifiers = Modifier.NONE;
+      break;
     case "C-m":
       this._key = "Enter";
       this._modifiers = Modifier.NONE;
+      break;
     }
   }
 
