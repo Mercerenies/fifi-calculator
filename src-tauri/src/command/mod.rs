@@ -63,6 +63,8 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("arg".to_string(), Box::new(UnaryFunctionCommand::named("arg")));
   map.insert("re".to_string(), Box::new(UnaryFunctionCommand::named("re")));
   map.insert("im".to_string(), Box::new(UnaryFunctionCommand::named("im")));
+  map.insert("lowercase".to_string(), Box::new(UnaryFunctionCommand::named("lowercase")));
+  map.insert("uppercase".to_string(), Box::new(UnaryFunctionCommand::named("uppercase")));
   map.insert("=".to_string(), Box::new(BinaryFunctionCommand::named("=")));
   map.insert("!=".to_string(), Box::new(BinaryFunctionCommand::named("!=")));
   map.insert("<".to_string(), Box::new(BinaryFunctionCommand::named("<")));

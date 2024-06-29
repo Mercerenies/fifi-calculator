@@ -6,6 +6,7 @@ import { VectorButtonGrid } from "./vector_button_grid.js";
 import { FormulaButtonGrid } from "./formula_button_grid.js";
 import { TranscendentalButtonGrid } from "./transcendental_button_grid.js";
 import { GraphingButtonGrid } from "./graphing_button_grid.js";
+import { StringButtonGrid } from "./string_button_grid.js";
 import { DisplayButtonGrid } from "./display_button_grid.js";
 import { DispatchButton, GotoButton } from './button.js';
 import { NumericalInputButton, AlgebraicInputButton, StringInputButton } from './button/input.js';
@@ -77,6 +78,7 @@ export class MainButtonGrid extends ButtonGrid {
         new DispatchButton("%", "%", "%"),
         new DispatchButton("&lfloor;&divide;&rfloor;", "div", "\\"),
         new DispatchButton("<span class='mathy-text'>x=</span>", "substitute_vars", "="),
+        new GotoButton("str", null, this.subgrids.strings),
       ],
       [
         new DispatchButton(discardSvg(), "pop", "Backspace"),
@@ -101,6 +103,12 @@ export class MainButtonGrid extends ButtonGrid {
     if (["L", "B", "E", "G", "J"].includes(key)) {
       const transcendentalTable = this.subgrids.transcendental.getKeyMappingTable();
       await transcendentalTable[key].fire(manager);
+      return KeyResponse.BLOCK;
+    }
+
+    if (["M-u", "M-l"].includes(key)) {
+      const stringTable = this.subgrids.strings.getKeyMappingTable();
+      await stringTable[key].fire(manager);
       return KeyResponse.BLOCK;
     }
 
@@ -157,6 +165,7 @@ class Subgrids {
   readonly transcendental: TranscendentalButtonGrid;
   readonly graphing: GraphingButtonGrid;
   readonly display: DisplayButtonGrid;
+  readonly strings: StringButtonGrid;
 
   constructor(mainGrid: MainButtonGrid, inputManager: InputBoxManager) {
     this.algebra = new AlgebraButtonGrid(mainGrid, inputManager);
@@ -166,5 +175,6 @@ class Subgrids {
     this.transcendental = new TranscendentalButtonGrid(mainGrid, inputManager);
     this.graphing = new GraphingButtonGrid(mainGrid, inputManager);
     this.display = new DisplayButtonGrid(mainGrid, inputManager);
+    this.strings = new StringButtonGrid(mainGrid, inputManager);
   }
 }
