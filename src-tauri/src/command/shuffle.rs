@@ -47,10 +47,12 @@ pub struct MoveStackElemCommand;
 ///
 /// If the index is out-of-bounds, nothing happens.
 ///
-/// This command does not use the numerical argument or the keep
-/// modifier.
+/// This command does not use the numerical argument, but it does
+/// respect the "keep" modifier.
 #[derive(Debug, Clone)]
-pub struct ReplaceStackElemCommand;
+pub struct ReplaceStackElemCommand {
+  pub is_mouse_interaction: bool,
+}
 
 impl MoveStackElemCommand {
   fn argument_schema() -> BinaryArgumentSchema<StringToUsize, ParsedUsize, StringToUsize, ParsedUsize> {
@@ -236,12 +238,22 @@ impl Command for ReplaceStackElemCommand {
     let expr = ctx.simplify_expr(expr, &mut errors);
 
     let mut stack = state.main_stack_mut();
-    let mut stack_elem = stack.get_mut(index as i64)?;
-    *stack_elem = expr;
-    Ok(
-      CommandOutput::from_errors(errors)
-        .set_force_scroll_down(false)
-    )
+    if ctx.opts.keep_modifier {
+      // In principle, we're replacing the value at `index`, so there
+      // must exist at least one extra value on the stack, even though
+      // we don't use it since we have the keep modifier on.
+      stack.check_stack_size(index + 1)?;
+      stack.insert(index, expr)?;
+    } else {
+      let mut stack_elem = stack.get_mut(index as i64)?;
+      *stack_elem = expr;
+    }
+
+    let mut output = CommandOutput::from_errors(errors);
+    if self.is_mouse_interaction {
+      output = output.set_force_scroll_down(false);
+    }
+    Ok(output)
   }
 }
 
@@ -881,7 +893,7 @@ mod tests {
   fn test_replace_stack_elem() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
     let output_stack = act_on_stack_with_args(
-      &ReplaceStackElemCommand,
+      &ReplaceStackElemCommand { is_mouse_interaction: false },
       vec!["2", "99"],
       CommandOptions::default(),
       input_stack,
@@ -896,11 +908,71 @@ mod tests {
   fn test_replace_stack_elem_parse_failure() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
     let err = act_on_stack_with_args_any_err(
-      &ReplaceStackElemCommand,
+      &ReplaceStackElemCommand { is_mouse_interaction: false },
       vec!["2", "("],
       CommandOptions::default(),
       input_stack,
     );
     assert!(err.is::<ParseError>(), "Expected ParseError, got {:?}", err);
+  }
+
+  #[test]
+  fn test_replace_stack_elem_with_keep_arg() {
+    let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
+    let output_stack = act_on_stack_with_args(
+      &ReplaceStackElemCommand { is_mouse_interaction: false },
+      vec!["2", "99"],
+      CommandOptions::default().with_keep_modifier(),
+      input_stack,
+    );
+    assert_eq!(
+      output_stack,
+      stack_of(vec![10, 20, 30, 40, 50, 99, 60, 70]),
+    )
+  }
+
+  #[test]
+  fn test_replace_stack_elem_with_keep_arg_at_top_of_stack() {
+    let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
+    let output_stack = act_on_stack_with_args(
+      &ReplaceStackElemCommand { is_mouse_interaction: false },
+      vec!["0", "99"],
+      CommandOptions::default().with_keep_modifier(),
+      input_stack,
+    );
+    assert_eq!(
+      output_stack,
+      stack_of(vec![10, 20, 30, 40, 50, 60, 70, 99]),
+    )
+  }
+
+  #[test]
+  fn test_replace_stack_elem_with_keep_arg_at_bottom_of_stack() {
+    let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
+    let output_stack = act_on_stack_with_args(
+      &ReplaceStackElemCommand { is_mouse_interaction: false },
+      vec!["6", "99"],
+      CommandOptions::default().with_keep_modifier(),
+      input_stack,
+    );
+    assert_eq!(
+      output_stack,
+      stack_of(vec![10, 99, 20, 30, 40, 50, 60, 70]),
+    )
+  }
+
+  #[test]
+  fn test_replace_stack_elem_with_keep_arg_out_of_bounds() {
+    let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
+    let err = act_on_stack_with_args_err(
+      &ReplaceStackElemCommand { is_mouse_interaction: false },
+      vec!["7", "99"],
+      CommandOptions::default().with_keep_modifier(),
+      input_stack,
+    );
+    assert_eq!(
+      err,
+      StackError::NotEnoughElements { expected: 8, actual: 7 },
+    )
   }
 }

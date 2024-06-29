@@ -93,8 +93,9 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("find_root".to_string(), Box::new(algebra::FindRootCommand::new()));
 
   // Specialized commands
-  map.insert("move_stack_elem".to_string(), Box::new(shuffle::MoveStackElemCommand));
-  map.insert("replace_stack_elem".to_string(), Box::new(shuffle::ReplaceStackElemCommand));
+  map.insert("mouse_move_stack_elem".to_string(), Box::new(shuffle::MoveStackElemCommand));
+  map.insert("mouse_replace_stack_elem".to_string(), Box::new(shuffle::ReplaceStackElemCommand { is_mouse_interaction: true }));
+  map.insert("replace_stack_elem".to_string(), Box::new(shuffle::ReplaceStackElemCommand { is_mouse_interaction: false }));
 
   CommandDispatchTable::from_hash_map(map)
 }

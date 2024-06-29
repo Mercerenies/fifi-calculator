@@ -45,7 +45,7 @@ export class DragTouchMode implements TouchMode {
     const destIndex = currentStackSize - 1 - newIndex;
 
     window.setTimeout(() => {
-      TAURI.runMathCommand("move_stack_elem", [String(srcIndex), String(destIndex)], defaultCommandOptions());
+      TAURI.runMathCommand("mouse_move_stack_elem", [String(srcIndex), String(destIndex)], defaultCommandOptions());
     }, 1);
   }
 }

@@ -46,6 +46,9 @@ export interface ButtonModifiers {
   keepModifier: boolean;
 }
 
+// TODO: Just use CommandOptions everywhere. ButtonModifiers is
+// redundant with it, so we should get rid of the latter.
+
 export function modifiersToRustArgs(modifiers: ButtonModifiers): CommandOptions {
   return {
     argument: modifiers.prefixArgument ?? null,

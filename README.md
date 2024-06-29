@@ -12,3 +12,4 @@ Simple stack-based calculator app written in Rust using Tauri.
 * "Back" SVG Vector: https://www.svgrepo.com/svg/500472/back
 * "Graph" SVG Vector: https://www.svgrepo.com/svg/502683/graph
 * "Image" SVG Vector: https://www.svgrepo.com/svg/521160/image
+* "Pencil" SVG Vector: https://www.svgrepo.com/svg/520884/pencil
