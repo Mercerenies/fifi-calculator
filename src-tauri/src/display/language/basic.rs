@@ -255,7 +255,6 @@ impl LanguageMode for BasicLanguageMode {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::expr::number::{Number, ComplexNumber};
 
   #[test]
   fn test_atoms() {
@@ -269,15 +268,15 @@ mod tests {
   fn test_complex_numbers() {
     let mode = BasicLanguageMode::default();
     assert_eq!(
-      mode.to_html(&Expr::from(ComplexNumber::new(Number::from(2), Number::from(-2)))),
+      mode.to_html(&Expr::from(ComplexNumber::new(2, -2))),
       "(2, -2)",
     );
     assert_eq!(
-      mode.to_html(&Expr::from(ComplexNumber::new(Number::from(0), Number::from(2)))),
+      mode.to_html(&Expr::from(ComplexNumber::new(0, 2))),
       "(0, 2)",
     );
     assert_eq!(
-      mode.to_html(&Expr::from(ComplexNumber::new(Number::from(-1), Number::from(0)))),
+      mode.to_html(&Expr::from(ComplexNumber::new(-1, 0))),
       "(-1, 0)",
     );
   }

@@ -214,7 +214,7 @@ mod tests {
   use crate::stack::{Stack, StackError};
   use crate::command::test_utils::{act_on_stack, act_on_stack_err, act_on_stack_any_err};
   use crate::command::options::CommandOptions;
-  use crate::expr::number::{Number, ComplexNumber};
+  use crate::expr::number::ComplexNumber;
 
   #[test]
   fn test_simple_pack_vector() {
@@ -407,7 +407,7 @@ mod tests {
   fn test_unpack_complex() {
     let opts = CommandOptions::default();
     let input_stack = vec![
-      Expr::from(ComplexNumber::new(Number::from(1), Number::from(3))),
+      Expr::from(ComplexNumber::new(1, 3)),
     ];
     let output_stack = act_on_stack(&UnpackCommand::new(), opts, input_stack);
     assert_eq!(output_stack, Stack::from(vec![

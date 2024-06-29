@@ -115,8 +115,8 @@ mod tests {
   fn test_roundtrip_number() {
     expect_roundtrip(Literal::from(Number::from(3)));
     expect_roundtrip(Literal::from(Number::from(-2.5)));
-    expect_roundtrip(Literal::from(ComplexNumber::new(Number::from(1), Number::from(1))));
-    expect_roundtrip(Literal::from(ComplexNumber::new(Number::from(-2), Number::ratio(1, 2))));
+    expect_roundtrip(Literal::from(ComplexNumber::new(1, 1)));
+    expect_roundtrip(Literal::from(ComplexNumber::new(-2, Number::ratio(1, 2))));
   }
 
   #[test]

@@ -27,13 +27,13 @@ pub struct ComplexNumber {
 impl ComplexNumber {
   pub const FUNCTION_NAME: &'static str = "complex";
 
-  pub fn new(real: Number, imag: Number) -> Self {
-    Self { real, imag }
+  pub fn new(real: impl Into<Number>, imag: impl Into<Number>) -> Self {
+    Self { real: real.into(), imag: imag.into() }
   }
 
   /// The imaginary constant.
   pub fn ii() -> Self {
-    Self::new(Number::from(0), Number::from(1))
+    Self::new(0, 1)
   }
 
   pub fn real(&self) -> &Number {
@@ -72,10 +72,7 @@ impl ComplexNumber {
   /// Constructs an (inexact) complex number from polar coordinates,
   /// with `phi` represented in radians.
   pub fn from_polar_inexact(r: f64, phi: Radians<f64>) -> Self {
-    Self {
-      real: Number::from(r * phi.cos()),
-      imag: Number::from(r * phi.sin()),
-    }
+    Self::new(r * phi.cos(), r * phi.sin())
   }
 
   pub fn to_polar(&self) -> (f64, Radians<f64>) {
@@ -121,15 +118,15 @@ impl ComplexNumber {
   /// `(-pi, pi]` branch cut. Panics if `self.is_zero()`.
   pub fn ln(&self) -> ComplexNumber {
     let (magn, angle) = self.to_polar();
-    ComplexNumber::new(Number::from(magn.ln()), Number::from(angle.0))
+    ComplexNumber::new(magn.ln(), angle.0)
   }
 
   pub fn recip(&self) -> ComplexNumber {
     let abs_sqr = self.abs_sqr();
-    ComplexNumber {
-      real: &self.real / &abs_sqr,
-      imag: - &self.imag / abs_sqr,
-    }
+    ComplexNumber::new(
+      &self.real / &abs_sqr,
+      - &self.imag / abs_sqr,
+    )
   }
 
   pub fn powi(&self, exp: BigInt) -> ComplexNumber {
@@ -318,63 +315,55 @@ mod tests {
   #[test]
   fn test_add() {
     assert_strict_eq!(
-      ComplexNumber::new(Number::from(1), Number::from(2)) +
-        ComplexNumber::new(Number::from(3), Number::from(4)),
-      ComplexNumber::new(Number::from(4), Number::from(6))
+      ComplexNumber::new(1, 2) + ComplexNumber::new(3, 4),
+      ComplexNumber::new(4, 6),
     );
     assert_strict_eq!(
-      ComplexNumber::new(Number::from(1.0), Number::from(2)) +
-        ComplexNumber::new(Number::from(3), Number::from(4)),
-      ComplexNumber::new(Number::from(4.0), Number::from(6))
+      ComplexNumber::new(1.0, 2) + ComplexNumber::new(3, 4),
+      ComplexNumber::new(4.0, 6)
     );
   }
 
   #[test]
   fn test_sub() {
     assert_strict_eq!(
-      ComplexNumber::new(Number::from(1), Number::from(10)) -
-        ComplexNumber::new(Number::from(3), Number::from(4)),
-      ComplexNumber::new(Number::from(-2), Number::from(6))
+      ComplexNumber::new(1, 10) - ComplexNumber::new(3, 4),
+      ComplexNumber::new(-2, 6)
     );
     assert_strict_eq!(
-      ComplexNumber::new(Number::from(1.0), Number::from(2)) -
-        ComplexNumber::new(Number::from(3), Number::from(5)),
-      ComplexNumber::new(Number::from(-2.0), Number::from(-3))
+      ComplexNumber::new(1.0, 2) - ComplexNumber::new(3, 5),
+      ComplexNumber::new(-2.0, -3)
     );
   }
 
   #[test]
   fn test_mul() {
     assert_strict_eq!(
-      ComplexNumber::new(Number::from(1), Number::from(10)) *
-        ComplexNumber::new(Number::from(2), Number::from(20)),
-      ComplexNumber::new(Number::from(-198), Number::from(40)),
+      ComplexNumber::new(1, 10) * ComplexNumber::new(2, 20),
+      ComplexNumber::new(-198, 40),
     );
     assert_strict_eq!(
-      ComplexNumber::new(Number::from(1), Number::from(10.0)) *
-        ComplexNumber::new(Number::from(2), Number::from(20)),
-      ComplexNumber::new(Number::from(-198.0), Number::from(40.0)),
+      ComplexNumber::new(1, 10.0) * ComplexNumber::new(2, 20),
+      ComplexNumber::new(-198.0, 40.0),
     );
   }
 
   #[test]
   fn test_div() {
     assert_strict_eq!(
-      ComplexNumber::new(Number::from(1), Number::from(10)) /
-        ComplexNumber::new(Number::from(2), Number::from(20)),
-      ComplexNumber::new(Number::ratio(1, 2), Number::from(0)),
+      ComplexNumber::new(1, 10) / ComplexNumber::new(2, 20),
+      ComplexNumber::new(Number::ratio(1, 2), 0),
     );
     assert_strict_eq!(
-      ComplexNumber::new(Number::from(1.0), Number::from(10)) /
-        ComplexNumber::new(Number::from(2), Number::from(20)),
-      ComplexNumber::new(Number::from(0.5), Number::from(0.0)),
+      ComplexNumber::new(1.0, 10) / ComplexNumber::new(2, 20),
+      ComplexNumber::new(0.5, 0.0),
     );
   }
 
   #[test]
   fn test_recip() {
     assert_strict_eq!(
-      ComplexNumber::new(Number::from(2), Number::from(10)).recip(),
+      ComplexNumber::new(2, 10).recip(),
       ComplexNumber::new(Number::ratio(2, 104), Number::ratio(-10, 104)),
     );
   }
@@ -382,23 +371,23 @@ mod tests {
   #[test]
   fn test_powi_zero_exponent() {
     assert_strict_eq!(
-      ComplexNumber::new(Number::from(2), Number::from(3)).powi(BigInt::zero()),
-      ComplexNumber::new(Number::from(1), Number::from(0)),
+      ComplexNumber::new(2, 3).powi(BigInt::zero()),
+      ComplexNumber::new(1, 0),
     );
   }
 
   #[test]
   fn test_powi_positive_exponent() {
     assert_strict_eq!(
-      ComplexNumber::new(Number::from(2), Number::from(3)).powi(BigInt::from(4)),
-      ComplexNumber::new(Number::from(-119), Number::from(-120)),
+      ComplexNumber::new(2, 3).powi(BigInt::from(4)),
+      ComplexNumber::new(-119, -120),
     );
   }
 
   #[test]
   fn test_powi_negative_exponent() {
     assert_strict_eq!(
-      ComplexNumber::new(Number::from(2), Number::from(3)).powi(BigInt::from(-3)),
+      ComplexNumber::new(2, 3).powi(BigInt::from(-3)),
       ComplexNumber::new(Number::ratio(-46, 2197), Number::ratio(-9, 2197)),
     );
   }
@@ -406,26 +395,26 @@ mod tests {
   #[test]
   fn test_powf() {
     assert_abs_diff_eq!(
-      ComplexNumber::new(Number::from(2), Number::from(3)).powf(0.0),
-      ComplexNumber::new(Number::from(1), Number::from(0)),
+      ComplexNumber::new(2, 3).powf(0.0),
+      ComplexNumber::new(1, 0),
       epsilon = 0.0001,
     );
 
     assert_abs_diff_eq!(
-      ComplexNumber::new(Number::from(2), Number::from(3)).powf(4.0),
-      ComplexNumber::new(Number::from(-119), Number::from(-120)),
+      ComplexNumber::new(2, 3).powf(4.0),
+      ComplexNumber::new(-119, -120),
       epsilon = 0.0001,
     );
 
     assert_abs_diff_eq!(
-      ComplexNumber::new(Number::from(2), Number::from(3)).powf(-3.0),
+      ComplexNumber::new(2, 3).powf(-3.0),
       ComplexNumber::new(Number::ratio(-46, 2197), Number::ratio(-9, 2197)),
       epsilon = 0.0001,
     );
 
     assert_abs_diff_eq!(
-      ComplexNumber::new(Number::from(2), Number::from(3)).powf(1.8),
-      ComplexNumber::new(Number::from(-1.980959), Number::from(9.861875)),
+      ComplexNumber::new(2, 3).powf(1.8),
+      ComplexNumber::new(-1.980959, 9.861875),
       epsilon = 0.0001,
     );
   }

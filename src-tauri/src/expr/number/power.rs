@@ -196,7 +196,7 @@ mod tests {
     let value = root_real(Number::from(-99), BigInt::from(2)).unwrap_complex();
     assert_abs_diff_eq!(
       value,
-      ComplexNumber::new(Number::zero(), Number::from(9.94987437107)),
+      ComplexNumber::new(0, 9.94987437107),
       epsilon = 0.0001,
     );
   }
@@ -212,7 +212,7 @@ mod tests {
     let value = root_real(Number::from(-5), BigInt::from(3)).unwrap_complex();
     assert_abs_diff_eq!(
       value,
-      ComplexNumber::new(Number::from(0.85498797), Number::from(1.4808826)),
+      ComplexNumber::new(0.85498797, 1.4808826),
       epsilon = 0.0001,
     );
   }
@@ -249,7 +249,7 @@ mod tests {
     let value = pow_real(Number::from(-2), Number::ratio(1, 3)).unwrap_complex();
     assert_abs_diff_eq!(
       value,
-      ComplexNumber::new(Number::from(0.6299605), Number::from(1.0911236)),
+      ComplexNumber::new(0.6299605, 1.0911236),
       epsilon = 0.0001,
     );
   }
@@ -262,7 +262,7 @@ mod tests {
     let value = pow_real(Number::from(-2), Number::from(0.333333)).unwrap_complex();
     assert_abs_diff_eq!(
       value,
-      ComplexNumber::new(Number::from(0.6299605), Number::from(1.0911236)),
+      ComplexNumber::new(0.6299605, 1.0911236),
       epsilon = 0.0001,
     );
   }
@@ -270,12 +270,12 @@ mod tests {
   #[test]
   fn test_pow_complex() {
     let value = pow_complex(
-      ComplexNumber::new(Number::from(0.3), Number::from(0.8)),
-      ComplexNumber::new(Number::from(0.1), Number::from(0.2)),
+      ComplexNumber::new(0.3, 0.8),
+      ComplexNumber::new(0.1, 0.2),
     );
     assert_abs_diff_eq!(
       value,
-      ComplexNumber::new(Number::from(0.7693787), Number::from(0.069223389)),
+      ComplexNumber::new(0.7693787, 0.069223389),
       epsilon = 0.0001,
     );
   }

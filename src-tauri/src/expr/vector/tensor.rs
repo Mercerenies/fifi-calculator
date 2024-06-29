@@ -321,7 +321,7 @@ mod tests {
 
   #[test]
   fn test_extend_to_on_complex_scalar() {
-    let z = ComplexNumber::new(Number::from(2), Number::from(1));
+    let z = ComplexNumber::new(2, 1);
     let x = Tensor::complex_scalar(z.clone());
     assert_eq!(x.clone().extend_to(0), Ok(Vector::from(vec![])));
     assert_eq!(x.clone().extend_to(1), Ok(Vector::from(vec![Expr::from(z.clone())])));
@@ -363,7 +363,7 @@ mod tests {
     let y = Tensor::complex_scalar(ComplexNumber::from_imag(Number::from(2)));
     assert_eq!(
       x.try_add(y).unwrap(),
-      Tensor::complex_scalar(ComplexNumber::new(Number::from(1), Number::from(2))),
+      Tensor::complex_scalar(ComplexNumber::new(1, 2)),
     );
   }
 
