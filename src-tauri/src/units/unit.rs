@@ -105,6 +105,10 @@ impl<T> CompositeUnit<T> {
     Self::new([])
   }
 
+  pub fn is_empty(&self) -> bool {
+    self.elements.is_empty()
+  }
+
   /// A vector of the distinct units in this composite unit, sorted by
   /// name and tagged with their exponent. All returned exponents
   /// shall be non-zero.
