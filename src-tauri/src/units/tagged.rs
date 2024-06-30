@@ -4,6 +4,7 @@ use super::unit::CompositeUnit;
 use num::One;
 
 use std::fmt::{self, Formatter, Display};
+use std::ops::{Mul, Div};
 
 /// A scalar quantity, tagged with a unit.
 pub struct Tagged<T> {
@@ -19,6 +20,19 @@ impl<T> Tagged<T> {
   pub fn unitless(value: T) -> Self
   where T: One {
     Self::new(value, CompositeUnit::unitless())
+  }
+
+  pub fn into_base(self) -> T
+  where T: for<'a> Mul<&'a T, Output = T>,
+        T: for<'a> Div<&'a T, Output = T> {
+    self.unit.to_base(self.value)
+  }
+
+  pub fn from_base(unit: CompositeUnit<T>, base_value: T) -> Self
+  where T: for<'a> Mul<&'a T, Output = T>,
+        T: for<'a> Div<&'a T, Output = T> {
+    let value = unit.from_base(base_value);
+    Self { value, unit }
   }
 }
 
