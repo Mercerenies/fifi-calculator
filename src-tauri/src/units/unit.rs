@@ -68,6 +68,10 @@ impl<T> Unit<T> {
     &self.dimension
   }
 
+  pub fn amount_of_base(&self) -> &T {
+    &self.amount_of_base
+  }
+
   /// Converts a scalar quantity from this unit to the base unit
   /// corresponding to this dimension.
   pub fn to_base<'a, U>(&'a self, amount: U) -> <U as Mul<&'a T>>::Output
