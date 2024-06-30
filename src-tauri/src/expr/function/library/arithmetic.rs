@@ -163,7 +163,7 @@ pub fn multiplication() -> Function {
     .add_case(
       // String repetition
       builder::arity_two().of_types(expr_to_string(), expr_to_usize()).and_then(|s, n, _| {
-        let repeated_str: String = repeated(s, n.into());
+        let repeated_str: String = repeated(s, n);
         Ok(Expr::from(repeated_str))
       })
     )

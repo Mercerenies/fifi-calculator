@@ -109,7 +109,7 @@ impl<T> Matrix<T> {
       body: self
         .body
         .into_iter()
-        .map(|row| row.into_iter().map(|item| f(item)).collect())
+        .map(|row| row.into_iter().map(&mut f).collect())
         .collect(),
     }
   }

@@ -6,6 +6,7 @@ use num::One;
 
 use std::fmt::{self, Formatter, Display};
 use std::ops::{Mul, Div};
+use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 
 /// A unit is a named quantity in some [`Dimension`] which can be
@@ -152,14 +153,18 @@ impl<T> UnitWithPower<T> {
   pub fn to_base<'a>(&'a self, mut amount: T) -> T
   where T: Mul<&'a T, Output = T>,
         T: Div<&'a T, Output = T> {
-    if self.exponent > 0 {
-      for _ in 0..self.exponent {
-        amount = self.unit.to_base(amount);
+    match self.exponent.cmp(&0) {
+      Ordering::Greater => {
+        for _ in 0..self.exponent {
+          amount = self.unit.to_base(amount);
+        }
       }
-    } else if self.exponent < 0 {
-      for _ in 0..(-self.exponent) {
-        amount = self.unit.from_base(amount);
+      Ordering::Less => {
+        for _ in 0..(-self.exponent) {
+          amount = self.unit.from_base(amount);
+        }
       }
+      Ordering::Equal => {},
     }
     amount
   }
@@ -167,14 +172,18 @@ impl<T> UnitWithPower<T> {
   pub fn from_base<'a>(&'a self, mut amount: T) -> T
   where T: Mul<&'a T, Output = T>,
         T: Div<&'a T, Output = T> {
-    if self.exponent > 0 {
-      for _ in 0..self.exponent {
-        amount = self.unit.from_base(amount);
+    match self.exponent.cmp(&0) {
+      Ordering::Greater => {
+        for _ in 0..self.exponent {
+          amount = self.unit.from_base(amount);
+        }
       }
-    } else if self.exponent < 0 {
-      for _ in 0..(-self.exponent) {
-        amount = self.unit.to_base(amount);
+      Ordering::Less => {
+        for _ in 0..(-self.exponent) {
+          amount = self.unit.to_base(amount);
+        }
       }
+      Ordering::Equal => {},
     }
     amount
   }
@@ -248,6 +257,7 @@ impl<T> Mul for CompositeUnit<T> {
 impl<T> Div for CompositeUnit<T> {
   type Output = CompositeUnit<T>;
 
+  #[allow(clippy::suspicious_arithmetic_impl)] // Multiply by reciprocal is correct
   fn div(self, rhs: Self) -> Self::Output {
     self * rhs.recip()
   }

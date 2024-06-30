@@ -133,9 +133,7 @@ impl<'a> ExprTokenizer<'a> {
 
   fn read_string_token(&self, state: &mut TokenizerState<'_>) -> Option<Result<Token, TokenizerError>> {
     let span_start = state.current_pos();
-    let Some(_) = state.read_literal("\"") else {
-      return None;
-    };
+    state.read_literal("\"")?;
     Some(self.read_string_token_committed(state, span_start))
   }
 
@@ -223,7 +221,7 @@ impl Display for TokenData {
     match self {
       TokenData::Number(n) => write!(f, "{n}"),
       TokenData::Var(v) => write!(f, "{v}"),
-      TokenData::String(s) => write_escaped_str(f, &s),
+      TokenData::String(s) => write_escaped_str(f, s),
       TokenData::Operator(op) => write!(f, "{}", op.operator_name()),
       TokenData::FunctionCallStart(name) => write!(f, "{name}("),
       TokenData::LeftParen => write!(f, "("),
