@@ -27,7 +27,7 @@ pub struct Unit<T> {
 }
 
 /// A composite unit is a formal product and quotient of named units.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompositeUnit<T> {
   // Internally, we store a composite unit as a vector, sorted
   // alphabetically by unit name. A given unit name shall only appear
@@ -37,7 +37,7 @@ pub struct CompositeUnit<T> {
 }
 
 /// A named unit raised to an integer power.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnitWithPower<T> {
   pub unit: Unit<T>,
   pub exponent: i64,
@@ -260,5 +260,165 @@ impl<T> One for CompositeUnit<T> {
 
   fn is_one(&self) -> bool {
     self.elements.is_empty()
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::units::dimension::BaseDimension;
+
+  fn meters() -> Unit<f64> {
+    Unit::new("m", Dimension::singleton(BaseDimension::Length), 1.0)
+  }
+
+  fn kilometers() -> Unit<f64> {
+    Unit::new("km", Dimension::singleton(BaseDimension::Length), 1000.0)
+  }
+
+  fn seconds() -> Unit<f64> {
+    Unit::new("s", Dimension::singleton(BaseDimension::Time), 1.0)
+  }
+
+  fn minutes() -> Unit<f64> {
+    Unit::new("min", Dimension::singleton(BaseDimension::Time), 60.0)
+  }
+
+  #[test]
+  fn test_unit_fields() {
+    assert_eq!(meters().name(), "m");
+    assert_eq!(meters().dimension(), &Dimension::singleton(BaseDimension::Length));
+  }
+
+  #[test]
+  fn test_to_base_from_base_on_base_unit() {
+    assert_eq!(meters().to_base(100.0), 100.0);
+    assert_eq!(seconds().to_base(0.5), 0.5);
+    assert_eq!(meters().from_base(100.0), 100.0);
+    assert_eq!(seconds().from_base(0.5), 0.5);
+  }
+
+  #[test]
+  fn test_unit_to_base() {
+    assert_eq!(kilometers().to_base(2.0), 2000.0);
+    assert_eq!(minutes().to_base(30.0), 1800.0);
+  }
+
+  #[test]
+  fn test_unit_from_base() {
+    assert_eq!(kilometers().from_base(2000.0), 2.0);
+    assert_eq!(minutes().from_base(1800.0), 30.0);
+  }
+
+  #[test]
+  fn test_unit_with_power_dimension() {
+    let unit = UnitWithPower { unit: kilometers(), exponent: 3 };
+    assert_eq!(unit.dimension(), Dimension::singleton(BaseDimension::Length).pow(3));
+    let unit = UnitWithPower { unit: seconds(), exponent: -2 };
+    assert_eq!(unit.dimension(), Dimension::singleton(BaseDimension::Time).pow(-2));
+    let unit = UnitWithPower { unit: kilometers(), exponent: 0 };
+    assert_eq!(unit.dimension(), Dimension::one());
+  }
+
+  #[test]
+  fn test_unit_with_power_to_base() {
+    let unit = UnitWithPower { unit: kilometers(), exponent: 3 };
+    assert_eq!(unit.to_base(2.0), 2_000_000_000.0);
+    let unit = UnitWithPower { unit: kilometers(), exponent: -1 };
+    assert_eq!(unit.to_base(2_000.0), 2.0);
+    let unit = UnitWithPower { unit: kilometers(), exponent: 0 };
+    assert_eq!(unit.to_base(199.0), 199.0);
+  }
+
+  #[test]
+  fn test_unit_with_power_from_base() {
+    let unit = UnitWithPower { unit: kilometers(), exponent: 3 };
+    assert_eq!(unit.from_base(2_000_000_000.0), 2.0);
+    let unit = UnitWithPower { unit: kilometers(), exponent: -1 };
+    assert_eq!(unit.from_base(2.0), 2_000.0);
+    let unit = UnitWithPower { unit: kilometers(), exponent: 0 };
+    assert_eq!(unit.from_base(199.0), 199.0);
+  }
+
+  #[test]
+  fn test_new_composite_unit_simple_units() {
+    let unit = CompositeUnit::new([
+      UnitWithPower { unit: kilometers(), exponent: 3 },
+      UnitWithPower { unit: seconds(), exponent: -1 },
+    ]);
+    assert_eq!(unit.elements, vec![
+      UnitWithPower { unit: kilometers(), exponent: 3 },
+      UnitWithPower { unit: seconds(), exponent: -1 },
+    ]);
+    let unit = CompositeUnit::new([
+      UnitWithPower { unit: seconds(), exponent: -1 },
+      UnitWithPower { unit: kilometers(), exponent: 3 },
+    ]);
+    assert_eq!(unit.elements, vec![
+      UnitWithPower { unit: kilometers(), exponent: 3 },
+      UnitWithPower { unit: seconds(), exponent: -1 },
+    ]);
+  }
+
+  #[test]
+  fn test_new_composite_unit_with_repeated_values() {
+    let unit = CompositeUnit::new([
+      UnitWithPower { unit: kilometers(), exponent: 2 },
+      UnitWithPower { unit: seconds(), exponent: -1 },
+      UnitWithPower { unit: kilometers(), exponent: 1 },
+      UnitWithPower { unit: seconds(), exponent: -1 },
+    ]);
+    assert_eq!(unit.elements, vec![
+      UnitWithPower { unit: kilometers(), exponent: 3 },
+      UnitWithPower { unit: seconds(), exponent: -2 },
+    ]);
+  }
+
+  #[test]
+  fn test_dimension_of_composite_unit() {
+    let unit = CompositeUnit::new([
+      UnitWithPower { unit: kilometers(), exponent: 3 },
+      UnitWithPower { unit: seconds(), exponent: -1 },
+    ]);
+    assert_eq!(
+      unit.dimension(),
+      Dimension::singleton(BaseDimension::Length).pow(3) / Dimension::singleton(BaseDimension::Time),
+    );
+  }
+
+  #[test]
+  fn test_dimension_of_empty_composite_unit() {
+    let unit = CompositeUnit::<f64>::unitless();
+    assert_eq!(unit.dimension(), Dimension::one());
+  }
+
+  #[test]
+  fn test_composite_unit_recip() {
+    let unit = CompositeUnit::new([
+      UnitWithPower { unit: kilometers(), exponent: 3 },
+      UnitWithPower { unit: seconds(), exponent: -2 },
+    ]);
+    assert_eq!(unit.recip(), CompositeUnit::new([
+      UnitWithPower { unit: kilometers(), exponent: -3 },
+      UnitWithPower { unit: seconds(), exponent: 2 },
+    ]));
+  }
+
+  #[test]
+  fn test_composite_unit_to_base() {
+    let unit = CompositeUnit::new([
+      UnitWithPower { unit: kilometers(), exponent: 1 },
+      UnitWithPower { unit: minutes(), exponent: -1 },
+    ]);
+    assert_eq!(unit.to_base(18_000.0), 300_000.0);
+  }
+
+  #[test]
+  fn test_composite_unit_from_base() {
+    let unit = CompositeUnit::new([
+      UnitWithPower { unit: kilometers(), exponent: 1 },
+      UnitWithPower { unit: minutes(), exponent: -1 },
+    ]);
+    assert_eq!(unit.from_base(300_000.0), 18_000.0);
   }
 }
