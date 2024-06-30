@@ -117,6 +117,20 @@ where I::Item: Ord {
   res
 }
 
+/// Zips two arrays of the same length together, using the given
+/// function.
+pub fn zip_with<const C: usize, T, S, U, F>(left: [T; C], right: [S; C], mut f: F) -> [U; C]
+where F: FnMut(T, S) -> U {
+  let res = left.into_iter().zip(right)
+    .map(|(x, y)| f(x, y))
+    .collect::<Vec<_>>()
+    .try_into();
+  match res {
+    Ok(res) => res,
+    Err(_) => panic!("Invalid array length"),
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
