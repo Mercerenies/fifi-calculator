@@ -26,17 +26,24 @@ impl<T: Clone> UnitParser<T> for TableBasedParser<T> {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod test_utils {
   use super::*;
   use crate::units::dimension::{Dimension, BaseDimension};
 
-  fn sample_table() -> TableBasedParser<f64> {
+  pub fn sample_table() -> TableBasedParser<f64> {
     let mut table = HashMap::new();
     table.insert("m".to_owned(), Unit::new("m", Dimension::singleton(BaseDimension::Length), 1.0));
     table.insert("s".to_owned(), Unit::new("s", Dimension::singleton(BaseDimension::Time), 1.0));
     table.insert("min".to_owned(), Unit::new("min", Dimension::singleton(BaseDimension::Time), 60.0));
     TableBasedParser { table }
   }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::units::dimension::{Dimension, BaseDimension};
+  use super::test_utils::sample_table;
 
   #[test]
   fn test_lookup() {
