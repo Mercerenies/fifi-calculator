@@ -85,6 +85,20 @@ impl<T> Unit<T> {
   where U: Div<&'a T> {
     amount / &self.amount_of_base
   }
+
+  /// Applies functions modifying the name and amount of this unit.
+  ///
+  /// This is most commonly used to generate derived units, such as
+  /// creating "kilometers" from the definition of a "meter".
+  pub fn augment<F, G, U>(self, name_fn: F, amount_of_base_fn: G) -> Unit<U>
+  where F: FnOnce(String) -> String,
+        G: FnOnce(T) -> U {
+    Unit {
+      name: name_fn(self.name),
+      dimension: self.dimension,
+      amount_of_base: amount_of_base_fn(self.amount_of_base),
+    }
+  }
 }
 
 impl<T> CompositeUnit<T> {
