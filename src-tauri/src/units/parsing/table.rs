@@ -36,13 +36,13 @@ impl<T> FromIterator<Unit<T>> for TableBasedParser<T> {
 #[cfg(test)]
 pub(crate) mod test_utils {
   use super::*;
-  use crate::units::dimension::{Dimension, BaseDimension};
+  use crate::units::dimension::BaseDimension;
 
   pub fn sample_table() -> TableBasedParser<f64> {
     let mut table = HashMap::new();
-    table.insert("m".to_owned(), Unit::new("m", Dimension::singleton(BaseDimension::Length), 1.0));
-    table.insert("s".to_owned(), Unit::new("s", Dimension::singleton(BaseDimension::Time), 1.0));
-    table.insert("min".to_owned(), Unit::new("min", Dimension::singleton(BaseDimension::Time), 60.0));
+    table.insert("m".to_owned(), Unit::new("m", BaseDimension::Length, 1.0));
+    table.insert("s".to_owned(), Unit::new("s", BaseDimension::Time, 1.0));
+    table.insert("min".to_owned(), Unit::new("min", BaseDimension::Time, 60.0));
     TableBasedParser { table }
   }
 }
@@ -50,7 +50,7 @@ pub(crate) mod test_utils {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::units::dimension::{Dimension, BaseDimension};
+  use crate::units::dimension::BaseDimension;
   use super::test_utils::sample_table;
 
   #[test]
@@ -58,7 +58,7 @@ mod tests {
     let table = sample_table();
     assert_eq!(
       table.parse_unit("m"),
-      Ok(Unit::new("m", Dimension::singleton(BaseDimension::Length), 1.0)),
+      Ok(Unit::new("m", BaseDimension::Length, 1.0)),
     );
     assert_eq!(table.parse_unit("xyz"), Err(UnitParserError::new("xyz")));
     assert_eq!(table.parse_unit("M"), Err(UnitParserError::new("M"))); // Note: Case sensitive

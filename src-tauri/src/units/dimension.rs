@@ -2,6 +2,7 @@
 use crate::util::zip_with;
 
 use num::One;
+use num::pow::Pow;
 
 use std::ops::{Mul, Div};
 use std::fmt::{self, Formatter, Display};
@@ -35,12 +36,6 @@ impl Dimension {
     Self { dims }
   }
 
-  pub fn pow(&self, power: i64) -> Self {
-    Self {
-      dims: self.dims.map(|x| x * power),
-    }
-  }
-
   pub fn get(&self, base: BaseDimension) -> i64 {
     self.dims[base.dimension_index()]
   }
@@ -71,6 +66,30 @@ impl BaseDimension {
       BaseDimension::LuminousIntensity => 5,
       BaseDimension::AmountOfSubstance => 6,
     }
+  }
+}
+
+impl From<BaseDimension> for Dimension {
+  fn from(base: BaseDimension) -> Self {
+    Dimension::singleton(base)
+  }
+}
+
+impl Pow<i64> for &Dimension {
+  type Output = Dimension;
+
+  fn pow(self, power: i64) -> Dimension {
+    Dimension {
+      dims: self.dims.map(|x| x * power),
+    }
+  }
+}
+
+impl Pow<i64> for BaseDimension {
+  type Output = Dimension;
+
+  fn pow(self, power: i64) -> Dimension {
+    Dimension::singleton(self).pow(power)
   }
 }
 
@@ -107,6 +126,22 @@ impl Div<BaseDimension> for Dimension {
 
   fn div(self, rhs: BaseDimension) -> Self {
     self / Dimension::singleton(rhs)
+  }
+}
+
+impl Mul for BaseDimension {
+  type Output = Dimension;
+
+  fn mul(self, rhs: Self) -> Dimension {
+    Dimension::singleton(self) * Dimension::singleton(rhs)
+  }
+}
+
+impl Div for BaseDimension {
+  type Output = Dimension;
+
+  fn div(self, rhs: Self) -> Dimension {
+    Dimension::singleton(self) / Dimension::singleton(rhs)
   }
 }
 

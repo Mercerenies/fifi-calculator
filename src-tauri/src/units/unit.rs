@@ -3,6 +3,7 @@ use super::dimension::Dimension;
 
 use itertools::Itertools;
 use num::One;
+use num::pow::Pow;
 
 use std::fmt::{self, Formatter, Display};
 use std::ops::{Mul, Div};
@@ -52,10 +53,10 @@ struct UnitByName<T>(Unit<T>);
 impl<T> Unit<T> {
   /// Constructs a new unit, given the unit's name, dimension, and
   /// conversion factor to get to the base unit for the dimension.
-  pub fn new(name: impl Into<String>, dimension: Dimension, amount_of_base: T) -> Self {
+  pub fn new(name: impl Into<String>, dimension: impl Into<Dimension>, amount_of_base: T) -> Self {
     Self {
       name: name.into(),
-      dimension,
+      dimension: dimension.into(),
       amount_of_base,
     }
   }
@@ -304,22 +305,22 @@ impl<T> One for CompositeUnit<T> {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::units::dimension::BaseDimension;
+  use crate::units::dimension::{Dimension, BaseDimension};
 
   fn meters() -> Unit<f64> {
-    Unit::new("m", Dimension::singleton(BaseDimension::Length), 1.0)
+    Unit::new("m", BaseDimension::Length, 1.0)
   }
 
   fn kilometers() -> Unit<f64> {
-    Unit::new("km", Dimension::singleton(BaseDimension::Length), 1000.0)
+    Unit::new("km", BaseDimension::Length, 1000.0)
   }
 
   fn seconds() -> Unit<f64> {
-    Unit::new("s", Dimension::singleton(BaseDimension::Time), 1.0)
+    Unit::new("s", BaseDimension::Time, 1.0)
   }
 
   fn minutes() -> Unit<f64> {
-    Unit::new("min", Dimension::singleton(BaseDimension::Time), 60.0)
+    Unit::new("min", BaseDimension::Time, 60.0)
   }
 
   #[test]
@@ -420,7 +421,7 @@ mod tests {
     ]);
     assert_eq!(
       unit.dimension(),
-      Dimension::singleton(BaseDimension::Length).pow(3) / Dimension::singleton(BaseDimension::Time),
+      BaseDimension::Length.pow(3) / BaseDimension::Time,
     );
   }
 

@@ -75,7 +75,7 @@ mod tests {
   #[test]
   fn apply_test() {
     let kilo_prefix = MetricPrefix::si_prefixes_map().get("k").unwrap().clone();
-    let meters = Unit::<f64>::new("m", Dimension::singleton(BaseDimension::Length), 1.0);
+    let meters = Unit::<f64>::new("m", BaseDimension::Length, 1.0);
     let kilometers = kilo_prefix.apply(meters);
     assert_eq!(kilometers.name(), "km");
     assert_eq!(kilometers.dimension(), &Dimension::singleton(BaseDimension::Length));

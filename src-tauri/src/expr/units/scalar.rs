@@ -88,7 +88,7 @@ impl Prism<Expr, (Var, i64)> for PowerExprPrism {
 mod tests {
   use super::*;
   use crate::units::unit::Unit;
-  use crate::units::dimension::{Dimension, BaseDimension};
+  use crate::units::dimension::BaseDimension;
   use crate::units::parsing::TableBasedParser;
 
   use std::collections::HashMap;
@@ -99,9 +99,9 @@ mod tests {
 
   fn sample_table() -> TableBasedParser<Number> {
     let mut table = HashMap::new();
-    table.insert("m".to_owned(), Unit::new("m", Dimension::singleton(BaseDimension::Length), Number::from(1)));
-    table.insert("s".to_owned(), Unit::new("s", Dimension::singleton(BaseDimension::Time), Number::from(1)));
-    table.insert("degC".to_owned(), Unit::new("degC", Dimension::singleton(BaseDimension::Temperature), Number::from(1)));
+    table.insert("m".to_owned(), Unit::new("m", BaseDimension::Length, Number::from(1)));
+    table.insert("s".to_owned(), Unit::new("s", BaseDimension::Time, Number::from(1)));
+    table.insert("degC".to_owned(), Unit::new("degC", BaseDimension::Temperature, Number::from(1)));
     TableBasedParser { table }
   }
 
@@ -130,11 +130,11 @@ mod tests {
     assert_eq!(unit, CompositeUnit::new([
       // Note: No degC term since they cancelled off.
       UnitWithPower {
-        unit: Unit::new("m", Dimension::singleton(BaseDimension::Length), Number::from(1)),
+        unit: Unit::new("m", BaseDimension::Length, Number::from(1)),
         exponent: 1,
       },
       UnitWithPower {
-        unit: Unit::new("s", Dimension::singleton(BaseDimension::Time), Number::from(1)),
+        unit: Unit::new("s", BaseDimension::Time, Number::from(1)),
         exponent: -1,
       },
     ]));

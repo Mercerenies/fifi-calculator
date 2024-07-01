@@ -53,23 +53,23 @@ where P: UnitParser<T>,
 mod tests {
   use super::*;
   use crate::units::parsing::table::test_utils::sample_table;
-  use crate::units::dimension::{Dimension, BaseDimension};
+  use crate::units::dimension::BaseDimension;
 
   #[test]
   fn test_parse_base_values() {
     let parser = PrefixParser::new_si(sample_table());
-    assert_eq!(parser.parse_unit("m"), Ok(Unit::new("m", Dimension::singleton(BaseDimension::Length), 1.0)));
-    assert_eq!(parser.parse_unit("s"), Ok(Unit::new("s", Dimension::singleton(BaseDimension::Time), 1.0)));
-    assert_eq!(parser.parse_unit("min"), Ok(Unit::new("min", Dimension::singleton(BaseDimension::Time), 60.0)));
+    assert_eq!(parser.parse_unit("m"), Ok(Unit::new("m", BaseDimension::Length, 1.0)));
+    assert_eq!(parser.parse_unit("s"), Ok(Unit::new("s", BaseDimension::Time, 1.0)));
+    assert_eq!(parser.parse_unit("min"), Ok(Unit::new("min", BaseDimension::Time, 60.0)));
   }
 
   #[test]
   fn test_parse_with_prefix() {
     let parser = PrefixParser::new_si(sample_table());
-    assert_eq!(parser.parse_unit("km"), Ok(Unit::new("km", Dimension::singleton(BaseDimension::Length), 1000.0)));
-    assert_eq!(parser.parse_unit("ms"), Ok(Unit::new("ms", Dimension::singleton(BaseDimension::Time), 0.001)));
+    assert_eq!(parser.parse_unit("km"), Ok(Unit::new("km", BaseDimension::Length, 1000.0)));
+    assert_eq!(parser.parse_unit("ms"), Ok(Unit::new("ms", BaseDimension::Time, 0.001)));
     // Bet you've never seen someone work in units of "centi-minutes" before ;)
-    assert_eq!(parser.parse_unit("cmin"), Ok(Unit::new("cmin", Dimension::singleton(BaseDimension::Time), 0.6)));
+    assert_eq!(parser.parse_unit("cmin"), Ok(Unit::new("cmin", BaseDimension::Time, 0.6)));
   }
 
   #[test]
@@ -92,13 +92,13 @@ mod tests {
     // former parse should be preferred.
     let table = {
       let mut table = sample_table();
-      table.table.insert("in".to_owned(), Unit::new("in", Dimension::singleton(BaseDimension::Length), 0.0254));
+      table.table.insert("in".to_owned(), Unit::new("in", BaseDimension::Length, 0.0254));
       table
     };
     let parser = PrefixParser::new_si(table);
     assert_eq!(
       parser.parse_unit("min"),
-      Ok(Unit::new("min", Dimension::singleton(BaseDimension::Time), 60.0)),
+      Ok(Unit::new("min", BaseDimension::Time, 60.0)),
     );
   }
 }
