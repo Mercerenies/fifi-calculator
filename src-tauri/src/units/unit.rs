@@ -142,18 +142,18 @@ impl<T> CompositeUnit<T> {
     self
   }
 
-  pub fn to_base<'a>(&'a self, mut amount: T) -> T
-  where T: Mul<&'a T, Output = T>,
-        T: Div<&'a T, Output = T> {
+  pub fn to_base<'a, U>(&'a self, mut amount: U) -> U
+  where U: Mul<&'a T, Output = U>,
+        U: Div<&'a T, Output = U> {
     for elem in &self.elements {
       amount = elem.to_base(amount);
     }
     amount
   }
 
-  pub fn from_base<'a>(&'a self, mut amount: T) -> T
-  where T: Mul<&'a T, Output = T>,
-        T: Div<&'a T, Output = T> {
+  pub fn from_base<'a, U>(&'a self, mut amount: U) -> U
+  where U: Mul<&'a T, Output = U>,
+        U: Div<&'a T, Output = U> {
     for elem in &self.elements {
       amount = elem.from_base(amount);
     }
@@ -172,9 +172,9 @@ impl<T> UnitWithPower<T> {
     self.unit.dimension().pow(self.exponent)
   }
 
-  pub fn to_base<'a>(&'a self, mut amount: T) -> T
-  where T: Mul<&'a T, Output = T>,
-        T: Div<&'a T, Output = T> {
+  pub fn to_base<'a, U>(&'a self, mut amount: U) -> U
+  where U: Mul<&'a T, Output = U>,
+        U: Div<&'a T, Output = U> {
     match self.exponent.cmp(&0) {
       Ordering::Greater => {
         for _ in 0..self.exponent {
@@ -191,9 +191,9 @@ impl<T> UnitWithPower<T> {
     amount
   }
 
-  pub fn from_base<'a>(&'a self, mut amount: T) -> T
-  where T: Mul<&'a T, Output = T>,
-        T: Div<&'a T, Output = T> {
+  pub fn from_base<'a, U>(&'a self, mut amount: U) -> U
+  where U: Mul<&'a T, Output = U>,
+        U: Div<&'a T, Output = U> {
     match self.exponent.cmp(&0) {
       Ordering::Greater => {
         for _ in 0..self.exponent {
