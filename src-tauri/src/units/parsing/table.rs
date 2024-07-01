@@ -25,6 +25,14 @@ impl<T: Clone> UnitParser<T> for TableBasedParser<T> {
   }
 }
 
+impl<T> FromIterator<Unit<T>> for TableBasedParser<T> {
+  fn from_iter<I: IntoIterator<Item = Unit<T>>>(iter: I) -> Self {
+    Self {
+      table: iter.into_iter().map(|u| (u.name().to_owned(), u)).collect(),
+    }
+  }
+}
+
 #[cfg(test)]
 pub(crate) mod test_utils {
   use super::*;
