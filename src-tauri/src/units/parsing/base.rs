@@ -10,7 +10,7 @@ pub trait UnitParser<T> {
   fn parse_unit(&self, input: &str) -> Result<Unit<T>, UnitParserError>;
 }
 
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
 #[error("Failed to parse '{input}' as a unit")]
 pub struct UnitParserError {
   pub input: String,

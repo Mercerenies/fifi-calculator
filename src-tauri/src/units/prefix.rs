@@ -1,17 +1,31 @@
 
+use super::unit::Unit;
+
+use num::pow::Pow;
+
+use std::ops::Mul;
 use std::collections::HashMap;
 
+#[derive(Clone, Debug)]
 pub struct MetricPrefix {
   pub prefix_name: String,
-  pub exponent: i64,
+  pub exponent: i32,
 }
 
 impl MetricPrefix {
-  pub fn new(prefix_name: impl Into<String>, exponent: i64) -> MetricPrefix {
+  pub fn new(prefix_name: impl Into<String>, exponent: i32) -> MetricPrefix {
     MetricPrefix {
       prefix_name: prefix_name.into(),
       exponent,
     }
+  }
+
+  pub fn apply<T>(&self, unit: Unit<T>) -> Unit<<T as Mul>::Output>
+  where T: Pow<i32, Output = T> + From<i32> + Mul {
+    unit.augment(
+      |name| format!("{}{}", self.prefix_name, name),
+      |amount| amount * T::from(10).pow(self.exponent),
+    )
   }
 
   pub fn si_prefixes() -> Vec<MetricPrefix> {
@@ -50,5 +64,21 @@ impl MetricPrefix {
       .into_iter()
       .map(|prefix| (prefix.prefix_name.clone(), prefix))
       .collect()
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::units::dimension::{Dimension, BaseDimension};
+
+  #[test]
+  fn apply_test() {
+    let kilo_prefix = MetricPrefix::si_prefixes_map().get("k").unwrap().clone();
+    let meters = Unit::<f64>::new("m", Dimension::singleton(BaseDimension::Length), 1.0);
+    let kilometers = kilo_prefix.apply(meters);
+    assert_eq!(kilometers.name(), "km");
+    assert_eq!(kilometers.dimension(), &Dimension::singleton(BaseDimension::Length));
+    assert_eq!(kilometers.amount_of_base(), &1000.0);
   }
 }
