@@ -211,6 +211,12 @@ impl<T> UnitWithPower<T> {
   }
 }
 
+impl<T> From<Unit<T>> for CompositeUnit<T> {
+  fn from(unit: Unit<T>) -> Self {
+    CompositeUnit::new([UnitWithPower { unit, exponent: 1 }])
+  }
+}
+
 impl<T> Display for Unit<T> {
   fn fmt(&self, f: &mut Formatter) -> fmt::Result {
     write!(f, "{}", self.name)

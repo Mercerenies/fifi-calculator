@@ -8,10 +8,11 @@ pub mod prism;
 pub mod stricteq;
 
 use regex::{Regex, escape};
+use either::Either;
 
 use std::convert::Infallible;
 use std::cmp::Reverse;
-use std::iter;
+use std::iter::{self, Extend};
 
 pub fn unwrap_infallible<T>(res: Result<T, Infallible>) -> T {
   match res {
@@ -129,6 +130,31 @@ where F: FnMut(T, S) -> U {
     Ok(res) => res,
     Err(_) => panic!("Invalid array length"),
   }
+}
+
+/// Splits an iterable of `Either` into a collection of `Left` and a
+/// collection of `Right`.
+pub fn partition_either<I, A, B, C1, C2>(iter: I) -> (C1, C2)
+where I: IntoIterator<Item = Either<A, B>>,
+      C1: Default + Extend<A>,
+      C2: Default + Extend<B> {
+  let mut c1 = C1::default();
+  let mut c2 = C2::default();
+  for elem in iter {
+    match elem {
+      Either::Left(a) => c1.extend([a]),
+      Either::Right(b) => c2.extend([b]),
+    }
+  }
+  (c1, c2)
+}
+
+pub fn partition_mapped<I, T, A, B, F, C1, C2>(iter: I, f: F) -> (C1, C2)
+where I: IntoIterator<Item = T>,
+      F: FnMut(T) -> Either<A, B>,
+      C1: Default + Extend<A>,
+      C2: Default + Extend<B> {
+  partition_either(iter.into_iter().map(f))
 }
 
 #[cfg(test)]

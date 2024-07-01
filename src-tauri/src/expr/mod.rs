@@ -286,6 +286,17 @@ impl TryFrom<Expr> for String {
   }
 }
 
+impl TryFrom<Expr> for Var {
+  type Error = TryFromExprError;
+
+  fn try_from(e: Expr) -> Result<Self, Self::Error> {
+    match e {
+      Expr::Atom(Atom::Var(v)) => Ok(v),
+      e => Err(TryFromExprError::new("Var", e)),
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;

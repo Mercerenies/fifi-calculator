@@ -94,6 +94,11 @@ pub fn expr_to_string() -> impl Prism<Expr, String> + Clone {
   Conversion::new()
 }
 
+/// Prism which only accepts variables.
+pub fn expr_to_var() -> impl Prism<Expr, Var> + Clone {
+  Conversion::new()
+}
+
 /// Prism which accepts only positive real numbers.
 pub fn expr_to_positive_number() -> impl Prism<Expr, PositiveNumber> + Clone {
   expr_to_number().composed(NumberToPositiveNumber)

@@ -1,5 +1,6 @@
 
 use crate::expr::Expr;
+use crate::expr::number::Number;
 
 use num::One;
 
@@ -33,6 +34,16 @@ pub struct Term {
 }
 
 impl Term {
+  pub fn new(numerator: Vec<Expr>, denominator: Vec<Expr>) -> Term {
+    let numerator = numerator.into_iter()
+      .map(Term::parse_expr)
+      .fold(Term::one(), |acc, x| acc * x);
+    let denominator = denominator.into_iter()
+      .map(Term::parse_expr)
+      .fold(Term::one(), |acc, x| acc * x);
+    numerator / denominator
+  }
+
   pub fn numerator(&self) -> &[Expr] {
     &self.numerator
   }
@@ -111,6 +122,12 @@ impl From<Term> for Expr {
   }
 }
 
+impl From<Number> for Term {
+  fn from(n: Number) -> Self {
+    Term::parse_expr(Expr::from(n))
+  }
+}
+
 impl MulAssign for Term {
   fn mul_assign(&mut self, other: Self) {
     self.numerator.extend(other.numerator);
@@ -127,6 +144,22 @@ impl Mul for Term {
   }
 }
 
+impl Mul<Number> for Term {
+  type Output = Term;
+
+  fn mul(self, other: Number) -> Self {
+    self * Term::from(other)
+  }
+}
+
+impl Mul<&Number> for Term {
+  type Output = Term;
+
+  fn mul(self, other: &Number) -> Self {
+    self * other.clone()
+  }
+}
+
 impl DivAssign for Term {
   fn div_assign(&mut self, other: Self) {
     self.numerator.extend(other.denominator);
@@ -140,6 +173,22 @@ impl Div for Term {
   fn div(mut self, other: Self) -> Self {
     self /= other;
     self
+  }
+}
+
+impl Div<Number> for Term {
+  type Output = Term;
+
+  fn div(self, other: Number) -> Self {
+    self / Term::from(other)
+  }
+}
+
+impl Div<&Number> for Term {
+  type Output = Term;
+
+  fn div(self, other: &Number) -> Self {
+    self / other.clone()
   }
 }
 

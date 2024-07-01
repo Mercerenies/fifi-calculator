@@ -11,4 +11,4 @@
 
 mod scalar;
 
-pub use scalar::UnitScalar;
+pub use scalar::{parse_composite_unit_term, parse_composite_unit_expr};
