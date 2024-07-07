@@ -13,6 +13,8 @@ use std::error::{Error as StdError};
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Validator {
+  /// Validator that checks whether its input is a valid variable
+  /// name. Invokes [`validate_var`].
   Variable,
 }
 
