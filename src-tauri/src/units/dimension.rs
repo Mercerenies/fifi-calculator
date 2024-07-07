@@ -137,11 +137,27 @@ impl Mul for BaseDimension {
   }
 }
 
+impl Mul<Dimension> for BaseDimension {
+  type Output = Dimension;
+
+  fn mul(self, rhs: Dimension) -> Dimension {
+    Dimension::singleton(self) * rhs
+  }
+}
+
 impl Div for BaseDimension {
   type Output = Dimension;
 
   fn div(self, rhs: Self) -> Dimension {
     Dimension::singleton(self) / Dimension::singleton(rhs)
+  }
+}
+
+impl Div<Dimension> for BaseDimension {
+  type Output = Dimension;
+
+  fn div(self, rhs: Dimension) -> Dimension {
+    Dimension::singleton(self) / rhs
   }
 }
 
