@@ -2,7 +2,7 @@
 //! Tauri command-like functions.
 
 use super::{ApplicationState, UndoDirection};
-use super::validation::{Validator, validate};
+use super::validation::{Validator, ValidationContext, validate};
 use super::events::show_error;
 use crate::command::{CommandContext, CommandOutput};
 use crate::command::dispatch::CommandDispatchTable;
@@ -114,11 +114,12 @@ pub fn validate_stack_size(
 /// false and reports the error to the user in the form of a
 /// notification.
 pub fn validate_value(
+  validation_context: ValidationContext,
   app_handle: &tauri::AppHandle,
   value: String,
   validator: Validator,
 ) -> Result<bool, tauri::Error> {
-  let validation_passed = match validate(validator, value) {
+  let validation_passed = match validate(validator, &validation_context, value) {
     Ok(()) => true,
     Err(err) => {
       show_error(app_handle, format!("Error: {}", err))?;

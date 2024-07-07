@@ -7,7 +7,7 @@ mod mobile;
 use crate::command::CommandContext;
 use crate::command::options::CommandOptions;
 use crate::state::tauri_command::{self, handle_non_tauri_errors};
-use crate::state::validation::Validator;
+use crate::state::validation::{Validator, ValidationContext};
 use crate::state::{TauriApplicationState, UndoDirection};
 use crate::state::events::show_error;
 use crate::graphics::payload::SerializedGraphicsPayload;
@@ -119,9 +119,17 @@ fn validate_stack_size(
 
 #[tauri::command]
 fn validate_value(
+  app_state: tauri::State<TauriApplicationState>,
   app_handle: tauri::AppHandle,
   value: &str,
   validator: Validator,
 ) -> Result<bool, tauri::Error> {
-  tauri_command::validate_value(&app_handle, value.to_owned(), validator)
+  let state = app_state.state.lock().expect("poisoned mutex");
+  let language_mode = state.display_settings().language_mode();
+  let validation_context = ValidationContext {
+    units_parser: app_state.units_parser.as_ref(),
+    language_mode: language_mode.as_ref(),
+  };
+  tauri_command::validate_value(validation_context, &app_handle, value.to_owned(), validator)
 }
+

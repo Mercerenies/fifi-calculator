@@ -5,6 +5,7 @@ use crate::expr::number::Number;
 use num::One;
 
 use std::ops::{Mul, Div, MulAssign, DivAssign};
+use std::fmt::{self, Display, Formatter};
 
 /// A `Term` is an [`Expr`], represented as a numerator and a
 /// denominator, both of which are products of expressions. The
@@ -127,6 +128,32 @@ impl From<Term> for Expr {
       Expr::call("/", vec![numerator, Expr::call("*", t.denominator)])
     }
   }
+}
+
+impl Display for Term {
+  fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    fmt_product(f, &self.numerator)?;
+    write!(f, " / ")?;
+    fmt_product(f, &self.denominator)?;
+    Ok(())
+  }
+}
+
+fn fmt_product(f: &mut Formatter, exprs: &[Expr]) -> fmt::Result {
+  if exprs.is_empty() {
+    write!(f, "1")?;
+    return Ok(());
+  }
+  let mut first = true;
+  for expr in exprs {
+    if !first {
+      write!(f, " ")?;
+    } else {
+      first = false;
+    }
+    write!(f, "{}", expr)?;
+  }
+  Ok(())
 }
 
 impl From<Number> for Term {
