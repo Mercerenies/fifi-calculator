@@ -5,6 +5,7 @@ use super::powi_by_repeated_square;
 use crate::util::stricteq::StrictEq;
 
 use num::{BigInt, BigRational, Zero, One, FromPrimitive};
+use num::pow::Pow;
 use num::integer::div_floor;
 use num::traits::ToPrimitive;
 use thiserror::Error;
@@ -586,6 +587,22 @@ impl ops::Neg for &Number {
 
   fn neg(self) -> Number {
     (*self).clone().neg()
+  }
+}
+
+impl Pow<i32> for Number {
+  type Output = Number;
+
+  fn pow(self, exp: i32) -> Number {
+    self.powi(exp.into())
+  }
+}
+
+impl Pow<i64> for Number {
+  type Output = Number;
+
+  fn pow(self, exp: i64) -> Number {
+    self.powi(exp.into())
   }
 }
 

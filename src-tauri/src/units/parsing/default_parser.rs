@@ -1,5 +1,4 @@
 
-use super::base::UnitParser;
 use super::table::TableBasedParser;
 use super::prefix::PrefixParser;
 use crate::units::dimension::{Dimension, BaseDimension};

@@ -15,10 +15,12 @@ use crate::expr::function::table::FunctionTable;
 use crate::expr::function::library::build_function_table;
 use crate::expr::var::table::VarTable;
 use crate::expr::var::constants::bind_constants;
+use crate::expr::number::Number;
 use crate::command::default_dispatch_table;
 use crate::command::dispatch::CommandDispatchTable;
 use crate::display::DisplaySettings;
 use crate::undo::{UndoStack, UndoError};
+use crate::units::parsing::{UnitParser, default_parser};
 
 use serde::{Serialize, Deserialize};
 
@@ -30,6 +32,7 @@ pub struct TauriApplicationState {
   pub state: Mutex<ApplicationState>,
   pub command_table: CommandDispatchTable,
   pub function_table: FunctionTable,
+  pub units_parser: Box<dyn UnitParser<Number> + Send + Sync>,
 }
 
 #[derive(Default)]
@@ -63,6 +66,7 @@ impl TauriApplicationState {
       state: Mutex::new(state),
       command_table: default_dispatch_table(),
       function_table: build_function_table(),
+      units_parser: Box::new(default_parser()),
     }
   }
 }
