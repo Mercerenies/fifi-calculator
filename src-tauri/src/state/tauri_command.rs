@@ -6,16 +6,13 @@ use super::validation::{Validator, validate};
 use super::events::show_error;
 use crate::command::{CommandContext, CommandOutput};
 use crate::command::dispatch::CommandDispatchTable;
-use crate::command::options::CommandOptions;
 use crate::errorlist::ErrorList;
 use crate::expr::simplifier::default_simplifier;
 use crate::expr::function::table::FunctionTable;
-use crate::expr::number::Number;
 use crate::stack::StackError;
 use crate::stack::base::{StackLike, RandomAccessStackLike};
 use crate::graphics::payload::SerializedGraphicsPayload;
 use crate::graphics::response::GraphicsResponse;
-use crate::units::parsing::UnitParser;
 
 use std::fmt::Display;
 
@@ -23,21 +20,14 @@ use std::fmt::Display;
 /// table.
 pub fn run_math_command(
   state: &mut ApplicationState,
-  function_table: &FunctionTable,
-  units_parser: &dyn UnitParser<Number>,
+  command_context: CommandContext,
   app_handle: &tauri::AppHandle,
   command_table: &CommandDispatchTable,
   command_name: &str,
   args: Vec<String>,
-  opts: CommandOptions,
 ) -> anyhow::Result<()> {
   let command = command_table.get(command_name)?;
-  let context = CommandContext {
-    opts,
-    simplifier: default_simplifier(function_table),
-    units_parser: units_parser,
-  };
-  let output = command.run_command(state, args, &context)?;
+  let output = command.run_command(state, args, &command_context)?;
   handle_command_output(app_handle, &output)?;
 
   state.send_all_updates(app_handle, output.force_scroll_down())?;

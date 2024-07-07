@@ -4,6 +4,7 @@
 #[cfg(mobile)]
 mod mobile;
 
+use crate::command::CommandContext;
 use crate::command::options::CommandOptions;
 use crate::state::tauri_command::{self, handle_non_tauri_errors};
 use crate::state::validation::Validator;
@@ -11,6 +12,7 @@ use crate::state::{TauriApplicationState, UndoDirection};
 use crate::state::events::show_error;
 use crate::graphics::payload::SerializedGraphicsPayload;
 use crate::graphics::response::GraphicsResponse;
+use crate::expr::simplifier::default_simplifier;
 
 /// Main entry-point, called from the `fifi` binary crate on desktop
 /// platforms.
@@ -40,20 +42,21 @@ fn run_math_command(
   opts: CommandOptions,
 ) -> Result<(), tauri::Error> {
   let mut state = app_state.state.lock().expect("poisoned mutex");
-  let function_table = &app_state.function_table;
+  let command_context = CommandContext {
+    opts,
+    simplifier: default_simplifier(&app_state.function_table),
+    units_parser: app_state.units_parser.as_ref(),
+  };
   let command_table = &app_state.command_table;
-  let units_parser = app_state.units_parser.as_ref();
   handle_non_tauri_errors(
     &app_handle,
     tauri_command::run_math_command(
       &mut state,
-      function_table,
-      units_parser,
+      command_context,
       &app_handle,
       command_table,
       command_name,
       args,
-      opts,
     ),
   )
 }
