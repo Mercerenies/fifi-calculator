@@ -9,6 +9,6 @@
 //! module itself directly instantiates that functionality for the
 //! `Expr` and `Number` types in particular.
 
-mod scalar;
+mod parser;
 
-pub use scalar::{parse_composite_unit_term, parse_composite_unit_expr};
+pub use parser::{parse_composite_unit_term, parse_composite_unit_expr};
