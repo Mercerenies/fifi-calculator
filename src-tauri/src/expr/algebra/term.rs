@@ -64,6 +64,13 @@ impl Term {
     self.denominator
   }
 
+  pub fn filter_factors<F>(mut self, mut f: F) -> Self
+  where F: FnMut(&Expr) -> bool {
+    self.numerator.retain(&mut f);
+    self.denominator.retain(&mut f);
+    self
+  }
+
   pub fn recip(self) -> Self {
     Term {
       numerator: self.denominator,

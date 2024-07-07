@@ -1,10 +1,12 @@
 
 use crate::state::ApplicationState;
 use crate::expr::Expr;
+use crate::expr::number::Number;
 use crate::expr::simplifier::{Simplifier, SimplifierContext};
 use crate::expr::simplifier::identity::IdentitySimplifier;
 use crate::expr::simplifier::error::SimplifierError;
 use crate::errorlist::ErrorList;
+use crate::units::parsing::{UnitParser, NullaryUnitParser};
 use super::options::CommandOptions;
 
 pub trait Command {
@@ -21,9 +23,10 @@ pub trait Command {
   ) -> anyhow::Result<CommandOutput>;
 }
 
-pub struct CommandContext<'a> {
+pub struct CommandContext<'a, 'b> {
   pub opts: CommandOptions,
   pub simplifier: Box<dyn Simplifier + 'a>,
+  pub units_parser: &'b dyn UnitParser<Number>,
 }
 
 /// The result of performing a command, including any non-fatal errors
@@ -34,7 +37,7 @@ pub struct CommandOutput {
   force_scroll_down: bool,
 }
 
-impl<'a> CommandContext<'a> {
+impl<'a, 'b> CommandContext<'a, 'b> {
   pub fn simplify_expr(&self, expr: Expr, errors: &mut ErrorList<SimplifierError>) -> Expr {
     let mut simplifier_context = SimplifierContext { base_simplifier: self.simplifier.as_ref(), errors };
     self.simplifier.simplify_expr(expr, &mut simplifier_context)
@@ -84,11 +87,12 @@ impl CommandOutput {
 /// and a simplifier that does nothing. Note carefully that this does
 /// *not* provide a sensible simplifier and instead simply uses a
 /// nullary one that returns its argument unmodified.
-impl Default for CommandContext<'static> {
+impl Default for CommandContext<'static, 'static> {
   fn default() -> Self {
     CommandContext {
       opts: CommandOptions::default(),
       simplifier: Box::new(IdentitySimplifier),
+      units_parser: &NullaryUnitParser,
     }
   }
 }

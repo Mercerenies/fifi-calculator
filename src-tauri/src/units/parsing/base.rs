@@ -10,6 +10,10 @@ pub trait UnitParser<T> {
   fn parse_unit(&self, input: &str) -> Result<Unit<T>, UnitParserError>;
 }
 
+/// Nullary units parser. Always fails.
+#[derive(Debug, Clone)]
+pub struct NullaryUnitParser;
+
 #[derive(Debug, Clone, Error, PartialEq, Eq)]
 #[error("Failed to parse '{input}' as a unit")]
 pub struct UnitParserError {
@@ -19,5 +23,11 @@ pub struct UnitParserError {
 impl UnitParserError {
   pub fn new(input: impl Into<String>) -> Self {
     Self { input: input.into() }
+  }
+}
+
+impl<T> UnitParser<T> for NullaryUnitParser {
+  fn parse_unit(&self, input: &str) -> Result<Unit<T>, UnitParserError> {
+    Err(UnitParserError::new(input))
   }
 }

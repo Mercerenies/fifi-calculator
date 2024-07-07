@@ -16,7 +16,7 @@ use either::Either;
 struct PowerExprPrism;
 
 pub fn parse_composite_unit_term<P>(unit_parser: &P, term: Term) -> Tagged<Term, Number>
-where P: UnitParser<Number> {
+where P: UnitParser<Number> + ?Sized {
   let (numerator, denominator) = term.into_parts();
   let (term_numerator, unit_numerator): (Vec<_>, Vec<_>) =
     partition_mapped(numerator, |expr| try_parse_unit(unit_parser, expr).into());
@@ -31,7 +31,7 @@ where P: UnitParser<Number> {
 }
 
 pub fn parse_composite_unit_expr<P>(unit_parser: &P, expr: Expr) -> Tagged<Term, Number>
-where P: UnitParser<Number> {
+where P: UnitParser<Number> + ?Sized {
   let term = Term::parse_expr(expr);
   parse_composite_unit_term(unit_parser, term)
 }
@@ -40,8 +40,8 @@ fn unit_like_expr_prism() -> impl Prism<Expr, Either<(Var, i64), Var>> {
   PowerExprPrism.or(prisms::expr_to_var())
 }
 
-fn try_parse_unit<P>(unit_parser: &P, expr: Expr) -> Result<UnitWithPower<Number>, Expr>
-where P: UnitParser<Number> {
+pub fn try_parse_unit<P>(unit_parser: &P, expr: Expr) -> Result<UnitWithPower<Number>, Expr>
+where P: UnitParser<Number> + ?Sized {
   let prism = unit_like_expr_prism();
   prism.narrow_type(expr).and_then(|value| {
     let (var, n) = match value {

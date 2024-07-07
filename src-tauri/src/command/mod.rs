@@ -12,6 +12,7 @@ pub mod input;
 pub mod nullary;
 pub mod options;
 pub mod shuffle;
+pub mod units;
 pub mod variables;
 pub mod vector;
 
@@ -65,6 +66,8 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("im".to_string(), Box::new(UnaryFunctionCommand::named("im")));
   map.insert("lowercase".to_string(), Box::new(UnaryFunctionCommand::named("lowercase")));
   map.insert("uppercase".to_string(), Box::new(UnaryFunctionCommand::named("uppercase")));
+  map.insert("remove_units".to_string(), Box::new(units::remove_units_command()));
+  map.insert("extract_units".to_string(), Box::new(units::extract_units_command()));
   map.insert("=".to_string(), Box::new(BinaryFunctionCommand::named("=")));
   map.insert("!=".to_string(), Box::new(BinaryFunctionCommand::named("!=")));
   map.insert("<".to_string(), Box::new(BinaryFunctionCommand::named("<")));

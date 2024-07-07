@@ -11,4 +11,4 @@
 
 mod parser;
 
-pub use parser::{parse_composite_unit_term, parse_composite_unit_expr};
+pub use parser::{parse_composite_unit_term, parse_composite_unit_expr, try_parse_unit};

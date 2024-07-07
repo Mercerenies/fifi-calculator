@@ -40,7 +40,7 @@ pub struct UnaryFunctionCommand {
   function: Box<UnaryFunction>,
 }
 
-type UnaryFunction = dyn Fn(Expr, &ApplicationState) -> Expr + Send + Sync;
+type UnaryFunction = dyn Fn(Expr, &ApplicationState, &CommandContext) -> Expr + Send + Sync;
 
 /// A command that applies an arbitrary function to the top two
 /// elements of the stack, with the second-from-the-top element of the
@@ -71,12 +71,17 @@ impl PushConstantCommand {
 impl UnaryFunctionCommand {
   pub fn new<F>(function: F) -> UnaryFunctionCommand
   where F: Fn(Expr) -> Expr + Send + Sync + 'static {
-    UnaryFunctionCommand::with_state(move |arg, _| function(arg))
+    UnaryFunctionCommand { function: Box::new(move |arg, _, _| function(arg)) }
   }
 
   pub fn with_state<F>(function: F) -> UnaryFunctionCommand
   where F: Fn(Expr, &ApplicationState) -> Expr + Send + Sync + 'static {
-    UnaryFunctionCommand { function: Box::new(function) }
+    UnaryFunctionCommand { function: Box::new(move |arg, state, _| function(arg, state)) }
+  }
+
+  pub fn with_context<F>(function: F) -> UnaryFunctionCommand
+  where F: Fn(Expr, &CommandContext) -> Expr + Send + Sync + 'static {
+    UnaryFunctionCommand { function: Box::new(move |arg, _, ctx| function(arg, ctx)) }
   }
 
   pub fn named(function_name: impl Into<String>) -> UnaryFunctionCommand {
@@ -86,8 +91,8 @@ impl UnaryFunctionCommand {
     })
   }
 
-  fn wrap_expr(&self, arg: Expr, state: &ApplicationState) -> Expr {
-    (self.function)(arg, state)
+  fn wrap_expr(&self, arg: Expr, state: &ApplicationState, ctx: &CommandContext) -> Expr {
+    (self.function)(arg, state, ctx)
   }
 
   fn apply_to_top(
@@ -102,7 +107,7 @@ impl UnaryFunctionCommand {
       stack.pop_several(element_count)?
     };
     let values: Vec<_> = values.into_iter().map(|e| {
-      ctx.simplify_expr(self.wrap_expr(e, state), &mut errors)
+      ctx.simplify_expr(self.wrap_expr(e, state, ctx), &mut errors)
     }).collect();
     state.main_stack_mut().push_several(values);
     Ok(CommandOutput::from_errors(errors))
@@ -121,7 +126,7 @@ impl UnaryFunctionCommand {
       // it's safe to re-insert.
       state.main_stack_mut().insert(element_index, expr.clone()).expect("Stack was too small for re-insert");
     }
-    expr.mutate(|e| ctx.simplify_expr(self.wrap_expr(e, state), &mut errors));
+    expr.mutate(|e| ctx.simplify_expr(self.wrap_expr(e, state, ctx), &mut errors));
     // expect safety: We just popped a value from that position, so
     // it's safe to re-insert.
     state.main_stack_mut().insert(element_index, expr).expect("Stack was too small for re-insert");

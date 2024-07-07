@@ -42,11 +42,13 @@ fn run_math_command(
   let mut state = app_state.state.lock().expect("poisoned mutex");
   let function_table = &app_state.function_table;
   let command_table = &app_state.command_table;
+  let units_parser = app_state.units_parser.as_ref();
   handle_non_tauri_errors(
     &app_handle,
     tauri_command::run_math_command(
       &mut state,
       function_table,
+      units_parser,
       &app_handle,
       command_table,
       command_name,

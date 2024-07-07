@@ -10,10 +10,12 @@ use crate::command::options::CommandOptions;
 use crate::errorlist::ErrorList;
 use crate::expr::simplifier::default_simplifier;
 use crate::expr::function::table::FunctionTable;
+use crate::expr::number::Number;
 use crate::stack::StackError;
 use crate::stack::base::{StackLike, RandomAccessStackLike};
 use crate::graphics::payload::SerializedGraphicsPayload;
 use crate::graphics::response::GraphicsResponse;
+use crate::units::parsing::UnitParser;
 
 use std::fmt::Display;
 
@@ -22,6 +24,7 @@ use std::fmt::Display;
 pub fn run_math_command(
   state: &mut ApplicationState,
   function_table: &FunctionTable,
+  units_parser: &dyn UnitParser<Number>,
   app_handle: &tauri::AppHandle,
   command_table: &CommandDispatchTable,
   command_name: &str,
@@ -32,6 +35,7 @@ pub fn run_math_command(
   let context = CommandContext {
     opts,
     simplifier: default_simplifier(function_table),
+    units_parser: units_parser,
   };
   let output = command.run_command(state, args, &context)?;
   handle_command_output(app_handle, &output)?;
