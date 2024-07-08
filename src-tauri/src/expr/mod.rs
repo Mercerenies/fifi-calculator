@@ -190,7 +190,7 @@ impl Display for Expr {
         let mut first = true;
         for arg in args {
           if !first {
-            write!(f, ",")?;
+            write!(f, ", ")?;
           }
           first = false;
           write!(f, "{arg}")?;

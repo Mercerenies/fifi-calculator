@@ -133,8 +133,10 @@ impl From<Term> for Expr {
 impl Display for Term {
   fn fmt(&self, f: &mut Formatter) -> fmt::Result {
     fmt_product(f, &self.numerator)?;
-    write!(f, " / ")?;
-    fmt_product(f, &self.denominator)?;
+    if !self.denominator.is_empty() {
+      write!(f, " / ")?;
+      fmt_product(f, &self.denominator)?;
+    }
     Ok(())
   }
 }
