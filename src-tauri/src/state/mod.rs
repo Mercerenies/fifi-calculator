@@ -4,6 +4,7 @@
 pub mod delegate;
 pub mod events;
 pub mod tauri_command;
+pub mod query;
 pub mod undo;
 pub mod validation;
 

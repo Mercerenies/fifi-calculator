@@ -18,7 +18,7 @@ use serde::{Serialize, Deserialize};
 
 /// Types of validations that can be requested of the backend.
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum Validator {
   /// Validator that checks whether its input is a valid variable
   /// name. Invokes [`validate_var`].

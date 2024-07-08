@@ -54,6 +54,8 @@ export enum UndoDirection {
 
 export enum Validator {
   VARIABLE = "variable",
+  ALL_UNITS = "all_units",
+  HAS_UNITS = "has_units",
 }
 
 export interface CommandOptions {
