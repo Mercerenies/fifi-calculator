@@ -33,7 +33,7 @@ pub enum QueryType {
   HasUnits,
 }
 
-#[derive(Clone, Debug, Error)]
+#[derive(Clone, Debug, Error, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum QueryError {
   #[error("{0}")]
@@ -64,6 +64,7 @@ pub fn has_any_units(context: &QueryContext, expr: Expr) -> bool {
 mod tests {
   use super::*;
   use crate::units::parsing::default_parser;
+  use crate::stack::test_utils::stack_of;
 
   fn var(x: &str) -> Expr {
     Expr::var(x).unwrap()
@@ -86,5 +87,44 @@ mod tests {
                           Expr::call("*", vec![var("km"), Expr::call("^", vec![var("sec"), Expr::from(0)])])));
     assert!(!has_any_units(&context,
                            Expr::call("+", vec![var("km"), var("cm")])));
+  }
+
+  #[test]
+  fn test_run_query_on_stack() {
+    let parser = default_parser();
+    let context = QueryContext { units_parser: &parser };
+    let stack = stack_of(vec![Expr::from(100), Expr::from(200), var("km")]);
+    assert_eq!(
+      run_query(&Query { stack_index: 0, query_type: QueryType::HasUnits }, &context, &stack),
+      Ok(true),
+    );
+    assert_eq!(
+      run_query(&Query { stack_index: 1, query_type: QueryType::HasUnits }, &context, &stack),
+      Ok(false),
+    );
+    assert_eq!(
+      run_query(&Query { stack_index: 2, query_type: QueryType::HasUnits }, &context, &stack),
+      Ok(false),
+    );
+    assert_eq!(
+      run_query(&Query { stack_index: 3, query_type: QueryType::HasUnits }, &context, &stack),
+      Err(QueryError::StackError(StackError::NotEnoughElements { expected: 4, actual: 3 })),
+    );
+    assert_eq!(
+      run_query(&Query { stack_index: -1, query_type: QueryType::HasUnits }, &context, &stack),
+      Ok(false),
+    );
+    assert_eq!(
+      run_query(&Query { stack_index: -2, query_type: QueryType::HasUnits }, &context, &stack),
+      Ok(false),
+    );
+    assert_eq!(
+      run_query(&Query { stack_index: -3, query_type: QueryType::HasUnits }, &context, &stack),
+      Ok(true),
+    );
+    assert_eq!(
+      run_query(&Query { stack_index: -4, query_type: QueryType::HasUnits }, &context, &stack),
+      Err(QueryError::StackError(StackError::NotEnoughElements { expected: 4, actual: 3 })),
+    );
   }
 }
