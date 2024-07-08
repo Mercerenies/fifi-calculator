@@ -35,6 +35,10 @@ class TauriApi {
     return invoke('validate_value', { value, validator });
   }
 
+  queryStack(query: StackQuery): Promise<boolean> {
+    return invoke('query_stack', { query });
+  }
+
   listen(event: 'refresh-stack', callback: EventCallback<RefreshStackPayload>): Promise<UnlistenFn>;
   listen(event: 'refresh-undo-availability', callback: EventCallback<UndoAvailabilityPayload>): Promise<UnlistenFn>;
   listen(event: 'refresh-modeline', callback: EventCallback<ModelinePayload>): Promise<UnlistenFn>;
@@ -79,6 +83,15 @@ export interface ModelinePayload {
 
 export interface ShowErrorPayload {
   errorMessage: string;
+}
+
+export interface StackQuery {
+  stack_index: number;
+  query_type: StackQueryType;
+}
+
+export enum StackQueryType {
+  HAS_UNITS = "has_units",
 }
 
 export function defaultCommandOptions(): CommandOptions {

@@ -6,6 +6,7 @@ mod mobile;
 
 use crate::command::CommandContext;
 use crate::command::options::CommandOptions;
+use crate::state::query::{Query, QueryContext};
 use crate::state::tauri_command::{self, handle_non_tauri_errors};
 use crate::state::validation::{Validator, ValidationContext};
 use crate::state::{TauriApplicationState, UndoDirection};
@@ -27,7 +28,8 @@ pub fn run_application() {
       get_editable_stack_elem,
       perform_undo_action,
       validate_stack_size,
-      validate_value
+      validate_value,
+      query_stack,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
@@ -130,6 +132,18 @@ fn validate_value(
     units_parser: app_state.units_parser.as_ref(),
     language_mode: language_mode.as_ref(),
   };
-  tauri_command::validate_value(validation_context, &app_handle, value.to_owned(), validator)
+  tauri_command::validate_value(&validation_context, &app_handle, value.to_owned(), validator)
 }
 
+#[tauri::command]
+fn query_stack(
+  app_state: tauri::State<TauriApplicationState>,
+  app_handle: tauri::AppHandle,
+  query: Query,
+) -> Result<bool, tauri::Error> {
+  let state = app_state.state.lock().expect("poisoned mutex");
+  let query_context = QueryContext {
+    units_parser: app_state.units_parser.as_ref(),
+  };
+  tauri_command::query_stack(&query_context, &app_handle, &state, &query)
+}

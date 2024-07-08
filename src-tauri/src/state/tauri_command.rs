@@ -3,6 +3,7 @@
 
 use super::{ApplicationState, UndoDirection};
 use super::validation::{Validator, ValidationContext, validate};
+use super::query::{Query, QueryContext, run_query};
 use super::events::show_error;
 use crate::command::{CommandContext, CommandOutput};
 use crate::command::dispatch::CommandDispatchTable;
@@ -114,12 +115,12 @@ pub fn validate_stack_size(
 /// false and reports the error to the user in the form of a
 /// notification.
 pub fn validate_value(
-  validation_context: ValidationContext,
+  validation_context: &ValidationContext,
   app_handle: &tauri::AppHandle,
   value: String,
   validator: Validator,
 ) -> Result<bool, tauri::Error> {
-  let validation_passed = match validate(validator, &validation_context, value) {
+  let validation_passed = match validate(validator, validation_context, value) {
     Ok(()) => true,
     Err(err) => {
       show_error(app_handle, format!("Error: {}", err))?;
@@ -127,6 +128,25 @@ pub fn validate_value(
     }
   };
   Ok(validation_passed)
+}
+
+/// Runs a Boolean query against a particular element of the stack.
+/// Returns true or false, based on the result of the query. If the
+/// index is out of bounds, shows the user an error and returns false.
+pub fn query_stack(
+  query_context: &QueryContext,
+  app_handle: &tauri::AppHandle,
+  state: &ApplicationState,
+  query: &Query,
+) -> Result<bool, tauri::Error> {
+  let query_result = match run_query(query, query_context, state.main_stack()) {
+    Ok(result) => result,
+    Err(err) => {
+      show_error(app_handle, format!("Error: {}", err))?;
+      false
+    }
+  };
+  Ok(query_result)
 }
 
 /// Handles errors from the referenced [`ErrorList`] by communicating
