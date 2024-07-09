@@ -1,7 +1,6 @@
 
 use crate::expr::Expr;
 use crate::expr::var::Var;
-use crate::expr::number::Number;
 use crate::expr::algebra::term::Term;
 use crate::expr::prisms;
 use crate::units::unit::{UnitWithPower, CompositeUnit};
@@ -15,8 +14,8 @@ use either::Either;
 #[derive(Debug)]
 struct PowerExprPrism;
 
-pub fn parse_composite_unit_term<P>(unit_parser: &P, term: Term) -> Tagged<Term, Number>
-where P: UnitParser<Number> + ?Sized {
+pub fn parse_composite_unit_term<P, T>(unit_parser: &P, term: Term) -> Tagged<Term, T>
+where P: UnitParser<T> + ?Sized {
   let (numerator, denominator) = term.into_parts();
   let (term_numerator, unit_numerator): (Vec<_>, Vec<_>) =
     partition_mapped(numerator, |expr| try_parse_unit(unit_parser, expr).into());
@@ -30,8 +29,8 @@ where P: UnitParser<Number> + ?Sized {
   }
 }
 
-pub fn parse_composite_unit_expr<P>(unit_parser: &P, expr: Expr) -> Tagged<Term, Number>
-where P: UnitParser<Number> + ?Sized {
+pub fn parse_composite_unit_expr<P, T>(unit_parser: &P, expr: Expr) -> Tagged<Term, T>
+where P: UnitParser<T> + ?Sized {
   let term = Term::parse_expr(expr);
   parse_composite_unit_term(unit_parser, term)
 }
@@ -40,8 +39,8 @@ fn unit_like_expr_prism() -> impl Prism<Expr, Either<(Var, i64), Var>> {
   PowerExprPrism.or(prisms::expr_to_var())
 }
 
-pub fn try_parse_unit<P>(unit_parser: &P, expr: Expr) -> Result<UnitWithPower<Number>, Expr>
-where P: UnitParser<Number> + ?Sized {
+pub fn try_parse_unit<P, T>(unit_parser: &P, expr: Expr) -> Result<UnitWithPower<T>, Expr>
+where P: UnitParser<T> + ?Sized {
   let prism = unit_like_expr_prism();
   prism.narrow_type(expr).and_then(|value| {
     let (var, n) = match value {
@@ -88,6 +87,7 @@ impl Prism<Expr, (Var, i64)> for PowerExprPrism {
 mod tests {
   use super::*;
   use crate::units::unit::Unit;
+  use crate::expr::number::Number;
   use crate::units::dimension::BaseDimension;
   use crate::units::parsing::TableBasedParser;
 

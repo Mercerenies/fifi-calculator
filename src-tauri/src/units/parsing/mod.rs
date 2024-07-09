@@ -8,5 +8,5 @@ mod table;
 
 pub use base::{UnitParser, NullaryUnitParser, UnitParserError};
 pub use default_parser::{default_parser, default_units_table};
-pub use table::TableBasedParser;
 pub use prefix::PrefixParser;
+pub use table::TableBasedParser;

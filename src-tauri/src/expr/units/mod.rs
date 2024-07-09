@@ -11,6 +11,8 @@
 
 mod output;
 mod parser;
+mod prisms;
 
 pub use output::{tagged_into_expr, tagged_into_term, unit_into_term};
 pub use parser::{parse_composite_unit_term, parse_composite_unit_expr, try_parse_unit};
+pub use prisms::{ParsedCompositeUnit, UnitPrism};
