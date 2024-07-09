@@ -15,7 +15,7 @@ pub struct ParsedCompositeUnit<T> {
   pub original_string: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct UnitPrism<'a, 'b, P: ?Sized, L: ?Sized, T> {
   parser: &'a P,
   language_mode: &'b L,
@@ -29,6 +29,18 @@ where P: UnitParser<T> + ?Sized,
     Self {
       parser,
       language_mode,
+      _phantom: PhantomData,
+    }
+  }
+}
+
+impl<'a, 'b, P, L, T> Clone for UnitPrism<'a, 'b, P, L, T>
+where P: UnitParser<T> + ?Sized,
+      L: LanguageMode + ?Sized {
+  fn clone(&self) -> Self {
+    Self {
+      parser: self.parser,
+      language_mode: self.language_mode,
       _phantom: PhantomData,
     }
   }
