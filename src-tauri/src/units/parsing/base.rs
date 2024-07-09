@@ -31,3 +31,10 @@ impl<T> UnitParser<T> for NullaryUnitParser {
     Err(UnitParserError::new(input))
   }
 }
+
+impl<'a, P, T> UnitParser<T> for &'a P
+where P: UnitParser<T> + ?Sized {
+  fn parse_unit(&self, input: &str) -> Result<Unit<T>, UnitParserError> {
+    (**self).parse_unit(input)
+  }
+}

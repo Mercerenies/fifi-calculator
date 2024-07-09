@@ -33,23 +33,20 @@ impl ConvertUnitsCommand {
     Self { _priv: () }
   }
 
-/*
-  fn argument_schema<'a, 'b>(
-    state: &'a ApplicationState,
-    context: &CommandContext<'_, 'b>,
-  ) -> BinaryArgumentSchema<DynUnitPrism<'a, 'b>, ParsedCompositeUnit<Number>, DynUnitPrism<'a, 'b>, ParsedCompositeUnit<Number>> {
-    let prism = UnitPrism::new(context.units_parser, state.display_settings().language_mode().as_ref());
+  fn argument_schema<'p, 'm>(
+    state: &'m ApplicationState,
+    context: &CommandContext<'_, 'p>,
+  ) -> BinaryArgumentSchema<ConcreteUnitPrism<'p, 'm>, ParsedCompositeUnit<Number>, ConcreteUnitPrism<'p, 'm>, ParsedCompositeUnit<Number>> {
     BinaryArgumentSchema::new(
       "valid unit expression".to_owned(),
-      prism.clone(),
+      UnitPrism::new(context.units_parser, state.display_settings().language_mode()),
       "valid unit expression".to_owned(),
-      prism,
+      UnitPrism::new(context.units_parser, state.display_settings().language_mode()),
     )
   }
-*/
 }
 
-type DynUnitPrism<'a, 'b> = UnitPrism<'a, 'b, dyn UnitParser<Number>, dyn LanguageMode, Number>;
+type ConcreteUnitPrism<'p, 'm> = UnitPrism<&'p dyn UnitParser<Number>, Box<dyn LanguageMode + 'm>, Number>;
 
 /// Unary command which removes units from the targeted stack
 /// element(s).
@@ -86,6 +83,7 @@ impl Command for ConvertUnitsCommand {
     args: Vec<String>,
     ctx: &CommandContext,
   ) -> anyhow::Result<CommandOutput> {
+    validate_schema(&Self::argument_schema(state, ctx), args)?;
     todo!()
   }
 }

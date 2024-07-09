@@ -16,16 +16,16 @@ pub struct ParsedCompositeUnit<T> {
 }
 
 #[derive(Debug)]
-pub struct UnitPrism<'a, 'b, P: ?Sized, L: ?Sized, T> {
-  parser: &'a P,
-  language_mode: &'b L,
+pub struct UnitPrism<P, L, T> {
+  parser: P,
+  language_mode: L,
   _phantom: PhantomData<fn() -> T>,
 }
 
-impl<'a, 'b, P, L, T> UnitPrism<'a, 'b, P, L, T>
-where P: UnitParser<T> + ?Sized,
-      L: LanguageMode + ?Sized {
-  pub fn new(parser: &'a P, language_mode: &'b L) -> Self {
+impl<P, L, T> UnitPrism<P, L, T>
+where P: UnitParser<T>,
+      L: LanguageMode {
+  pub fn new(parser: P, language_mode: L) -> Self {
     Self {
       parser,
       language_mode,
@@ -34,26 +34,26 @@ where P: UnitParser<T> + ?Sized,
   }
 }
 
-impl<'a, 'b, P, L, T> Clone for UnitPrism<'a, 'b, P, L, T>
-where P: UnitParser<T> + ?Sized,
-      L: LanguageMode + ?Sized {
+impl<P, L, T> Clone for UnitPrism<P, L, T>
+where P: UnitParser<T> + Clone,
+      L: LanguageMode + Clone {
   fn clone(&self) -> Self {
     Self {
-      parser: self.parser,
-      language_mode: self.language_mode,
+      parser: self.parser.clone(),
+      language_mode: self.language_mode.clone(),
       _phantom: PhantomData,
     }
   }
 }
 
-impl<'a, 'b, P, L, T> Prism<String, ParsedCompositeUnit<T>> for UnitPrism<'a, 'b, P, L, T>
-where P: UnitParser<T> + ?Sized,
-      L: LanguageMode + ?Sized {
+impl<P, L, T> Prism<String, ParsedCompositeUnit<T>> for UnitPrism<P, L, T>
+where P: UnitParser<T>,
+      L: LanguageMode {
   fn narrow_type(&self, input: String) -> Result<ParsedCompositeUnit<T>, String> {
     let Ok(expr) = self.language_mode.parse(&input) else {
       return Err(input);
     };
-    let tagged_expr = parse_composite_unit_expr(self.parser, expr);
+    let tagged_expr = parse_composite_unit_expr(&self.parser, expr);
     if tagged_expr.value.is_one() {
       Ok(ParsedCompositeUnit {
         unit: tagged_expr.unit,
@@ -63,6 +63,7 @@ where P: UnitParser<T> + ?Sized,
       Err(input)
     }
   }
+
   fn widen_type(&self, input: ParsedCompositeUnit<T>) -> String {
     input.original_string
   }
