@@ -72,6 +72,16 @@ impl Term {
     self
   }
 
+  pub fn partition_factors<F>(self, mut f: F) -> (Self, Self)
+  where F: FnMut(&Expr) -> bool {
+    let (num1, num2) = self.numerator.into_iter().partition(&mut f);
+    let (den1, den2) = self.denominator.into_iter().partition(&mut f);
+    (
+      Self { numerator: num1, denominator: den1 },
+      Self { numerator: num2, denominator: den2 },
+    )
+  }
+
   pub fn recip(self) -> Self {
     Term {
       numerator: self.denominator,
