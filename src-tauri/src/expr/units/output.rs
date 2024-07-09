@@ -96,4 +96,42 @@ mod tests {
       Ok(Term::new(vec![var("cd"), pow(var("km"), 2)], vec![var("mol"), pow(var("sec"), 3)])),
     );
   }
+
+  #[test]
+  fn test_tagged_into_term() {
+    let term = Term::new(vec![Expr::from(100)], vec![Expr::from(101)]);
+    let composite_unit = CompositeUnit::new(vec![
+      UnitWithPower { unit: Unit::new("km", BaseDimension::Length, 1_000), exponent: 2 },
+      UnitWithPower { unit: Unit::new("sec", BaseDimension::Time, 1), exponent: -3 },
+      UnitWithPower { unit: Unit::new("cd", BaseDimension::LuminousIntensity, 1), exponent: 1 },
+      UnitWithPower { unit: Unit::new("mol", BaseDimension::AmountOfSubstance, 1), exponent: -1 },
+    ]);
+    let tagged_term = Tagged::new(term, composite_unit);
+    assert_eq!(
+      tagged_into_term(tagged_term),
+      Ok(Term::new(
+        vec![Expr::from(100), var("cd"), pow(var("km"), 2)],
+        vec![Expr::from(101), var("mol"), pow(var("sec"), 3)],
+      )),
+    );
+  }
+
+  #[test]
+  fn test_tagged_into_expr() {
+    let term = Term::new(vec![Expr::from(100)], vec![Expr::from(101)]);
+    let composite_unit = CompositeUnit::new(vec![
+      UnitWithPower { unit: Unit::new("km", BaseDimension::Length, 1_000), exponent: 2 },
+      UnitWithPower { unit: Unit::new("sec", BaseDimension::Time, 1), exponent: -3 },
+      UnitWithPower { unit: Unit::new("cd", BaseDimension::LuminousIntensity, 1), exponent: 1 },
+      UnitWithPower { unit: Unit::new("mol", BaseDimension::AmountOfSubstance, 1), exponent: -1 },
+    ]);
+    let tagged_term = Tagged::new(term, composite_unit);
+    assert_eq!(
+      tagged_into_expr(tagged_term),
+      Ok(Expr::call("/", vec![
+        Expr::call("*", vec![Expr::from(100), var("cd"), pow(var("km"), 2)]),
+        Expr::call("*", vec![Expr::from(101), var("mol"), pow(var("sec"), 3)]),
+      ])),
+    );
+  }
 }
