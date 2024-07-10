@@ -86,8 +86,8 @@ export interface ShowErrorPayload {
 }
 
 export interface StackQuery {
-  stack_index: number;
-  query_type: StackQueryType;
+  stackIndex: number;
+  queryType: StackQueryType;
 }
 
 export enum StackQueryType {

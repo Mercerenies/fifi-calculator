@@ -4,7 +4,7 @@ import { backButton, Button, DispatchButton } from './button.js';
 import { InputBoxManager } from '../input_box.js';
 import { FreeformInputMethod } from '../input_box/freeform_input.js';
 import { svg } from '../util.js';
-import { TAURI, Validator } from '../tauri_api.js';
+import { TAURI, Validator, StackQueryType } from '../tauri_api.js';
 
 function rulerSvg(): HTMLElement {
   return svg('assets/ruler.svg', {alt: "convert"});
@@ -62,15 +62,24 @@ export class UnitConversionButton extends Button {
       if (!isValid) {
         return;
       }
-      const sourceUnits = await unitInput(this.inputManager, "Old units:");
-      if (!sourceUnits) {
-        return;
+
+      if (await TAURI.queryStack({ stackIndex: 0, queryType: StackQueryType.HAS_UNITS })) {
+        const destUnits = await unitInput(this.inputManager, "New units:");
+        if (!destUnits) {
+          return;
+        }
+        await manager.invokeMathCommand('convert_units_with_context', [destUnits]);
+      } else {
+        const sourceUnits = await unitInput(this.inputManager, "Old units:");
+        if (!sourceUnits) {
+          return;
+        }
+        const destUnits = await unitInput(this.inputManager, "New units:");
+        if (!destUnits) {
+          return;
+        }
+        await manager.invokeMathCommand('convert_units', [sourceUnits, destUnits]);
       }
-      const destUnits = await unitInput(this.inputManager, "New units:");
-      if (!destUnits) {
-        return;
-      }
-      await manager.invokeMathCommand('convert_units', [sourceUnits, destUnits]);
     } finally {
       manager.resetState();
     }

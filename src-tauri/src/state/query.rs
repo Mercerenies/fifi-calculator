@@ -18,6 +18,7 @@ use serde::{Serialize, Deserialize};
 /// while negative indices count from the bottom. So 0 always refers
 /// to the top of the stack and -1 always refers to the bottom.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Query {
   pub stack_index: i64,
   pub query_type: QueryType,
