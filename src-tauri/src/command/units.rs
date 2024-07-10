@@ -1,7 +1,7 @@
 
 //! Commands pertaining to unit arithmetic.
 
-use super::arguments::{BinaryArgumentSchema, validate_schema};
+use super::arguments::{UnaryArgumentSchema, BinaryArgumentSchema, validate_schema};
 use super::base::{Command, CommandContext, CommandOutput};
 use super::functional::UnaryFunctionCommand;
 use crate::errorlist::ErrorList;
@@ -12,7 +12,9 @@ use crate::display::language::LanguageMode;
 use crate::expr::Expr;
 use crate::expr::number::Number;
 use crate::expr::algebra::term::Term;
-use crate::expr::units::{try_parse_unit, unit_into_term, UnitPrism, ParsedCompositeUnit};
+use crate::expr::units::{parse_composite_unit_expr, try_parse_unit,
+                         unit_into_term, tagged_into_expr,
+                         UnitPrism, ParsedCompositeUnit};
 use crate::units::parsing::UnitParser;
 use crate::units::unit::CompositeUnit;
 use crate::units::tagged::Tagged;
@@ -27,13 +29,37 @@ use anyhow::Context;
 /// Converts the value on the top of the stack from the source unit
 /// into the target unit. Does not attempt to parse the top of the
 /// stack as a unital value, since both the source and target units
-/// are being supplied externally.
+/// are being supplied externally. If the dimensions of the source and
+/// target units do not match, remainder units will be inserted to
+/// make the dimensions match.
+///
+/// Aside from remainder units, no units are inserted into the
+/// resulting stack expression.
 ///
 /// This command always operates on the top value of the stack and
 /// does not use the numerical argument. However, this command does
 /// respect the "keep" modifier.
 #[derive(Debug, Clone, Default)]
 pub struct ConvertUnitsCommand {
+  _priv: (),
+}
+
+/// This command requires one argument: the target unit. The target
+/// unit will be parsed via [`UnitPrism`].
+///
+/// Pops the top value of the stack, interpreting it as an expression
+/// with units already present, and converts that expression into the
+/// given target unit. If the dimensions do not match, then remainder
+/// units will be inserted.
+///
+/// The new units will be present on the top stack element when this
+/// operation is done.
+///
+/// This command always operates on the top value of the stack and
+/// does not use the numerical argument. However, this command does
+/// respect the "keep" modifier.
+#[derive(Debug, Clone, Default)]
+pub struct ContextualConvertUnitsCommand {
   _priv: (),
 }
 
@@ -53,15 +79,31 @@ impl ConvertUnitsCommand {
       UnitPrism::new(context.units_parser, state.display_settings().language_mode()),
     )
   }
+}
 
-  fn calculate_remainder_unit<P>(parser: &P, source_dim: &Dimension, target_dim: &Dimension) -> CompositeUnit<Number>
-  where P: UnitParser<Number> + ?Sized {
-    let remainder_dim = source_dim.to_owned() / target_dim.to_owned();
-    parser.base_composite_unit(&remainder_dim)
+impl ContextualConvertUnitsCommand {
+  pub fn new() -> Self {
+    Self { _priv: () }
+  }
+
+  fn argument_schema<'p, 'm>(
+    state: &'m ApplicationState,
+    context: &CommandContext<'_, 'p>,
+  ) -> UnaryArgumentSchema<ConcreteUnitPrism<'p, 'm>, ParsedCompositeUnit<Number>> {
+    UnaryArgumentSchema::new(
+      "valid unit expression".to_owned(),
+      UnitPrism::new(context.units_parser, state.display_settings().language_mode()),
+    )
   }
 }
 
 type ConcreteUnitPrism<'p, 'm> = UnitPrism<&'p dyn UnitParser<Number>, Box<dyn LanguageMode + 'm>, Number>;
+
+fn calculate_remainder_unit<P>(parser: &P, source_dim: &Dimension, target_dim: &Dimension) -> CompositeUnit<Number>
+where P: UnitParser<Number> + ?Sized {
+  let remainder_dim = source_dim.to_owned() / target_dim.to_owned();
+  parser.base_composite_unit(&remainder_dim)
+}
 
 /// Unary command which removes units from the targeted stack
 /// element(s).
@@ -102,13 +144,13 @@ impl Command for ConvertUnitsCommand {
     let source_unit = CompositeUnit::from(source_unit);
     let target_unit = CompositeUnit::from(target_unit);
 
-    let remainder_unit = Self::calculate_remainder_unit(
+    let remainder_unit = calculate_remainder_unit(
       ctx.units_parser,
       &source_unit.dimension(),
       &target_unit.dimension(),
     );
     let remainder_term = unit_into_term(remainder_unit.clone())
-      .context("Remainder unit contained an invalid variable name")?;
+      .context("Remainder unit contained an invalid variable name")?; // TODO: Restore the stack on error?
 
     state.undo_stack_mut().push_cut();
     let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
@@ -120,6 +162,38 @@ impl Command for ConvertUnitsCommand {
     let term = term.convert_or_panic(target_unit * remainder_unit);
     let term = term.value * remainder_term;
     let expr = Expr::from(term);
+
+    let mut errors = ErrorList::new();
+    stack.push(ctx.simplify_expr(expr, &mut errors));
+    Ok(CommandOutput::from_errors(errors))
+  }
+}
+
+impl Command for ContextualConvertUnitsCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    ctx: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    let target_unit = validate_schema(&Self::argument_schema(state, ctx), args)?;
+    let target_unit = CompositeUnit::from(target_unit);
+
+    state.undo_stack_mut().push_cut();
+    let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
+    let tagged_term = parse_composite_unit_expr(ctx.units_parser, stack.pop()?);
+
+    let remainder_unit = calculate_remainder_unit(
+      ctx.units_parser,
+      &tagged_term.unit.dimension(),
+      &target_unit.dimension(),
+    );
+
+    // convert_or_panic safety: We already forced the dimensions to
+    // line up, using the remainder unit.
+    let tagged_term = tagged_term.convert_or_panic(target_unit * remainder_unit);
+    let expr = tagged_into_expr(tagged_term)
+      .context("Target unit contained an invalid variable name")?; // TODO: Restore the stack on error?
 
     let mut errors = ErrorList::new();
     stack.push(ctx.simplify_expr(expr, &mut errors));
@@ -228,6 +302,56 @@ mod tests {
           Expr::from(1_000),
           Expr::var("s").unwrap(),
         ]),
+      ]),
+    ]));
+  }
+
+  #[test]
+  fn test_simple_length_context_conversion() {
+    let setup = (setup_si_units, setup_default_simplifier);
+    let input_stack = vec![
+      Expr::call("*", vec![
+        Expr::from(100),
+        Expr::var("cm").unwrap(),
+      ])
+    ];
+    let output_stack = act_on_stack(
+      &ContextualConvertUnitsCommand::new(),
+      (setup, vec!["m"]),
+      input_stack,
+    ).unwrap();
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::call("*", vec![
+        Expr::from(100),
+        Expr::from(Number::ratio(1, 100)),
+        Expr::var("m").unwrap(),
+      ]),
+    ]));
+  }
+
+  #[test]
+  fn test_simple_length_context_conversion_with_keep_modifier() {
+    let setup = (setup_si_units, setup_default_simplifier);
+    let input_stack = vec![
+      Expr::call("*", vec![
+        Expr::from(100),
+        Expr::var("cm").unwrap(),
+      ])
+    ];
+    let output_stack = act_on_stack(
+      &ContextualConvertUnitsCommand::new(),
+      (setup, CommandOptions::default().with_keep_modifier(), vec!["m"]),
+      input_stack,
+    ).unwrap();
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::call("*", vec![
+        Expr::from(100),
+        Expr::var("cm").unwrap(),
+      ]),
+      Expr::call("*", vec![
+        Expr::from(100),
+        Expr::from(Number::ratio(1, 100)),
+        Expr::var("m").unwrap(),
       ]),
     ]));
   }

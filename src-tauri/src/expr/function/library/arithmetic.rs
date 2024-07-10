@@ -16,6 +16,7 @@ use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::calculus::DifferentiationError;
 use crate::graphics::GRAPHICS_NAME;
 use crate::util::repeated;
+use crate::util::prism::Identity;
 
 use num::{Zero, One};
 
@@ -246,6 +247,12 @@ pub fn multiplication() -> Function {
 
 pub fn division() -> Function {
   FunctionBuilder::new("/")
+    .add_case(
+      // Division by one
+      builder::arity_two().of_types(Identity, prisms::ExprToOne).and_then(|arg1, _, _| {
+        Ok(arg1)
+      })
+    )
     .add_case(
       // Real number division
       builder::arity_two().both_of_type(expr_to_number()).and_then(|arg1, arg2, context| {

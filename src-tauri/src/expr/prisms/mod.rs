@@ -28,6 +28,12 @@ pub struct LiteralZero {
   expr: Expr,
 }
 
+/// An expression which is literally equal to the value one.
+#[derive(Debug, Clone)]
+pub struct LiteralOne {
+  expr: Expr,
+}
+
 /// An expression which is a 2D graphics primitive.
 #[derive(Debug, Clone)]
 pub struct Graphics2D {
@@ -36,9 +42,13 @@ pub struct Graphics2D {
 
 pub struct Graphics2DSpec;
 
-/// Prism which only accepts the zero value.
+/// Prism which only accepts the literal numerical value zero.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct ExprToZero;
+
+/// Prism which only accepts the literal numerical value one.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ExprToOne;
 
 /// Prism which downcasts an [`Expr`] to a [`ComplexLike`], either a
 /// real or a complex number.
@@ -184,6 +194,12 @@ impl LiteralZero {
   }
 }
 
+impl LiteralOne {
+  pub fn new(arg: Expr) -> Result<LiteralOne, Expr> {
+    ExprToOne.narrow_type(arg)
+  }
+}
+
 impl Graphics2D {
   pub fn into_args(self) -> Vec<Expr> {
     self.inner_expr.into_args()
@@ -243,6 +259,19 @@ impl Prism<Expr, LiteralZero> for ExprToZero {
     }
   }
   fn widen_type(&self, input: LiteralZero) -> Expr {
+    input.expr
+  }
+}
+
+impl Prism<Expr, LiteralOne> for ExprToOne {
+  fn narrow_type(&self, input: Expr) -> Result<LiteralOne, Expr> {
+    if input.is_one() {
+      Ok(LiteralOne { expr: input })
+    } else {
+      Err(input)
+    }
+  }
+  fn widen_type(&self, input: LiteralOne) -> Expr {
     input.expr
   }
 }
