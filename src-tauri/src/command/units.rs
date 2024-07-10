@@ -4,12 +4,18 @@
 use super::arguments::{BinaryArgumentSchema, validate_schema};
 use super::base::{Command, CommandContext, CommandOutput};
 use super::functional::UnaryFunctionCommand;
+use crate::errorlist::ErrorList;
 use crate::state::ApplicationState;
+use crate::stack::base::StackLike;
+use crate::stack::keepable::KeepableStack;
 use crate::display::language::LanguageMode;
+use crate::expr::Expr;
 use crate::expr::number::Number;
 use crate::expr::algebra::term::Term;
 use crate::expr::units::{try_parse_unit, UnitPrism, ParsedCompositeUnit};
 use crate::units::parsing::UnitParser;
+use crate::units::unit::CompositeUnit;
+use crate::units::tagged::Tagged;
 
 /// This command requires two arguments: the unit to convert from and
 /// the unit to convert to. Both arguments are parsed with
@@ -83,7 +89,26 @@ impl Command for ConvertUnitsCommand {
     args: Vec<String>,
     ctx: &CommandContext,
   ) -> anyhow::Result<CommandOutput> {
-    validate_schema(&Self::argument_schema(state, ctx), args)?;
-    todo!()
+    let (source_unit, target_unit) = validate_schema(&Self::argument_schema(state, ctx), args)?;
+    let source_unit = CompositeUnit::from(source_unit);
+    let target_unit = CompositeUnit::from(target_unit);
+
+    if source_unit.dimension() != target_unit.dimension() {
+      // TODO: We will support "conversion with remainders" soon.
+      anyhow::bail!("Dimensions do not match; cannot convert");
+    }
+
+    state.undo_stack_mut().push_cut();
+    let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
+    let term = Term::parse_expr(stack.pop()?);
+    let term = Tagged::new(term, source_unit);
+
+    // convert_or_panic safety: We already checked the dimension in advance.
+    let term = term.convert_or_panic(target_unit);
+    let expr = Expr::from(term.value);
+
+    let mut errors = ErrorList::new();
+    stack.push(ctx.simplify_expr(expr, &mut errors));
+    Ok(CommandOutput::from_errors(errors))
   }
 }

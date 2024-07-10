@@ -68,3 +68,9 @@ where P: UnitParser<T>,
     input.original_string
   }
 }
+
+impl<T> From<ParsedCompositeUnit<T>> for CompositeUnit<T> {
+  fn from(parsed: ParsedCompositeUnit<T>) -> Self {
+    parsed.unit
+  }
+}
