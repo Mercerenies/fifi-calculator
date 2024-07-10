@@ -355,4 +355,33 @@ mod tests {
       ]),
     ]));
   }
+
+  #[test]
+  fn test_context_conversion_with_remainder_dimension() {
+    let setup = (setup_si_units, setup_default_simplifier);
+    let input_stack = vec![
+      Expr::call("*", vec![
+        Expr::from(100),
+        Expr::call("/", vec![
+          Expr::var("cm").unwrap(),
+          Expr::var("sec").unwrap(),
+        ]),
+      ])
+    ];
+    let output_stack = act_on_stack(
+      &ContextualConvertUnitsCommand::new(),
+      (setup, vec!["m"]),
+      input_stack,
+    ).unwrap();
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::call("/", vec![
+        Expr::call("*", vec![
+          Expr::from(100),
+          Expr::from(Number::ratio(1, 100)),
+          Expr::var("m").unwrap(),
+        ]),
+        Expr::var("s").unwrap(),
+      ]),
+    ]));
+  }
 }
