@@ -68,6 +68,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("uppercase".to_string(), Box::new(UnaryFunctionCommand::named("uppercase")));
   map.insert("remove_units".to_string(), Box::new(units::remove_units_command()));
   map.insert("extract_units".to_string(), Box::new(units::extract_units_command()));
+  map.insert("convert_units".to_string(), Box::new(units::ConvertUnitsCommand::new()));
   map.insert("=".to_string(), Box::new(BinaryFunctionCommand::named("=")));
   map.insert("!=".to_string(), Box::new(BinaryFunctionCommand::named("!=")));
   map.insert("<".to_string(), Box::new(BinaryFunctionCommand::named("<")));
