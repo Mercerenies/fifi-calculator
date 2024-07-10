@@ -260,8 +260,7 @@ impl Command for ReplaceStackElemCommand {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::command::test_utils::{act_on_stack, act_on_stack_err,
-                                   act_on_stack_with_args, act_on_stack_with_args_err};
+  use crate::command::test_utils::{act_on_stack, act_on_stack_with_args};
   use crate::command::options::CommandOptions;
   use crate::stack::test_utils::stack_of;
   use crate::stack::{Stack, StackError};
@@ -269,20 +268,20 @@ mod tests {
 
   #[test]
   fn test_simple_pop() {
-    let output_stack = act_on_stack(&PopCommand, CommandOptions::default(), vec![10, 20, 30]);
+    let output_stack = act_on_stack(&PopCommand, CommandOptions::default(), vec![10, 20, 30]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20]));
   }
 
   #[test]
   fn test_simple_pop_with_keep_arg() {
     // keep_modifier has no effect on pop commands.
-    let output_stack = act_on_stack(&PopCommand, CommandOptions::default().with_keep_modifier(), vec![10, 20, 30]);
+    let output_stack = act_on_stack(&PopCommand, CommandOptions::default().with_keep_modifier(), vec![10, 20, 30]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20]));
   }
 
   #[test]
   fn test_simple_pop_on_empty_stack() {
-    let err = act_on_stack_err(&PopCommand, CommandOptions::default(), Vec::<Expr>::new());
+    let err = act_on_stack(&PopCommand, CommandOptions::default(), Vec::<Expr>::new()).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(
       err,
@@ -295,7 +294,8 @@ mod tests {
     let output_stack = act_on_stack(
       &PopCommand,
       CommandOptions::numerical(3),
-      vec![10, 20, 30, 40, 50]);
+      vec![10, 20, 30, 40, 50],
+    ).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20]));
   }
 
@@ -305,19 +305,20 @@ mod tests {
     let output_stack = act_on_stack(
       &PopCommand,
       CommandOptions::numerical(3).with_keep_modifier(),
-      vec![10, 20, 30, 40, 50]);
+      vec![10, 20, 30, 40, 50],
+    ).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20]));
   }
 
   #[test]
   fn test_multiple_pop_all_stack_elements() {
-    let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(4), vec![10, 20, 30, 40]);
+    let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(4), vec![10, 20, 30, 40]).unwrap();
     assert_eq!(output_stack, Stack::new());
   }
 
   #[test]
   fn test_multiple_pop_on_empty_stack() {
-    let err = act_on_stack_err(&PopCommand, CommandOptions::numerical(3), Vec::<Expr>::new());
+    let err = act_on_stack(&PopCommand, CommandOptions::numerical(3), Vec::<Expr>::new()).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(
       err,
@@ -327,7 +328,7 @@ mod tests {
 
   #[test]
   fn test_multiple_pop_on_stack_thats_too_small() {
-    let err = act_on_stack_err(&PopCommand, CommandOptions::numerical(4), vec![10, 20, 30]);
+    let err = act_on_stack(&PopCommand, CommandOptions::numerical(4), vec![10, 20, 30]).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(
       err,
@@ -337,32 +338,36 @@ mod tests {
 
   #[test]
   fn test_pop_with_argument_zero() {
-    let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(0), vec![10, 20, 30]);
+    let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(0), vec![10, 20, 30]).unwrap();
     assert_eq!(output_stack, Stack::new());
   }
 
   #[test]
   fn test_pop_with_argument_zero_and_keep_arg() {
     // keep_modifier has no effect on pop commands.
-    let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(0).with_keep_modifier(), vec![10, 20, 30]);
+    let output_stack = act_on_stack(
+      &PopCommand,
+      CommandOptions::numerical(0).with_keep_modifier(),
+      vec![10, 20, 30],
+    ).unwrap();
     assert_eq!(output_stack, Stack::new());
   }
 
   #[test]
   fn test_pop_with_argument_zero_on_empty_stack() {
-    let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(0), Vec::<Expr>::new());
+    let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(0), Vec::<Expr>::new()).unwrap();
     assert_eq!(output_stack, Stack::new());
   }
 
   #[test]
   fn test_pop_with_negative_one_argument() {
-    let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(-1), vec![10, 20, 30, 40]);
+    let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(-1), vec![10, 20, 30, 40]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30]));
   }
 
   #[test]
   fn test_pop_with_negative_one_argument_and_empty_stack() {
-    let err = act_on_stack_err(&PopCommand, CommandOptions::numerical(-1), Vec::<Expr>::new());
+    let err = act_on_stack(&PopCommand, CommandOptions::numerical(-1), Vec::<Expr>::new()).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(
       err,
@@ -372,13 +377,13 @@ mod tests {
 
   #[test]
   fn test_pop_with_negative_argument() {
-    let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(-3), vec![10, 20, 30, 40]);
+    let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(-3), vec![10, 20, 30, 40]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 30, 40]));
   }
 
   #[test]
   fn test_pop_with_negative_argument_and_empty_stack() {
-    let err = act_on_stack_err(&PopCommand, CommandOptions::numerical(-3), Vec::<Expr>::new());
+    let err = act_on_stack(&PopCommand, CommandOptions::numerical(-3), Vec::<Expr>::new()).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(
       err,
@@ -388,7 +393,7 @@ mod tests {
 
   #[test]
   fn test_pop_with_negative_argument_and_too_small_stack() {
-    let err = act_on_stack_err(&PopCommand, CommandOptions::numerical(-3), vec![10, 20]);
+    let err = act_on_stack(&PopCommand, CommandOptions::numerical(-3), vec![10, 20]).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(
       err,
@@ -398,32 +403,32 @@ mod tests {
 
   #[test]
   fn test_pop_with_negative_argument_at_bottom_of_stack() {
-    let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(-4), vec![10, 20, 30, 40]);
+    let output_stack = act_on_stack(&PopCommand, CommandOptions::numerical(-4), vec![10, 20, 30, 40]).unwrap();
     assert_eq!(output_stack, stack_of(vec![20, 30, 40]));
   }
 
   #[test]
   fn test_swap() {
-    let output_stack = act_on_stack(&SwapCommand, CommandOptions::default(), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&SwapCommand, CommandOptions::default(), vec![10, 20, 30, 40, 50]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 50, 40]));
   }
 
   #[test]
   fn test_swap_with_keep_arg() {
     let opts = CommandOptions::default().with_keep_modifier();
-    let output_stack = act_on_stack(&SwapCommand, opts, vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&SwapCommand, opts, vec![10, 20, 30, 40, 50]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 50, 40]));
   }
 
   #[test]
   fn test_swap_on_stack_size_two() {
-    let output_stack = act_on_stack(&SwapCommand, CommandOptions::default(), vec![10, 20]);
+    let output_stack = act_on_stack(&SwapCommand, CommandOptions::default(), vec![10, 20]).unwrap();
     assert_eq!(output_stack, stack_of(vec![20, 10]));
   }
 
   #[test]
   fn test_swap_on_stack_size_one() {
-    let err = act_on_stack_err(&SwapCommand, CommandOptions::default(), vec![10]);
+    let err = act_on_stack(&SwapCommand, CommandOptions::default(), vec![10]).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(
       err,
@@ -435,7 +440,7 @@ mod tests {
   fn test_swap_on_stack_size_one_and_keep_arg() {
     // Keep modifier doesn't change anything in the case of an error.
     let opts = CommandOptions::default().with_keep_modifier();
-    let err = act_on_stack_err(&SwapCommand, opts, vec![10]);
+    let err = act_on_stack(&SwapCommand, opts, vec![10]).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(
       err,
@@ -445,7 +450,7 @@ mod tests {
 
   #[test]
   fn test_swap_on_empty_stack() {
-    let err = act_on_stack_err(&SwapCommand, CommandOptions::default(), Vec::<Expr>::new());
+    let err = act_on_stack(&SwapCommand, CommandOptions::default(), Vec::<Expr>::new()).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(
       err,
@@ -455,26 +460,26 @@ mod tests {
 
   #[test]
   fn test_swap_positive_arg() {
-    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(4), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(4), vec![10, 20, 30, 40, 50]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 50, 20, 30, 40]));
   }
 
   #[test]
   fn test_swap_positive_arg_and_keep_arg() {
     let opts = CommandOptions::numerical(4).with_keep_modifier();
-    let output_stack = act_on_stack(&SwapCommand, opts, vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&SwapCommand, opts, vec![10, 20, 30, 40, 50]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 50, 20, 30, 40]));
   }
 
   #[test]
   fn test_swap_positive_arg_equal_to_stack_size() {
-    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(3), vec![10, 20, 30]);
+    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(3), vec![10, 20, 30]).unwrap();
     assert_eq!(output_stack, stack_of(vec![30, 10, 20]));
   }
 
   #[test]
   fn test_swap_with_positive_arg_and_too_small_stack() {
-    let err = act_on_stack_err(&SwapCommand, CommandOptions::numerical(3), vec![10, 20]);
+    let err = act_on_stack(&SwapCommand, CommandOptions::numerical(3), vec![10, 20]).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(
       err,
@@ -484,7 +489,7 @@ mod tests {
 
   #[test]
   fn test_swap_with_positive_arg_on_empty_stack() {
-    let err = act_on_stack_err(&SwapCommand, CommandOptions::numerical(4), Vec::<Expr>::new());
+    let err = act_on_stack(&SwapCommand, CommandOptions::numerical(4), Vec::<Expr>::new()).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(
       err,
@@ -494,20 +499,20 @@ mod tests {
 
   #[test]
   fn test_swap_arg_of_one() {
-    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(1), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(1), vec![10, 20, 30, 40, 50]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50]));
   }
 
   #[test]
   fn test_swap_arg_of_one_and_keep_arg() {
     let opts = CommandOptions::numerical(1).with_keep_modifier();
-    let output_stack = act_on_stack(&SwapCommand, opts, vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&SwapCommand, opts, vec![10, 20, 30, 40, 50]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 50]));
   }
 
   #[test]
   fn test_swap_arg_of_one_on_empty_stack() {
-    let err = act_on_stack_err(&SwapCommand, CommandOptions::numerical(1), Vec::<Expr>::new());
+    let err = act_on_stack(&SwapCommand, CommandOptions::numerical(1), Vec::<Expr>::new()).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(
       err,
@@ -517,34 +522,34 @@ mod tests {
 
   #[test]
   fn test_swap_argument_zero() {
-    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(0), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(0), vec![10, 20, 30, 40, 50]).unwrap();
     assert_eq!(output_stack, stack_of(vec![50, 40, 30, 20, 10]));
   }
 
   #[test]
   fn test_swap_argument_zero_and_keep_arg() {
     let opts = CommandOptions::numerical(0).with_keep_modifier();
-    let output_stack = act_on_stack(&SwapCommand, opts, vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&SwapCommand, opts, vec![10, 20, 30, 40, 50]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 50, 40, 30, 20, 10]));
   }
 
   #[test]
   fn test_swap_argument_zero_on_stack_size_one() {
-    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(0), vec![10]);
+    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(0), vec![10]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10]));
   }
 
   #[test]
   fn test_swap_argument_zero_and_keep_arg_on_stack_size_one() {
     let opts = CommandOptions::numerical(0).with_keep_modifier();
-    let output_stack = act_on_stack(&SwapCommand, opts, vec![10]);
+    let output_stack = act_on_stack(&SwapCommand, opts, vec![10]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 10]));
   }
 
   #[test]
   fn test_swap_argument_zero_on_empty_stack() {
     let opts = CommandOptions::numerical(0);
-    let output_stack = act_on_stack(&SwapCommand, opts, Vec::<Expr>::new());
+    let output_stack = act_on_stack(&SwapCommand, opts, Vec::<Expr>::new()).unwrap();
     assert_eq!(output_stack, Stack::new());
   }
 
@@ -553,32 +558,32 @@ mod tests {
     // Nothing to pop, so nothing for keep_modifier to preserve.
     // keep_modifier has no effect.
     let opts = CommandOptions::numerical(0).with_keep_modifier();
-    let output_stack = act_on_stack(&SwapCommand, opts, Vec::<Expr>::new());
+    let output_stack = act_on_stack(&SwapCommand, opts, Vec::<Expr>::new()).unwrap();
     assert_eq!(output_stack, Stack::new());
   }
 
   #[test]
   fn test_swap_with_negative_one_arg() {
-    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(-1), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(-1), vec![10, 20, 30, 40, 50]).unwrap();
     assert_eq!(output_stack, stack_of(vec![50, 10, 20, 30, 40]));
   }
 
   #[test]
   fn test_swap_with_negative_one_arg_and_keep_modifier() {
     let opts = CommandOptions::numerical(-1).with_keep_modifier();
-    let output_stack = act_on_stack(&SwapCommand, opts, vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&SwapCommand, opts, vec![10, 20, 30, 40, 50]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 50, 10, 20, 30, 40]));
   }
 
   #[test]
   fn test_swap_with_negative_one_arg_on_stack_size_one() {
-    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(-1), vec![10]);
+    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(-1), vec![10]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10]));
   }
 
   #[test]
   fn test_swap_with_negative_one_arg_on_empty_stack() {
-    let err = act_on_stack_err(&SwapCommand, CommandOptions::numerical(-1), Vec::<Expr>::new());
+    let err = act_on_stack(&SwapCommand, CommandOptions::numerical(-1), Vec::<Expr>::new()).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(
       err,
@@ -588,26 +593,26 @@ mod tests {
 
   #[test]
   fn test_swap_with_negative_arg() {
-    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(-3), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(-3), vec![10, 20, 30, 40, 50]).unwrap();
     assert_eq!(output_stack, stack_of(vec![30, 40, 50, 10, 20]));
   }
 
   #[test]
   fn test_swap_with_negative_arg_and_keep_arg() {
     let opts = CommandOptions::numerical(-3).with_keep_modifier();
-    let output_stack = act_on_stack(&SwapCommand, opts, vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&SwapCommand, opts, vec![10, 20, 30, 40, 50]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 30, 40, 50, 10, 20]));
   }
 
   #[test]
   fn test_swap_with_negative_arg_whole_stack() {
-    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(-5), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&SwapCommand, CommandOptions::numerical(-5), vec![10, 20, 30, 40, 50]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50]));
   }
 
   #[test]
   fn test_swap_with_negative_arg_and_too_small_stack() {
-    let err = act_on_stack_err(&SwapCommand, CommandOptions::numerical(-3), vec![10, 20]);
+    let err = act_on_stack(&SwapCommand, CommandOptions::numerical(-3), vec![10, 20]).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(
       err,
@@ -617,7 +622,7 @@ mod tests {
 
   #[test]
   fn test_swap_with_negative_arg_and_empty_stack() {
-    let err = act_on_stack_err(&SwapCommand, CommandOptions::numerical(-3), Vec::<Expr>::new());
+    let err = act_on_stack(&SwapCommand, CommandOptions::numerical(-3), Vec::<Expr>::new()).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(
       err,
@@ -627,7 +632,7 @@ mod tests {
 
   #[test]
   fn test_dup() {
-    let output_stack = act_on_stack(&DupCommand, CommandOptions::default(), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&DupCommand, CommandOptions::default(), vec![10, 20, 30, 40, 50]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 50]));
   }
 
@@ -638,19 +643,19 @@ mod tests {
       &DupCommand,
       CommandOptions::default().with_keep_modifier(),
       vec![10, 20, 30, 40, 50],
-    );
+    ).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 50]));
   }
 
   #[test]
   fn test_dup_on_stack_size_one() {
-    let output_stack = act_on_stack(&DupCommand, CommandOptions::default(), vec![10]);
+    let output_stack = act_on_stack(&DupCommand, CommandOptions::default(), vec![10]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 10]));
   }
 
   #[test]
   fn test_dup_on_empty_stack() {
-    let err = act_on_stack_err(&DupCommand, CommandOptions::default(), Vec::<Expr>::new());
+    let err = act_on_stack(&DupCommand, CommandOptions::default(), Vec::<Expr>::new()).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(
       err,
@@ -660,19 +665,19 @@ mod tests {
 
   #[test]
   fn test_dup_positive_arg() {
-    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(2), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(2), vec![10, 20, 30, 40, 50]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 40, 50]));
   }
 
   #[test]
   fn test_dup_positive_arg_equal_to_stack_size() {
-    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(3), vec![10, 20, 30]);
+    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(3), vec![10, 20, 30]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 10, 20, 30]));
   }
 
   #[test]
   fn test_dup_with_positive_arg_and_too_small_stack() {
-    let err = act_on_stack_err(&DupCommand, CommandOptions::numerical(3), vec![10, 20]);
+    let err = act_on_stack(&DupCommand, CommandOptions::numerical(3), vec![10, 20]).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(
       err,
@@ -682,7 +687,7 @@ mod tests {
 
   #[test]
   fn test_dup_with_positive_arg_on_empty_stack() {
-    let err = act_on_stack_err(&DupCommand, CommandOptions::numerical(2), Vec::<Expr>::new());
+    let err = act_on_stack(&DupCommand, CommandOptions::numerical(2), Vec::<Expr>::new()).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(
       err,
@@ -692,13 +697,13 @@ mod tests {
 
   #[test]
   fn test_dup_with_argument_one() {
-    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(1), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(1), vec![10, 20, 30, 40, 50]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 50]));
   }
 
   #[test]
   fn test_dup_with_argument_one_empty_stack() {
-    let err = act_on_stack_err(&DupCommand, CommandOptions::numerical(1), Vec::<Expr>::new());
+    let err = act_on_stack(&DupCommand, CommandOptions::numerical(1), Vec::<Expr>::new()).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(
       err,
@@ -708,31 +713,31 @@ mod tests {
 
   #[test]
   fn test_dup_with_argument_zero() {
-    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(0), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(0), vec![10, 20, 30, 40, 50]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 10, 20, 30, 40, 50]));
   }
 
   #[test]
   fn test_dup_argument_zero_on_empty_stack() {
-    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(0), Vec::<Expr>::new());
+    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(0), Vec::<Expr>::new()).unwrap();
     assert_eq!(output_stack, Stack::new());
   }
 
   #[test]
   fn test_dup_with_negative_one_arg() {
-    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(-1), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(-1), vec![10, 20, 30, 40, 50]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 50]));
   }
 
   #[test]
   fn test_dup_with_negative_one_arg_on_stack_size_one() {
-    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(-1), vec![10]);
+    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(-1), vec![10]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 10]));
   }
 
   #[test]
   fn test_dup_with_negative_one_arg_on_empty_stack() {
-    let err = act_on_stack_err(&DupCommand, CommandOptions::numerical(-1), Vec::<Expr>::new());
+    let err = act_on_stack(&DupCommand, CommandOptions::numerical(-1), Vec::<Expr>::new()).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(
       err,
@@ -742,19 +747,19 @@ mod tests {
 
   #[test]
   fn test_dup_with_negative_arg() {
-    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(-3), vec![10, 20, 30, 40, 50]);
+    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(-3), vec![10, 20, 30, 40, 50]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 50, 30]));
   }
 
   #[test]
   fn test_dup_with_negative_arg_at_bottom_of_stack() {
-    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(-4), vec![10, 20, 30, 40]);
+    let output_stack = act_on_stack(&DupCommand, CommandOptions::numerical(-4), vec![10, 20, 30, 40]).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 10]));
   }
 
   #[test]
   fn test_dup_with_negative_arg_and_too_small_stack() {
-    let err = act_on_stack_err(&DupCommand, CommandOptions::numerical(-3), vec![10, 20]);
+    let err = act_on_stack(&DupCommand, CommandOptions::numerical(-3), vec![10, 20]).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(
       err,
@@ -764,7 +769,7 @@ mod tests {
 
   #[test]
   fn test_dup_with_negative_arg_and_empty_stack() {
-    let err = act_on_stack_err(&DupCommand, CommandOptions::numerical(-3), Vec::<Expr>::new());
+    let err = act_on_stack(&DupCommand, CommandOptions::numerical(-3), Vec::<Expr>::new()).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(
       err,
@@ -780,7 +785,7 @@ mod tests {
       vec!["1", "3"],
       CommandOptions::default(),
       input_stack,
-    );
+    ).unwrap();
     assert_eq!(
       output_stack,
       stack_of(vec![10, 20, 30, 60, 40, 50, 70]),
@@ -795,7 +800,7 @@ mod tests {
       vec!["0", "3"],
       CommandOptions::default(),
       input_stack,
-    );
+    ).unwrap();
     assert_eq!(
       output_stack,
       stack_of(vec![10, 20, 30, 70, 40, 50, 60]),
@@ -810,7 +815,7 @@ mod tests {
       vec!["6", "2"],
       CommandOptions::default(),
       input_stack,
-    );
+    ).unwrap();
     assert_eq!(
       output_stack,
       stack_of(vec![20, 30, 40, 50, 10, 60, 70]),
@@ -825,7 +830,7 @@ mod tests {
       vec!["1", "0"],
       CommandOptions::default(),
       input_stack,
-    );
+    ).unwrap();
     assert_eq!(
       output_stack,
       stack_of(vec![10, 20, 30, 40, 50, 70, 60]),
@@ -840,7 +845,7 @@ mod tests {
       vec!["1", "6"],
       CommandOptions::default(),
       input_stack,
-    );
+    ).unwrap();
     assert_eq!(
       output_stack,
       stack_of(vec![60, 10, 20, 30, 40, 50, 70]),
@@ -855,7 +860,7 @@ mod tests {
       vec!["4", "4"],
       CommandOptions::default(),
       input_stack,
-    );
+    ).unwrap();
     assert_eq!(
       output_stack,
       stack_of(vec![10, 20, 30, 40, 50, 60, 70]),
@@ -865,12 +870,12 @@ mod tests {
   #[test]
   fn test_move_stack_src_out_of_bounds() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
-    let err = act_on_stack_with_args_err(
+    let err = act_on_stack_with_args(
       &MoveStackElemCommand,
       vec!["7", "1"],
       CommandOptions::default(),
       input_stack,
-    );
+    ).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(err, StackError::NotEnoughElements { expected: 8, actual: 7 });
   }
@@ -878,12 +883,12 @@ mod tests {
   #[test]
   fn test_move_stack_dest_out_of_bounds() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
-    let err = act_on_stack_with_args_err(
+    let err = act_on_stack_with_args(
       &MoveStackElemCommand,
       vec!["3", "7"],
       CommandOptions::default(),
       input_stack,
-    );
+    ).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(err, StackError::NotEnoughElements { expected: 8, actual: 7 });
   }
@@ -891,12 +896,12 @@ mod tests {
   #[test]
   fn test_move_stack_both_out_of_bounds_1() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
-    let err = act_on_stack_with_args_err(
+    let err = act_on_stack_with_args(
       &MoveStackElemCommand,
       vec!["8", "9"],
       CommandOptions::default(),
       input_stack,
-    );
+    ).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(err, StackError::NotEnoughElements { expected: 10, actual: 7 });
   }
@@ -904,12 +909,12 @@ mod tests {
   #[test]
   fn test_move_stack_both_out_of_bounds_2() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
-    let err = act_on_stack_with_args_err(
+    let err = act_on_stack_with_args(
       &MoveStackElemCommand,
       vec!["9", "8"],
       CommandOptions::default(),
       input_stack,
-    );
+    ).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(err, StackError::NotEnoughElements { expected: 10, actual: 7 });
   }
@@ -922,7 +927,7 @@ mod tests {
       vec!["2", "99"],
       CommandOptions::default(),
       input_stack,
-    );
+    ).unwrap();
     assert_eq!(
       output_stack,
       stack_of(vec![10, 20, 30, 40, 99, 60, 70]),
@@ -932,12 +937,12 @@ mod tests {
   #[test]
   fn test_replace_stack_elem_parse_failure() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
-    let err = act_on_stack_with_args_err(
+    let err = act_on_stack_with_args(
       &ReplaceStackElemCommand { is_mouse_interaction: false },
       vec!["2", "("],
       CommandOptions::default(),
       input_stack,
-    );
+    ).unwrap_err();
     assert!(err.is::<ParseError>(), "Expected ParseError, got {:?}", err);
   }
 
@@ -949,7 +954,7 @@ mod tests {
       vec!["2", "99"],
       CommandOptions::default().with_keep_modifier(),
       input_stack,
-    );
+    ).unwrap();
     assert_eq!(
       output_stack,
       stack_of(vec![10, 20, 30, 40, 50, 99, 60, 70]),
@@ -964,7 +969,7 @@ mod tests {
       vec!["0", "99"],
       CommandOptions::default().with_keep_modifier(),
       input_stack,
-    );
+    ).unwrap();
     assert_eq!(
       output_stack,
       stack_of(vec![10, 20, 30, 40, 50, 60, 70, 99]),
@@ -979,7 +984,7 @@ mod tests {
       vec!["6", "99"],
       CommandOptions::default().with_keep_modifier(),
       input_stack,
-    );
+    ).unwrap();
     assert_eq!(
       output_stack,
       stack_of(vec![10, 99, 20, 30, 40, 50, 60, 70]),
@@ -989,12 +994,12 @@ mod tests {
   #[test]
   fn test_replace_stack_elem_with_keep_arg_out_of_bounds() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
-    let err = act_on_stack_with_args_err(
+    let err = act_on_stack_with_args(
       &ReplaceStackElemCommand { is_mouse_interaction: false },
       vec!["7", "99"],
       CommandOptions::default().with_keep_modifier(),
       input_stack,
-    );
+    ).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(
       err,

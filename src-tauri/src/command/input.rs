@@ -94,7 +94,7 @@ mod tests {
       vec!["400"],
       CommandOptions::default(),
       input_stack,
-    );
+    ).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 400]));
   }
 
@@ -115,7 +115,7 @@ mod tests {
       vec!["400"],
       CommandOptions::default(),
       input_stack,
-    );
+    ).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 400]));
   }
 
@@ -127,7 +127,7 @@ mod tests {
       vec!["x + y"],
       CommandOptions::default(),
       input_stack,
-    );
+    ).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -156,7 +156,7 @@ mod tests {
       vec!["hello"],
       CommandOptions::default(),
       input_stack,
-    );
+    ).unwrap();
     assert_eq!(output_stack, stack_of(vec![
       Expr::from(10),
       Expr::from(20),

@@ -134,57 +134,41 @@ pub(crate) mod test_utils {
   use crate::stack::test_utils::stack_of;
   use crate::stack::Stack;
 
-  /// Tests the operation on the given input stack, expecting a
-  /// success. Passes no string arguments.
-  pub fn act_on_stack<E>(command: &impl Command, opts: CommandOptions, input_stack: Vec<E>) -> Stack<Expr>
-  where E: Into<Expr> {
+  /// Tests the operation on the given input stack. Passes no string
+  /// arguments. If the result is an error, this function additionally
+  /// asserts that the stack is unchanged.
+  pub fn act_on_stack<E>(
+    command: &impl Command,
+    opts: CommandOptions,
+    input_stack: Vec<E>,
+  ) -> Result<Stack<Expr>, anyhow::Error>
+  where E: Into<Expr> + Clone {
     let args = Vec::<String>::new();
     act_on_stack_with_args(command, args, opts, input_stack)
   }
 
-  /// Tests the operation on the given input stack. Expects an error
-  /// of any type. Passes no string arguments. Asserts that the stack
-  /// is unchanged and returns the error.
-  pub fn act_on_stack_err<E>(command: &impl Command, opts: CommandOptions, input_stack: Vec<E>) -> anyhow::Error
-  where E: Into<Expr> + Clone {
-    let args = Vec::<String>::new();
-    act_on_stack_with_args_err(command, args, opts, input_stack)
-  }
-
-  /// Tests the operation on the given input stack, expecting a
-  /// success.
+  /// Tests the operation on the given input stack. If the result is
+  /// an error, this function additionally asserts that the stack is
+  /// unchanged.
   pub fn act_on_stack_with_args<E>(
     command: &impl Command,
     args: Vec<impl Into<String>>,
     opts: CommandOptions,
     input_stack: Vec<E>,
-  ) -> Stack<Expr>
-  where E: Into<Expr> {
-    let args = args.into_iter().map(|s| s.into()).collect();
-    let mut state = state_for_stack(input_stack);
-    let mut context = CommandContext::default();
-    context.opts = opts;
-    let output = command.run_command(&mut state, args, &context).unwrap();
-    assert!(output.errors().is_empty());
-    state.into_main_stack()
-  }
-
-  /// Tests the operation on the given input stack. Expects a failure
-  /// of any type. Asserts that the stack is unchanged and returns the
-  /// error.
-  pub fn act_on_stack_with_args_err<E>(
-    command: &impl Command,
-    args: Vec<impl Into<String>>,
-    opts: CommandOptions,
-    input_stack: Vec<E>,
-  ) -> anyhow::Error
+  ) -> Result<Stack<Expr>, anyhow::Error>
   where E: Into<Expr> + Clone {
     let args = args.into_iter().map(|s| s.into()).collect();
     let mut state = state_for_stack(input_stack.clone());
     let mut context = CommandContext::default();
     context.opts = opts;
-    let err = command.run_command(&mut state, args, &context).unwrap_err();
-    assert_eq!(state.into_main_stack(), stack_of(input_stack));
-    err
+    match command.run_command(&mut state, args, &context) {
+      Ok(_) => {
+        Ok(state.into_main_stack())
+      }
+      Err(err) => {
+        assert_eq!(state.into_main_stack(), stack_of(input_stack));
+        Err(err)
+      }
+    }
   }
 }
