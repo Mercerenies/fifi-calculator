@@ -9,6 +9,7 @@ use num::pow::Pow;
 
 use std::ops::Div;
 use std::f64::consts::PI;
+use std::collections::HashMap;
 
 fn fraction<T>(n: i64, d: i64) -> T
 where T: Div<Output = T> + From<i64> {
@@ -16,12 +17,12 @@ where T: Div<Output = T> + From<i64> {
 }
 
 pub fn default_parser<S>() -> PrefixParser<TableBasedParser<S>>
-where S: Div<Output = S> + Pow<i64, Output = S> + From<i64> + From<f64> {
+where S: One + Div<Output = S> + Pow<i64, Output = S> + From<i64> + From<f64> + 'static {
   PrefixParser::new_si(default_units_table())
 }
 
 pub fn default_units_table<S>() -> TableBasedParser<S>
-where S: Div<Output = S> + Pow<i64, Output = S> + From<i64> + From<f64> {
+where S: One + Div<Output = S> + Pow<i64, Output = S> + From<i64> + From<f64> + 'static {
   use BaseDimension::*;
   let units = vec![
     // Length units
@@ -100,5 +101,19 @@ where S: Div<Output = S> + Pow<i64, Output = S> + From<i64> + From<f64> {
     Unit::new("calth", Mass * Length.pow(2) / Time.pow(2), fraction(4_184, 1_000)), // Thermochemical Calorie
     Unit::new("Cal", Mass * Length.pow(2) / Time.pow(2), fraction(41_868, 10)), // Large Calorie
   ];
-  units.into_iter().collect()
+  let units_table: HashMap<_, _> = units.into_iter().map(|unit| (unit.name().to_string(), unit)).collect();
+  TableBasedParser::new(units_table, si_base_unit)
+}
+
+pub fn si_base_unit<S: One>(dimension: BaseDimension) -> Unit<S> {
+  use BaseDimension::*;
+  match dimension {
+    Length => Unit::new("m", Length, S::one()),
+    Time => Unit::new("s", Time, S::one()),
+    Mass => Unit::new("g", Mass, S::one()),
+    Temperature => Unit::new("K", Temperature, S::one()),
+    Current => Unit::new("A", Current, S::one()),
+    LuminousIntensity => Unit::new("cd", LuminousIntensity, S::one()),
+    AmountOfSubstance => Unit::new("mol", AmountOfSubstance, S::one()),
+  }
 }

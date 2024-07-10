@@ -43,6 +43,20 @@ impl Dimension {
   pub fn get_mut(&mut self, base: BaseDimension) -> &mut i64 {
     &mut self.dims[base.dimension_index()]
   }
+
+  pub fn components(&self) -> impl Iterator<Item = (BaseDimension, i64)> + '_ {
+    BaseDimension::ALL.iter()
+      .copied()
+      .zip(self.dims.iter().copied())
+      .filter(|(_, x)| *x != 0)
+  }
+
+  pub fn into_components(self) -> impl Iterator<Item = (BaseDimension, i64)> {
+    BaseDimension::ALL.iter()
+      .copied()
+      .zip(self.dims.into_iter())
+      .filter(|(_, x)| *x != 0)
+  }
 }
 
 impl BaseDimension {

@@ -2,6 +2,7 @@
 use super::base::{UnitParser, UnitParserError};
 use crate::units::prefix::MetricPrefix;
 use crate::units::unit::Unit;
+use crate::units::dimension::BaseDimension;
 
 use num::pow::Pow;
 
@@ -46,6 +47,10 @@ where P: UnitParser<T>,
       }
       Err(err)
     })
+  }
+
+  fn base_unit(&self, dimension: BaseDimension) -> Unit<T> {
+    self.inner.base_unit(dimension)
   }
 }
 

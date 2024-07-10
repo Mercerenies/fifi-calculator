@@ -102,7 +102,7 @@ mod tests {
     table.insert("m".to_owned(), Unit::new("m", BaseDimension::Length, Number::from(1)));
     table.insert("s".to_owned(), Unit::new("s", BaseDimension::Time, Number::from(1)));
     table.insert("degC".to_owned(), Unit::new("degC", BaseDimension::Temperature, Number::from(1)));
-    TableBasedParser { table }
+    TableBasedParser::new(table, |_| panic!("Should not be called"))
   }
 
   #[test]

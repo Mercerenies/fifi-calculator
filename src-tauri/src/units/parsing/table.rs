@@ -1,19 +1,24 @@
 
 use super::base::{UnitParser, UnitParserError};
 use crate::units::unit::Unit;
+use crate::units::dimension::BaseDimension;
 
 use std::collections::HashMap;
 
 /// A [`UnitParser`] which looks up the given name in a pre-determined
 /// hash table.
-#[derive(Debug, Clone)]
 pub struct TableBasedParser<T> {
   pub table: HashMap<String, Unit<T>>,
+  pub base_units: Box<dyn Fn(BaseDimension) -> Unit<T> + Send + Sync>,
 }
 
 impl<T> TableBasedParser<T> {
-  pub fn new(table: HashMap<String, Unit<T>>) -> Self {
-    Self { table }
+  pub fn new<F>(table: HashMap<String, Unit<T>>, base_units: F) -> Self
+  where F: Fn(BaseDimension) -> Unit<T> + Send + Sync + 'static {
+    Self {
+      table,
+      base_units: Box::new(base_units),
+    }
   }
 }
 
@@ -23,13 +28,9 @@ impl<T: Clone> UnitParser<T> for TableBasedParser<T> {
       .cloned()
       .ok_or_else(|| UnitParserError::new(input.to_owned()))
   }
-}
 
-impl<T> FromIterator<Unit<T>> for TableBasedParser<T> {
-  fn from_iter<I: IntoIterator<Item = Unit<T>>>(iter: I) -> Self {
-    Self {
-      table: iter.into_iter().map(|u| (u.name().to_owned(), u)).collect(),
-    }
+  fn base_unit(&self, dimension: BaseDimension) -> Unit<T> {
+    (self.base_units)(dimension)
   }
 }
 
@@ -43,7 +44,7 @@ pub(crate) mod test_utils {
     table.insert("m".to_owned(), Unit::new("m", BaseDimension::Length, 1.0));
     table.insert("s".to_owned(), Unit::new("s", BaseDimension::Time, 1.0));
     table.insert("min".to_owned(), Unit::new("min", BaseDimension::Time, 60.0));
-    TableBasedParser { table }
+    TableBasedParser::new(table, |_| panic!("Should not be called"))
   }
 }
 
