@@ -174,9 +174,38 @@ pub(crate) mod test_utils {
     }
   }
 
-  /// Tests the operation on the given input stack. Passes no string
-  /// arguments. If the result is an error, this function additionally
-  /// asserts that the stack is unchanged.
+  /// Tests the command on the given input stack. If the command is
+  /// successful, returns the new stack. If the command results in an
+  /// error, this function asserts that the stack is unchanged and
+  /// then returns the error.
+  ///
+  /// The `command_modifier` argument is overloaded by the trait
+  /// [`ActOnStackArg`] and is designed to make writing tests that
+  /// utilize this function easier. Broadly, `command_modifier` can be
+  /// thought of as a `FnOnce(&mut Vec<String>, &mut CommandContext)`.
+  /// That is, it's an arbitrary function which can mutate the
+  /// argument list and the command context. `act_on_stack` first
+  /// generates an empty argument list and a [`Default`] command
+  /// context, then allows the modifier to modify it freely. In this
+  /// way, commands which don't require any modification can merely
+  /// pass `()`, while those that require some modification can pass
+  /// only the parts that need modifying.
+  ///
+  /// Acceptable `command_modifier` types:
+  ///
+  /// * `()` - Performs no modifications.
+  ///
+  /// * [`CommandOptions`] - Replaces the options in the
+  /// `CommandContext` with this value.
+  ///
+  /// * `Vec<impl Into<String>>` - Replaces the argument list with
+  /// this value.
+  ///
+  /// * `FnOnce(&mut Vec<String>, &mut CommandContext)` -
+  /// General-purpose case. Calls the function.
+  ///
+  /// Additionally, 2-tuples of modifiers can be passed. In that case,
+  /// the two modifiers are run in order, one after the other.
   pub fn act_on_stack<E, A>(
     command: &impl Command,
     command_modifier: A,
