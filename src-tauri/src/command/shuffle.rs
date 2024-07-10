@@ -260,7 +260,7 @@ impl Command for ReplaceStackElemCommand {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::command::test_utils::{act_on_stack, act_on_stack_with_args};
+  use crate::command::test_utils::act_on_stack;
   use crate::command::options::CommandOptions;
   use crate::stack::test_utils::stack_of;
   use crate::stack::{Stack, StackError};
@@ -780,10 +780,9 @@ mod tests {
   #[test]
   fn test_move_stack() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
-    let output_stack = act_on_stack_with_args(
+    let output_stack = act_on_stack(
       &MoveStackElemCommand,
       vec!["1", "3"],
-      CommandOptions::default(),
       input_stack,
     ).unwrap();
     assert_eq!(
@@ -795,10 +794,9 @@ mod tests {
   #[test]
   fn test_move_stack_move_from_top() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
-    let output_stack = act_on_stack_with_args(
+    let output_stack = act_on_stack(
       &MoveStackElemCommand,
       vec!["0", "3"],
-      CommandOptions::default(),
       input_stack,
     ).unwrap();
     assert_eq!(
@@ -810,10 +808,9 @@ mod tests {
   #[test]
   fn test_move_stack_move_from_bottom() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
-    let output_stack = act_on_stack_with_args(
+    let output_stack = act_on_stack(
       &MoveStackElemCommand,
       vec!["6", "2"],
-      CommandOptions::default(),
       input_stack,
     ).unwrap();
     assert_eq!(
@@ -825,10 +822,9 @@ mod tests {
   #[test]
   fn test_move_stack_move_to_top() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
-    let output_stack = act_on_stack_with_args(
+    let output_stack = act_on_stack(
       &MoveStackElemCommand,
       vec!["1", "0"],
-      CommandOptions::default(),
       input_stack,
     ).unwrap();
     assert_eq!(
@@ -840,10 +836,9 @@ mod tests {
   #[test]
   fn test_move_stack_move_to_bottom() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
-    let output_stack = act_on_stack_with_args(
+    let output_stack = act_on_stack(
       &MoveStackElemCommand,
       vec!["1", "6"],
-      CommandOptions::default(),
       input_stack,
     ).unwrap();
     assert_eq!(
@@ -855,10 +850,9 @@ mod tests {
   #[test]
   fn test_move_stack_move_noop() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
-    let output_stack = act_on_stack_with_args(
+    let output_stack = act_on_stack(
       &MoveStackElemCommand,
       vec!["4", "4"],
-      CommandOptions::default(),
       input_stack,
     ).unwrap();
     assert_eq!(
@@ -870,10 +864,9 @@ mod tests {
   #[test]
   fn test_move_stack_src_out_of_bounds() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
-    let err = act_on_stack_with_args(
+    let err = act_on_stack(
       &MoveStackElemCommand,
       vec!["7", "1"],
-      CommandOptions::default(),
       input_stack,
     ).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
@@ -883,10 +876,9 @@ mod tests {
   #[test]
   fn test_move_stack_dest_out_of_bounds() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
-    let err = act_on_stack_with_args(
+    let err = act_on_stack(
       &MoveStackElemCommand,
       vec!["3", "7"],
-      CommandOptions::default(),
       input_stack,
     ).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
@@ -896,10 +888,9 @@ mod tests {
   #[test]
   fn test_move_stack_both_out_of_bounds_1() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
-    let err = act_on_stack_with_args(
+    let err = act_on_stack(
       &MoveStackElemCommand,
       vec!["8", "9"],
-      CommandOptions::default(),
       input_stack,
     ).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
@@ -909,10 +900,9 @@ mod tests {
   #[test]
   fn test_move_stack_both_out_of_bounds_2() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
-    let err = act_on_stack_with_args(
+    let err = act_on_stack(
       &MoveStackElemCommand,
       vec!["9", "8"],
-      CommandOptions::default(),
       input_stack,
     ).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
@@ -922,10 +912,9 @@ mod tests {
   #[test]
   fn test_replace_stack_elem() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
-    let output_stack = act_on_stack_with_args(
+    let output_stack = act_on_stack(
       &ReplaceStackElemCommand { is_mouse_interaction: false },
       vec!["2", "99"],
-      CommandOptions::default(),
       input_stack,
     ).unwrap();
     assert_eq!(
@@ -937,10 +926,9 @@ mod tests {
   #[test]
   fn test_replace_stack_elem_parse_failure() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
-    let err = act_on_stack_with_args(
+    let err = act_on_stack(
       &ReplaceStackElemCommand { is_mouse_interaction: false },
       vec!["2", "("],
-      CommandOptions::default(),
       input_stack,
     ).unwrap_err();
     assert!(err.is::<ParseError>(), "Expected ParseError, got {:?}", err);
@@ -949,10 +937,9 @@ mod tests {
   #[test]
   fn test_replace_stack_elem_with_keep_arg() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
-    let output_stack = act_on_stack_with_args(
+    let output_stack = act_on_stack(
       &ReplaceStackElemCommand { is_mouse_interaction: false },
-      vec!["2", "99"],
-      CommandOptions::default().with_keep_modifier(),
+      (vec!["2", "99"], CommandOptions::default().with_keep_modifier()),
       input_stack,
     ).unwrap();
     assert_eq!(
@@ -964,10 +951,9 @@ mod tests {
   #[test]
   fn test_replace_stack_elem_with_keep_arg_at_top_of_stack() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
-    let output_stack = act_on_stack_with_args(
+    let output_stack = act_on_stack(
       &ReplaceStackElemCommand { is_mouse_interaction: false },
-      vec!["0", "99"],
-      CommandOptions::default().with_keep_modifier(),
+      (vec!["0", "99"], CommandOptions::default().with_keep_modifier()),
       input_stack,
     ).unwrap();
     assert_eq!(
@@ -979,10 +965,9 @@ mod tests {
   #[test]
   fn test_replace_stack_elem_with_keep_arg_at_bottom_of_stack() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
-    let output_stack = act_on_stack_with_args(
+    let output_stack = act_on_stack(
       &ReplaceStackElemCommand { is_mouse_interaction: false },
-      vec!["6", "99"],
-      CommandOptions::default().with_keep_modifier(),
+      (vec!["6", "99"], CommandOptions::default().with_keep_modifier()),
       input_stack,
     ).unwrap();
     assert_eq!(
@@ -994,10 +979,9 @@ mod tests {
   #[test]
   fn test_replace_stack_elem_with_keep_arg_out_of_bounds() {
     let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
-    let err = act_on_stack_with_args(
+    let err = act_on_stack(
       &ReplaceStackElemCommand { is_mouse_interaction: false },
-      vec!["7", "99"],
-      CommandOptions::default().with_keep_modifier(),
+      (vec!["7", "99"], CommandOptions::default().with_keep_modifier()),
       input_stack,
     ).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();

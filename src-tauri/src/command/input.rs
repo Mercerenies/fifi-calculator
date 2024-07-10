@@ -80,8 +80,7 @@ pub fn push_string_command() -> PushInputCommand<impl Fn(String, &dyn LanguageMo
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::command::test_utils::act_on_stack_with_args;
-  use crate::command::options::CommandOptions;
+  use crate::command::test_utils::act_on_stack;
   use crate::stack::Stack;
   use crate::stack::test_utils::stack_of;
   use crate::state::test_utils::state_for_stack;
@@ -89,10 +88,9 @@ mod tests {
   #[test]
   fn test_push_number_command() {
     let input_stack = vec![10, 20, 30];
-    let output_stack = act_on_stack_with_args(
+    let output_stack = act_on_stack(
       &push_number_command(),
       vec!["400"],
-      CommandOptions::default(),
       input_stack,
     ).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 400]));
@@ -110,10 +108,9 @@ mod tests {
   #[test]
   fn test_push_expr_command_with_simple_number() {
     let input_stack = vec![10, 20, 30];
-    let output_stack = act_on_stack_with_args(
+    let output_stack = act_on_stack(
       &push_expr_command(),
       vec!["400"],
-      CommandOptions::default(),
       input_stack,
     ).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 400]));
@@ -122,10 +119,9 @@ mod tests {
   #[test]
   fn test_push_expr_command_with_complex_expr() {
     let input_stack = vec![10, 20, 30];
-    let output_stack = act_on_stack_with_args(
+    let output_stack = act_on_stack(
       &push_expr_command(),
       vec!["x + y"],
-      CommandOptions::default(),
       input_stack,
     ).unwrap();
     assert_eq!(
@@ -151,10 +147,9 @@ mod tests {
   #[test]
   fn test_push_string_command() {
     let input_stack = vec![10, 20, 30];
-    let output_stack = act_on_stack_with_args(
+    let output_stack = act_on_stack(
       &push_string_command(),
       vec!["hello"],
-      CommandOptions::default(),
       input_stack,
     ).unwrap();
     assert_eq!(output_stack, stack_of(vec![
