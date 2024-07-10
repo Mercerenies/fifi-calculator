@@ -129,10 +129,15 @@ fn substitute_vars(expr: Expr, state: &ApplicationState) -> Expr {
 pub(crate) mod test_utils {
   use super::*;
   use crate::expr::Expr;
+  use crate::expr::simplifier::default_simplifier;
+  use crate::expr::function::table::FunctionTable;
+  use crate::expr::function::library::build_function_table;
   use crate::command::options::CommandOptions;
   use crate::state::test_utils::state_for_stack;
   use crate::stack::test_utils::stack_of;
   use crate::stack::Stack;
+
+  use once_cell::sync::Lazy;
 
   /// Trait for arguments which are acceptable to pass to
   /// `act_on_stack`. This trait merely exists to allow overloading
@@ -151,6 +156,15 @@ pub(crate) mod test_utils {
       let (a, b) = self;
       a.mutate_arg(args, context);
       b.mutate_arg(args, context);
+    }
+  }
+
+  impl<A: ActOnStackArg, B: ActOnStackArg, C: ActOnStackArg> ActOnStackArg for (A, B, C) {
+    fn mutate_arg(self, args: &mut Vec<String>, context: &mut CommandContext) {
+      let (a, b, c) = self;
+      a.mutate_arg(args, context);
+      b.mutate_arg(args, context);
+      c.mutate_arg(args, context);
     }
   }
 
@@ -204,8 +218,9 @@ pub(crate) mod test_utils {
   /// * `FnOnce(&mut Vec<String>, &mut CommandContext)` -
   /// General-purpose case. Calls the function.
   ///
-  /// Additionally, 2-tuples of modifiers can be passed. In that case,
-  /// the two modifiers are run in order, one after the other.
+  /// Additionally, 2-tuples and 3-tuples of modifiers can be passed.
+  /// In that case, the modifiers are run in order, one after the
+  /// other.
   pub fn act_on_stack<E, A>(
     command: &impl Command,
     command_modifier: A,
@@ -226,5 +241,12 @@ pub(crate) mod test_utils {
         Err(err)
       }
     }
+  }
+
+  /// This function is an [`ActOnStackArg`] which sets up the basic
+  /// simplifier. This is the simplifier used by default in the GUI.
+  pub fn setup_default_simplifier(_args: &mut Vec<String>, context: &mut CommandContext) {
+    static FUNCTION_TABLE: Lazy<FunctionTable> = Lazy::new(build_function_table);
+    context.simplifier = default_simplifier(&FUNCTION_TABLE);
   }
 }

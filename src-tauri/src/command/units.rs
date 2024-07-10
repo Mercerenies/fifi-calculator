@@ -112,3 +112,91 @@ impl Command for ConvertUnitsCommand {
     Ok(CommandOutput::from_errors(errors))
   }
 }
+
+#[cfg(test)]
+pub(crate) mod test_utils {
+  use super::*;
+  use crate::command::CommandContext;
+  use crate::units::parsing::{default_parser, PrefixParser, TableBasedParser};
+
+  use once_cell::sync::Lazy;
+
+  /// This function is an
+  /// [`ActOnStackArg`](crate::command::test_utils::ActOnStackArg)
+  /// which sets up the SI units table on the current command context.
+  pub fn setup_si_units(_args: &mut Vec<String>, context: &mut CommandContext) {
+    static PARSER: Lazy<PrefixParser<TableBasedParser<Number>>> = Lazy::new(default_parser);
+    let concrete_parser = Lazy::force(&PARSER);
+    context.units_parser = concrete_parser;
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use super::test_utils::setup_si_units;
+  use crate::command::test_utils::{act_on_stack, setup_default_simplifier};
+  use crate::command::options::CommandOptions;
+  use crate::stack::test_utils::stack_of;
+
+  #[test]
+  fn test_simple_length_conversion_down() {
+    let output_stack = act_on_stack(
+      &ConvertUnitsCommand::new(),
+      (setup_si_units, setup_default_simplifier, vec!["m", "cm"]),
+      vec![10, 20, 30, 1_000],
+    ).unwrap();
+    assert_eq!(output_stack, stack_of(vec![10, 20, 30, 100_000]));
+  }
+
+  #[test]
+  fn test_simple_length_conversion_up() {
+    let output_stack = act_on_stack(
+      &ConvertUnitsCommand::new(),
+      (setup_si_units, setup_default_simplifier, vec!["cm", "m"]),
+      vec![10, 20, 30, 1_000],
+    ).unwrap();
+    assert_eq!(output_stack, stack_of(vec![10, 20, 30, 10]));
+  }
+
+  #[test]
+  fn test_simple_length_conversion_with_keep_modifier() {
+    let setup = (setup_si_units, setup_default_simplifier);
+    let output_stack = act_on_stack(
+      &ConvertUnitsCommand::new(),
+      (setup, CommandOptions::default().with_keep_modifier(), vec!["cm", "m"]),
+      vec![10, 20, 30, 1_000],
+    ).unwrap();
+    assert_eq!(output_stack, stack_of(vec![10, 20, 30, 1_000, 10]));
+  }
+
+  #[test]
+  fn test_area_conversion() {
+    let output_stack = act_on_stack(
+      &ConvertUnitsCommand::new(),
+      (setup_si_units, setup_default_simplifier, vec!["m^2", "km^2"]),
+      vec![10, 20, 30, 1_000_000],
+    ).unwrap();
+    assert_eq!(output_stack, stack_of(vec![10, 20, 30, 1]));
+  }
+
+  #[test]
+  fn test_area_conversion_fractional() {
+    let output_stack = act_on_stack(
+      &ConvertUnitsCommand::new(),
+      (setup_si_units, setup_default_simplifier, vec!["m^2", "km^2"]),
+      vec![1_000],
+    ).unwrap();
+    assert_eq!(output_stack, stack_of(vec![Number::ratio(1, 1_000)]));
+  }
+
+  #[test]
+  fn test_nontrivial_dimension_conversion() {
+    let output_stack = act_on_stack(
+      &ConvertUnitsCommand::new(),
+      (setup_si_units, setup_default_simplifier, vec!["m / s", "mph"]),
+      vec![600],
+    ).unwrap();
+    assert_eq!(output_stack, stack_of(vec![Number::ratio(1_875_000, 1_397)]));
+  }
+}
