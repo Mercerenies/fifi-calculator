@@ -212,7 +212,7 @@ impl Command for RepeatCommand {
 mod tests {
   use super::*;
   use crate::stack::{Stack, StackError};
-  use crate::command::test_utils::{act_on_stack, act_on_stack_err, act_on_stack_any_err};
+  use crate::command::test_utils::{act_on_stack, act_on_stack_err};
   use crate::command::options::CommandOptions;
   use crate::expr::number::ComplexNumber;
 
@@ -248,6 +248,7 @@ mod tests {
     let opts = CommandOptions::numerical(4);
     let input_stack = vec![10, 20, 30];
     let err = act_on_stack_err(&PackCommand::new(), opts, input_stack);
+    let err = err.downcast::<StackError>().unwrap();
     assert_eq!(err, StackError::NotEnoughElements { expected: 4, actual: 3 });
   }
 
@@ -324,6 +325,7 @@ mod tests {
     let opts = CommandOptions::default();
     let input_stack = Vec::<Expr>::new();
     let err = act_on_stack_err(&PackCommand::new(), opts, input_stack);
+    let err = err.downcast::<StackError>().unwrap();
     assert_eq!(err, StackError::NotEnoughElements { expected: 1, actual: 0 });
   }
 
@@ -332,6 +334,7 @@ mod tests {
     let opts = CommandOptions::default();
     let input_stack = vec![10, 20, 5];
     let err = act_on_stack_err(&PackCommand::new(), opts, input_stack);
+    let err = err.downcast::<StackError>().unwrap();
     assert_eq!(err, StackError::NotEnoughElements { expected: 5, actual: 2 });
   }
 
@@ -340,6 +343,7 @@ mod tests {
     let opts = CommandOptions::default().with_keep_modifier();
     let input_stack = vec![10, 20, 5];
     let err = act_on_stack_err(&PackCommand::new(), opts, input_stack);
+    let err = err.downcast::<StackError>().unwrap();
     assert_eq!(err, StackError::NotEnoughElements { expected: 5, actual: 2 });
   }
 
@@ -347,7 +351,7 @@ mod tests {
   fn test_pack_vector_no_prefix_arg_negative_top_of_stack() {
     let opts = CommandOptions::default();
     let input_stack = vec![10, 20, -2];
-    let err = act_on_stack_any_err(&PackCommand::new(), opts, input_stack);
+    let err = act_on_stack_err(&PackCommand::new(), opts, input_stack);
     let err = err.downcast::<DomainError>().unwrap();
     assert_eq!(err.explanation, "Expected small positive integer, got -2");
   }
@@ -356,7 +360,7 @@ mod tests {
   fn test_pack_vector_no_prefix_arg_negative_top_of_stack_with_keep_arg() {
     let opts = CommandOptions::default().with_keep_modifier();
     let input_stack = vec![10, 20, -2];
-    let err = act_on_stack_any_err(&PackCommand::new(), opts, input_stack);
+    let err = act_on_stack_err(&PackCommand::new(), opts, input_stack);
     let err = err.downcast::<DomainError>().unwrap();
     assert_eq!(err.explanation, "Expected small positive integer, got -2");
   }
@@ -365,7 +369,7 @@ mod tests {
   fn test_pack_vector_no_prefix_arg_invalid_top_of_stack() {
     let opts = CommandOptions::default();
     let input_stack = vec![Expr::from(10), Expr::from(20), Expr::var("x").unwrap()];
-    let err = act_on_stack_any_err(&PackCommand::new(), opts, input_stack);
+    let err = act_on_stack_err(&PackCommand::new(), opts, input_stack);
     let err = err.downcast::<DomainError>().unwrap();
     assert_eq!(err.explanation, "Expected small positive integer, got x");
   }
@@ -454,6 +458,7 @@ mod tests {
     let opts = CommandOptions::default();
     let input_stack = Vec::<Expr>::new();
     let err = act_on_stack_err(&UnpackCommand::new(), opts, input_stack);
+    let err = err.downcast::<StackError>().unwrap();
     assert_eq!(err, StackError::NotEnoughElements { expected: 1, actual: 0 });
   }
 
@@ -461,7 +466,7 @@ mod tests {
   fn test_unpack_with_invalid_top_of_stack() {
     let opts = CommandOptions::default();
     let input_stack = vec![Expr::from(10), Expr::from(20), Expr::var("x").unwrap()];
-    let err = act_on_stack_any_err(&UnpackCommand::new(), opts, input_stack);
+    let err = act_on_stack_err(&UnpackCommand::new(), opts, input_stack);
     let err = err.downcast::<DomainError>().unwrap();
     assert_eq!(err.explanation, "Cannot unpack x");
   }
@@ -470,7 +475,7 @@ mod tests {
   fn test_unpack_with_invalid_top_of_stack_with_keep_arg() {
     let opts = CommandOptions::default().with_keep_modifier();
     let input_stack = vec![Expr::from(10), Expr::from(20), Expr::var("x").unwrap()];
-    let err = act_on_stack_any_err(&UnpackCommand::new(), opts, input_stack);
+    let err = act_on_stack_err(&UnpackCommand::new(), opts, input_stack);
     let err = err.downcast::<DomainError>().unwrap();
     assert_eq!(err.explanation, "Cannot unpack x");
   }
@@ -511,6 +516,7 @@ mod tests {
     let opts = CommandOptions::default();
     let input_stack = Vec::<Expr>::new();
     let err = act_on_stack_err(&RepeatCommand::new(), opts, input_stack);
+    let err = err.downcast::<StackError>().unwrap();
     assert_eq!(err, StackError::NotEnoughElements { expected: 1, actual: 0 });
   }
 }

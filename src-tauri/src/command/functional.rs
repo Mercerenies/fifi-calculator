@@ -397,6 +397,7 @@ mod tests {
   fn test_unary_function_command_on_empty_stack() {
     let input_stack = Vec::<Expr>::new();
     let error = act_on_stack_err(&unary_function(), CommandOptions::default(), input_stack);
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 1, actual: 0 },
@@ -422,6 +423,7 @@ mod tests {
   fn test_unary_function_command_with_arg_one_on_empty_stack() {
     let input_stack = Vec::<Expr>::new();
     let error = act_on_stack_err(&unary_function(), CommandOptions::numerical(1), input_stack);
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 1, actual: 0 },
@@ -465,6 +467,7 @@ mod tests {
   fn test_unary_function_command_with_arg_two_on_empty_stack() {
     let input_stack = Vec::<Expr>::new();
     let error = act_on_stack_err(&unary_function(), CommandOptions::numerical(2), input_stack);
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 2, actual: 0 },
@@ -475,6 +478,7 @@ mod tests {
   fn test_unary_function_command_with_arg_two_on_stack_size_one() {
     let input_stack = vec![10];
     let error = act_on_stack_err(&unary_function(), CommandOptions::numerical(2), input_stack);
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 2, actual: 1 },
@@ -487,6 +491,7 @@ mod tests {
     let opts = CommandOptions::numerical(2).with_keep_modifier();
     let input_stack = vec![10];
     let error = act_on_stack_err(&unary_function(), opts, input_stack);
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 2, actual: 1 },
@@ -580,6 +585,7 @@ mod tests {
   fn test_unary_function_command_with_arg_negative_one_on_empty_stack() {
     let input_stack = Vec::<Expr>::new();
     let error = act_on_stack_err(&unary_function(), CommandOptions::numerical(1), input_stack);
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 1, actual: 0 },
@@ -622,6 +628,7 @@ mod tests {
   fn test_unary_function_command_with_arg_negative_two_on_empty_stack() {
     let input_stack = Vec::<Expr>::new();
     let error = act_on_stack_err(&unary_function(), CommandOptions::numerical(-2), input_stack);
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 2, actual: 0 },
@@ -632,6 +639,7 @@ mod tests {
   fn test_unary_function_command_with_arg_negative_two_on_stack_size_one() {
     let input_stack = vec![10];
     let error = act_on_stack_err(&unary_function(), CommandOptions::numerical(-2), input_stack);
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 2, actual: 1 },
@@ -726,6 +734,7 @@ mod tests {
   fn test_binary_function_command_on_stack_size_one() {
     let input_stack = vec![10];
     let error = act_on_stack_err(&binary_function(), CommandOptions::default(), input_stack);
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 2, actual: 1 },
@@ -736,6 +745,7 @@ mod tests {
   fn test_binary_function_command_on_empty_stack() {
     let input_stack = Vec::<Expr>::new();
     let error = act_on_stack_err(&binary_function(), CommandOptions::default(), input_stack);
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 2, actual: 0 },
@@ -789,6 +799,7 @@ mod tests {
   fn test_binary_function_command_on_stack_size_one_with_arg_two() {
     let input_stack = vec![10];
     let error = act_on_stack_err(&binary_function(), CommandOptions::numerical(2), input_stack);
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 2, actual: 1 },
@@ -799,6 +810,7 @@ mod tests {
   fn test_binary_function_command_on_empty_stack_with_arg_two() {
     let input_stack = Vec::<Expr>::new();
     let error = act_on_stack_err(&binary_function(), CommandOptions::numerical(2), input_stack);
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 2, actual: 0 },
@@ -838,6 +850,7 @@ mod tests {
   fn test_binary_function_command_on_empty_stack_with_arg_one() {
     let input_stack = Vec::<Expr>::new();
     let error = act_on_stack_err(&binary_function(), CommandOptions::numerical(1), input_stack);
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 1, actual: 0 },
@@ -1133,6 +1146,7 @@ mod tests {
   fn test_binary_function_command_with_positive_arg_and_stack_too_small() {
     let input_stack = vec![10, 20, 30];
     let error = act_on_stack_err(&binary_function(), CommandOptions::numerical(4), input_stack);
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 4, actual: 3 },
@@ -1143,6 +1157,7 @@ mod tests {
   fn test_binary_function_command_with_positive_arg_and_empty_stack() {
     let input_stack = Vec::<Expr>::new();
     let error = act_on_stack_err(&binary_function(), CommandOptions::numerical(3), input_stack);
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 3, actual: 0 },
@@ -1184,6 +1199,7 @@ mod tests {
   fn test_binary_function_command_with_arg_negative_one_on_stack_size_one() {
     let input_stack = vec![10];
     let error = act_on_stack_err(&binary_function(), CommandOptions::numerical(-1), input_stack);
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 2, actual: 1 },
@@ -1261,6 +1277,7 @@ mod tests {
   fn test_binary_function_command_with_negative_arg_and_too_small_stack() {
     let input_stack = vec![10, 20, 30, 40];
     let error = act_on_stack_err(&binary_function(), CommandOptions::numerical(-4), input_stack);
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 5, actual: 4 },
@@ -1271,6 +1288,7 @@ mod tests {
   fn test_binary_function_command_with_negative_arg_and_empty_stack() {
     let input_stack = Vec::<Expr>::new();
     let error = act_on_stack_err(&binary_function(), CommandOptions::numerical(-4), input_stack);
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 5, actual: 0 },

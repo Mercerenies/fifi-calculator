@@ -217,7 +217,7 @@ impl Command for ContourPlotCommand {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::command::test_utils::{act_on_stack, act_on_stack_any_err};
+  use crate::command::test_utils::{act_on_stack, act_on_stack_err};
   use crate::command::options::CommandOptions;
   use crate::stack::test_utils::stack_of;
 
@@ -315,7 +315,7 @@ mod tests {
       Expr::from(10),
       Expr::from(20),
     ];
-    let err = act_on_stack_any_err(&PlotCommand::new(), opts, input_stack);
+    let err = act_on_stack_err(&PlotCommand::new(), opts, input_stack);
     assert_eq!(err.to_string(), "Expecting vector of Y values");
   }
 
@@ -371,7 +371,7 @@ mod tests {
       Expr::call("vector", vec![Expr::from(40), Expr::from(50)]),
       Expr::call("vector", vec![Expr::from(60), Expr::from(70)]),
     ];
-    let err = act_on_stack_any_err(&PlotCommand::new(), opts, input_stack);
+    let err = act_on_stack_err(&PlotCommand::new(), opts, input_stack);
     assert_eq!(err.to_string(), "Expecting 2-vectors of X and Y values");
   }
 
