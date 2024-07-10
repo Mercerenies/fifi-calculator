@@ -12,10 +12,13 @@ use crate::display::language::LanguageMode;
 use crate::expr::Expr;
 use crate::expr::number::Number;
 use crate::expr::algebra::term::Term;
-use crate::expr::units::{try_parse_unit, UnitPrism, ParsedCompositeUnit};
+use crate::expr::units::{try_parse_unit, unit_into_term, UnitPrism, ParsedCompositeUnit};
 use crate::units::parsing::UnitParser;
 use crate::units::unit::CompositeUnit;
 use crate::units::tagged::Tagged;
+use crate::units::dimension::Dimension;
+
+use anyhow::Context;
 
 /// This command requires two arguments: the unit to convert from and
 /// the unit to convert to. Both arguments are parsed with
@@ -49,6 +52,12 @@ impl ConvertUnitsCommand {
       "valid unit expression".to_owned(),
       UnitPrism::new(context.units_parser, state.display_settings().language_mode()),
     )
+  }
+
+  fn calculate_remainder_unit<P>(parser: &P, source_dim: &Dimension, target_dim: &Dimension) -> CompositeUnit<Number>
+  where P: UnitParser<Number> + ?Sized {
+    let remainder_dim = source_dim.to_owned() / target_dim.to_owned();
+    parser.base_composite_unit(&remainder_dim)
   }
 }
 
@@ -93,19 +102,24 @@ impl Command for ConvertUnitsCommand {
     let source_unit = CompositeUnit::from(source_unit);
     let target_unit = CompositeUnit::from(target_unit);
 
-    if source_unit.dimension() != target_unit.dimension() {
-      // TODO: We will support "conversion with remainders" soon.
-      anyhow::bail!("Dimensions do not match; cannot convert");
-    }
+    let remainder_unit = Self::calculate_remainder_unit(
+      ctx.units_parser,
+      &source_unit.dimension(),
+      &target_unit.dimension(),
+    );
+    let remainder_term = unit_into_term(remainder_unit.clone())
+      .context("Remainder unit contained an invalid variable name")?;
 
     state.undo_stack_mut().push_cut();
     let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
     let term = Term::parse_expr(stack.pop()?);
     let term = Tagged::new(term, source_unit);
 
-    // convert_or_panic safety: We already checked the dimension in advance.
-    let term = term.convert_or_panic(target_unit);
-    let expr = Expr::from(term.value);
+    // convert_or_panic safety: We already forced the dimensions to
+    // line up, using the remainder unit.
+    let term = term.convert_or_panic(target_unit * remainder_unit);
+    let term = term.value * remainder_term;
+    let expr = Expr::from(term);
 
     let mut errors = ErrorList::new();
     stack.push(ctx.simplify_expr(expr, &mut errors));
@@ -198,5 +212,23 @@ mod tests {
       vec![600],
     ).unwrap();
     assert_eq!(output_stack, stack_of(vec![Number::ratio(1_875_000, 1_397)]));
+  }
+
+  #[test]
+  fn test_conversion_with_remainder() {
+    let output_stack = act_on_stack(
+      &ConvertUnitsCommand::new(),
+      (setup_si_units, setup_default_simplifier, vec!["m / s", "km"]),
+      vec![3],
+    ).unwrap();
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::call("/", vec![
+        Expr::from(3),
+        Expr::call("*", vec![
+          Expr::from(1_000),
+          Expr::var("s").unwrap(),
+        ]),
+      ]),
+    ]));
   }
 }
