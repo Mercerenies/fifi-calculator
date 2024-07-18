@@ -6,6 +6,7 @@ use num::pow::Pow;
 
 use std::ops::{Mul, Div};
 use std::fmt::{self, Formatter, Display};
+use std::cmp::Ordering;
 
 /// A dimension is a formal product and quotient of zero or more
 /// [`BaseDimension`] values.
@@ -112,6 +113,27 @@ impl BaseDimension {
 impl From<BaseDimension> for Dimension {
   fn from(base: BaseDimension) -> Self {
     Dimension::singleton(base)
+  }
+}
+
+impl PartialOrd for Dimension {
+  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    let mut final_ordering = Ordering::Equal;
+    for (a, b) in self.dims.iter().zip(other.dims) {
+      match a.cmp(&b) {
+        Ordering::Equal => {
+          // Nothing to do; continue.
+        }
+        cmp => {
+          if final_ordering == Ordering::Equal {
+            final_ordering = cmp;
+          } else if final_ordering != cmp {
+            return None;
+          }
+        }
+      }
+    }
+    Some(final_ordering)
   }
 }
 
@@ -358,5 +380,16 @@ mod tests {
   fn test_display_on_composite() {
     let dim = Dimension { dims: [0, 1, 3, 0, -1, 1, -2] };
     assert_eq!(dim.to_string(), "time mass^3 intensity / current amount^2");
+  }
+
+  #[test]
+  fn test_partial_ord_on_dimension() {
+    assert!(Dimension { dims: [0, 0, 0, 0, 0, 0, 0] } < Dimension { dims: [0, 0, 0, 0, 0, 0, 1] });
+    assert!(Dimension { dims: [0, 0, 0, 0, 0, 0, 0] } < Dimension { dims: [0, 0, 0, 1, 0, 0, 0] });
+    assert!(Dimension { dims: [0, 0, 0, 0, 0, 0, 0] } <= Dimension { dims: [0, 0, 0, 0, 0, 0, 0] });
+    assert!(Dimension { dims: [0, 0, 0, 0, 0, 2, 2] } <= Dimension { dims: [0, 0, 0, 0, 0, 3, 4] });
+    assert!(Dimension { dims: [0, 0, 0, 0, 0, 2, 2] } >= Dimension { dims: [0, 0, 0, 0, 0, 1, 1] });
+    assert!(!(Dimension { dims: [1, 0, 0, 0, 0, 0, 0] } <= Dimension { dims: [0, 1, 0, 0, 0, 0, 0] }));
+    assert!(!(Dimension { dims: [1, 0, 0, 0, 0, 0, 0] } >= Dimension { dims: [0, 1, 0, 0, 0, 0, 0] }));
   }
 }
