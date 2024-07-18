@@ -160,7 +160,7 @@ where I: IntoIterator<Item = T>,
 /// If the collection is non-empty and all elements of the collection
 /// are equal (under `PartialEq`), returns the first element of the
 /// collection. If not, returns `None`.
-pub fn the_element<I>(collection: I) -> Option<I::Item>
+pub fn uniq_element<I>(collection: I) -> Option<I::Item>
 where I: IntoIterator,
       I::Item: PartialEq {
   let mut iter = collection.into_iter();
@@ -293,18 +293,18 @@ mod tests {
   }
 
   #[test]
-  fn test_the_element() {
-    assert_eq!(the_element([1, 1, 1, 1]), Some(1));
-    assert_eq!(the_element(Vec::<i32>::new()), None);
-    assert_eq!(the_element([1, 1, 1, 2]), None);
+  fn test_uniq_element() {
+    assert_eq!(uniq_element([1, 1, 1, 1]), Some(1));
+    assert_eq!(uniq_element(Vec::<i32>::new()), None);
+    assert_eq!(uniq_element([1, 1, 1, 2]), None);
   }
 
   #[test]
-  fn test_the_element_returns_first_elem() {
-    // the_element() should always return the first element when it
+  fn test_uniq_element_returns_first_elem() {
+    // uniq_element() should always return the first element when it
     // successfully matches. We can test this by implementing a
     // contrived (but lawful) PartialEq on a custom type.
-    let elem = the_element([AlwaysEq(0), AlwaysEq(10), AlwaysEq(20)]).unwrap();
+    let elem = uniq_element([AlwaysEq(0), AlwaysEq(10), AlwaysEq(20)]).unwrap();
     assert_eq!(elem.0, 0);
   }
 }
