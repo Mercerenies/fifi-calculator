@@ -167,6 +167,28 @@ impl<T> CompositeUnit<T> {
       .map(UnitWithPower::dimension)
       .fold(Dimension::one(), |acc, dim| acc * dim)
   }
+
+  /// The dimension of the composite unit, considering only positive
+  /// powers. All negative powers are replaced with dimensionless
+  /// quantities.
+  pub fn pos_dimension(&self) -> Dimension {
+    self.elements
+      .iter()
+      .map(UnitWithPower::dimension)
+      .map(|dim| dim.max(&Dimension::one()))
+      .fold(Dimension::one(), |acc, dim| acc * dim)
+  }
+
+  /// The dimension of the composite unit, considering only negative
+  /// powers. All positive powers are replaced with dimensionless
+  /// quantities.
+  pub fn neg_dimension(&self) -> Dimension {
+    self.elements
+      .iter()
+      .map(UnitWithPower::dimension)
+      .map(|dim| dim.min(&Dimension::one()))
+      .fold(Dimension::one(), |acc, dim| acc * dim)
+  }
 }
 
 impl<T> UnitWithPower<T> {
@@ -430,6 +452,54 @@ mod tests {
   fn test_dimension_of_empty_composite_unit() {
     let unit = CompositeUnit::<f64>::unitless();
     assert_eq!(unit.dimension(), Dimension::one());
+  }
+
+  #[test]
+  fn test_pos_dimension_of_composite_unit() {
+    let unit = CompositeUnit::new([
+      UnitWithPower { unit: kilometers(), exponent: 3 },
+      UnitWithPower { unit: seconds(), exponent: -1 },
+    ]);
+    assert_eq!(
+      unit.pos_dimension(),
+      BaseDimension::Length.pow(3),
+    );
+  }
+
+  #[test]
+  fn test_neg_dimension_of_composite_unit() {
+    let unit = CompositeUnit::new([
+      UnitWithPower { unit: kilometers(), exponent: 3 },
+      UnitWithPower { unit: seconds(), exponent: -1 },
+    ]);
+    assert_eq!(
+      unit.neg_dimension(),
+      BaseDimension::Time.pow(-1),
+    );
+  }
+
+  #[test]
+  fn test_pos_dimension_of_composite_unit_with_nontrivial_dim_within() {
+    let base_unit = Unit::new("mph", BaseDimension::Length / BaseDimension::Time, 1.0);
+    let unit = CompositeUnit::new([
+      UnitWithPower { unit: base_unit, exponent: 2 },
+    ]);
+    assert_eq!(
+      unit.pos_dimension(),
+      BaseDimension::Length.pow(2),
+    );
+  }
+
+  #[test]
+  fn test_neg_dimension_of_composite_unit_with_nontrivial_dim_within() {
+    let base_unit = Unit::new("mph", BaseDimension::Length / BaseDimension::Time, 1.0);
+    let unit = CompositeUnit::new([
+      UnitWithPower { unit: base_unit, exponent: 2 },
+    ]);
+    assert_eq!(
+      unit.neg_dimension(),
+      BaseDimension::Time.pow(-2),
+    );
   }
 
   #[test]
