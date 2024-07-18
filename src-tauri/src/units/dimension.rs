@@ -84,6 +84,13 @@ impl Dimension {
     }
     result
   }
+
+  /// Point-wise absolute value of powers in the dimension.
+  pub fn abs(&self) -> Self {
+    Dimension {
+      dims: self.dims.map(i64::abs),
+    }
+  }
 }
 
 impl BaseDimension {
