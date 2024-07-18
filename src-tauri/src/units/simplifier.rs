@@ -142,4 +142,18 @@ mod tests {
     assert_eq!(a.exponent, -1);
     assert_eq!(b.exponent, 0);
   }
+
+  #[test]
+  fn test_simplify_compatible_units() {
+    let unit = CompositeUnit::new([
+      UnitWithPower { unit: kilometers(), exponent: -1 },
+      UnitWithPower { unit: meters(), exponent: 1 },
+      UnitWithPower { unit: minutes(), exponent: -2 },
+      UnitWithPower { unit: seconds(), exponent: 3 },
+    ]);
+    let unit = simplify_compatible_units(unit);
+    assert_eq!(unit, CompositeUnit::new([
+      UnitWithPower { unit: seconds(), exponent: 1 },
+    ]));
+  }
 }
