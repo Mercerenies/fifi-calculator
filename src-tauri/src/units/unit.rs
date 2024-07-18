@@ -161,6 +161,7 @@ impl<T> CompositeUnit<T> {
     amount
   }
 
+  /// The dimension of the composite unit.
   pub fn dimension(&self) -> Dimension {
     self.elements.iter()
       .map(UnitWithPower::dimension)

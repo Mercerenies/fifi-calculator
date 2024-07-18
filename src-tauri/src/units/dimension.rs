@@ -11,7 +11,7 @@ use std::fmt::{self, Formatter, Display};
 /// [`BaseDimension`] values.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Dimension {
-  dims: [i64; 7],
+  dims: [i64; NDIMS],
 }
 
 /// Dimensions available for units to represent. Every unit represents
@@ -29,9 +29,11 @@ pub enum BaseDimension {
   AmountOfSubstance,
 }
 
+pub const NDIMS: usize = 7;
+
 impl Dimension {
   pub fn singleton(base: BaseDimension) -> Self {
-    let mut dims = [0; 7];
+    let mut dims = [0; NDIMS];
     dims[base.dimension_index()] = 1;
     Self { dims }
   }
@@ -57,10 +59,34 @@ impl Dimension {
       .zip(self.dims.into_iter())
       .filter(|(_, x)| *x != 0)
   }
+
+  /// Minimum of `self` and `other`, according to the point-wise
+  /// lattice on dimensions. That is, the power of each base dimension
+  /// is considered in isolation and the smaller power is chosen in
+  /// each case.
+  pub fn min(&self, other: &Self) -> Self {
+    let mut result = Dimension::one();
+    for index in 0..NDIMS {
+      result.dims[index] = self.dims[index].min(other.dims[index]);
+    }
+    result
+  }
+
+  /// Maximum of `self` and `other`, according to the point-wise
+  /// lattice on dimensions. That is, the power of each base dimension
+  /// is considered in isolation and the larger power is chosen in
+  /// each case.
+  pub fn max(&self, other: &Self) -> Self {
+    let mut result = Dimension::one();
+    for index in 0..NDIMS {
+      result.dims[index] = self.dims[index].max(other.dims[index]);
+    }
+    result
+  }
 }
 
 impl BaseDimension {
-  pub const ALL: [BaseDimension; 7] = [
+  pub const ALL: [BaseDimension; NDIMS] = [
     BaseDimension::Length,
     BaseDimension::Time,
     BaseDimension::Mass,
@@ -177,7 +203,7 @@ impl Div<Dimension> for BaseDimension {
 
 impl One for Dimension {
   fn one() -> Self {
-    Self { dims: [0; 7] }
+    Self { dims: [0; NDIMS] }
   }
 
   fn is_one(&self) -> bool {
@@ -269,6 +295,22 @@ mod tests {
     let mut value = Dimension { dims: [1, 2, 3, 4, 5, 6, 7] };
     *value.get_mut(BaseDimension::LuminousIntensity) = 99;
     assert_eq!(value.dims, [1, 2, 3, 4, 5, 99, 7]);
+  }
+
+  #[test]
+  fn test_min_dimension() {
+    let a = Dimension { dims: [1, 2, 3, 4, 5, 6, 7] };
+    let b = Dimension { dims: [7, 6, 5, 4, 3, 2, 1] };
+    let result = a.min(&b);
+    assert_eq!(result.dims, [1, 2, 3, 4, 3, 2, 1]);
+  }
+
+  #[test]
+  fn test_max_dimension() {
+    let a = Dimension { dims: [1, 2, 3, 4, 5, 6, 7] };
+    let b = Dimension { dims: [7, 6, 5, 4, 3, 2, 1] };
+    let result = a.max(&b);
+    assert_eq!(result.dims, [7, 6, 5, 4, 5, 6, 7]);
   }
 
   #[test]
