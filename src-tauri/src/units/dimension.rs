@@ -450,6 +450,18 @@ mod tests {
       Some(3),
     );
     assert_eq!(
+      Dimension { dims: [0, 0, -3, 0, 0, 6, 0] }.ilog(&Dimension { dims: [0, 0, 1, 0, 0, -2, 0] }),
+      Some(-3),
+    );
+    assert_eq!(
+      Dimension { dims: [0, 0, -3, 0, 0, -6, 0] }.ilog(&Dimension { dims: [0, 0, 1, 0, 0, 2, 0] }),
+      Some(-3),
+    );
+    assert_eq!(
+      Dimension { dims: [0, 0, -3, 0, 0, 6, 0] }.ilog(&Dimension { dims: [0, 0, 1, 0, 0, 2, 0] }),
+      None,
+    );
+    assert_eq!(
       Dimension { dims: [1, 1, 1, 1, 1, 1, 1] }.ilog(&Dimension { dims: [1, 1, 1, 1, 1, 1, 1] }),
       Some(1),
     );
