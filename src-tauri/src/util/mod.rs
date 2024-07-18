@@ -157,9 +157,36 @@ where I: IntoIterator<Item = T>,
   partition_either(iter.into_iter().map(f))
 }
 
+/// If the collection is non-empty and all elements of the collection
+/// are equal (under `PartialEq`), returns the first element of the
+/// collection. If not, returns `None`.
+pub fn the_element<I>(collection: I) -> Option<I::Item>
+where I: IntoIterator,
+      I::Item: PartialEq {
+  let mut iter = collection.into_iter();
+  let first_elem = iter.next()?;
+  for elem in iter {
+    if first_elem != elem {
+      return None;
+    }
+  }
+  Some(first_elem)
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  /// Implements `PartialEq` and `Eq` to always return true.
+  struct AlwaysEq(i64);
+
+  impl PartialEq for AlwaysEq {
+    fn eq(&self, _: &AlwaysEq) -> bool {
+      true
+    }
+  }
+
+  impl Eq for AlwaysEq {}
 
   #[test]
   fn unwrap_infallible_unwraps() {
@@ -263,5 +290,21 @@ mod tests {
     assert_eq!(into_singleton([10, 20, 30]), None);
     assert_eq!(into_singleton([10, 10, 10, 10, 10]), None);
     assert_eq!(into_singleton(iter::repeat(0)), None);
+  }
+
+  #[test]
+  fn test_the_element() {
+    assert_eq!(the_element([1, 1, 1, 1]), Some(1));
+    assert_eq!(the_element(Vec::<i32>::new()), None);
+    assert_eq!(the_element([1, 1, 1, 2]), None);
+  }
+
+  #[test]
+  fn test_the_element_returns_first_elem() {
+    // the_element() should always return the first element when it
+    // successfully matches. We can test this by implementing a
+    // contrived (but lawful) PartialEq on a custom type.
+    let elem = the_element([AlwaysEq(0), AlwaysEq(10), AlwaysEq(20)]).unwrap();
+    assert_eq!(elem.0, 0);
   }
 }
