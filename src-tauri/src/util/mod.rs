@@ -11,7 +11,7 @@ use regex::{Regex, escape};
 use either::Either;
 
 use std::convert::Infallible;
-use std::cmp::Reverse;
+use std::cmp::{Reverse, Ordering};
 use std::iter::{self, Extend};
 
 pub fn unwrap_infallible<T>(res: Result<T, Infallible>) -> T {
@@ -173,6 +173,25 @@ where I: IntoIterator,
   Some(first_elem)
 }
 
+/// Mutably borrows two elements from a mutable slice at the same
+/// time. Panics if the two indices are the same, or if either index
+/// is out of bounds.
+pub fn double_borrow_mut<T>(slice: &mut [T], i: usize, j: usize) -> (&mut T, &mut T) {
+  match i.cmp(&j) {
+    Ordering::Equal => {
+      panic!("Cannot mutably borrow index {i} twice at the same time");
+    }
+    Ordering::Greater => {
+      let (b, a) = double_borrow_mut(slice, j, i);
+      (a, b)
+    }
+    Ordering::Less => {
+      let (left, right) = slice.split_at_mut(j);
+      (&mut left[i], &mut right[0])
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -306,5 +325,23 @@ mod tests {
     // contrived (but lawful) PartialEq on a custom type.
     let elem = uniq_element([AlwaysEq(0), AlwaysEq(10), AlwaysEq(20)]).unwrap();
     assert_eq!(elem.0, 0);
+  }
+
+  #[test]
+  fn test_double_borrow_mut() {
+    let mut arr = [30, 40, 50];
+    let (a, b) = double_borrow_mut(&mut arr, 1, 2);
+    assert_eq!(a, &mut 40);
+    assert_eq!(b, &mut 50);
+    let (a, b) = double_borrow_mut(&mut arr, 2, 1);
+    assert_eq!(a, &mut 50);
+    assert_eq!(b, &mut 40);
+  }
+
+  #[test]
+  #[should_panic]
+  fn test_double_borrow_mut_panic() {
+    let mut arr = [30, 40, 50];
+    double_borrow_mut(&mut arr, 0, 0);
   }
 }
