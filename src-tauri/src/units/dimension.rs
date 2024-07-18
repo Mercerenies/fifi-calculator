@@ -91,6 +91,45 @@ impl Dimension {
       dims: self.dims.map(i64::abs),
     }
   }
+
+  /// Returns the integer logarithm of `self` with respect to the
+  /// given base. That is, returns the power `n` such that
+  /// `base.pow(n) == self`. If no such integer power exists, returns
+  /// `None`.
+  ///
+  /// If `base` is `Dimension::one`, this method always returns `None`.
+  pub fn ilog(&self, base: &Self) -> Option<i64> {
+    if base.is_one() {
+      return None;
+    }
+    let mut power = None;
+    for i in 0..NDIMS {
+      if base.dims[i] == 0 {
+        if self.dims[i] != 0 {
+          // Incompatible; there is no power which can raise 1 to a
+          // non-one quantity.
+          return None;
+        }
+      } else {
+        if self.dims[i] % base.dims[i] != 0 {
+          // Incompatible; no integer power will suffice.
+          return None;
+        } else {
+          let new_power = self.dims[i] / base.dims[i];
+          if power.is_none() {
+            power = Some(new_power);
+          } else if power != Some(new_power) {
+            // Incompatible; no single integer power will suffice.
+            return None;
+          }
+        }
+      }
+    }
+    // assert: Since base.is_one() is not true, we always set `power`
+    // at some point in the `for` loop.
+    assert!(power.is_some(), "Internal error in Dimension::ilog; power should have been set");
+    power
+  }
 }
 
 impl BaseDimension {
@@ -398,5 +437,49 @@ mod tests {
     assert!(Dimension { dims: [0, 0, 0, 0, 0, 2, 2] } >= Dimension { dims: [0, 0, 0, 0, 0, 1, 1] });
     assert!(!(Dimension { dims: [1, 0, 0, 0, 0, 0, 0] } <= Dimension { dims: [0, 1, 0, 0, 0, 0, 0] }));
     assert!(!(Dimension { dims: [1, 0, 0, 0, 0, 0, 0] } >= Dimension { dims: [0, 1, 0, 0, 0, 0, 0] }));
+  }
+
+  #[test]
+  fn test_ilog() {
+    assert_eq!(
+      Dimension { dims: [0, 0, 1, 0, 0, 2, 0] }.ilog(&Dimension { dims: [0, 0, 1, 0, 0, 2, 0] }),
+      Some(1),
+    );
+    assert_eq!(
+      Dimension { dims: [0, 0, 3, 0, 0, 6, 0] }.ilog(&Dimension { dims: [0, 0, 1, 0, 0, 2, 0] }),
+      Some(3),
+    );
+    assert_eq!(
+      Dimension { dims: [1, 1, 1, 1, 1, 1, 1] }.ilog(&Dimension { dims: [1, 1, 1, 1, 1, 1, 1] }),
+      Some(1),
+    );
+    assert_eq!(
+      Dimension { dims: [1, 2, 1, 1, 1, 1, 1] }.ilog(&Dimension { dims: [1, 1, 1, 1, 1, 1, 1] }),
+      None,
+    );
+    assert_eq!(
+      Dimension { dims: [1, 1, 1, 1, 1, 1, 1] }.ilog(&Dimension { dims: [1, 1, 1, 2, 1, 1, 1] }),
+      None,
+    );
+    assert_eq!(
+      Dimension { dims: [0, 0, 0, 0, 0, 0, 0] }.ilog(&Dimension { dims: [1, 2, 1, 2, 1, 3, 9] }),
+      Some(0),
+    );
+    assert_eq!(
+      Dimension { dims: [0, 1, 0, 0, 0, 1, 0] }.ilog(&Dimension { dims: [0, 0, 0, 0, 0, 0, 0] }),
+      None,
+    );
+    assert_eq!(
+      Dimension { dims: [0, 0, 0, 0, 0, 0, 0] }.ilog(&Dimension { dims: [0, 0, 0, 0, 0, 0, 0] }),
+      None,
+    );
+    assert_eq!(
+      Dimension { dims: [0, 0, 0, 0, 0, 0, 1] }.ilog(&Dimension { dims: [0, 0, 0, 0, 0, 1, 0] }),
+      None,
+    );
+    assert_eq!(
+      Dimension { dims: [0, 0, 0, 0, 0, 1, 0] }.ilog(&Dimension { dims: [0, 0, 0, 0, 0, 0, 1] }),
+      None,
+    );
   }
 }

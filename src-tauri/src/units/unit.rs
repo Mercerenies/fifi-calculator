@@ -135,6 +135,13 @@ impl<T> CompositeUnit<T> {
     self.elements
   }
 
+  /// An iterator over the distinct units in this composite unit,
+  /// sorted by name and tagged with their exponents. All returned
+  /// exponents shall be non-zero.
+  pub fn iter(&self) -> impl Iterator<Item = &UnitWithPower<T>> {
+    self.elements.iter()
+  }
+
   /// The reciprocal of `self`.
   pub fn recip(mut self) -> Self {
     for elem in &mut self.elements {
