@@ -14,7 +14,8 @@ mod parser;
 mod prisms;
 mod simplifier;
 
-pub use output::{tagged_into_expr, tagged_into_term, unit_into_term};
+pub use output::{tagged_into_expr, tagged_into_term, unit_into_term,
+                 tagged_into_expr_lossy, tagged_into_term_lossy, unit_into_term_lossy};
 pub use parser::{parse_composite_unit_term, parse_composite_unit_expr, try_parse_unit};
 pub use prisms::{ParsedCompositeUnit, UnitPrism};
 pub use simplifier::UnitSimplifier;

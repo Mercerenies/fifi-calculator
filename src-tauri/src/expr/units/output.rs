@@ -22,11 +22,41 @@ pub fn tagged_into_term<S>(tagged: Tagged<Term, S>) -> Result<Term, UnitIntoTerm
   Ok(tagged.value * unit_into_term(tagged.unit)?)
 }
 
+/// Converts a composite unit into a term, producing an error if any
+/// of the constituent units are not valid variable names.
 pub fn unit_into_term<S>(composite_unit: CompositeUnit<S>) -> Result<Term, UnitIntoTermError> {
+  unit_into_term_impl(composite_unit, false)
+}
+
+pub fn tagged_into_expr_lossy<S>(tagged: Tagged<Term, S>) -> Expr {
+  tagged_into_term_lossy(tagged).into()
+}
+
+pub fn tagged_into_term_lossy<S>(tagged: Tagged<Term, S>) -> Term {
+  tagged.value * unit_into_term_lossy(tagged.unit)
+}
+
+/// Converts a composite unit into a term, skipping any constituent
+/// units which are not valid variable names.
+pub fn unit_into_term_lossy<S>(composite_unit: CompositeUnit<S>) -> Term {
+  // unwrap: unit_into_term_impl never errs if `lossy == true`
+  unit_into_term_impl(composite_unit, true).unwrap()
+}
+
+fn unit_into_term_impl<S>(composite_unit: CompositeUnit<S>, lossy: bool) -> Result<Term, UnitIntoTermError> {
   let mut numerator = Vec::new();
   let mut denominator = Vec::new();
   for unit in composite_unit.into_inner() {
-    let var = parse_var(&unit.unit)?;
+    let var = match parse_var(&unit.unit) {
+      Ok(var) => var,
+      Err(err) => {
+        if lossy {
+          continue;
+        } else {
+          return Err(err);
+        }
+      }
+    };
     match unit.exponent {
       0 => {
         // Do not include this unit in the result.
@@ -61,7 +91,7 @@ fn parse_var<S>(unit: &Unit<S>) -> Result<Expr, UnitIntoTermError> {
 mod tests {
   use super::*;
   use crate::units::dimension::BaseDimension;
-  use crate::units::unit::{UnitWithPower};
+  use crate::units::unit::UnitWithPower;
 
   fn var(x: &str) -> Expr {
     Expr::var(x).unwrap()
@@ -94,6 +124,31 @@ mod tests {
     assert_eq!(
       unit_into_term(composite_unit),
       Ok(Term::new(vec![var("cd"), pow(var("km"), 2)], vec![var("mol"), pow(var("sec"), 3)])),
+    );
+  }
+
+  #[test]
+  fn test_unit_into_term_failure() {
+    let composite_unit = CompositeUnit::new(vec![
+      UnitWithPower { unit: Unit::new("a b", BaseDimension::Length, 1_000), exponent: 2 },
+    ]);
+    assert_eq!(
+      unit_into_term(composite_unit),
+      Err(UnitIntoTermError::InvalidVariableName("a b".to_owned())),
+    );
+  }
+
+  #[test]
+  fn test_unit_into_term_lossy() {
+    let composite_unit = CompositeUnit::new(vec![
+      UnitWithPower { unit: Unit::new("km", BaseDimension::Length, 1_000), exponent: 2 },
+      UnitWithPower { unit: Unit::new("sec", BaseDimension::Time, 1), exponent: -3 },
+      UnitWithPower { unit: Unit::new("invalid unit name", BaseDimension::LuminousIntensity, 1), exponent: 1 },
+      UnitWithPower { unit: Unit::new("mol", BaseDimension::AmountOfSubstance, 1), exponent: -1 },
+    ]);
+    assert_eq!(
+      unit_into_term_lossy(composite_unit),
+      Term::new(vec![pow(var("km"), 2)], vec![var("mol"), pow(var("sec"), 3)]),
     );
   }
 
