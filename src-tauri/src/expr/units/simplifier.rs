@@ -5,7 +5,7 @@ use crate::units::parsing::UnitParser;
 use crate::units::simplifier::simplify_compatible_units;
 use crate::expr::number::Number;
 use super::parser::parse_composite_unit_expr;
-use super::output::tagged_into_expr;
+use super::output::tagged_into_expr_lossy;
 
 use num::One;
 
@@ -32,12 +32,16 @@ where P: ?Sized {
 
 impl<'a, P> Simplifier for UnitSimplifier<'a, P>
 where P: UnitParser<Number> + ?Sized {
-  fn simplify_expr_part(&self, expr: Expr, ctx: &mut SimplifierContext) -> Expr {
+  fn simplify_expr_part(&self, expr: Expr, _: &mut SimplifierContext) -> Expr {
     let tagged = parse_composite_unit_expr(self.unit_parser, expr);
     if tagged.unit.is_one() {
       // No units, so nothing to simplify
-      todo!()
+      return tagged_into_expr_lossy(tagged);
     }
-    todo!()
+    let simplified_unit = simplify_compatible_units(tagged.unit.clone());
+    // convert_or_panic: simplify_compatible_unit always retains the
+    // dimension of its input.
+    let tagged = tagged.convert_or_panic(simplified_unit);
+    tagged_into_expr_lossy(tagged)
   }
 }
