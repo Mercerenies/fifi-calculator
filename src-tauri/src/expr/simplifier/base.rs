@@ -32,3 +32,10 @@ pub struct SimplifierContext<'a, 'b> {
   pub base_simplifier: &'a dyn Simplifier,
   pub errors: &'b mut ErrorList<SimplifierError>,
 }
+
+impl<'a, S> Simplifier for &'a S
+where S: Simplifier + ?Sized {
+  fn simplify_expr_part(&self, expr: Expr, ctx: &mut SimplifierContext) -> Expr {
+    (**self).simplify_expr_part(expr, ctx)
+  }
+}

@@ -12,9 +12,12 @@ use crate::display::language::LanguageMode;
 use crate::expr::Expr;
 use crate::expr::number::Number;
 use crate::expr::algebra::term::Term;
+use crate::expr::simplifier::{Simplifier, SimplifierContext};
+use crate::expr::simplifier::chained::ChainedSimplifier;
 use crate::expr::units::{parse_composite_unit_expr, try_parse_unit,
                          unit_into_term, tagged_into_expr,
-                         UnitPrism, ParsedCompositeUnit};
+                         UnitPrism, ParsedCompositeUnit,
+                         UnitSimplifier};
 use crate::units::parsing::UnitParser;
 use crate::units::unit::CompositeUnit;
 use crate::units::tagged::Tagged;
@@ -103,6 +106,29 @@ fn calculate_remainder_unit<P>(parser: &P, source_dim: &Dimension, target_dim: &
 where P: UnitParser<Number> + ?Sized {
   let remainder_dim = source_dim.to_owned() / target_dim.to_owned();
   parser.base_composite_unit(&remainder_dim)
+}
+
+/// Simplifier which runs a unit simplification step after the usual
+/// simplification step.
+fn unit_simplifier<'a>(ctx: &'a CommandContext) -> ChainedSimplifier<'a, 'a> {
+  ChainedSimplifier::new(
+    Box::new(ctx.simplifier.as_ref()),
+    Box::new(UnitSimplifier::new(ctx.units_parser)),
+  )
+}
+
+/// Unary command which simplifies units on the targeted stack
+/// element(s).
+pub fn simplify_units_command() -> UnaryFunctionCommand {
+  UnaryFunctionCommand::with_context_and_errors(|arg, ctx, errors| {
+    let simplifier = unit_simplifier(ctx);
+    let mut simplifier_ctx = SimplifierContext {
+      base_simplifier: &simplifier,
+      errors,
+    };
+    let expr = simplifier.simplify_expr(arg, &mut simplifier_ctx);
+    expr
+  })
 }
 
 /// Unary command which removes units from the targeted stack

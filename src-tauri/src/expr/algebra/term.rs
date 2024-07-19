@@ -125,15 +125,19 @@ impl Term {
 }
 
 impl From<Term> for Expr {
-  fn from(t: Term) -> Expr {
+  fn from(mut t: Term) -> Expr {
     let numerator =
       if t.numerator.is_empty() {
         Expr::one()
+      } else if t.numerator.len() == 1 {
+        t.numerator.swap_remove(0)
       } else {
         Expr::call("*", t.numerator)
       };
     if t.denominator.is_empty() {
       numerator
+    } else if t.denominator.len() == 1 {
+      Expr::call("/", vec![numerator, t.denominator.swap_remove(0)])
     } else {
       Expr::call("/", vec![numerator, Expr::call("*", t.denominator)])
     }

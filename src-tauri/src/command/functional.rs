@@ -6,6 +6,7 @@ use super::base::{Command, CommandContext, CommandOutput};
 use super::arguments::{NullaryArgumentSchema, validate_schema};
 use crate::state::ApplicationState;
 use crate::expr::Expr;
+use crate::expr::simplifier::error::SimplifierError;
 use crate::errorlist::ErrorList;
 use crate::stack::base::{StackLike, RandomAccessStackLike};
 use crate::stack::keepable::KeepableStack;
@@ -40,7 +41,8 @@ pub struct UnaryFunctionCommand {
   function: Box<UnaryFunction>,
 }
 
-type UnaryFunction = dyn Fn(Expr, &ApplicationState, &CommandContext) -> Expr + Send + Sync;
+type UnaryFunction =
+  dyn Fn(Expr, &ApplicationState, &CommandContext, &mut ErrorList<SimplifierError>) -> Expr + Send + Sync;
 
 /// A command that applies an arbitrary function to the top two
 /// elements of the stack, with the second-from-the-top element of the
@@ -71,17 +73,22 @@ impl PushConstantCommand {
 impl UnaryFunctionCommand {
   pub fn new<F>(function: F) -> UnaryFunctionCommand
   where F: Fn(Expr) -> Expr + Send + Sync + 'static {
-    UnaryFunctionCommand { function: Box::new(move |arg, _, _| function(arg)) }
+    UnaryFunctionCommand { function: Box::new(move |arg, _, _, _| function(arg)) }
   }
 
   pub fn with_state<F>(function: F) -> UnaryFunctionCommand
   where F: Fn(Expr, &ApplicationState) -> Expr + Send + Sync + 'static {
-    UnaryFunctionCommand { function: Box::new(move |arg, state, _| function(arg, state)) }
+    UnaryFunctionCommand { function: Box::new(move |arg, state, _, _| function(arg, state)) }
   }
 
   pub fn with_context<F>(function: F) -> UnaryFunctionCommand
   where F: Fn(Expr, &CommandContext) -> Expr + Send + Sync + 'static {
-    UnaryFunctionCommand { function: Box::new(move |arg, _, ctx| function(arg, ctx)) }
+    UnaryFunctionCommand { function: Box::new(move |arg, _, ctx, _| function(arg, ctx)) }
+  }
+
+  pub fn with_context_and_errors<F>(function: F) -> UnaryFunctionCommand
+  where F: Fn(Expr, &CommandContext, &mut ErrorList<SimplifierError>) -> Expr + Send + Sync + 'static {
+    UnaryFunctionCommand { function: Box::new(move |arg, _, ctx, err| function(arg, ctx, err)) }
   }
 
   pub fn named(function_name: impl Into<String>) -> UnaryFunctionCommand {
@@ -91,8 +98,14 @@ impl UnaryFunctionCommand {
     })
   }
 
-  fn wrap_expr(&self, arg: Expr, state: &ApplicationState, ctx: &CommandContext) -> Expr {
-    (self.function)(arg, state, ctx)
+  fn wrap_expr(
+    &self,
+    arg: Expr,
+    state: &ApplicationState,
+    ctx: &CommandContext,
+    errors: &mut ErrorList<SimplifierError>,
+  ) -> Expr {
+    (self.function)(arg, state, ctx, errors)
   }
 
   fn apply_to_top(
@@ -107,7 +120,8 @@ impl UnaryFunctionCommand {
       stack.pop_several(element_count)?
     };
     let values: Vec<_> = values.into_iter().map(|e| {
-      ctx.simplify_expr(self.wrap_expr(e, state, ctx), &mut errors)
+      let e = self.wrap_expr(e, state, ctx, &mut errors);
+      ctx.simplify_expr(e, &mut errors)
     }).collect();
     state.main_stack_mut().push_several(values);
     Ok(CommandOutput::from_errors(errors))
@@ -126,7 +140,10 @@ impl UnaryFunctionCommand {
       // it's safe to re-insert.
       state.main_stack_mut().insert(element_index, expr.clone()).expect("Stack was too small for re-insert");
     }
-    expr.mutate(|e| ctx.simplify_expr(self.wrap_expr(e, state, ctx), &mut errors));
+    expr.mutate(|e| {
+      let e = self.wrap_expr(e, state, ctx, &mut errors);
+      ctx.simplify_expr(e, &mut errors)
+    });
     // expect safety: We just popped a value from that position, so
     // it's safe to re-insert.
     state.main_stack_mut().insert(element_index, expr).expect("Stack was too small for re-insert");

@@ -33,6 +33,7 @@ where P: ?Sized {
 impl<'a, P> Simplifier for UnitSimplifier<'a, P>
 where P: UnitParser<Number> + ?Sized {
   fn simplify_expr_part(&self, expr: Expr, _: &mut SimplifierContext) -> Expr {
+    dbg!(expr.to_string());
     let tagged = parse_composite_unit_expr(self.unit_parser, expr);
     if tagged.unit.is_one() {
       // No units, so nothing to simplify
@@ -41,7 +42,14 @@ where P: UnitParser<Number> + ?Sized {
     let simplified_unit = simplify_compatible_units(tagged.unit.clone());
     // convert_or_panic: simplify_compatible_unit always retains the
     // dimension of its input.
-    let tagged = tagged.convert_or_panic(simplified_unit);
+    let tagged =
+      if simplified_unit == tagged.unit {
+        // Don't add a bunch of "* 1" nonsense if we're not actually
+        // converting anything.
+        tagged
+      } else {
+        tagged.convert_or_panic(simplified_unit)
+      };
     tagged_into_expr_lossy(tagged)
   }
 }

@@ -27,6 +27,7 @@ export class UnitsButtonGrid extends ButtonGrid {
     return [
       [
         new UnitConversionButton(this.inputManager),
+        new DispatchButton("<span class='mathy-text'>m=</span>", "simplify_units", "s"),
       ],
       [
         new DispatchButton("1", "remove_units", "r"),

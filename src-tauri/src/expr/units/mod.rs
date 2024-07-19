@@ -9,6 +9,8 @@
 //! module itself directly instantiates that functionality for the
 //! `Expr` and `Number` types in particular.
 
+// TODO Too many direct exports, let users see some of the submodules.
+
 mod output;
 mod parser;
 mod prisms;
