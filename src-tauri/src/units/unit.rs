@@ -130,7 +130,11 @@ impl<T> Unit<T> {
   /// The composed unit that makes up this unit must be made of a
   /// product, quotient, and powers of simple units, and the dimension
   /// must match the dimension of `self`.
-  pub fn try_with_composed(mut self, composed_units: CompositeUnit<T>) -> Result<Self, UnitCompositionError<T>> {
+  pub fn try_with_composed(
+    mut self,
+    composed_units: impl Into<CompositeUnit<T>>,
+  ) -> Result<Self, UnitCompositionError<T>> {
+    let composed_units = composed_units.into();
     if self.dimension() != &composed_units.dimension() {
       return Err(UnitCompositionError {
         original_unit: self,
@@ -154,7 +158,7 @@ impl<T> Unit<T> {
   /// Assigns composed units to this unit, builder-style. Panics if
   /// the composition is not valid. For a non-panicking variant, use
   /// [`Unit::try_with_composed`].
-  pub fn with_composed(self, composed_units: CompositeUnit<T>) -> Self {
+  pub fn with_composed(self, composed_units: impl Into<CompositeUnit<T>>) -> Self {
     self.try_with_composed(composed_units).unwrap_or_else(|err| {
       panic!("{err}");
     })
