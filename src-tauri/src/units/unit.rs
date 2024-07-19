@@ -398,6 +398,50 @@ impl<T> Hash for UnitByName<T> {
   }
 }
 
+impl<T> Pow<i64> for Unit<T> {
+  type Output = UnitWithPower<T>;
+
+  fn pow(self, rhs: i64) -> Self::Output {
+    UnitWithPower { unit: self, exponent: rhs }
+  }
+}
+
+impl<T, S> Mul<S> for Unit<T>
+where S: Into<CompositeUnit<T>> {
+  type Output = CompositeUnit<T>;
+
+  fn mul(self, rhs: S) -> Self::Output {
+    CompositeUnit::from(self) * rhs
+  }
+}
+
+impl<T, S> Div<S> for Unit<T>
+where S: Into<CompositeUnit<T>> {
+  type Output = CompositeUnit<T>;
+
+  fn div(self, rhs: S) -> Self::Output {
+    CompositeUnit::from(self) / rhs
+  }
+}
+
+impl<T, S> Mul<S> for UnitWithPower<T>
+where S: Into<CompositeUnit<T>> {
+  type Output = CompositeUnit<T>;
+
+  fn mul(self, rhs: S) -> Self::Output {
+    CompositeUnit::from(self) * rhs
+  }
+}
+
+impl<T, S> Div<S> for UnitWithPower<T>
+where S: Into<CompositeUnit<T>> {
+  type Output = CompositeUnit<T>;
+
+  fn div(self, rhs: S) -> Self::Output {
+    CompositeUnit::from(self) / rhs
+  }
+}
+
 impl<T> Pow<i64> for UnitWithPower<T> {
   type Output = UnitWithPower<T>;
 
@@ -406,22 +450,24 @@ impl<T> Pow<i64> for UnitWithPower<T> {
   }
 }
 
-impl<T> Mul for CompositeUnit<T> {
+impl<T, S> Mul<S> for CompositeUnit<T>
+where S: Into<CompositeUnit<T>> {
   type Output = CompositeUnit<T>;
 
-  fn mul(self, rhs: Self) -> Self::Output {
+  fn mul(self, rhs: S) -> Self::Output {
     let mut elements = self.elements;
-    elements.extend(rhs.elements);
+    elements.extend(rhs.into().elements);
     Self::new(elements)
   }
 }
 
-impl<T> Div for CompositeUnit<T> {
+impl<T, S> Div<S> for CompositeUnit<T>
+where S: Into<CompositeUnit<T>> {
   type Output = CompositeUnit<T>;
 
   #[allow(clippy::suspicious_arithmetic_impl)] // Multiply by reciprocal is correct
-  fn div(self, rhs: Self) -> Self::Output {
-    self * rhs.recip()
+  fn div(self, rhs: S) -> Self::Output {
+    self * rhs.into().recip()
   }
 }
 
