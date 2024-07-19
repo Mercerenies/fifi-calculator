@@ -52,7 +52,8 @@ impl Dimension {
   /// simple dimension has exactly one base dimension of power 1 and
   /// all others have power zero.
   pub fn is_simple(&self) -> bool {
-    self.abs().dims.into_iter().sum::<i64>() == 1
+    self.dims.iter().copied().sum::<i64>() == 1 &&
+      self.abs().dims.into_iter().sum::<i64>() == 1
   }
 
   pub fn components(&self) -> impl Iterator<Item = (BaseDimension, i64)> + '_ {

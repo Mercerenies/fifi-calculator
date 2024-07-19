@@ -63,7 +63,7 @@ pub struct UnitWithPower<T> {
 struct UnitByName<T>(Unit<T>);
 
 /// Error type returned from [`Unit::with_composition`].
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
 #[error("{reason}")]
 pub struct UnitCompositionError<T> {
   pub original_unit: Unit<T>,
@@ -71,7 +71,7 @@ pub struct UnitCompositionError<T> {
   _priv: (),
 }
 
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum UnitCompositionErrorReason {
   #[error("Composition of unit must be made up of simple units")]
@@ -466,6 +466,33 @@ mod tests {
   fn test_unit_from_base() {
     assert_eq!(kilometers().from_base(2000.0), 2.0);
     assert_eq!(minutes().from_base(1800.0), 30.0);
+  }
+
+  #[test]
+  fn test_unit_construction_with_composite_unit() {
+    let base_unit = Unit::new("L", BaseDimension::Length.pow(3), 1.0);
+    base_unit
+      .try_with_composed(CompositeUnit::new(vec![UnitWithPower { unit: meters(), exponent: 3 }]))
+      .unwrap();
+  }
+
+  #[test]
+  fn test_unit_construction_with_composite_unit_non_simple_composition() {
+    let base_unit = Unit::new("L", BaseDimension::Length.pow(3), 1.0);
+    let err = base_unit.clone()
+      .try_with_composed(CompositeUnit::new(vec![UnitWithPower { unit: base_unit, exponent: 1 }]))
+      .unwrap_err();
+    assert_eq!(err.reason, UnitCompositionErrorReason::CompositionMustBeSimple);
+  }
+
+  #[test]
+  fn test_unit_construction_with_composite_unit_dimension_mismatch() {
+    let base_unit = Unit::new("L", BaseDimension::Length.pow(3), 1.0);
+    let err = base_unit
+      .clone()
+      .try_with_composed(CompositeUnit::new(vec![UnitWithPower { unit: kilometers(), exponent: 2 }]))
+      .unwrap_err();
+    assert_eq!(err.reason, UnitCompositionErrorReason::DimensionMismatch);
   }
 
   #[test]

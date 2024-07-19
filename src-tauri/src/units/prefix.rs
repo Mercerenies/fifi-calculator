@@ -1,5 +1,5 @@
 
-use super::unit::{Unit, CompositeUnit};
+use super::unit::Unit;
 
 use num::pow::Pow;
 
