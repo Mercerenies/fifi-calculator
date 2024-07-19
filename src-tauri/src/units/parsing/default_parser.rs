@@ -11,18 +11,27 @@ use std::ops::Div;
 use std::f64::consts::PI;
 use std::collections::HashMap;
 
+/// Parent trait for the functionality we require of a scalar type in
+/// the default SI units table. No type should ever need to implement
+/// this trait by hand, since a blanket impl takes types from the
+/// parent traits to this one.
+pub trait ScalarLike: One + Div<Output = Self> + Pow<i64, Output = Self> + From<i64> + From<f64> {}
+
+impl<S> ScalarLike for S
+where S: One + Div<Output = S> + Pow<i64, Output = S> + From<i64> + From<f64> {}
+
 fn fraction<T>(n: i64, d: i64) -> T
 where T: Div<Output = T> + From<i64> {
   T::from(n) / T::from(d)
 }
 
 pub fn default_parser<S>() -> PrefixParser<TableBasedParser<S>>
-where S: One + Div<Output = S> + Pow<i64, Output = S> + From<i64> + From<f64> + 'static {
+where S: ScalarLike + 'static {
   PrefixParser::new_si(default_units_table())
 }
 
 pub fn default_units_table<S>() -> TableBasedParser<S>
-where S: One + Div<Output = S> + Pow<i64, Output = S> + From<i64> + From<f64> + 'static {
+where S: ScalarLike + 'static {
   use BaseDimension::*;
   let units = vec![
     // Length units
