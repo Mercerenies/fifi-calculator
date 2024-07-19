@@ -66,7 +66,7 @@ impl Dimension {
   pub fn into_components(self) -> impl Iterator<Item = (BaseDimension, i64)> {
     BaseDimension::ALL.iter()
       .copied()
-      .zip(self.dims.into_iter())
+      .zip(self.dims)
       .filter(|(_, x)| *x != 0)
   }
 
@@ -119,18 +119,16 @@ impl Dimension {
           // non-one quantity.
           return None;
         }
+      } else if self.dims[i] % base.dims[i] != 0 {
+        // Incompatible; no integer power will suffice.
+        return None;
       } else {
-        if self.dims[i] % base.dims[i] != 0 {
-          // Incompatible; no integer power will suffice.
+        let new_power = self.dims[i] / base.dims[i];
+        if power.is_none() {
+          power = Some(new_power);
+        } else if power != Some(new_power) {
+          // Incompatible; no single integer power will suffice.
           return None;
-        } else {
-          let new_power = self.dims[i] / base.dims[i];
-          if power.is_none() {
-            power = Some(new_power);
-          } else if power != Some(new_power) {
-            // Incompatible; no single integer power will suffice.
-            return None;
-          }
         }
       }
     }

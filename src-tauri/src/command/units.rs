@@ -126,8 +126,7 @@ pub fn simplify_units_command() -> UnaryFunctionCommand {
       base_simplifier: &simplifier,
       errors,
     };
-    let expr = simplifier.simplify_expr(arg, &mut simplifier_ctx);
-    expr
+    simplifier.simplify_expr(arg, &mut simplifier_ctx)
   })
 }
 

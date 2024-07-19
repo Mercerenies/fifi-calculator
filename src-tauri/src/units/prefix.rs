@@ -20,6 +20,7 @@ impl MetricPrefix {
     }
   }
 
+  #[allow(clippy::redundant_closure)] // reason: consistency with the other closures
   pub fn apply<T>(&self, unit: Unit<T>) -> Unit<T>
   where T: Pow<i32, Output = T> + From<i32> + Mul<Output = T> {
     unit.augment(
