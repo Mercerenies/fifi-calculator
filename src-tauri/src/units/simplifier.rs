@@ -2,7 +2,7 @@
 //! Simplification engine for units with matching dimensions which can
 //! be safely canceled off.
 
-use super::unit::UnitWithPower;
+use super::unit_with_power::UnitWithPower;
 use super::composite::CompositeUnit;
 use crate::util::double_borrow_mut;
 

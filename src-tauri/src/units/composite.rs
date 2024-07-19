@@ -1,6 +1,7 @@
 
 use super::dimension::Dimension;
-use super::unit::{Unit, UnitWithPower};
+use super::unit::Unit;
+use super::unit_with_power::UnitWithPower;
 
 use itertools::Itertools;
 use num::One;
@@ -122,6 +123,18 @@ impl<T> CompositeUnit<T> {
       .map(UnitWithPower::dimension)
       .map(|dim| dim.min(&Dimension::one()))
       .fold(Dimension::one(), |acc, dim| acc * dim)
+  }
+}
+
+impl<T> From<Unit<T>> for CompositeUnit<T> {
+  fn from(unit: Unit<T>) -> Self {
+    CompositeUnit::new([UnitWithPower { unit, exponent: 1 }])
+  }
+}
+
+impl<T> From<UnitWithPower<T>> for CompositeUnit<T> {
+  fn from(unit: UnitWithPower<T>) -> Self {
+    CompositeUnit::new([unit])
   }
 }
 

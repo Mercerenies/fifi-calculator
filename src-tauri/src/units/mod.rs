@@ -10,9 +10,10 @@ pub mod tagged;
 
 mod composite;
 mod unit;
+mod unit_with_power;
 
-pub use unit::{Unit, UnitWithPower,
-               UnitCompositionError, UnitCompositionErrorReason};
+pub use unit::{Unit, UnitCompositionError, UnitCompositionErrorReason};
+pub use unit_with_power::UnitWithPower;
 pub use composite::CompositeUnit;
 
 /// Helper functions for creating test units.
