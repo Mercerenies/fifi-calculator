@@ -1,5 +1,5 @@
 
-use super::unit::Unit;
+use super::unit::{Unit, CompositeUnit};
 
 use num::pow::Pow;
 
@@ -20,11 +20,12 @@ impl MetricPrefix {
     }
   }
 
-  pub fn apply<T>(&self, unit: Unit<T>) -> Unit<<T as Mul>::Output>
-  where T: Pow<i32, Output = T> + From<i32> + Mul {
+  pub fn apply<T>(&self, unit: Unit<T>) -> Unit<T>
+  where T: Pow<i32, Output = T> + From<i32> + Mul<Output = T> {
     unit.augment(
       |name| format!("{}{}", self.prefix_name, name),
       |amount| amount * T::from(10).pow(self.exponent),
+      |composed| Some(composed),
     )
   }
 

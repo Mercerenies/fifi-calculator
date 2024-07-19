@@ -47,6 +47,14 @@ impl Dimension {
     &mut self.dims[base.dimension_index()]
   }
 
+  /// A simple dimension is one which can be represented as
+  /// `Dimension::from(x)` for some `x: BaseDimension`. That is, a
+  /// simple dimension has exactly one base dimension of power 1 and
+  /// all others have power zero.
+  pub fn is_simple(&self) -> bool {
+    self.abs().dims.into_iter().sum::<i64>() == 1
+  }
+
   pub fn components(&self) -> impl Iterator<Item = (BaseDimension, i64)> + '_ {
     BaseDimension::ALL.iter()
       .copied()
@@ -437,6 +445,24 @@ mod tests {
     assert!(Dimension { dims: [0, 0, 0, 0, 0, 2, 2] } >= Dimension { dims: [0, 0, 0, 0, 0, 1, 1] });
     assert!(!(Dimension { dims: [1, 0, 0, 0, 0, 0, 0] } <= Dimension { dims: [0, 1, 0, 0, 0, 0, 0] }));
     assert!(!(Dimension { dims: [1, 0, 0, 0, 0, 0, 0] } >= Dimension { dims: [0, 1, 0, 0, 0, 0, 0] }));
+  }
+
+  #[test]
+  fn test_is_simple() {
+    let dim = Dimension { dims: [0, 0, 1, 0, 0, 0, 0] };
+    assert!(dim.is_simple());
+    let dim = Dimension { dims: [0, 0, 0, 0, 0, 1, 0] };
+    assert!(dim.is_simple());
+    let dim = Dimension { dims: [0, 0, 0, 0, 0, 0, 0] };
+    assert!(!dim.is_simple());
+    let dim = Dimension { dims: [0, 0, 0, -1, 0, 0, 0] };
+    assert!(!dim.is_simple());
+    let dim = Dimension { dims: [0, 0, 0, 1, 0, 0, 1] };
+    assert!(!dim.is_simple());
+    let dim = Dimension { dims: [0, 0, 0, 2, 0, 0, 0] };
+    assert!(!dim.is_simple());
+    let dim = Dimension { dims: [1, 1, 1, 2, 1, 1, 1] };
+    assert!(!dim.is_simple());
   }
 
   #[test]

@@ -4,6 +4,7 @@ use super::dimension::Dimension;
 use itertools::Itertools;
 use num::One;
 use num::pow::Pow;
+use thiserror::Error;
 
 use std::fmt::{self, Formatter, Display};
 use std::ops::{Mul, Div};
@@ -26,6 +27,17 @@ pub struct Unit<T> {
   dimension: Dimension,
   /// The amount of the base unit that is equal to one of this unit.
   amount_of_base: T,
+  /// If present, this is a [`CompositeUnit`] made up ONLY of powers
+  /// of units which are simple (per [`Unit::is_simple`]) and which
+  /// has the same dimension as `self`. Simplifications can use this
+  /// to "break down" the unit.
+  ///
+  /// Note that this unit is sometimes equivalent to `composed_units`
+  /// (e.g. `mph` is equivalent to `mi / hr`), but this is not a
+  /// requirement. The only requirement is that `composed_units`
+  /// consist only of simple units and have the same dimension as
+  /// `self`. These preconditions are enforced by this API.
+  composed_units: Option<Box<CompositeUnit<T>>>,
 }
 
 /// A composite unit is a formal product and quotient of named units.
@@ -50,6 +62,25 @@ pub struct UnitWithPower<T> {
 #[derive(Debug)]
 struct UnitByName<T>(Unit<T>);
 
+/// Error type returned from [`Unit::with_composition`].
+#[derive(Debug, Clone, Error)]
+#[error("{reason}")]
+pub struct UnitCompositionError<T> {
+  pub original_unit: Unit<T>,
+  pub reason: UnitCompositionErrorReason,
+  _priv: (),
+}
+
+#[derive(Debug, Clone, Error)]
+#[non_exhaustive]
+pub enum UnitCompositionErrorReason {
+  #[error("Composition of unit must be made up of simple units")]
+  CompositionMustBeSimple,
+  #[error("Dimension of unit composition must match dimension of the original unit")]
+  DimensionMismatch,
+}
+
+
 impl<T> Unit<T> {
   /// Constructs a new unit, given the unit's name, dimension, and
   /// conversion factor to get to the base unit for the dimension.
@@ -58,11 +89,18 @@ impl<T> Unit<T> {
       name: name.into(),
       dimension: dimension.into(),
       amount_of_base,
+      composed_units: None,
     }
   }
 
   pub fn name(&self) -> &str {
     &self.name
+  }
+
+  /// A unit is considered simple if its dimension is simple. That is,
+  /// this method is equivalent to `self.dimension().is_simple()`.
+  pub fn is_simple(&self) -> bool {
+    self.dimension().is_simple()
   }
 
   pub fn dimension(&self) -> &Dimension {
@@ -87,18 +125,69 @@ impl<T> Unit<T> {
     amount / &self.amount_of_base
   }
 
-  /// Applies functions modifying the name and amount of this unit.
+  /// Applies functions modifying the name, amount, and composition of
+  /// this unit.
   ///
   /// This is most commonly used to generate derived units, such as
   /// creating "kilometers" from the definition of a "meter".
-  pub fn augment<F, G, U>(self, name_fn: F, amount_of_base_fn: G) -> Unit<U>
+  pub fn augment<F, G, H, U>(self, name_fn: F, amount_of_base_fn: G, composed_fn: H) -> Unit<U>
   where F: FnOnce(String) -> String,
-        G: FnOnce(T) -> U {
+        G: FnOnce(T) -> U,
+        H: FnOnce(CompositeUnit<T>) -> Option<CompositeUnit<U>> {
+    let composed_units = self.composed_units.and_then(|u| {
+      composed_fn(*u).map(Box::new)
+    });
     Unit {
       name: name_fn(self.name),
       dimension: self.dimension,
       amount_of_base: amount_of_base_fn(self.amount_of_base),
+      composed_units,
     }
+  }
+
+  /// Assigns composed units to this unit, builder-style. If this unit
+  /// already has information about composed units, that information
+  /// will be overwritten. Return the modified unit on success, or a
+  /// [`UnitCompositionError`] (containing the original unit) on
+  /// failure.
+  ///
+  /// The composed unit that makes up this unit must be made of a
+  /// product, quotient, and powers of simple units, and the dimension
+  /// must match the dimension of `self`.
+  pub fn try_with_composed(mut self, composed_units: CompositeUnit<T>) -> Result<Self, UnitCompositionError<T>> {
+    if self.dimension() != &composed_units.dimension() {
+      return Err(UnitCompositionError {
+        original_unit: self,
+        reason: UnitCompositionErrorReason::DimensionMismatch,
+        _priv: (),
+      });
+    }
+    for unit_with_power in composed_units.iter() {
+      if !unit_with_power.unit.is_simple() {
+        return Err(UnitCompositionError {
+          original_unit: self,
+          reason: UnitCompositionErrorReason::CompositionMustBeSimple,
+          _priv: (),
+        });
+      }
+    }
+    self.composed_units = Some(Box::new(composed_units));
+    Ok(self)
+  }
+
+  /// Assigns composed units to this unit, builder-style. Panics if
+  /// the composition is not valid. For a non-panicking variant, use
+  /// [`Unit::try_with_composed`].
+  pub fn with_composed(self, composed_units: CompositeUnit<T>) -> Self {
+    self.try_with_composed(composed_units).unwrap_or_else(|err| {
+      panic!("{err}");
+    })
+  }
+
+  /// Removes any composed unit information from `self`.
+  pub fn without_composed(mut self) -> Self {
+    self.composed_units = None;
+    self
   }
 }
 
