@@ -1,5 +1,5 @@
 
-use crate::units::unit::{Unit, UnitWithPower, CompositeUnit};
+use crate::units::{Unit, UnitWithPower, CompositeUnit};
 use crate::units::dimension::{BaseDimension, Dimension};
 
 use thiserror::Error;

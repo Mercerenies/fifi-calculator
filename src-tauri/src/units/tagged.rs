@@ -1,5 +1,5 @@
 
-use super::unit::CompositeUnit;
+use super::composite::CompositeUnit;
 use crate::util::prism::ErrorWithPayload;
 
 use thiserror::Error;
