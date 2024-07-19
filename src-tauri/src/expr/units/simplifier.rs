@@ -13,25 +13,25 @@ use num::One;
 /// Simplifier which cancels off compatible units in unit-like
 /// expressions.
 #[derive(Debug)]
-pub struct UnitSimplifier<'a, P: ?Sized> {
+pub struct UnitTermSimplifier<'a, P: ?Sized> {
   unit_parser: &'a P,
 }
 
-impl<'a, P> UnitSimplifier<'a, P>
+impl<'a, P> UnitTermSimplifier<'a, P>
 where P: UnitParser<Number> + ?Sized {
   pub fn new(unit_parser: &'a P) -> Self {
     Self { unit_parser }
   }
 }
 
-impl<'a, P> Clone for UnitSimplifier<'a, P>
+impl<'a, P> Clone for UnitTermSimplifier<'a, P>
 where P: ?Sized {
   fn clone(&self) -> Self {
     Self { unit_parser: self.unit_parser }
   }
 }
 
-impl<'a, P> Simplifier for UnitSimplifier<'a, P>
+impl<'a, P> Simplifier for UnitTermSimplifier<'a, P>
 where P: UnitParser<Number> + ?Sized {
   fn simplify_expr_part(&self, expr: Expr, _: &mut SimplifierContext) -> Expr {
     let tagged = parse_composite_unit_expr(self.unit_parser, expr);

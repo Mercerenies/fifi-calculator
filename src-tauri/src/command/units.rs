@@ -17,7 +17,7 @@ use crate::expr::simplifier::chained::ChainedSimplifier;
 use crate::expr::units::{parse_composite_unit_expr, try_parse_unit,
                          unit_into_term, tagged_into_expr,
                          UnitPrism, ParsedCompositeUnit,
-                         UnitSimplifier};
+                         UnitTermSimplifier};
 use crate::units::CompositeUnit;
 use crate::units::parsing::UnitParser;
 use crate::units::tagged::Tagged;
@@ -113,7 +113,7 @@ where P: UnitParser<Number> + ?Sized {
 fn unit_simplifier<'a>(ctx: &'a CommandContext) -> ChainedSimplifier<'a, 'a> {
   ChainedSimplifier::new(
     Box::new(ctx.simplifier.as_ref()),
-    Box::new(UnitSimplifier::new(ctx.units_parser)),
+    Box::new(UnitTermSimplifier::new(ctx.units_parser)),
   )
 }
 
