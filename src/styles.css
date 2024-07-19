@@ -132,6 +132,17 @@ input.prefix-arg-value {
 
 .input-box input {
     flex-grow: 3;
+    -moz-appearance: textfield;
+}
+
+.input-box input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.input-box input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .button-grid {
