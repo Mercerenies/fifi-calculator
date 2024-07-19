@@ -154,7 +154,7 @@ impl<T> PartialOrd for UnitByName<T> {
 
 impl<T> Ord for UnitByName<T> {
   fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-    self.0.name().cmp(&other.0.name())
+    self.0.name().cmp(other.0.name())
   }
 }
 

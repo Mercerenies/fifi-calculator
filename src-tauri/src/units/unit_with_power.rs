@@ -2,8 +2,6 @@
 use super::unit::Unit;
 use super::composite::CompositeUnit;
 use super::dimension::Dimension;
-
-use num::One;
 use num::pow::Pow;
 
 use std::fmt::{self, Formatter, Display};
@@ -101,7 +99,9 @@ impl<T> Pow<i64> for UnitWithPower<T> {
 mod tests {
   use super::*;
   use crate::units::dimension::BaseDimension;
-  use crate::units::test_utils::{meters, kilometers, seconds, minutes};
+  use crate::units::test_utils::{kilometers, seconds};
+
+  use num::One;
 
   #[test]
   fn test_unit_with_power_dimension() {
