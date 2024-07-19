@@ -35,7 +35,7 @@ where S: ScalarLike + 'static {
   use BaseDimension::*;
   let units = vec![
     // Length units
-    Unit::new("m", Length, fraction(1, 1)),
+    meters(),
     Unit::new("in", Length, fraction(254, 10_000)),
     Unit::new("ft", Length, fraction(3_048, 10_000)),
     Unit::new("yd", Length, fraction(9_144, 10_000)),
@@ -51,7 +51,7 @@ where S: ScalarLike + 'static {
     Unit::new("point", Length, fraction(254, 720_000)), // Point (Postscript convention)
     Unit::new("Ang", Length, fraction(1, 10_000_000_000)), // Angstrom
     // Time units
-    Unit::new("s", Time, fraction(1, 1)),
+    seconds(),
     Unit::new("sec", Time, fraction(1, 1)),
     Unit::new("min", Time, fraction(60, 1)),
     Unit::new("hr", Time, fraction(3600, 1)),
@@ -59,13 +59,13 @@ where S: ScalarLike + 'static {
     Unit::new("wk", Time, fraction(604800, 1)),
     Unit::new("yr", Time, fraction(31557600, 1)),
     // Mass units
-    Unit::new("g", Mass, fraction(1, 1)),
+    grams(),
     Unit::new("lb", Mass, fraction(45_359_237, 100_000)),
     Unit::new("oz", Mass, fraction(45_359_237, 1_600_000)),
     Unit::new("ton", Mass, fraction(45_359_237, 50)),
     Unit::new("t", Mass, fraction(1_000_000, 1)), // Metric ton (eqv. megagram)
     // Temperature units (relative)
-    Unit::new("K", Temperature, fraction(1, 1)),
+    kelvins(),
     Unit::new("degK", Temperature, fraction(1, 1)),
     Unit::new("dK", Temperature, fraction(1, 1)),
     Unit::new("dC", Temperature, fraction(1, 1)),
@@ -73,11 +73,11 @@ where S: ScalarLike + 'static {
     Unit::new("dF", Temperature, fraction(5, 9)),
     Unit::new("degF", Temperature, fraction(5, 9)),
     // Electrical current units
-    Unit::new("A", Current, fraction(1, 1)),
+    amperes(),
     // Luminous intensity units
-    Unit::new("cd", LuminousIntensity, fraction(1, 1)),
+    candela(),
     // Amount of substance units
-    Unit::new("mol", AmountOfSubstance, fraction(1, 1)),
+    moles(),
     // Angular units
     Unit::new("rad", Dimension::one(), fraction(1, 1)),
     Unit::new("deg", Dimension::one(), S::from(180.0 / PI)),
@@ -117,12 +117,40 @@ where S: ScalarLike + 'static {
 pub fn si_base_unit<S: One>(dimension: BaseDimension) -> Unit<S> {
   use BaseDimension::*;
   match dimension {
-    Length => Unit::new("m", Length, S::one()),
-    Time => Unit::new("s", Time, S::one()),
-    Mass => Unit::new("g", Mass, S::one()),
-    Temperature => Unit::new("K", Temperature, S::one()),
-    Current => Unit::new("A", Current, S::one()),
-    LuminousIntensity => Unit::new("cd", LuminousIntensity, S::one()),
-    AmountOfSubstance => Unit::new("mol", AmountOfSubstance, S::one()),
+    Length => meters(),
+    Time => seconds(),
+    Mass => grams(),
+    Temperature => kelvins(),
+    Current => amperes(),
+    LuminousIntensity => candela(),
+    AmountOfSubstance => moles(),
   }
+}
+
+fn meters<S: One>() -> Unit<S> {
+  Unit::new("m", BaseDimension::Length, S::one())
+}
+
+fn seconds<S: One>() -> Unit<S> {
+  Unit::new("s", BaseDimension::Time, S::one())
+}
+
+fn grams<S: One>() -> Unit<S> {
+  Unit::new("g", BaseDimension::Mass, S::one())
+}
+
+fn kelvins<S: One>() -> Unit<S> {
+  Unit::new("K", BaseDimension::Temperature, S::one())
+}
+
+fn amperes<S: One>() -> Unit<S> {
+  Unit::new("A", BaseDimension::Current, S::one())
+}
+
+fn candela<S: One>() -> Unit<S> {
+  Unit::new("cd", BaseDimension::LuminousIntensity, S::one())
+}
+
+fn moles<S: One>() -> Unit<S> {
+  Unit::new("mol", BaseDimension::AmountOfSubstance, S::one())
 }
