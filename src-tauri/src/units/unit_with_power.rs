@@ -57,6 +57,12 @@ impl<T> UnitWithPower<T> {
     }
     amount
   }
+
+  /// Turns `self` into a `CompositeUnit`, expanding compositions
+  /// within the [`Unit`] if there are any.
+  pub fn expand_compositions(self) -> CompositeUnit<T> {
+    self.unit.into_composed().pow(self.exponent)
+  }
 }
 
 impl<T> Display for UnitWithPower<T> {

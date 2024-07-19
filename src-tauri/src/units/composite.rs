@@ -124,6 +124,16 @@ impl<T> CompositeUnit<T> {
       .map(|dim| dim.min(&Dimension::one()))
       .fold(Dimension::one(), |acc, dim| acc * dim)
   }
+
+  /// Expands all units which are themselves compositions, forming a
+  /// new unit made up of the compositions. Any units which were not
+  /// compositions are unmodified.
+  pub fn expand_compositions(self) -> Self {
+    let elements = self.elements
+      .into_iter()
+      .flat_map(|unit_with_power| unit_with_power.expand_compositions().into_inner());
+    Self::new(elements)
+  }
 }
 
 impl<T> From<Unit<T>> for CompositeUnit<T> {

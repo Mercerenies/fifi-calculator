@@ -169,6 +169,22 @@ impl<T> Unit<T> {
     self.composed_units = None;
     self
   }
+
+  /// Returns the units that `self` is composed of. Gives back `self`
+  /// if there is no composition stored on this unit.
+  pub fn into_composed_err(self) -> Result<CompositeUnit<T>, Self> {
+    match self.composed_units {
+      None => Err(self),
+      Some(u) => Ok(*u),
+    }
+  }
+
+  /// Returns the units that `self` is composed of, or `self` as a
+  /// [`CompositeUnit`] if `self` is not a composition.
+  pub fn into_composed(self) -> CompositeUnit<T> {
+    self.into_composed_err()
+      .unwrap_or_else(CompositeUnit::from)
+  }
 }
 
 impl<T> Display for Unit<T> {

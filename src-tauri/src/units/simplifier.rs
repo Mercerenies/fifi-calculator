@@ -4,6 +4,7 @@
 
 use super::unit_with_power::UnitWithPower;
 use super::composite::CompositeUnit;
+use super::dimension::BaseDimension;
 use crate::util::double_borrow_mut;
 
 /// Returns a composite unit with the same dimension as the input but
@@ -46,6 +47,20 @@ fn reduce_compatible<T>(left: &mut UnitWithPower<T>, right: &mut UnitWithPower<T
   let d = i64::min(left.exponent.abs(), right.exponent.abs());
   left.exponent -= d * left.exponent.signum();
   right.exponent -= d * right.exponent.signum();
+}
+
+/// Returns true for a given unit if there is no dimension for which
+/// that unit contains terms in the numerator and denominator
+/// representing that dimension. That is, if the Nth dimension of the
+/// unit is positive, then it must only appear in the numerator, and
+/// if the Nth dimension is negative, then it must only appear in the
+/// denominator.
+pub fn is_minimal<T>(unit: &CompositeUnit<T>) -> bool {
+  let pos_dim = unit.pos_dimension();
+  let neg_dim = unit.neg_dimension();
+  BaseDimension::ALL.iter().all(|base_dim| {
+    pos_dim.get(*base_dim) == 0 || neg_dim.get(*base_dim) == 0
+  })
 }
 
 #[cfg(test)]

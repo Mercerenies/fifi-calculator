@@ -1,8 +1,9 @@
 
 use crate::expr::simplifier::{Simplifier, SimplifierContext};
 use crate::expr::Expr;
+use crate::units::CompositeUnit;
 use crate::units::parsing::UnitParser;
-use crate::units::simplifier::simplify_compatible_units;
+use crate::units::simplifier::{simplify_compatible_units, is_minimal};
 use crate::expr::number::Number;
 use super::parser::parse_composite_unit_expr;
 use super::output::tagged_into_expr_lossy;
@@ -33,13 +34,12 @@ where P: ?Sized {
 impl<'a, P> Simplifier for UnitSimplifier<'a, P>
 where P: UnitParser<Number> + ?Sized {
   fn simplify_expr_part(&self, expr: Expr, _: &mut SimplifierContext) -> Expr {
-    dbg!(expr.to_string());
     let tagged = parse_composite_unit_expr(self.unit_parser, expr);
     if tagged.unit.is_one() {
       // No units, so nothing to simplify
       return tagged_into_expr_lossy(tagged);
     }
-    let simplified_unit = simplify_compatible_units(tagged.unit.clone());
+    let simplified_unit = run_simplifications(tagged.unit.clone());
     // convert_or_panic: simplify_compatible_unit always retains the
     // dimension of its input.
     let tagged =
@@ -52,4 +52,17 @@ where P: UnitParser<Number> + ?Sized {
       };
     tagged_into_expr_lossy(tagged)
   }
+}
+
+fn run_simplifications(unit: CompositeUnit<Number>) -> CompositeUnit<Number> {
+  // First, try simplifying units as-is (a simpler operation that is
+  // also less destructive). If, after trying that, there are still
+  // non-trivial dimensions in both the numerator and denominator,
+  // then break apart composite units and try again.
+  let unit = simplify_compatible_units(unit);
+  if is_minimal(&unit) {
+    return unit;
+  }
+  let unit = unit.expand_compositions();
+  simplify_compatible_units(unit)
 }
