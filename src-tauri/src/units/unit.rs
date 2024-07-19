@@ -337,6 +337,12 @@ impl<T> From<Unit<T>> for CompositeUnit<T> {
   }
 }
 
+impl<T> From<UnitWithPower<T>> for CompositeUnit<T> {
+  fn from(unit: UnitWithPower<T>) -> Self {
+    CompositeUnit::new([unit])
+  }
+}
+
 impl<T> Display for Unit<T> {
   fn fmt(&self, f: &mut Formatter) -> fmt::Result {
     write!(f, "{}", self.name)
@@ -392,6 +398,14 @@ impl<T> Hash for UnitByName<T> {
   }
 }
 
+impl<T> Pow<i64> for UnitWithPower<T> {
+  type Output = UnitWithPower<T>;
+
+  fn pow(self, rhs: i64) -> Self::Output {
+    UnitWithPower { unit: self.unit, exponent: self.exponent * rhs }
+  }
+}
+
 impl<T> Mul for CompositeUnit<T> {
   type Output = CompositeUnit<T>;
 
@@ -408,6 +422,14 @@ impl<T> Div for CompositeUnit<T> {
   #[allow(clippy::suspicious_arithmetic_impl)] // Multiply by reciprocal is correct
   fn div(self, rhs: Self) -> Self::Output {
     self * rhs.recip()
+  }
+}
+
+impl<T> Pow<i64> for CompositeUnit<T> {
+  type Output = CompositeUnit<T>;
+
+  fn pow(self, rhs: i64) -> Self::Output {
+    Self::new(self.elements.into_iter().map(|u| u.pow(rhs)))
   }
 }
 
