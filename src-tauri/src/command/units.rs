@@ -18,8 +18,8 @@ use crate::expr::units::{parse_composite_unit_expr, try_parse_unit,
                          unit_into_term, tagged_into_expr,
                          UnitPrism, ParsedCompositeUnit,
                          UnitSimplifier};
+use crate::units::CompositeUnit;
 use crate::units::parsing::UnitParser;
-use crate::units::unit::CompositeUnit;
 use crate::units::tagged::Tagged;
 use crate::units::dimension::Dimension;
 

@@ -3,7 +3,7 @@ use crate::expr::Expr;
 use crate::expr::var::Var;
 use crate::expr::algebra::term::Term;
 use crate::expr::prisms;
-use crate::units::unit::{UnitWithPower, CompositeUnit};
+use crate::units::{UnitWithPower, CompositeUnit};
 use crate::units::parsing::UnitParser;
 use crate::units::tagged::Tagged;
 use crate::util::partition_mapped;
@@ -86,7 +86,7 @@ impl Prism<Expr, (Var, i64)> for PowerExprPrism {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::units::unit::Unit;
+  use crate::units::Unit;
   use crate::expr::number::Number;
   use crate::units::dimension::BaseDimension;
   use crate::units::parsing::TableBasedParser;

@@ -9,7 +9,7 @@ use crate::expr::number::Number;
 use crate::expr::units::parse_composite_unit_expr;
 use crate::expr::algebra::term::Term;
 use crate::units::parsing::UnitParser;
-use crate::units::unit::CompositeUnit;
+use crate::units::CompositeUnit;
 use crate::units::tagged::Tagged;
 use crate::display::language::LanguageMode;
 

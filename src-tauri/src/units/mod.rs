@@ -7,4 +7,7 @@ pub mod parsing;
 pub mod prefix;
 pub mod simplifier;
 pub mod tagged;
-pub mod unit;
+mod unit;
+
+pub use unit::{Unit, UnitWithPower, CompositeUnit,
+               UnitCompositionError, UnitCompositionErrorReason};

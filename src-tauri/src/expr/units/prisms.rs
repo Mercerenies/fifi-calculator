@@ -1,6 +1,6 @@
 
 use crate::util::prism::Prism;
-use crate::units::unit::CompositeUnit;
+use crate::units::CompositeUnit;
 use crate::units::parsing::UnitParser;
 use crate::display::language::LanguageMode;
 use super::parser::parse_composite_unit_expr;

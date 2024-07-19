@@ -2,7 +2,7 @@
 use crate::expr::Expr;
 use crate::expr::algebra::term::Term;
 use crate::units::tagged::Tagged;
-use crate::units::unit::{Unit, CompositeUnit};
+use crate::units::{Unit, CompositeUnit};
 
 use thiserror::Error;
 
@@ -91,7 +91,7 @@ fn parse_var<S>(unit: &Unit<S>) -> Result<Expr, UnitIntoTermError> {
 mod tests {
   use super::*;
   use crate::units::dimension::BaseDimension;
-  use crate::units::unit::UnitWithPower;
+  use crate::units::UnitWithPower;
 
   fn var(x: &str) -> Expr {
     Expr::var(x).unwrap()
