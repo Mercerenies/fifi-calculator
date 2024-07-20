@@ -2,6 +2,7 @@
 use crate::util::prism::Prism;
 use crate::units::CompositeUnit;
 use crate::units::parsing::UnitParser;
+use crate::expr::algebra::term::TermParser;
 use crate::display::language::LanguageMode;
 use super::parser::parse_composite_unit_expr;
 
@@ -17,7 +18,8 @@ pub struct ParsedCompositeUnit<T> {
 
 #[derive(Debug)]
 pub struct UnitPrism<P, L, T> {
-  parser: P,
+  term_parser: TermParser,
+  unit_parser: P,
   language_mode: L,
   _phantom: PhantomData<fn() -> T>,
 }
@@ -25,9 +27,10 @@ pub struct UnitPrism<P, L, T> {
 impl<P, L, T> UnitPrism<P, L, T>
 where P: UnitParser<T>,
       L: LanguageMode {
-  pub fn new(parser: P, language_mode: L) -> Self {
+  pub fn new(term_parser: TermParser, unit_parser: P, language_mode: L) -> Self {
     Self {
-      parser,
+      term_parser,
+      unit_parser,
       language_mode,
       _phantom: PhantomData,
     }
@@ -39,7 +42,8 @@ where P: UnitParser<T> + Clone,
       L: LanguageMode + Clone {
   fn clone(&self) -> Self {
     Self {
-      parser: self.parser.clone(),
+      term_parser: self.term_parser.clone(),
+      unit_parser: self.unit_parser.clone(),
       language_mode: self.language_mode.clone(),
       _phantom: PhantomData,
     }
@@ -53,7 +57,7 @@ where P: UnitParser<T>,
     let Ok(expr) = self.language_mode.parse(&input) else {
       return Err(input);
     };
-    let tagged_expr = parse_composite_unit_expr(&self.parser, expr);
+    let tagged_expr = parse_composite_unit_expr(&self.unit_parser, &self.term_parser, expr);
     if tagged_expr.value.is_one() {
       Ok(ParsedCompositeUnit {
         unit: tagged_expr.unit,

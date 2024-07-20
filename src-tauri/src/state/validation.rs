@@ -7,7 +7,7 @@ use anyhow::Context;
 use crate::expr::var::Var;
 use crate::expr::number::Number;
 use crate::expr::units::parse_composite_unit_expr;
-use crate::expr::algebra::term::Term;
+use crate::expr::algebra::term::{Term, TermParser};
 use crate::units::parsing::UnitParser;
 use crate::units::CompositeUnit;
 use crate::units::tagged::Tagged;
@@ -38,9 +38,10 @@ pub enum Validator {
 }
 
 #[derive(Clone)]
-pub struct ValidationContext<'a, 'b> {
+pub struct ValidationContext<'a, 'b, 'c> {
   pub units_parser: &'a dyn UnitParser<Number>,
-  pub language_mode: &'b dyn LanguageMode,
+  pub term_parser: &'b TermParser,
+  pub language_mode: &'c dyn LanguageMode,
 }
 
 pub fn validate(validator: Validator, context: &ValidationContext, payload: String) -> anyhow::Result<()> {
@@ -63,7 +64,7 @@ pub fn validate_is_all_units(
   expr: &str,
 ) -> Result<CompositeUnit<Number>, anyhow::Error> {
   let expr = context.language_mode.parse(expr)?;
-  let tagged_expr = parse_composite_unit_expr(context.units_parser, expr);
+  let tagged_expr = parse_composite_unit_expr(context.units_parser, context.term_parser, expr);
   anyhow::ensure!(tagged_expr.value.is_one(), "Could not parse {} as a unit", tagged_expr.value);
   Ok(tagged_expr.unit)
 }
@@ -75,7 +76,7 @@ pub fn validate_has_some_units(
   expr: &str,
 ) -> Result<Tagged<Term, Number>, anyhow::Error> {
   let expr = context.language_mode.parse(expr)?;
-  let tagged_expr = parse_composite_unit_expr(context.units_parser, expr);
+  let tagged_expr = parse_composite_unit_expr(context.units_parser, context.term_parser, expr);
   anyhow::ensure!(!tagged_expr.unit.is_empty(), "There are no units in the expression {}", tagged_expr.value);
   Ok(tagged_expr)
 }
@@ -104,9 +105,11 @@ mod tests {
   #[test]
   fn test_validate_is_all_units() {
     let units_parser = default_parser();
+    let term_parser = TermParser::new();
     let language_mode = BasicLanguageMode::from_common_operators();
     let context = ValidationContext {
       units_parser: &units_parser,
+      term_parser: &term_parser,
       language_mode: &language_mode,
     };
 
@@ -148,9 +151,11 @@ mod tests {
   #[test]
   fn test_validate_has_some_units() {
     let units_parser = default_parser();
+    let term_parser = TermParser::new();
     let language_mode = BasicLanguageMode::from_common_operators();
     let context = ValidationContext {
       units_parser: &units_parser,
+      term_parser: &term_parser,
       language_mode: &language_mode,
     };
 

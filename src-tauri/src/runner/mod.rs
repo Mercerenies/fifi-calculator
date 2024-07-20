@@ -128,9 +128,11 @@ fn validate_value(
 ) -> Result<bool, tauri::Error> {
   let state = app_state.state.lock().expect("poisoned mutex");
   let language_mode = state.display_settings().language_mode();
+  let term_parser = state.term_parser();
   let validation_context = ValidationContext {
     units_parser: app_state.units_parser.as_ref(),
     language_mode: language_mode.as_ref(),
+    term_parser: &term_parser,
   };
   tauri_command::validate_value(&validation_context, &app_handle, value.to_owned(), validator)
 }
@@ -142,8 +144,10 @@ fn query_stack(
   query: Query,
 ) -> Result<bool, tauri::Error> {
   let state = app_state.state.lock().expect("poisoned mutex");
+  let term_parser = state.term_parser();
   let query_context = QueryContext {
     units_parser: app_state.units_parser.as_ref(),
+    term_parser: &term_parser,
   };
   tauri_command::query_stack(&query_context, &app_handle, &state, &query)
 }

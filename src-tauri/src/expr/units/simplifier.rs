@@ -1,6 +1,7 @@
 
 use crate::expr::simplifier::{Simplifier, SimplifierContext};
 use crate::expr::Expr;
+use crate::expr::algebra::term::TermParser;
 use crate::units::CompositeUnit;
 use crate::units::parsing::UnitParser;
 use crate::units::simplifier::{simplify_compatible_units, is_minimal};
@@ -13,28 +14,29 @@ use num::One;
 /// Simplifier which cancels off compatible units in unit-like
 /// expressions.
 #[derive(Debug)]
-pub struct UnitTermSimplifier<'a, P: ?Sized> {
-  unit_parser: &'a P,
+pub struct UnitTermSimplifier<'a, 'b, P: ?Sized> {
+  term_parser: &'a TermParser,
+  unit_parser: &'b P,
 }
 
-impl<'a, P> UnitTermSimplifier<'a, P>
+impl<'a, 'b, P> UnitTermSimplifier<'a, 'b, P>
 where P: UnitParser<Number> + ?Sized {
-  pub fn new(unit_parser: &'a P) -> Self {
-    Self { unit_parser }
+  pub fn new(term_parser: &'a TermParser, unit_parser: &'b P) -> Self {
+    Self { term_parser, unit_parser }
   }
 }
 
-impl<'a, P> Clone for UnitTermSimplifier<'a, P>
+impl<'a, 'b, P> Clone for UnitTermSimplifier<'a, 'b, P>
 where P: ?Sized {
   fn clone(&self) -> Self {
-    Self { unit_parser: self.unit_parser }
+    Self { term_parser: self.term_parser, unit_parser: self.unit_parser }
   }
 }
 
-impl<'a, P> Simplifier for UnitTermSimplifier<'a, P>
+impl<'a, 'b, P> Simplifier for UnitTermSimplifier<'a, 'b, P>
 where P: UnitParser<Number> + ?Sized {
   fn simplify_expr_part(&self, expr: Expr, _: &mut SimplifierContext) -> Expr {
-    let tagged = parse_composite_unit_expr(self.unit_parser, expr);
+    let tagged = parse_composite_unit_expr(self.unit_parser, self.term_parser, expr);
     if tagged.unit.is_one() {
       // No units, so nothing to simplify
       return tagged_into_expr_lossy(tagged);

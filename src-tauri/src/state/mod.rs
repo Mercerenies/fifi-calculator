@@ -17,6 +17,7 @@ use crate::expr::function::library::build_function_table;
 use crate::expr::var::table::VarTable;
 use crate::expr::var::constants::bind_constants;
 use crate::expr::number::Number;
+use crate::expr::algebra::term::TermParser;
 use crate::command::default_dispatch_table;
 use crate::command::dispatch::CommandDispatchTable;
 use crate::display::DisplaySettings;
@@ -75,6 +76,12 @@ impl TauriApplicationState {
 impl ApplicationState {
   pub fn new() -> Self {
     Self::default()
+  }
+
+  pub fn term_parser(&self) -> TermParser {
+    // Note: Later, we will take the scalar mode into account when
+    // constructing this value.
+    TermParser::new()
   }
 
   pub fn send_refresh_stack_event(

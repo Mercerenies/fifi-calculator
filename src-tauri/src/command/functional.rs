@@ -91,6 +91,11 @@ impl UnaryFunctionCommand {
     UnaryFunctionCommand { function: Box::new(move |arg, _, ctx, err| function(arg, ctx, err)) }
   }
 
+  pub fn with_all<F>(function: F) -> UnaryFunctionCommand
+  where F: Fn(Expr, &ApplicationState, &CommandContext, &mut ErrorList<SimplifierError>) -> Expr + Send + Sync + 'static {
+    UnaryFunctionCommand { function: Box::new(function) }
+  }
+
   pub fn named(function_name: impl Into<String>) -> UnaryFunctionCommand {
     let function_name = function_name.into();
     UnaryFunctionCommand::new(move |arg| {
