@@ -18,10 +18,12 @@ pub struct TermParser {
 }
 
 impl TermParser {
+  #[allow(clippy::new_without_default)] // This will soon take parameters
   pub const fn new() -> Self {
     Self { _priv: () }
   }
 
+  #[allow(clippy::only_used_in_recursion)] // This struct will be nontrivial soon
   pub fn parse(&self, expr: Expr) -> Term {
     match expr {
       Expr::Call(function_name, args) => {
