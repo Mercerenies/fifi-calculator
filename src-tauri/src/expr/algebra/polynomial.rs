@@ -5,7 +5,7 @@ use crate::expr::Expr;
 use num::Zero;
 
 use std::fmt::{self, Formatter, Display};
-use std::ops::{Add, Sub, AddAssign, SubAssign, Mul};
+use std::ops::{Add, Sub, AddAssign, SubAssign, Neg, Mul};
 
 /// A polynomial is a sum of several signed terms.
 #[derive(Debug, Clone, PartialEq)]
@@ -41,6 +41,10 @@ pub fn parse_polynomial(term_parser: &TermParser, expr: Expr) -> Polynomial {
           let left = parse_polynomial(term_parser, left);
           let right = parse_polynomial(term_parser, right);
           left - right
+        }
+        "negate" if args.len() == 1 => {
+          let [arg] = args.try_into().unwrap();
+          - parse_polynomial(term_parser, arg)
         }
         _ => {
           // Unknown function application, parse as Term
@@ -113,6 +117,15 @@ impl Mul<Sign> for Polynomial {
   }
 }
 
+impl Neg for Polynomial {
+  type Output = Polynomial;
+
+  fn neg(mut self) -> Self::Output {
+    self.terms = self.terms.into_iter().map(|t| -t).collect();
+    self
+  }
+}
+
 impl AddAssign for Polynomial {
   fn add_assign(&mut self, rhs: Self) {
     self.terms.extend(rhs.terms.into_iter());
@@ -165,6 +178,18 @@ mod tests {
       parse_polynomial(&term_parser, expr),
       Polynomial { terms: vec![
         SignedTerm::new(Sign::Positive, term_parser.from_parts([Expr::from(99)], [])),
+      ] },
+    );
+  }
+
+  #[test]
+  fn test_negation_parse() {
+    let term_parser = TermParser::new();
+    let expr = Expr::call("negate", vec![Expr::from(99)]);
+    assert_eq!(
+      parse_polynomial(&term_parser, expr),
+      Polynomial { terms: vec![
+        SignedTerm::new(Sign::Negative, term_parser.from_parts([Expr::from(99)], [])),
       ] },
     );
   }
