@@ -3,6 +3,7 @@
 
 pub mod formula;
 pub mod newton;
+pub mod polynomial;
 pub mod term;
 
 use crate::errorlist::ErrorList;

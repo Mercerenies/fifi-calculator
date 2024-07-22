@@ -1,8 +1,9 @@
 
 use super::base::Term;
+use crate::expr::Expr;
 
 use std::fmt::{self, Formatter, Display};
-use std::ops::{Mul, Div};
+use std::ops::{Mul, Div, Neg};
 
 /// A `SignedTerm` is a [`Term`] together with a [`Sign`].
 #[derive(Debug, Clone, PartialEq)]
@@ -22,10 +23,19 @@ impl SignedTerm {
     Self { sign, term }
   }
 
-  pub fn recip(mut self) -> Self {
+  pub fn recip(self) -> Self {
     Self {
       sign: self.sign,
       term: self.term.recip(),
+    }
+  }
+}
+
+impl Sign {
+  pub fn other(self) -> Self {
+    match self {
+      Self::Negative => Self::Positive,
+      Self::Positive => Self::Negative,
     }
   }
 }
@@ -75,6 +85,35 @@ impl Div for SignedTerm {
     Self {
       sign: self.sign * other.sign,
       term: self.term / other.term,
+    }
+  }
+}
+
+impl From<SignedTerm> for Expr {
+  fn from(signed_term: SignedTerm) -> Self {
+    let expr = Expr::from(signed_term.term);
+    match signed_term.sign {
+      Sign::Negative => Expr::call("negate", vec![expr]),
+      Sign::Positive => expr,
+    }
+  }
+}
+
+impl Neg for Sign {
+  type Output = Self;
+
+  fn neg(self) -> Self::Output {
+    self.other()
+  }
+}
+
+impl Neg for SignedTerm {
+  type Output = Self;
+
+  fn neg(self) -> Self::Output {
+    Self {
+      sign: self.sign.other(),
+      term: self.term,
     }
   }
 }
