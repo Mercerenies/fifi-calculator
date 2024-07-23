@@ -20,8 +20,9 @@ use crate::expr::units::{parse_composite_unit_expr, try_parse_unit,
                          UnitTermSimplifier, UnitPolynomialSimplifier};
 use crate::units::CompositeUnit;
 use crate::units::parsing::UnitParser;
-use crate::units::tagged::Tagged;
+use crate::units::tagged::{Tagged, TemperatureTagged, try_into_basic_temperature_unit};
 use crate::units::dimension::Dimension;
+use crate::util::prism::ErrorWithPayload;
 
 use anyhow::Context;
 
@@ -66,6 +67,22 @@ pub struct ContextualConvertUnitsCommand {
   _priv: (),
 }
 
+/// As [`ConvertUnitsCommand`] but for conversion of absolute
+/// temperature values. This conversion only works for one-dimensional
+/// temperature units.
+#[derive(Debug, Clone, Default)]
+pub struct ConvertTemperatureCommand {
+  _priv: (),
+}
+
+/// As [`ContextualConvertUnitsCommand`] but for conversion of
+/// absolute temperature values. This conversion only works for
+/// one-dimensional temperature units.
+#[derive(Debug, Clone, Default)]
+pub struct ContextualConvertTemperatureCommand {
+  _priv: (),
+}
+
 impl ConvertUnitsCommand {
   pub fn new() -> Self {
     Self { _priv: () }
@@ -86,6 +103,41 @@ impl ConvertUnitsCommand {
 }
 
 impl ContextualConvertUnitsCommand {
+  pub fn new() -> Self {
+    Self { _priv: () }
+  }
+
+  fn argument_schema<'p, 'm>(
+    state: &'m ApplicationState,
+    context: &CommandContext<'_, 'p>,
+  ) -> UnaryArgumentSchema<ConcreteUnitPrism<'p, 'm>, ParsedCompositeUnit<Number>> {
+    UnaryArgumentSchema::new(
+      "valid unit expression".to_owned(),
+      UnitPrism::new(state.term_parser(), context.units_parser, state.display_settings().language_mode()),
+    )
+  }
+}
+
+impl ConvertTemperatureCommand {
+  pub fn new() -> Self {
+    Self { _priv: () }
+  }
+
+  fn argument_schema<'p, 'm>(
+    state: &'m ApplicationState,
+    context: &CommandContext<'_, 'p>,
+  ) -> BinaryArgumentSchema<ConcreteUnitPrism<'p, 'm>, ParsedCompositeUnit<Number>, ConcreteUnitPrism<'p, 'm>, ParsedCompositeUnit<Number>> {
+    let term_parser = state.term_parser();
+    BinaryArgumentSchema::new(
+      "valid unit expression".to_owned(),
+      UnitPrism::new(term_parser.clone(), context.units_parser, state.display_settings().language_mode()),
+      "valid unit expression".to_owned(),
+      UnitPrism::new(term_parser, context.units_parser, state.display_settings().language_mode()),
+    )
+  }
+}
+
+impl ContextualConvertTemperatureCommand {
   pub fn new() -> Self {
     Self { _priv: () }
   }
@@ -224,6 +276,72 @@ impl Command for ContextualConvertUnitsCommand {
     // line up, using the remainder unit.
     let tagged_term = tagged_term.convert_or_panic(target_unit * remainder_unit);
     let expr = tagged_into_expr_lossy(tagged_term);
+
+    let mut errors = ErrorList::new();
+    stack.push(ctx.simplify_expr(expr, &mut errors));
+    Ok(CommandOutput::from_errors(errors))
+  }
+}
+
+impl Command for ConvertTemperatureCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    ctx: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    let (source_unit, target_unit) = validate_schema(&Self::argument_schema(state, ctx), args)?;
+    let source_unit = try_into_basic_temperature_unit(CompositeUnit::from(source_unit))?;
+    let target_unit = try_into_basic_temperature_unit(CompositeUnit::from(target_unit))?;
+    let term_parser = state.term_parser();
+
+    state.undo_stack_mut().push_cut();
+    let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
+    let term = term_parser.parse(stack.pop()?);
+    let term = TemperatureTagged::new(term, source_unit);
+
+    // convert safety: We already checked that everything was a basic
+    // temperature unit.
+    let term = term.convert(target_unit);
+    let expr = Expr::from(term.into_value());
+
+    let mut errors = ErrorList::new();
+    stack.push(ctx.simplify_expr(expr, &mut errors));
+    Ok(CommandOutput::from_errors(errors))
+  }
+}
+
+impl Command for ContextualConvertTemperatureCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    ctx: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    let term_parser = state.term_parser();
+    let target_unit = validate_schema(&Self::argument_schema(state, ctx), args)?;
+    let target_unit = try_into_basic_temperature_unit(CompositeUnit::from(target_unit))?;
+
+    state.undo_stack_mut().push_cut();
+    let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
+    let tagged_term = parse_composite_unit_expr(ctx.units_parser, &term_parser, stack.pop()?);
+
+    let temperature_term = match TemperatureTagged::try_from(tagged_term) {
+      Ok(temperature_term) => temperature_term,
+      Err(err) => {
+        // Recover the stack, then bail.
+        let tagged_term = err.clone().recover_payload();
+        if !ctx.opts.keep_modifier {
+          stack.push(tagged_into_expr_lossy(tagged_term));
+        }
+        anyhow::bail!(err);
+      }
+    };
+
+    // convert safety: We already checked that we're working
+    // exclusively with temperature units. using the remainder unit.
+    let temperature_term = temperature_term.convert(target_unit);
+    let expr = tagged_into_expr_lossy(temperature_term.into());
 
     let mut errors = ErrorList::new();
     stack.push(ctx.simplify_expr(expr, &mut errors));

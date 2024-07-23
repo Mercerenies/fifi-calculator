@@ -4,11 +4,12 @@ use crate::units::dimension::{Dimension, BaseDimension};
 use crate::units::unit::Unit;
 use crate::units::composite::CompositeUnit;
 use crate::units::convertible::TemperatureConvertible;
+use crate::util::prism::ErrorWithPayload;
 
 use thiserror::Error;
 
 use std::convert::TryFrom;
-use std::fmt::{self, Formatter, Display};
+use std::fmt::{self, Formatter, Debug, Display};
 
 /// A [`Tagged`] value whose unit is a one-dimensional temperature
 /// unit.
@@ -143,6 +144,15 @@ impl<S, U> TryFrom<Tagged<S, U>> for TemperatureTagged<S, U> {
 impl<S: Display, U> Display for TemperatureTagged<S, U> {
   fn fmt(&self, f: &mut Formatter) -> fmt::Result {
     write!(f, "{} {}", self.value, self.unit)
+  }
+}
+
+impl<S: Debug + 'static, U: Debug + 'static> ErrorWithPayload<Tagged<S, U>> for TryFromTaggedError<S, U> {
+  fn recover_payload(self) -> Tagged<S, U> {
+    match self {
+      TryFromTaggedError::DimensionMismatch(err) => Tagged::new(err.value, err.unit.into()),
+      TryFromTaggedError::ExpectedSingleUnit(tagged) => tagged,
+    }
   }
 }
 

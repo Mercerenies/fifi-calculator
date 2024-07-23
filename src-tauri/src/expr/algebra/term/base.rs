@@ -1,6 +1,7 @@
 
 use crate::expr::Expr;
 use crate::expr::number::Number;
+use crate::units::convertible::TemperatureConvertible;
 use super::parser::TermParser;
 
 use num::One;
@@ -215,6 +216,24 @@ impl One for Term {
 
   fn is_one(&self) -> bool {
     self.numerator().is_empty() && self.denominator().is_empty()
+  }
+}
+
+impl TemperatureConvertible<Number> for Term {
+  type Output = Expr;
+
+  fn offset(self, offset: Option<&Number>) -> Expr {
+    match offset {
+      None => Expr::from(self),
+      Some(number) => Expr::call("+", vec![self.into(), Expr::from(number.clone())]),
+    }
+  }
+
+  fn unoffset(input: Expr, offset: Option<&Number>) -> Term {
+    match offset {
+      None => Term::singleton(input),
+      Some(number) => Term::singleton(Expr::call("-", vec![input, Expr::from(number.clone())])),
+    }
   }
 }
 
