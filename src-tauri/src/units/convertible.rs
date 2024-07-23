@@ -32,3 +32,15 @@ pub trait TemperatureConvertible<U>: UnitConvertible<U> {
   /// quantity in spirit.
   fn unoffset(input: <Self as TemperatureConvertible<U>>::Output, offset: Option<&U>) -> Self;
 }
+
+impl TemperatureConvertible<f64> for f64 {
+  type Output = f64;
+
+  fn offset(self, offset: Option<&f64>) -> f64 {
+    self + offset.unwrap_or(&0.0)
+  }
+
+  fn unoffset(input: f64, offset: Option<&f64>) -> f64 {
+    input - offset.unwrap_or(&0.0)
+  }
+}

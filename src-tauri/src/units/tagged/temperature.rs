@@ -55,6 +55,14 @@ impl<S, U> TemperatureTagged<S, U> {
       panic!("Expected temperature unit");
     })
   }
+
+  pub fn into_value(self) -> S {
+    self.value
+  }
+
+  pub fn into_unit(self) -> Unit<U> {
+    self.unit
+  }
 }
 
 impl<S, U> TemperatureTagged<S, U>
@@ -115,5 +123,86 @@ impl<S, U> TryFrom<Tagged<S, U>> for TemperatureTagged<S, U> {
 impl<S: Display, U> Display for TemperatureTagged<S, U> {
   fn fmt(&self, f: &mut Formatter) -> fmt::Result {
     write!(f, "{} {}", self.value, self.unit)
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  use approx::assert_abs_diff_eq;
+
+  fn kelvins() -> Unit<f64> {
+    Unit::new("K", BaseDimension::Temperature, 1.0)
+      .with_temperature_offset(0.0)
+  }
+
+  fn celsius() -> Unit<f64> {
+    Unit::new("degC", BaseDimension::Temperature, 1.0)
+      .with_temperature_offset(273.15)
+  }
+
+  fn fahrenheit() -> Unit<f64> {
+    Unit::new("degF", BaseDimension::Temperature, 5.0 / 9.0)
+      .with_temperature_offset(255.3722)
+  }
+
+  fn meters() -> Unit<f64> {
+    // Note: Not a temperature unit.
+    Unit::new("m", BaseDimension::Length, 1.0)
+  }
+
+  #[test]
+  fn test_try_new() {
+    TemperatureTagged::try_new(0.0, kelvins()).unwrap();
+    TemperatureTagged::try_new(0.0, fahrenheit()).unwrap();
+    TemperatureTagged::try_new(0.0, meters()).unwrap_err();
+  }
+
+  #[test]
+  fn test_new_or_panic() {
+    TemperatureTagged::new(0.0, kelvins());
+    TemperatureTagged::new(0.0, fahrenheit());
+  }
+
+  #[test]
+  #[should_panic]
+  fn test_new_or_panic_on_invalid_unit() {
+    TemperatureTagged::new(0.0, meters());
+  }
+
+  #[test]
+  fn test_convert_kelvins_celsius() {
+    let kelvins = TemperatureTagged::new(0.0, kelvins());
+    let celsius = kelvins.convert(celsius());
+    assert_eq!(celsius.into_value(), -273.15);
+  }
+
+  #[test]
+  fn test_convert_celsius_kelvins() {
+    let celsius = TemperatureTagged::new(0.0, celsius());
+    let kelvins = celsius.convert(kelvins());
+    assert_eq!(kelvins.into_value(), 273.15);
+  }
+
+  #[test]
+  fn test_convert_celsius_fahrenheit() {
+    let celsius = TemperatureTagged::new(0.0, celsius());
+    let fahrenheit = celsius.convert(fahrenheit());
+    assert_abs_diff_eq!(fahrenheit.into_value(), 32.0, epsilon = 0.001);
+  }
+
+  #[test]
+  fn test_convert_fahrenheit_celsius() {
+    let fahrenheit = TemperatureTagged::new(212.0, fahrenheit());
+    let celsius = fahrenheit.convert(celsius());
+    assert_abs_diff_eq!(celsius.into_value(), 100.0, epsilon = 0.001);
+  }
+
+  #[test]
+  #[should_panic]
+  fn test_convert_invalid() {
+    let fahrenheit = TemperatureTagged::new(212.0, fahrenheit());
+    fahrenheit.convert(meters());
   }
 }
