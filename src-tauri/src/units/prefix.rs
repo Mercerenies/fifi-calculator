@@ -27,6 +27,7 @@ impl MetricPrefix {
       |name| format!("{}{}", self.prefix_name, name),
       |amount| amount * T::from(10).pow(self.exponent),
       |composed| Some(composed),
+      |temperature_offset| temperature_offset,
     )
   }
 

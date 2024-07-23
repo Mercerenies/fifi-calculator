@@ -36,6 +36,13 @@ pub struct Unit<T> {
   /// consist only of simple units and have the same dimension as
   /// `self`. These preconditions are enforced by this API.
   composed_units: Option<Box<CompositeUnit<T>>>,
+  /// This field is only relevant for temperature units and should be
+  /// absent on all non-temperature units. If present, this is the
+  /// offset that must be added to an absolute quantity of this
+  /// temperature to get to an absolute quantity of the base
+  /// temperature. This additive quantity is applied *after* the
+  /// `amount_of_base` multiplier.
+  temperature_offset: Option<Box<T>>,
 }
 
 /// Error type returned from [`Unit::with_composition`].
@@ -66,6 +73,7 @@ impl<T> Unit<T> {
       dimension: dimension.into(),
       amount_of_base,
       composed_units: None,
+      temperature_offset: None,
     }
   }
 
@@ -106,18 +114,23 @@ impl<T> Unit<T> {
   ///
   /// This is most commonly used to generate derived units, such as
   /// creating "kilometers" from the definition of a "meter".
-  pub fn augment<F, G, H, U>(self, name_fn: F, amount_of_base_fn: G, composed_fn: H) -> Unit<U>
+  pub fn augment<F, G, H, K, U>(self, name_fn: F, amount_of_base_fn: G, composed_fn: H, temperature_fn: K) -> Unit<U>
   where F: FnOnce(String) -> String,
         G: FnOnce(T) -> U,
-        H: FnOnce(CompositeUnit<T>) -> Option<CompositeUnit<U>> {
+        H: FnOnce(CompositeUnit<T>) -> Option<CompositeUnit<U>>,
+        K: FnOnce(T) -> U {
     let composed_units = self.composed_units.and_then(|u| {
       composed_fn(*u).map(Box::new)
+    });
+    let temperature_offset = self.temperature_offset.and_then(|u| {
+      Some(Box::new(temperature_fn(*u)))
     });
     Unit {
       name: name_fn(self.name),
       dimension: self.dimension,
       amount_of_base: amount_of_base_fn(self.amount_of_base),
       composed_units,
+      temperature_offset,
     }
   }
 
