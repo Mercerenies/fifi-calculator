@@ -70,7 +70,7 @@ impl OperatorTable {
       Operator::new("^..", Fixity::new().with_infix("^..", Associativity::NONE, Precedence::new(196))),
       Operator::new("^..^", Fixity::new().with_infix("^..^", Associativity::NONE, Precedence::new(196))),
       Operator::new("^", Fixity::new().with_infix("^", Associativity::RIGHT, Precedence::new(200))),
-      Operator::new("*", Fixity::new().with_infix("*", Associativity::FULL, Precedence::new(195))),
+      multiplication_operator(),
       Operator::new("/", Fixity::new().with_infix("/", Associativity::LEFT, Precedence::new(190))),
       Operator::new("%", Fixity::new().with_infix("%", Associativity::NONE, Precedence::new(190))),
       Operator::new("+", Fixity::new()
@@ -140,6 +140,11 @@ impl<'a> OperatorAmbiguity<'a> {
   pub fn right(&self) -> &[&'a Operator] {
     &self.right
   }
+}
+
+/// The operator used for multiplication and juxtaposition.
+pub fn multiplication_operator() -> Operator {
+  Operator::new("*", Fixity::new().with_infix("*", Associativity::FULL, Precedence::new(195)))
 }
 
 impl IntoIterator for OperatorTable {

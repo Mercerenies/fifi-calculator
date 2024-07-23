@@ -8,6 +8,7 @@ use super::vector::Vector;
 use super::tokenizer::{ExprTokenizer, Token, TokenData, TokenizerError};
 use crate::parsing::shunting_yard::{self, ShuntingYardDriver, ShuntingYardError};
 use crate::parsing::operator::{Operator, OperatorTable};
+use crate::parsing::operator::table::multiplication_operator;
 use crate::parsing::operator::chain::{self, Token as ChainToken, TaggedToken, OperatorChainError};
 use crate::parsing::operator::fixity::{InfixProperties, PrefixProperties, PostfixProperties};
 use crate::parsing::source::{Span, Spanned, SourceOffset};
@@ -126,6 +127,10 @@ impl<'a> ExprParser<'a> {
         }
       }
     }
+
+    // Insert implicit applications of the multiplication operator
+    // when terms are juxtaposed.
+    chain::insert_juxtaposition_operator(&mut tokens, multiplication_operator());
 
     // Identify which operators should be treated as infix/postfix/prefix.
     let tagged_tokens: Vec<Spanned<TaggedToken<Expr>>> = chain::tag_chain_sequence(tokens)?;
