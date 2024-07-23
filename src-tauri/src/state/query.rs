@@ -9,6 +9,7 @@ use crate::expr::units::parse_composite_unit_expr;
 use crate::stack::StackError;
 use crate::stack::base::RandomAccessStackLike;
 use crate::units::parsing::UnitParser;
+use crate::units::tagged::TemperatureTagged;
 
 use thiserror::Error;
 
@@ -33,6 +34,9 @@ pub enum QueryType {
   /// units, as defined by the context's unit parser. Delegates to
   /// [`has_any_units`].
   HasUnits,
+  /// Query that checks whether the target expression contains units
+  /// whose dimension is temperature.
+  HasBasicTemperatureUnits,
 }
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
@@ -55,12 +59,20 @@ where S: RandomAccessStackLike<Elem = Expr> {
     QueryType::HasUnits => {
       Ok(has_any_units(context, stack_elem.to_owned())) // TODO: Excessive cloning?
     }
+    QueryType::HasBasicTemperatureUnits => {
+      Ok(has_basic_temperature_units(context, stack_elem.to_owned())) // TODO: Excessive cloning?
+    }
   }
 }
 
 pub fn has_any_units(context: &QueryContext, expr: Expr) -> bool {
   let tagged_expr = parse_composite_unit_expr(context.units_parser, context.term_parser, expr);
   !tagged_expr.unit.is_empty()
+}
+
+pub fn has_basic_temperature_units(context: &QueryContext, expr: Expr) -> bool {
+  let tagged_expr = parse_composite_unit_expr(context.units_parser, context.term_parser, expr);
+  TemperatureTagged::try_from(tagged_expr).is_ok()
 }
 
 #[cfg(test)]

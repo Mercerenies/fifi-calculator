@@ -76,9 +76,9 @@ where S: ScalarLike + 'static {
     Unit::new("degC", Temperature, fraction(1, 1))
       .with_temperature_offset(fraction(27_315, 100)),
     Unit::new("dF", Temperature, fraction(5, 9))
-      .with_temperature_offset(fraction(2_554, 10)),
+      .with_temperature_offset(fraction(45_967, 180)),
     Unit::new("degF", Temperature, fraction(5, 9))
-      .with_temperature_offset(fraction(2_554, 10)),
+      .with_temperature_offset(fraction(45_967, 180)),
     // Electrical current units
     amperes(),
     // Luminous intensity units
