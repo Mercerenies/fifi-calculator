@@ -15,7 +15,7 @@ use crate::expr::number::Number;
 use crate::expr::simplifier::{Simplifier, SimplifierContext};
 use crate::expr::simplifier::chained::ChainedSimplifier;
 use crate::expr::units::{parse_composite_unit_expr, try_parse_unit,
-                         unit_into_term, tagged_into_expr,
+                         unit_into_term, tagged_into_expr_lossy,
                          UnitPrism, ParsedCompositeUnit,
                          UnitTermSimplifier, UnitPolynomialSimplifier};
 use crate::units::CompositeUnit;
@@ -223,8 +223,7 @@ impl Command for ContextualConvertUnitsCommand {
     // convert_or_panic safety: We already forced the dimensions to
     // line up, using the remainder unit.
     let tagged_term = tagged_term.convert_or_panic(target_unit * remainder_unit);
-    let expr = tagged_into_expr(tagged_term)
-      .context("Target unit contained an invalid variable name")?; // TODO: Restore the stack on error?
+    let expr = tagged_into_expr_lossy(tagged_term);
 
     let mut errors = ErrorList::new();
     stack.push(ctx.simplify_expr(expr, &mut errors));
