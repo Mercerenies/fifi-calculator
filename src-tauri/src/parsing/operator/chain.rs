@@ -25,7 +25,7 @@ pub struct ChainParseError {
 
 /// A token, for the purposes of operator chain resolution, is either
 /// a scalar value or an operator.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Token<T> {
   Scalar(T),
   Operator(Operator),
@@ -133,6 +133,25 @@ fn find_consecutive_terms<T>(seq: &[AlternatingChainElem<T>]) -> Option<usize> {
   None
 }
 
+/// Scans the vector `tokens` for any place where there are two terms
+/// adjacent to one another, and inserts the given infix operator in
+/// such places.
+pub fn insert_juxtaposition_operator<T>(
+  tokens: &mut Vec<Spanned<Token<T>>>,
+  operator: Operator,
+) {
+  let mut i = 0;
+  while i < tokens.len() - 1 {
+    if tokens[i].item.is_scalar() && tokens[i + 1].item.is_scalar() {
+      let span = tokens[i + 1].span;
+      tokens.insert(i + 1, Spanned::new(Token::Operator(operator.clone()), span));
+      i += 2;
+    } else {
+      i += 1;
+    }
+  }
+}
+
 /// Given a chain of one or more operators between two terms in the
 /// term language, this function tags each operator with a
 /// [`FixityType`]. Specifically, exactly one operator in the chain
@@ -195,6 +214,16 @@ fn require_fixity_for_chain(
     // for this fixity.
     op.map(|op| TaggedOperator::new(op, fixity))
   }).collect())
+}
+
+impl<T> Token<T> {
+  pub fn is_scalar(&self) -> bool {
+    matches!(self, Token::Scalar(_))
+  }
+
+  pub fn is_operator(&self) -> bool {
+    matches!(self, Token::Operator(_))
+  }
 }
 
 impl<T> TaggedToken<T> {
@@ -480,15 +509,32 @@ mod tests {
     tag_operators_in_chain(ops).unwrap_err();
   }
 
-/*
   #[test]
-  fn test_tag_chain_sequence_simple_infix() {
-    let tokens: Vec<ChainToken<i64>> = vec![
-      scalar(10),
-      operator(infix("+")),
-      scalar(20),
+  fn test_insert_juxtaposition_operator() {
+    let juxtaposition_operator = infix("yy");
+    let mut chain = vec![
+      spanned(Token::Scalar(1)),
+      spanned(Token::Operator(infix("xx"))),
+      spanned(Token::Scalar(2)),
+      spanned(Token::Scalar(3)),
+      spanned(Token::Scalar(4)),
+      spanned(Token::Operator(infix("xx"))),
+      spanned(Token::Scalar(5)),
     ];
-    let 
+    insert_juxtaposition_operator(&mut chain, juxtaposition_operator);
+    assert_eq!(
+      chain,
+      vec![
+        spanned(Token::Scalar(1)),
+        spanned(Token::Operator(infix("xx"))),
+        spanned(Token::Scalar(2)),
+        spanned(Token::Operator(infix("yy"))),
+        spanned(Token::Scalar(3)),
+        spanned(Token::Operator(infix("yy"))),
+        spanned(Token::Scalar(4)),
+        spanned(Token::Operator(infix("xx"))),
+        spanned(Token::Scalar(5)),
+      ]
+    );
   }
-   */
 }
