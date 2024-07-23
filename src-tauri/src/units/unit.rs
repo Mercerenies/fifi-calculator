@@ -204,6 +204,11 @@ impl<T> Unit<T> {
     self.into_composed_err()
       .unwrap_or_else(CompositeUnit::from)
   }
+
+  /// Returns the temperature offset, if present.
+  pub fn temperature_offset(&self) -> Option<&T> {
+    self.temperature_offset.as_ref().map(Box::as_ref)
+  }
 }
 
 impl<T> Display for Unit<T> {
