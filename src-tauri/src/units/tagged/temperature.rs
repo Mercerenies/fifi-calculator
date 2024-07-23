@@ -35,6 +35,13 @@ pub enum TryFromTaggedError<S, U> {
   ExpectedSingleUnit(Tagged<S, U>),
 }
 
+#[derive(Debug, Clone, Error)]
+#[error("Expected temperature unit")]
+pub struct TryIntoTemperatureUnitError<U> {
+  pub unit: CompositeUnit<U>,
+  _priv: (),
+}
+
 impl<S, U> TemperatureTagged<S, U> {
   pub fn try_new(value: S, unit: Unit<U>) -> Result<Self, DimensionMismatchError<S, U>> {
     if unit.dimension() == &Dimension::from(BaseDimension::Temperature) {
@@ -62,6 +69,19 @@ impl<S, U> TemperatureTagged<S, U> {
 
   pub fn into_unit(self) -> Unit<U> {
     self.unit
+  }
+}
+
+/// Returns the single temperature unit contained within `unit`. If
+/// `unit` consists of multiple units or does not contain a
+/// temperature unit, returns an error.
+pub fn try_into_basic_temperature_unit<U>(unit: CompositeUnit<U>) -> Result<Unit<U>, TryIntoTemperatureUnitError<U>> {
+  let mut components = unit.into_inner();
+  let desired_dimension = Dimension::from(BaseDimension::Temperature);
+  if components.len() == 1 && components[0].exponent == 1 && components[0].dimension() == desired_dimension {
+    Ok(components.swap_remove(0).unit)
+  } else {
+    Err(TryIntoTemperatureUnitError { unit: CompositeUnit::new(components), _priv: () })
   }
 }
 
@@ -130,6 +150,7 @@ impl<S: Display, U> Display for TemperatureTagged<S, U> {
 mod tests {
   use super::*;
 
+  use num::pow::Pow;
   use approx::assert_abs_diff_eq;
 
   fn kelvins() -> Unit<f64> {
@@ -204,5 +225,19 @@ mod tests {
   fn test_convert_invalid() {
     let fahrenheit = TemperatureTagged::new(212.0, fahrenheit());
     fahrenheit.convert(meters());
+  }
+
+  #[test]
+  fn test_try_into_basic_temperature_unit() {
+    let unit = CompositeUnit::from(kelvins());
+    assert_eq!(try_into_basic_temperature_unit(unit).unwrap(), kelvins());
+    let unit = CompositeUnit::from(celsius());
+    assert_eq!(try_into_basic_temperature_unit(unit).unwrap(), celsius());
+    let unit = CompositeUnit::from(celsius().pow(3));
+    try_into_basic_temperature_unit(unit).unwrap_err();
+    let unit = celsius() * kelvins();
+    try_into_basic_temperature_unit(unit).unwrap_err();
+    let unit = CompositeUnit::from(meters());
+    try_into_basic_temperature_unit(unit).unwrap_err();
   }
 }
