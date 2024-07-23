@@ -55,8 +55,12 @@ impl BasicLanguageMode {
     }
     engine.write_to_html(out, left_arg, infix_props.left_precedence());
     out.push(' ');
-    out.push_str(op.operator_name());
-    out.push(' ');
+    // Special case: Infix multiplication can always be represented as
+    // juxtaposition.
+    if op.operator_name() != "*" {
+      out.push_str(op.operator_name());
+      out.push(' ');
+    }
     engine.write_to_html(out, right_arg, infix_props.right_precedence());
     if needs_parens {
       out.push(')');
@@ -83,8 +87,12 @@ impl BasicLanguageMode {
     for arg in args {
       if !first {
         out.push(' ');
-        out.push_str(op.operator_name());
-        out.push(' ');
+        // Special case: Infix multiplication can always be represented as
+        // juxtaposition.
+        if op.operator_name() != "*" {
+          out.push_str(op.operator_name());
+          out.push(' ');
+        }
       }
       first = false;
       engine.write_to_html(out, arg, infix_props.precedence());
@@ -336,7 +344,7 @@ mod tests {
         Expr::call("*", vec![Expr::from(3), Expr::from(4)]),
       ],
     );
-    assert_eq!(mode.to_html(&expr), "1 * 2 + 3 * 4");
+    assert_eq!(mode.to_html(&expr), "1 2 + 3 4");
   }
 
   #[test]
@@ -349,7 +357,7 @@ mod tests {
         Expr::call("+", vec![Expr::from(3), Expr::from(4)]),
       ],
     );
-    assert_eq!(mode.to_html(&expr), "(1 + 2) * (3 + 4)");
+    assert_eq!(mode.to_html(&expr), "(1 + 2) (3 + 4)");
   }
 
   #[test]
