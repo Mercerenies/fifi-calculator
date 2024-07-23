@@ -67,12 +67,18 @@ where S: ScalarLike + 'static {
     Unit::new("t", Mass, fraction(1_000_000, 1)), // Metric ton (eqv. megagram)
     // Temperature units (relative)
     kelvins(),
-    Unit::new("degK", Temperature, fraction(1, 1)),
-    Unit::new("dK", Temperature, fraction(1, 1)),
-    Unit::new("dC", Temperature, fraction(1, 1)),
-    Unit::new("degC", Temperature, fraction(1, 1)),
-    Unit::new("dF", Temperature, fraction(5, 9)),
-    Unit::new("degF", Temperature, fraction(5, 9)),
+    Unit::new("degK", Temperature, fraction(1, 1))
+      .with_temperature_offset(fraction(0, 1)),
+    Unit::new("dK", Temperature, fraction(1, 1))
+      .with_temperature_offset(fraction(0, 1)),
+    Unit::new("dC", Temperature, fraction(1, 1))
+      .with_temperature_offset(fraction(27_315, 100)),
+    Unit::new("degC", Temperature, fraction(1, 1))
+      .with_temperature_offset(fraction(27_315, 100)),
+    Unit::new("dF", Temperature, fraction(5, 9))
+      .with_temperature_offset(fraction(2_554, 10)),
+    Unit::new("degF", Temperature, fraction(5, 9))
+      .with_temperature_offset(fraction(2_554, 10)),
     // Electrical current units
     amperes(),
     // Luminous intensity units
@@ -140,7 +146,7 @@ where S: ScalarLike + 'static {
   TableBasedParser::new(units_table, si_base_unit)
 }
 
-pub fn si_base_unit<S: One>(dimension: BaseDimension) -> Unit<S> {
+pub fn si_base_unit<S: One + From<i64>>(dimension: BaseDimension) -> Unit<S> {
   use BaseDimension::*;
   match dimension {
     Length => meters(),
@@ -209,8 +215,9 @@ fn grams<S: One>() -> Unit<S> {
   Unit::new("g", BaseDimension::Mass, S::one())
 }
 
-fn kelvins<S: One>() -> Unit<S> {
+fn kelvins<S: One + From<i64>>() -> Unit<S> {
   Unit::new("K", BaseDimension::Temperature, S::one())
+    .with_temperature_offset(S::from(0i64))
 }
 
 fn amperes<S: One>() -> Unit<S> {

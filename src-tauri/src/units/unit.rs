@@ -183,6 +183,12 @@ impl<T> Unit<T> {
     self
   }
 
+  /// Assigns a temperature offset to this unit, builder-style.
+  pub fn with_temperature_offset(mut self, temperature_offset: T) -> Self {
+    self.temperature_offset = Some(Box::new(temperature_offset));
+    self
+  }
+
   /// Returns the units that `self` is composed of. Gives back `self`
   /// if there is no composition stored on this unit.
   pub fn into_composed_err(self) -> Result<CompositeUnit<T>, Self> {
