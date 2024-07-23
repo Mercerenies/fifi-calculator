@@ -8,10 +8,11 @@ pub mod prism;
 pub mod stricteq;
 
 use regex::{Regex, escape};
+use either::Either;
 
 use std::convert::Infallible;
-use std::cmp::Reverse;
-use std::iter;
+use std::cmp::{Reverse, Ordering};
+use std::iter::{self, Extend};
 
 pub fn unwrap_infallible<T>(res: Result<T, Infallible>) -> T {
   match res {
@@ -117,9 +118,94 @@ where I::Item: Ord {
   res
 }
 
+/// Zips two arrays of the same length together, using the given
+/// function.
+pub fn zip_with<const C: usize, T, S, U, F>(left: [T; C], right: [S; C], mut f: F) -> [U; C]
+where F: FnMut(T, S) -> U {
+  let res = left.into_iter().zip(right)
+    .map(|(x, y)| f(x, y))
+    .collect::<Vec<_>>()
+    .try_into();
+  match res {
+    Ok(res) => res,
+    Err(_) => panic!("Invalid array length"),
+  }
+}
+
+/// Splits an iterable of `Either` into a collection of `Left` and a
+/// collection of `Right`.
+pub fn partition_either<I, A, B, C1, C2>(iter: I) -> (C1, C2)
+where I: IntoIterator<Item = Either<A, B>>,
+      C1: Default + Extend<A>,
+      C2: Default + Extend<B> {
+  let mut c1 = C1::default();
+  let mut c2 = C2::default();
+  for elem in iter {
+    match elem {
+      Either::Left(a) => c1.extend([a]),
+      Either::Right(b) => c2.extend([b]),
+    }
+  }
+  (c1, c2)
+}
+
+pub fn partition_mapped<I, T, A, B, F, C1, C2>(iter: I, f: F) -> (C1, C2)
+where I: IntoIterator<Item = T>,
+      F: FnMut(T) -> Either<A, B>,
+      C1: Default + Extend<A>,
+      C2: Default + Extend<B> {
+  partition_either(iter.into_iter().map(f))
+}
+
+/// If the collection is non-empty and all elements of the collection
+/// are equal (under `PartialEq`), returns the first element of the
+/// collection. If not, returns `None`.
+pub fn uniq_element<I>(collection: I) -> Option<I::Item>
+where I: IntoIterator,
+      I::Item: PartialEq {
+  let mut iter = collection.into_iter();
+  let first_elem = iter.next()?;
+  for elem in iter {
+    if first_elem != elem {
+      return None;
+    }
+  }
+  Some(first_elem)
+}
+
+/// Mutably borrows two elements from a mutable slice at the same
+/// time. Panics if the two indices are the same, or if either index
+/// is out of bounds.
+pub fn double_borrow_mut<T>(slice: &mut [T], i: usize, j: usize) -> (&mut T, &mut T) {
+  match i.cmp(&j) {
+    Ordering::Equal => {
+      panic!("Cannot mutably borrow index {i} twice at the same time");
+    }
+    Ordering::Greater => {
+      let (b, a) = double_borrow_mut(slice, j, i);
+      (a, b)
+    }
+    Ordering::Less => {
+      let (left, right) = slice.split_at_mut(j);
+      (&mut left[i], &mut right[0])
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  /// Implements `PartialEq` and `Eq` to always return true.
+  struct AlwaysEq(i64);
+
+  impl PartialEq for AlwaysEq {
+    fn eq(&self, _: &AlwaysEq) -> bool {
+      true
+    }
+  }
+
+  impl Eq for AlwaysEq {}
 
   #[test]
   fn unwrap_infallible_unwraps() {
@@ -223,5 +309,39 @@ mod tests {
     assert_eq!(into_singleton([10, 20, 30]), None);
     assert_eq!(into_singleton([10, 10, 10, 10, 10]), None);
     assert_eq!(into_singleton(iter::repeat(0)), None);
+  }
+
+  #[test]
+  fn test_uniq_element() {
+    assert_eq!(uniq_element([1, 1, 1, 1]), Some(1));
+    assert_eq!(uniq_element(Vec::<i32>::new()), None);
+    assert_eq!(uniq_element([1, 1, 1, 2]), None);
+  }
+
+  #[test]
+  fn test_uniq_element_returns_first_elem() {
+    // uniq_element() should always return the first element when it
+    // successfully matches. We can test this by implementing a
+    // contrived (but lawful) PartialEq on a custom type.
+    let elem = uniq_element([AlwaysEq(0), AlwaysEq(10), AlwaysEq(20)]).unwrap();
+    assert_eq!(elem.0, 0);
+  }
+
+  #[test]
+  fn test_double_borrow_mut() {
+    let mut arr = [30, 40, 50];
+    let (a, b) = double_borrow_mut(&mut arr, 1, 2);
+    assert_eq!(a, &mut 40);
+    assert_eq!(b, &mut 50);
+    let (a, b) = double_borrow_mut(&mut arr, 2, 1);
+    assert_eq!(a, &mut 50);
+    assert_eq!(b, &mut 40);
+  }
+
+  #[test]
+  #[should_panic]
+  fn test_double_borrow_mut_panic() {
+    let mut arr = [30, 40, 50];
+    double_borrow_mut(&mut arr, 0, 0);
   }
 }

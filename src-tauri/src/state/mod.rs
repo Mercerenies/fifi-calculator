@@ -4,6 +4,7 @@
 pub mod delegate;
 pub mod events;
 pub mod tauri_command;
+pub mod query;
 pub mod undo;
 pub mod validation;
 
@@ -15,10 +16,13 @@ use crate::expr::function::table::FunctionTable;
 use crate::expr::function::library::build_function_table;
 use crate::expr::var::table::VarTable;
 use crate::expr::var::constants::bind_constants;
+use crate::expr::number::Number;
+use crate::expr::algebra::term::TermParser;
 use crate::command::default_dispatch_table;
 use crate::command::dispatch::CommandDispatchTable;
 use crate::display::DisplaySettings;
 use crate::undo::{UndoStack, UndoError};
+use crate::units::parsing::{UnitParser, default_parser};
 
 use serde::{Serialize, Deserialize};
 
@@ -30,6 +34,7 @@ pub struct TauriApplicationState {
   pub state: Mutex<ApplicationState>,
   pub command_table: CommandDispatchTable,
   pub function_table: FunctionTable,
+  pub units_parser: Box<dyn UnitParser<Number> + Send + Sync>,
 }
 
 #[derive(Default)]
@@ -63,6 +68,7 @@ impl TauriApplicationState {
       state: Mutex::new(state),
       command_table: default_dispatch_table(),
       function_table: build_function_table(),
+      units_parser: Box::new(default_parser()),
     }
   }
 }
@@ -70,6 +76,12 @@ impl TauriApplicationState {
 impl ApplicationState {
   pub fn new() -> Self {
     Self::default()
+  }
+
+  pub fn term_parser(&self) -> TermParser {
+    // Note: Later, we will take the scalar mode into account when
+    // constructing this value.
+    TermParser::new()
   }
 
   pub fn send_refresh_stack_event(

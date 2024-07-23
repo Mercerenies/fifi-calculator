@@ -6,6 +6,7 @@ use super::base::{Command, CommandContext, CommandOutput};
 use super::arguments::{NullaryArgumentSchema, validate_schema};
 use crate::state::ApplicationState;
 use crate::expr::Expr;
+use crate::expr::simplifier::error::SimplifierError;
 use crate::errorlist::ErrorList;
 use crate::stack::base::{StackLike, RandomAccessStackLike};
 use crate::stack::keepable::KeepableStack;
@@ -40,7 +41,8 @@ pub struct UnaryFunctionCommand {
   function: Box<UnaryFunction>,
 }
 
-type UnaryFunction = dyn Fn(Expr, &ApplicationState) -> Expr + Send + Sync;
+type UnaryFunction =
+  dyn Fn(Expr, &ApplicationState, &CommandContext, &mut ErrorList<SimplifierError>) -> Expr + Send + Sync;
 
 /// A command that applies an arbitrary function to the top two
 /// elements of the stack, with the second-from-the-top element of the
@@ -71,11 +73,26 @@ impl PushConstantCommand {
 impl UnaryFunctionCommand {
   pub fn new<F>(function: F) -> UnaryFunctionCommand
   where F: Fn(Expr) -> Expr + Send + Sync + 'static {
-    UnaryFunctionCommand::with_state(move |arg, _| function(arg))
+    UnaryFunctionCommand { function: Box::new(move |arg, _, _, _| function(arg)) }
   }
 
   pub fn with_state<F>(function: F) -> UnaryFunctionCommand
   where F: Fn(Expr, &ApplicationState) -> Expr + Send + Sync + 'static {
+    UnaryFunctionCommand { function: Box::new(move |arg, state, _, _| function(arg, state)) }
+  }
+
+  pub fn with_context<F>(function: F) -> UnaryFunctionCommand
+  where F: Fn(Expr, &CommandContext) -> Expr + Send + Sync + 'static {
+    UnaryFunctionCommand { function: Box::new(move |arg, _, ctx, _| function(arg, ctx)) }
+  }
+
+  pub fn with_context_and_errors<F>(function: F) -> UnaryFunctionCommand
+  where F: Fn(Expr, &CommandContext, &mut ErrorList<SimplifierError>) -> Expr + Send + Sync + 'static {
+    UnaryFunctionCommand { function: Box::new(move |arg, _, ctx, err| function(arg, ctx, err)) }
+  }
+
+  pub fn with_all<F>(function: F) -> UnaryFunctionCommand
+  where F: Fn(Expr, &ApplicationState, &CommandContext, &mut ErrorList<SimplifierError>) -> Expr + Send + Sync + 'static {
     UnaryFunctionCommand { function: Box::new(function) }
   }
 
@@ -86,8 +103,14 @@ impl UnaryFunctionCommand {
     })
   }
 
-  fn wrap_expr(&self, arg: Expr, state: &ApplicationState) -> Expr {
-    (self.function)(arg, state)
+  fn wrap_expr(
+    &self,
+    arg: Expr,
+    state: &ApplicationState,
+    ctx: &CommandContext,
+    errors: &mut ErrorList<SimplifierError>,
+  ) -> Expr {
+    (self.function)(arg, state, ctx, errors)
   }
 
   fn apply_to_top(
@@ -102,7 +125,8 @@ impl UnaryFunctionCommand {
       stack.pop_several(element_count)?
     };
     let values: Vec<_> = values.into_iter().map(|e| {
-      ctx.simplify_expr(self.wrap_expr(e, state), &mut errors)
+      let e = self.wrap_expr(e, state, ctx, &mut errors);
+      ctx.simplify_expr(e, &mut errors)
     }).collect();
     state.main_stack_mut().push_several(values);
     Ok(CommandOutput::from_errors(errors))
@@ -121,7 +145,10 @@ impl UnaryFunctionCommand {
       // it's safe to re-insert.
       state.main_stack_mut().insert(element_index, expr.clone()).expect("Stack was too small for re-insert");
     }
-    expr.mutate(|e| ctx.simplify_expr(self.wrap_expr(e, state), &mut errors));
+    expr.mutate(|e| {
+      let e = self.wrap_expr(e, state, ctx, &mut errors);
+      ctx.simplify_expr(e, &mut errors)
+    });
     // expect safety: We just popped a value from that position, so
     // it's safe to re-insert.
     state.main_stack_mut().insert(element_index, expr).expect("Stack was too small for re-insert");
@@ -277,7 +304,7 @@ impl Command for BinaryFunctionCommand {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::command::test_utils::{act_on_stack, act_on_stack_err};
+  use crate::command::test_utils::act_on_stack;
   use crate::command::options::CommandOptions;
   use crate::stack::test_utils::stack_of;
   use crate::stack::{Stack, StackError};
@@ -297,7 +324,7 @@ mod tests {
   #[test]
   fn test_push_constant() {
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&push_constant_zero(), CommandOptions::default(), input_stack);
+    let output_stack = act_on_stack(&push_constant_zero(), CommandOptions::default(), input_stack).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 0]));
   }
 
@@ -306,35 +333,35 @@ mod tests {
     // keep_modifier has no effect on push_constant.
     let opts = CommandOptions::default().with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&push_constant_zero(), opts, input_stack);
+    let output_stack = act_on_stack(&push_constant_zero(), opts, input_stack).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 0]));
   }
 
   #[test]
   fn test_push_constant_with_empty_stack() {
     let input_stack = Vec::<Expr>::new();
-    let output_stack = act_on_stack(&push_constant_zero(), CommandOptions::default(), input_stack);
+    let output_stack = act_on_stack(&push_constant_zero(), CommandOptions::default(), input_stack).unwrap();
     assert_eq!(output_stack, stack_of(vec![0]));
   }
 
   #[test]
   fn test_push_constant_with_explicit_argument_one() {
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&push_constant_zero(), CommandOptions::numerical(1), input_stack);
+    let output_stack = act_on_stack(&push_constant_zero(), CommandOptions::numerical(1), input_stack).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 0]));
   }
 
   #[test]
   fn test_push_constant_with_positive_argument() {
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&push_constant_zero(), CommandOptions::numerical(3), input_stack);
+    let output_stack = act_on_stack(&push_constant_zero(), CommandOptions::numerical(3), input_stack).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 0, 0, 0]));
   }
 
   #[test]
   fn test_push_constant_with_negative_argument() {
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&push_constant_zero(), CommandOptions::numerical(-4), input_stack);
+    let output_stack = act_on_stack(&push_constant_zero(), CommandOptions::numerical(-4), input_stack).unwrap();
     // Does not change the stack
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40]));
   }
@@ -342,7 +369,7 @@ mod tests {
   #[test]
   fn test_push_constant_with_argument_of_zero() {
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&push_constant_zero(), CommandOptions::numerical(0), input_stack);
+    let output_stack = act_on_stack(&push_constant_zero(), CommandOptions::numerical(0), input_stack).unwrap();
     // Does not change the stack
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40]));
   }
@@ -351,7 +378,7 @@ mod tests {
   fn test_push_constant_with_argument_of_zero_and_keep_arg() {
     let opts = CommandOptions::numerical(0).with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&push_constant_zero(), opts, input_stack);
+    let output_stack = act_on_stack(&push_constant_zero(), opts, input_stack).unwrap();
     // Does not change the stack
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40]));
   }
@@ -359,7 +386,7 @@ mod tests {
   #[test]
   fn test_unary_function_command() {
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&unary_function(), CommandOptions::default(), input_stack);
+    let output_stack = act_on_stack(&unary_function(), CommandOptions::default(), input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -375,7 +402,7 @@ mod tests {
   fn test_unary_function_command_with_keep_arg() {
     let opts = CommandOptions::default().with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&unary_function(), opts, input_stack);
+    let output_stack = act_on_stack(&unary_function(), opts, input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -391,7 +418,8 @@ mod tests {
   #[test]
   fn test_unary_function_command_on_empty_stack() {
     let input_stack = Vec::<Expr>::new();
-    let error = act_on_stack_err(&unary_function(), CommandOptions::default(), input_stack);
+    let error = act_on_stack(&unary_function(), CommandOptions::default(), input_stack).unwrap_err();
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 1, actual: 0 },
@@ -401,7 +429,7 @@ mod tests {
   #[test]
   fn test_unary_function_command_with_explicit_arg_one() {
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&unary_function(), CommandOptions::numerical(1), input_stack);
+    let output_stack = act_on_stack(&unary_function(), CommandOptions::numerical(1), input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -416,7 +444,8 @@ mod tests {
   #[test]
   fn test_unary_function_command_with_arg_one_on_empty_stack() {
     let input_stack = Vec::<Expr>::new();
-    let error = act_on_stack_err(&unary_function(), CommandOptions::numerical(1), input_stack);
+    let error = act_on_stack(&unary_function(), CommandOptions::numerical(1), input_stack).unwrap_err();
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 1, actual: 0 },
@@ -426,7 +455,7 @@ mod tests {
   #[test]
   fn test_unary_function_command_with_arg_two() {
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&unary_function(), CommandOptions::numerical(2), input_stack);
+    let output_stack = act_on_stack(&unary_function(), CommandOptions::numerical(2), input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -442,7 +471,7 @@ mod tests {
   fn test_unary_function_command_with_arg_two_and_keep_arg() {
     let opts = CommandOptions::numerical(2).with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&unary_function(), opts, input_stack);
+    let output_stack = act_on_stack(&unary_function(), opts, input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -459,7 +488,8 @@ mod tests {
   #[test]
   fn test_unary_function_command_with_arg_two_on_empty_stack() {
     let input_stack = Vec::<Expr>::new();
-    let error = act_on_stack_err(&unary_function(), CommandOptions::numerical(2), input_stack);
+    let error = act_on_stack(&unary_function(), CommandOptions::numerical(2), input_stack).unwrap_err();
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 2, actual: 0 },
@@ -469,7 +499,8 @@ mod tests {
   #[test]
   fn test_unary_function_command_with_arg_two_on_stack_size_one() {
     let input_stack = vec![10];
-    let error = act_on_stack_err(&unary_function(), CommandOptions::numerical(2), input_stack);
+    let error = act_on_stack(&unary_function(), CommandOptions::numerical(2), input_stack).unwrap_err();
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 2, actual: 1 },
@@ -481,7 +512,8 @@ mod tests {
     // keep_modifier has no effect when the stack is too small.
     let opts = CommandOptions::numerical(2).with_keep_modifier();
     let input_stack = vec![10];
-    let error = act_on_stack_err(&unary_function(), opts, input_stack);
+    let error = act_on_stack(&unary_function(), opts, input_stack).unwrap_err();
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 2, actual: 1 },
@@ -491,7 +523,7 @@ mod tests {
   #[test]
   fn test_unary_function_command_with_arg_zero() {
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&unary_function(), CommandOptions::numerical(0), input_stack);
+    let output_stack = act_on_stack(&unary_function(), CommandOptions::numerical(0), input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -507,7 +539,7 @@ mod tests {
   fn test_unary_function_command_with_arg_zero_and_keep_arg() {
     let opts = CommandOptions::numerical(0).with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&unary_function(), opts, input_stack);
+    let output_stack = act_on_stack(&unary_function(), opts, input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -526,7 +558,7 @@ mod tests {
   #[test]
   fn test_unary_function_command_with_arg_zero_on_empty_stack() {
     let input_stack = Vec::<Expr>::new();
-    let output_stack = act_on_stack(&unary_function(), CommandOptions::numerical(0), input_stack);
+    let output_stack = act_on_stack(&unary_function(), CommandOptions::numerical(0), input_stack).unwrap();
     assert_eq!(output_stack, Stack::new());
   }
 
@@ -535,14 +567,14 @@ mod tests {
     // keep_modifier has no effect, since there's nothing to preserve.
     let opts = CommandOptions::numerical(0).with_keep_modifier();
     let input_stack = Vec::<Expr>::new();
-    let output_stack = act_on_stack(&unary_function(), opts, input_stack);
+    let output_stack = act_on_stack(&unary_function(), opts, input_stack).unwrap();
     assert_eq!(output_stack, Stack::new());
   }
 
   #[test]
   fn test_unary_function_command_with_arg_negative_one() {
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&unary_function(), CommandOptions::numerical(-1), input_stack);
+    let output_stack = act_on_stack(&unary_function(), CommandOptions::numerical(-1), input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -558,7 +590,7 @@ mod tests {
   fn test_unary_function_command_with_arg_negative_one_and_keep_arg() {
     let opts = CommandOptions::numerical(-1).with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&unary_function(), opts, input_stack);
+    let output_stack = act_on_stack(&unary_function(), opts, input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -574,7 +606,8 @@ mod tests {
   #[test]
   fn test_unary_function_command_with_arg_negative_one_on_empty_stack() {
     let input_stack = Vec::<Expr>::new();
-    let error = act_on_stack_err(&unary_function(), CommandOptions::numerical(1), input_stack);
+    let error = act_on_stack(&unary_function(), CommandOptions::numerical(1), input_stack).unwrap_err();
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 1, actual: 0 },
@@ -584,7 +617,7 @@ mod tests {
   #[test]
   fn test_unary_function_command_with_arg_negative_two() {
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&unary_function(), CommandOptions::numerical(-2), input_stack);
+    let output_stack = act_on_stack(&unary_function(), CommandOptions::numerical(-2), input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -600,7 +633,7 @@ mod tests {
   fn test_unary_function_command_with_arg_negative_two_and_keep_arg() {
     let opts = CommandOptions::numerical(-2).with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&unary_function(), opts, input_stack);
+    let output_stack = act_on_stack(&unary_function(), opts, input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -616,7 +649,8 @@ mod tests {
   #[test]
   fn test_unary_function_command_with_arg_negative_two_on_empty_stack() {
     let input_stack = Vec::<Expr>::new();
-    let error = act_on_stack_err(&unary_function(), CommandOptions::numerical(-2), input_stack);
+    let error = act_on_stack(&unary_function(), CommandOptions::numerical(-2), input_stack).unwrap_err();
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 2, actual: 0 },
@@ -626,7 +660,8 @@ mod tests {
   #[test]
   fn test_unary_function_command_with_arg_negative_two_on_stack_size_one() {
     let input_stack = vec![10];
-    let error = act_on_stack_err(&unary_function(), CommandOptions::numerical(-2), input_stack);
+    let error = act_on_stack(&unary_function(), CommandOptions::numerical(-2), input_stack).unwrap_err();
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 2, actual: 1 },
@@ -636,7 +671,7 @@ mod tests {
   #[test]
   fn test_unary_function_command_with_arg_negative_two_on_stack_size_two() {
     let input_stack = vec![10, 20];
-    let output_stack = act_on_stack(&unary_function(), CommandOptions::numerical(-2), input_stack);
+    let output_stack = act_on_stack(&unary_function(), CommandOptions::numerical(-2), input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -649,7 +684,7 @@ mod tests {
   #[test]
   fn test_binary_function_command() {
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&binary_function(), CommandOptions::default(), input_stack);
+    let output_stack = act_on_stack(&binary_function(), CommandOptions::default(), input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -663,7 +698,7 @@ mod tests {
   #[test]
   fn test_binary_function_command_explicitly_left_assoc() {
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&binary_function().assoc_left(), CommandOptions::default(), input_stack);
+    let output_stack = act_on_stack(&binary_function().assoc_left(), CommandOptions::default(), input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -677,7 +712,8 @@ mod tests {
   #[test]
   fn test_binary_function_command_right_assoc() {
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&binary_function().assoc_right(), CommandOptions::default(), input_stack);
+    let output_stack =
+      act_on_stack(&binary_function().assoc_right(), CommandOptions::default(), input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -692,7 +728,7 @@ mod tests {
   fn test_binary_function_command_with_keep_arg() {
     let opts = CommandOptions::default().with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&binary_function(), opts, input_stack);
+    let output_stack = act_on_stack(&binary_function(), opts, input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -708,7 +744,7 @@ mod tests {
   #[test]
   fn test_binary_function_command_on_stack_size_two() {
     let input_stack = vec![10, 20];
-    let output_stack = act_on_stack(&binary_function(), CommandOptions::default(), input_stack);
+    let output_stack = act_on_stack(&binary_function(), CommandOptions::default(), input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -720,7 +756,8 @@ mod tests {
   #[test]
   fn test_binary_function_command_on_stack_size_one() {
     let input_stack = vec![10];
-    let error = act_on_stack_err(&binary_function(), CommandOptions::default(), input_stack);
+    let error = act_on_stack(&binary_function(), CommandOptions::default(), input_stack).unwrap_err();
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 2, actual: 1 },
@@ -730,7 +767,8 @@ mod tests {
   #[test]
   fn test_binary_function_command_on_empty_stack() {
     let input_stack = Vec::<Expr>::new();
-    let error = act_on_stack_err(&binary_function(), CommandOptions::default(), input_stack);
+    let error = act_on_stack(&binary_function(), CommandOptions::default(), input_stack).unwrap_err();
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 2, actual: 0 },
@@ -740,7 +778,7 @@ mod tests {
   #[test]
   fn test_binary_function_command_with_argument_two() {
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&binary_function(), CommandOptions::numerical(2), input_stack);
+    let output_stack = act_on_stack(&binary_function(), CommandOptions::numerical(2), input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -755,7 +793,7 @@ mod tests {
   fn test_binary_function_command_with_argument_two_and_keep_arg() {
     let opts = CommandOptions::numerical(2).with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&binary_function(), opts, input_stack);
+    let output_stack = act_on_stack(&binary_function(), opts, input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -771,7 +809,7 @@ mod tests {
   #[test]
   fn test_binary_function_command_on_stack_size_two_with_arg_two() {
     let input_stack = vec![10, 20];
-    let output_stack = act_on_stack(&binary_function(), CommandOptions::numerical(2), input_stack);
+    let output_stack = act_on_stack(&binary_function(), CommandOptions::numerical(2), input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -783,7 +821,8 @@ mod tests {
   #[test]
   fn test_binary_function_command_on_stack_size_one_with_arg_two() {
     let input_stack = vec![10];
-    let error = act_on_stack_err(&binary_function(), CommandOptions::numerical(2), input_stack);
+    let error = act_on_stack(&binary_function(), CommandOptions::numerical(2), input_stack).unwrap_err();
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 2, actual: 1 },
@@ -793,7 +832,8 @@ mod tests {
   #[test]
   fn test_binary_function_command_on_empty_stack_with_arg_two() {
     let input_stack = Vec::<Expr>::new();
-    let error = act_on_stack_err(&binary_function(), CommandOptions::numerical(2), input_stack);
+    let error = act_on_stack(&binary_function(), CommandOptions::numerical(2), input_stack).unwrap_err();
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 2, actual: 0 },
@@ -803,14 +843,15 @@ mod tests {
   #[test]
   fn test_binary_function_command_with_argument_one() {
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&binary_function(), CommandOptions::numerical(1), input_stack);
+    let output_stack = act_on_stack(&binary_function(), CommandOptions::numerical(1), input_stack).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40]));
   }
 
   #[test]
   fn test_binary_function_command_with_argument_one_assoc_right() {
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&binary_function().assoc_right(), CommandOptions::numerical(1), input_stack);
+    let output_stack =
+      act_on_stack(&binary_function().assoc_right(), CommandOptions::numerical(1), input_stack).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40]));
   }
 
@@ -818,21 +859,22 @@ mod tests {
   fn test_binary_function_command_with_argument_one_and_keep_arg() {
     let opts = CommandOptions::numerical(1).with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&binary_function(), opts, input_stack);
+    let output_stack = act_on_stack(&binary_function(), opts, input_stack).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40, 40]));
   }
 
   #[test]
   fn test_binary_function_command_on_stack_size_one_with_arg_one() {
     let input_stack = vec![10];
-    let output_stack = act_on_stack(&binary_function(), CommandOptions::numerical(1), input_stack);
+    let output_stack = act_on_stack(&binary_function(), CommandOptions::numerical(1), input_stack).unwrap();
     assert_eq!(output_stack, stack_of(vec![10]));
   }
 
   #[test]
   fn test_binary_function_command_on_empty_stack_with_arg_one() {
     let input_stack = Vec::<Expr>::new();
-    let error = act_on_stack_err(&binary_function(), CommandOptions::numerical(1), input_stack);
+    let error = act_on_stack(&binary_function(), CommandOptions::numerical(1), input_stack).unwrap_err();
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 1, actual: 0 },
@@ -842,7 +884,7 @@ mod tests {
   #[test]
   fn test_binary_function_command_with_positive_arg() {
     let input_stack = vec![10, 20, 30, 40, 50];
-    let output_stack = act_on_stack(&binary_function(), CommandOptions::numerical(4), input_stack);
+    let output_stack = act_on_stack(&binary_function(), CommandOptions::numerical(4), input_stack).unwrap();
 
     fn test_func(a: Expr, b: Expr) -> Expr {
       Expr::call("test_func", vec![a, b])
@@ -869,7 +911,8 @@ mod tests {
   #[test]
   fn test_binary_function_command_with_positive_arg_explicitly_left_assoc() {
     let input_stack = vec![10, 20, 30, 40, 50];
-    let output_stack = act_on_stack(&binary_function().assoc_left(), CommandOptions::numerical(4), input_stack);
+    let output_stack =
+      act_on_stack(&binary_function().assoc_left(), CommandOptions::numerical(4), input_stack).unwrap();
 
     fn test_func(a: Expr, b: Expr) -> Expr {
       Expr::call("test_func", vec![a, b])
@@ -896,7 +939,8 @@ mod tests {
   #[test]
   fn test_binary_function_command_with_positive_arg_right_assoc() {
     let input_stack = vec![10, 20, 30, 40, 50];
-    let output_stack = act_on_stack(&binary_function().assoc_right(), CommandOptions::numerical(4), input_stack);
+    let output_stack =
+      act_on_stack(&binary_function().assoc_right(), CommandOptions::numerical(4), input_stack).unwrap();
 
     fn test_func(a: Expr, b: Expr) -> Expr {
       Expr::call("test_func", vec![a, b])
@@ -924,7 +968,7 @@ mod tests {
   fn test_binary_function_command_with_positive_arg_and_keep_arg() {
     let opts = CommandOptions::numerical(4).with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40, 50];
-    let output_stack = act_on_stack(&binary_function(), opts, input_stack);
+    let output_stack = act_on_stack(&binary_function(), opts, input_stack).unwrap();
 
     fn test_func(a: Expr, b: Expr) -> Expr {
       Expr::call("test_func", vec![a, b])
@@ -956,7 +1000,7 @@ mod tests {
   fn test_binary_function_command_with_positive_arg_and_keep_arg_and_right_assoc() {
     let opts = CommandOptions::numerical(4).with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40, 50];
-    let output_stack = act_on_stack(&binary_function().assoc_right(), opts, input_stack);
+    let output_stack = act_on_stack(&binary_function().assoc_right(), opts, input_stack).unwrap();
 
     fn test_func(a: Expr, b: Expr) -> Expr {
       Expr::call("test_func", vec![a, b])
@@ -987,7 +1031,7 @@ mod tests {
   #[test]
   fn test_binary_function_command_with_arg_zero() {
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&binary_function(), CommandOptions::numerical(0), input_stack);
+    let output_stack = act_on_stack(&binary_function(), CommandOptions::numerical(0), input_stack).unwrap();
 
     fn test_func(a: Expr, b: Expr) -> Expr {
       Expr::call("test_func", vec![a, b])
@@ -1013,7 +1057,8 @@ mod tests {
   #[test]
   fn test_binary_function_command_with_arg_zero_assoc_right() {
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&binary_function().assoc_right(), CommandOptions::numerical(0), input_stack);
+    let output_stack =
+      act_on_stack(&binary_function().assoc_right(), CommandOptions::numerical(0), input_stack).unwrap();
 
     fn test_func(a: Expr, b: Expr) -> Expr {
       Expr::call("test_func", vec![a, b])
@@ -1040,7 +1085,7 @@ mod tests {
   fn test_binary_function_command_arg_zero_and_keep_arg() {
     let opts = CommandOptions::numerical(0).with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&binary_function(), opts, input_stack);
+    let output_stack = act_on_stack(&binary_function(), opts, input_stack).unwrap();
 
     fn test_func(a: Expr, b: Expr) -> Expr {
       Expr::call("test_func", vec![a, b])
@@ -1070,7 +1115,7 @@ mod tests {
   #[test]
   fn test_binary_function_command_with_positive_arg_equal_to_stack_size() {
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&binary_function(), CommandOptions::numerical(4), input_stack);
+    let output_stack = act_on_stack(&binary_function(), CommandOptions::numerical(4), input_stack).unwrap();
 
     fn test_func(a: Expr, b: Expr) -> Expr {
       Expr::call("test_func", vec![a, b])
@@ -1097,7 +1142,7 @@ mod tests {
   fn test_binary_function_command_with_positive_arg_equal_to_stack_size_and_keep_arg() {
     let opts = CommandOptions::numerical(4).with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&binary_function(), opts, input_stack);
+    let output_stack = act_on_stack(&binary_function(), opts, input_stack).unwrap();
 
     fn test_func(a: Expr, b: Expr) -> Expr {
       Expr::call("test_func", vec![a, b])
@@ -1127,7 +1172,8 @@ mod tests {
   #[test]
   fn test_binary_function_command_with_positive_arg_and_stack_too_small() {
     let input_stack = vec![10, 20, 30];
-    let error = act_on_stack_err(&binary_function(), CommandOptions::numerical(4), input_stack);
+    let error = act_on_stack(&binary_function(), CommandOptions::numerical(4), input_stack).unwrap_err();
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 4, actual: 3 },
@@ -1137,7 +1183,8 @@ mod tests {
   #[test]
   fn test_binary_function_command_with_positive_arg_and_empty_stack() {
     let input_stack = Vec::<Expr>::new();
-    let error = act_on_stack_err(&binary_function(), CommandOptions::numerical(3), input_stack);
+    let error = act_on_stack(&binary_function(), CommandOptions::numerical(3), input_stack).unwrap_err();
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 3, actual: 0 },
@@ -1147,7 +1194,7 @@ mod tests {
   #[test]
   fn test_binary_function_command_with_arg_negative_one() {
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&binary_function(), CommandOptions::numerical(-1), input_stack);
+    let output_stack = act_on_stack(&binary_function(), CommandOptions::numerical(-1), input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -1162,7 +1209,7 @@ mod tests {
   fn test_binary_function_command_with_arg_negative_one_and_keep_arg() {
     let opts = CommandOptions::numerical(-1).with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&binary_function(), opts, input_stack);
+    let output_stack = act_on_stack(&binary_function(), opts, input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -1178,7 +1225,8 @@ mod tests {
   #[test]
   fn test_binary_function_command_with_arg_negative_one_on_stack_size_one() {
     let input_stack = vec![10];
-    let error = act_on_stack_err(&binary_function(), CommandOptions::numerical(-1), input_stack);
+    let error = act_on_stack(&binary_function(), CommandOptions::numerical(-1), input_stack).unwrap_err();
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 2, actual: 1 },
@@ -1188,7 +1236,7 @@ mod tests {
   #[test]
   fn test_binary_function_command_with_negative_arg() {
     let input_stack = vec![10, 20, 30, 40, 50];
-    let output_stack = act_on_stack(&binary_function(), CommandOptions::numerical(-3), input_stack);
+    let output_stack = act_on_stack(&binary_function(), CommandOptions::numerical(-3), input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -1203,7 +1251,8 @@ mod tests {
   #[test]
   fn test_binary_function_command_with_negative_arg_explicitly_assoc_left() {
     let input_stack = vec![10, 20, 30, 40, 50];
-    let output_stack = act_on_stack(&binary_function().assoc_left(), CommandOptions::numerical(-3), input_stack);
+    let output_stack =
+      act_on_stack(&binary_function().assoc_left(), CommandOptions::numerical(-3), input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -1220,7 +1269,8 @@ mod tests {
     // Note: Associativity does NOT affect BinaryFunctionCommand when
     // given a negative prefix arg.
     let input_stack = vec![10, 20, 30, 40, 50];
-    let output_stack = act_on_stack(&binary_function().assoc_right(), CommandOptions::numerical(-3), input_stack);
+    let output_stack =
+      act_on_stack(&binary_function().assoc_right(), CommandOptions::numerical(-3), input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -1236,7 +1286,7 @@ mod tests {
   fn test_binary_function_command_with_negative_arg_and_keep_arg() {
     let opts = CommandOptions::numerical(-3).with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40, 50];
-    let output_stack = act_on_stack(&binary_function(), opts, input_stack);
+    let output_stack = act_on_stack(&binary_function(), opts, input_stack).unwrap();
     assert_eq!(
       output_stack,
       Stack::from(vec![
@@ -1255,7 +1305,8 @@ mod tests {
   #[test]
   fn test_binary_function_command_with_negative_arg_and_too_small_stack() {
     let input_stack = vec![10, 20, 30, 40];
-    let error = act_on_stack_err(&binary_function(), CommandOptions::numerical(-4), input_stack);
+    let error = act_on_stack(&binary_function(), CommandOptions::numerical(-4), input_stack).unwrap_err();
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 5, actual: 4 },
@@ -1265,7 +1316,8 @@ mod tests {
   #[test]
   fn test_binary_function_command_with_negative_arg_and_empty_stack() {
     let input_stack = Vec::<Expr>::new();
-    let error = act_on_stack_err(&binary_function(), CommandOptions::numerical(-4), input_stack);
+    let error = act_on_stack(&binary_function(), CommandOptions::numerical(-4), input_stack).unwrap_err();
+    let error = error.downcast::<StackError>().unwrap();
     assert_eq!(
       error,
       StackError::NotEnoughElements { expected: 5, actual: 0 },

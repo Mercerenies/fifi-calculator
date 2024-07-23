@@ -8,6 +8,7 @@ import { TranscendentalButtonGrid } from "./transcendental_button_grid.js";
 import { GraphingButtonGrid } from "./graphing_button_grid.js";
 import { StringButtonGrid } from "./string_button_grid.js";
 import { DisplayButtonGrid } from "./display_button_grid.js";
+import { UnitsButtonGrid } from "./units_button_grid.js";
 import { DispatchButton, GotoButton } from './button.js';
 import { NumericalInputButton, AlgebraicInputButton,
          StringInputButton, AlgebraicEditButton } from './button/input.js';
@@ -34,6 +35,10 @@ function dupSvg(): HTMLElement {
 
 function graphSvg(): HTMLElement {
   return svg('assets/graph.svg', {alt: "graph"});
+}
+
+function rulerSvg(): HTMLElement {
+  return svg('assets/ruler.svg', {alt: "units"});
 }
 
 export class MainButtonGrid extends ButtonGrid {
@@ -74,6 +79,7 @@ export class MainButtonGrid extends ButtonGrid {
         new DispatchButton("<math><mo>&times;</mo><mi>i</mi></math>", "*i", null),
         new DispatchButton("<math><mo>&plusmn;</mo></math>", "negate", "n"),
         new DispatchButton("<math><msup><mi>x</mi><mi>y</mi></msup></math>", "^", "^"),
+        new GotoButton(rulerSvg(), "u", this.subgrids.units),
       ],
       [
         new DispatchButton("&divide;", "/", "/"),
@@ -168,6 +174,7 @@ class Subgrids {
   readonly graphing: GraphingButtonGrid;
   readonly display: DisplayButtonGrid;
   readonly strings: StringButtonGrid;
+  readonly units: UnitsButtonGrid;
 
   constructor(mainGrid: MainButtonGrid, inputManager: InputBoxManager) {
     this.algebra = new AlgebraButtonGrid(mainGrid, inputManager);
@@ -178,5 +185,6 @@ class Subgrids {
     this.graphing = new GraphingButtonGrid(mainGrid, inputManager);
     this.display = new DisplayButtonGrid(mainGrid, inputManager);
     this.strings = new StringButtonGrid(mainGrid, inputManager);
+    this.units = new UnitsButtonGrid(mainGrid, inputManager);
   }
 }

@@ -4,7 +4,7 @@ import { modifiersToRustArgs, defaultModifiers } from './button_grid/modifier_de
 
 import * as os from '@tauri-apps/plugin-os';
 import { invoke } from '@tauri-apps/api/core';
-import { listen, EventCallback, UnlistenFn } from '@tauri-apps/api/event';
+import { listen, emit, EventCallback, UnlistenFn } from '@tauri-apps/api/event';
 
 class TauriApi {
   osType(): Promise<os.OsType> {
@@ -35,6 +35,15 @@ class TauriApi {
     return invoke('validate_value', { value, validator });
   }
 
+  queryStack(query: StackQuery): Promise<boolean> {
+    return invoke('query_stack', { query });
+  }
+
+  showError(errorMessage: string): Promise<void> {
+    const payload: ShowErrorPayload = { errorMessage: "Error: " + errorMessage };
+    return emit('show-error', payload);
+  }
+
   listen(event: 'refresh-stack', callback: EventCallback<RefreshStackPayload>): Promise<UnlistenFn>;
   listen(event: 'refresh-undo-availability', callback: EventCallback<UndoAvailabilityPayload>): Promise<UnlistenFn>;
   listen(event: 'refresh-modeline', callback: EventCallback<ModelinePayload>): Promise<UnlistenFn>;
@@ -54,6 +63,10 @@ export enum UndoDirection {
 
 export enum Validator {
   VARIABLE = "variable",
+  ALL_UNITS = "all_units",
+  HAS_UNITS = "has_units",
+  IS_TEMPERATURE_UNIT = "is_temperature_unit",
+  HAS_TEMPERATURE_UNIT = "has_temperature_unit",
 }
 
 export interface CommandOptions {
@@ -77,6 +90,16 @@ export interface ModelinePayload {
 
 export interface ShowErrorPayload {
   errorMessage: string;
+}
+
+export interface StackQuery {
+  stackIndex: number;
+  queryType: StackQueryType;
+}
+
+export enum StackQueryType {
+  HAS_UNITS = "has_units",
+  HAS_BASIC_TEMPERATURE_UNITS = "has_basic_temperature_units",
 }
 
 export function defaultCommandOptions(): CommandOptions {

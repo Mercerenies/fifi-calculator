@@ -10,6 +10,7 @@ pub mod number;
 pub mod prisms;
 pub mod simplifier;
 pub mod tokenizer;
+pub mod units;
 pub mod var;
 pub mod vector;
 pub mod walker;
@@ -189,7 +190,7 @@ impl Display for Expr {
         let mut first = true;
         for arg in args {
           if !first {
-            write!(f, ",")?;
+            write!(f, ", ")?;
           }
           first = false;
           write!(f, "{arg}")?;
@@ -281,6 +282,17 @@ impl TryFrom<Expr> for String {
     match e {
       Expr::Atom(Atom::String(s)) => Ok(s),
       e => Err(TryFromExprError::new("String", e)),
+    }
+  }
+}
+
+impl TryFrom<Expr> for Var {
+  type Error = TryFromExprError;
+
+  fn try_from(e: Expr) -> Result<Self, Self::Error> {
+    match e {
+      Expr::Atom(Atom::Var(v)) => Ok(v),
+      e => Err(TryFromExprError::new("Var", e)),
     }
   }
 }

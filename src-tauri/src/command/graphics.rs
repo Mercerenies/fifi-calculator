@@ -217,7 +217,7 @@ impl Command for ContourPlotCommand {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::command::test_utils::{act_on_stack, act_on_stack_any_err};
+  use crate::command::test_utils::act_on_stack;
   use crate::command::options::CommandOptions;
   use crate::stack::test_utils::stack_of;
 
@@ -225,7 +225,7 @@ mod tests {
   fn test_basic_plot_command() {
     let opts = CommandOptions::default();
     let input_stack = vec![10, 20];
-    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack);
+    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack).unwrap();
     assert_eq!(output_stack, stack_of(vec![
       Expr::call("graphics", vec![Expr::call("plot", vec![Expr::from(10), Expr::from(20)])]),
     ]));
@@ -235,7 +235,7 @@ mod tests {
   fn test_basic_plot_command_with_keep_modifier() {
     let opts = CommandOptions::default().with_keep_modifier();
     let input_stack = vec![10, 20];
-    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack);
+    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack).unwrap();
     assert_eq!(output_stack, stack_of(vec![
       Expr::from(10),
       Expr::from(20),
@@ -247,7 +247,7 @@ mod tests {
   fn test_plot_command_with_positive_prefix_arg() {
     let opts = CommandOptions::numerical(2);
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack);
+    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack).unwrap();
     assert_eq!(output_stack, stack_of(vec![
       Expr::from(10),
       Expr::call("graphics", vec![
@@ -261,7 +261,7 @@ mod tests {
   fn test_plot_command_with_positive_prefix_arg_and_keep_arg() {
     let opts = CommandOptions::numerical(2).with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack);
+    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack).unwrap();
     assert_eq!(output_stack, stack_of(vec![
       Expr::from(10),
       Expr::from(20),
@@ -281,7 +281,7 @@ mod tests {
       Expr::from(10),
       Expr::call("vector", vec![Expr::from(20), Expr::from(30)]),
     ];
-    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack);
+    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack).unwrap();
     assert_eq!(output_stack, stack_of(vec![
       Expr::call("graphics", vec![
         Expr::call("plot", vec![Expr::from(10), Expr::from(20)]),
@@ -297,7 +297,7 @@ mod tests {
       Expr::from(10),
       Expr::call("vector", vec![Expr::from(20), Expr::from(30)]),
     ];
-    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack);
+    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack).unwrap();
     assert_eq!(output_stack, stack_of(vec![
       Expr::from(10),
       Expr::call("vector", vec![Expr::from(20), Expr::from(30)]),
@@ -315,7 +315,7 @@ mod tests {
       Expr::from(10),
       Expr::from(20),
     ];
-    let err = act_on_stack_any_err(&PlotCommand::new(), opts, input_stack);
+    let err = act_on_stack(&PlotCommand::new(), opts, input_stack).unwrap_err();
     assert_eq!(err.to_string(), "Expecting vector of Y values");
   }
 
@@ -328,7 +328,7 @@ mod tests {
       Expr::call("vector", vec![Expr::from(40), Expr::from(50)]),
       Expr::call("vector", vec![Expr::from(60), Expr::from(70)]),
     ];
-    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack);
+    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack).unwrap();
     assert_eq!(output_stack, stack_of(vec![
       Expr::from(10),
       Expr::call("graphics", vec![
@@ -348,7 +348,7 @@ mod tests {
       Expr::call("vector", vec![Expr::from(40), Expr::from(50)]),
       Expr::call("vector", vec![Expr::from(60), Expr::from(70)]),
     ];
-    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack);
+    let output_stack = act_on_stack(&PlotCommand::new(), opts, input_stack).unwrap();
     assert_eq!(output_stack, stack_of(vec![
       Expr::from(10),
       Expr::call("vector", vec![Expr::from(20), Expr::from(30)]),
@@ -371,7 +371,7 @@ mod tests {
       Expr::call("vector", vec![Expr::from(40), Expr::from(50)]),
       Expr::call("vector", vec![Expr::from(60), Expr::from(70)]),
     ];
-    let err = act_on_stack_any_err(&PlotCommand::new(), opts, input_stack);
+    let err = act_on_stack(&PlotCommand::new(), opts, input_stack).unwrap_err();
     assert_eq!(err.to_string(), "Expecting 2-vectors of X and Y values");
   }
 
@@ -379,7 +379,7 @@ mod tests {
   fn test_contour_plot_command() {
     let opts = CommandOptions::default();
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&ContourPlotCommand::new(), opts, input_stack);
+    let output_stack = act_on_stack(&ContourPlotCommand::new(), opts, input_stack).unwrap();
     assert_eq!(output_stack, stack_of(vec![
       Expr::from(10),
       Expr::call("graphics", vec![Expr::call("contourplot", vec![Expr::from(20), Expr::from(30), Expr::from(40)])]),
@@ -390,7 +390,7 @@ mod tests {
   fn test_contour_plot_command_with_numerical_arg() {
     let opts = CommandOptions::numerical(10);
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&ContourPlotCommand::new(), opts, input_stack);
+    let output_stack = act_on_stack(&ContourPlotCommand::new(), opts, input_stack).unwrap();
     assert_eq!(output_stack, stack_of(vec![
       Expr::from(10),
       Expr::call("graphics", vec![
@@ -406,7 +406,7 @@ mod tests {
   fn test_contour_plot_command_with_keep_arg() {
     let opts = CommandOptions::default().with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&ContourPlotCommand::new(), opts, input_stack);
+    let output_stack = act_on_stack(&ContourPlotCommand::new(), opts, input_stack).unwrap();
     assert_eq!(output_stack, stack_of(vec![
       Expr::from(10),
       Expr::from(20),
@@ -420,7 +420,7 @@ mod tests {
   fn test_contour_plot_command_with_numerical_arg_and_keep_arg() {
     let opts = CommandOptions::numerical(10).with_keep_modifier();
     let input_stack = vec![10, 20, 30, 40];
-    let output_stack = act_on_stack(&ContourPlotCommand::new(), opts, input_stack);
+    let output_stack = act_on_stack(&ContourPlotCommand::new(), opts, input_stack).unwrap();
     assert_eq!(output_stack, stack_of(vec![
       Expr::from(10),
       Expr::from(20),

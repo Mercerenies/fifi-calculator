@@ -12,6 +12,7 @@ pub mod input;
 pub mod nullary;
 pub mod options;
 pub mod shuffle;
+pub mod units;
 pub mod variables;
 pub mod vector;
 
@@ -65,6 +66,13 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("im".to_string(), Box::new(UnaryFunctionCommand::named("im")));
   map.insert("lowercase".to_string(), Box::new(UnaryFunctionCommand::named("lowercase")));
   map.insert("uppercase".to_string(), Box::new(UnaryFunctionCommand::named("uppercase")));
+  map.insert("simplify_units".to_string(), Box::new(units::simplify_units_command()));
+  map.insert("remove_units".to_string(), Box::new(units::remove_units_command()));
+  map.insert("extract_units".to_string(), Box::new(units::extract_units_command()));
+  map.insert("convert_units".to_string(), Box::new(units::ConvertUnitsCommand::new()));
+  map.insert("convert_units_with_context".to_string(), Box::new(units::ContextualConvertUnitsCommand::new()));
+  map.insert("convert_temp".to_string(), Box::new(units::ConvertTemperatureCommand::new()));
+  map.insert("convert_temp_with_context".to_string(), Box::new(units::ContextualConvertTemperatureCommand::new()));
   map.insert("=".to_string(), Box::new(BinaryFunctionCommand::named("=")));
   map.insert("!=".to_string(), Box::new(BinaryFunctionCommand::named("!=")));
   map.insert("<".to_string(), Box::new(BinaryFunctionCommand::named("<")));
@@ -126,85 +134,124 @@ fn substitute_vars(expr: Expr, state: &ApplicationState) -> Expr {
 pub(crate) mod test_utils {
   use super::*;
   use crate::expr::Expr;
+  use crate::expr::simplifier::default_simplifier;
+  use crate::expr::function::table::FunctionTable;
+  use crate::expr::function::library::build_function_table;
   use crate::command::options::CommandOptions;
   use crate::state::test_utils::state_for_stack;
   use crate::stack::test_utils::stack_of;
-  use crate::stack::{Stack, StackError};
+  use crate::stack::Stack;
 
-  /// Tests the operation on the given input stack, expecting a
-  /// success. Passes no string arguments.
-  pub fn act_on_stack<E>(command: &impl Command, opts: CommandOptions, input_stack: Vec<E>) -> Stack<Expr>
-  where E: Into<Expr> {
-    let args = Vec::<String>::new();
-    act_on_stack_with_args(command, args, opts, input_stack)
+  use once_cell::sync::Lazy;
+
+  /// Trait for arguments which are acceptable to pass to
+  /// `act_on_stack`. This trait merely exists to allow overloading
+  /// that test helper, so that we don't have to explicitly construct
+  /// a default command context all over the place.
+  pub trait ActOnStackArg {
+    fn mutate_arg(self, args: &mut Vec<String>, context: &mut CommandContext);
   }
 
-  /// Tests the operation on the given input stack. Expects a
-  /// [`StackError`]. Passes no string arguments. Asserts that the
-  /// stack is unchanged and returns the error.
-  pub fn act_on_stack_err<E>(command: &impl Command, opts: CommandOptions, input_stack: Vec<E>) -> StackError
-  where E: Into<Expr> + Clone {
-    let args = Vec::<String>::new();
-    act_on_stack_with_args_err(command, args, opts, input_stack)
+  impl ActOnStackArg for () {
+    fn mutate_arg(self, _args: &mut Vec<String>, _context: &mut CommandContext) {}
   }
 
-  /// Tests the operation on the given input stack. Expects an error
-  /// of any type. Passes no string arguments. Asserts that the stack
-  /// is unchanged and returns the error.
-  pub fn act_on_stack_any_err<E>(command: &impl Command, opts: CommandOptions, input_stack: Vec<E>) -> anyhow::Error
-  where E: Into<Expr> + Clone {
-    let args = Vec::<String>::new();
-    act_on_stack_with_args_any_err(command, args, opts, input_stack)
+  impl<A: ActOnStackArg, B: ActOnStackArg> ActOnStackArg for (A, B) {
+    fn mutate_arg(self, args: &mut Vec<String>, context: &mut CommandContext) {
+      let (a, b) = self;
+      a.mutate_arg(args, context);
+      b.mutate_arg(args, context);
+    }
   }
 
-  /// Tests the operation on the given input stack, expecting a
-  /// success.
-  pub fn act_on_stack_with_args<E>(
+  impl<A: ActOnStackArg, B: ActOnStackArg, C: ActOnStackArg> ActOnStackArg for (A, B, C) {
+    fn mutate_arg(self, args: &mut Vec<String>, context: &mut CommandContext) {
+      let (a, b, c) = self;
+      a.mutate_arg(args, context);
+      b.mutate_arg(args, context);
+      c.mutate_arg(args, context);
+    }
+  }
+
+  impl ActOnStackArg for CommandOptions {
+    fn mutate_arg(self, _args: &mut Vec<String>, context: &mut CommandContext) {
+      context.opts = self;
+    }
+  }
+
+  impl<S> ActOnStackArg for Vec<S>
+  where S: Into<String> {
+    fn mutate_arg(self, args: &mut Vec<String>, _context: &mut CommandContext) {
+      *args = self.into_iter().map(|s| s.into()).collect();
+    }
+  }
+
+  impl<F> ActOnStackArg for F
+  where F: FnOnce(&mut Vec<String>, &mut CommandContext) {
+    fn mutate_arg(self, args: &mut Vec<String>, context: &mut CommandContext) {
+      self(args, context)
+    }
+  }
+
+  /// Tests the command on the given input stack. If the command is
+  /// successful, returns the new stack. If the command results in an
+  /// error, this function asserts that the stack is unchanged and
+  /// then returns the error.
+  ///
+  /// The `command_modifier` argument is overloaded by the trait
+  /// [`ActOnStackArg`] and is designed to make writing tests that
+  /// utilize this function easier. Broadly, `command_modifier` can be
+  /// thought of as a `FnOnce(&mut Vec<String>, &mut CommandContext)`.
+  /// That is, it's an arbitrary function which can mutate the
+  /// argument list and the command context. `act_on_stack` first
+  /// generates an empty argument list and a [`Default`] command
+  /// context, then allows the modifier to modify it freely. In this
+  /// way, commands which don't require any modification can merely
+  /// pass `()`, while those that require some modification can pass
+  /// only the parts that need modifying.
+  ///
+  /// Acceptable `command_modifier` types:
+  ///
+  /// * `()` - Performs no modifications.
+  ///
+  /// * [`CommandOptions`] - Replaces the options in the
+  /// `CommandContext` with this value.
+  ///
+  /// * `Vec<impl Into<String>>` - Replaces the argument list with
+  /// this value.
+  ///
+  /// * `FnOnce(&mut Vec<String>, &mut CommandContext)` -
+  /// General-purpose case. Calls the function.
+  ///
+  /// Additionally, 2-tuples and 3-tuples of modifiers can be passed.
+  /// In that case, the modifiers are run in order, one after the
+  /// other.
+  pub fn act_on_stack<E, A>(
     command: &impl Command,
-    args: Vec<impl Into<String>>,
-    opts: CommandOptions,
+    command_modifier: A,
     input_stack: Vec<E>,
-  ) -> Stack<Expr>
-  where E: Into<Expr> {
-    let args = args.into_iter().map(|s| s.into()).collect();
-    let mut state = state_for_stack(input_stack);
-    let mut context = CommandContext::default();
-    context.opts = opts;
-    let output = command.run_command(&mut state, args, &context).unwrap();
-    assert!(output.errors().is_empty());
-    state.into_main_stack()
-  }
-
-  /// Tests the operation on the given input stack. Expects a failure
-  /// of any type. Asserts that the stack is unchanged and returns the
-  /// error.
-  pub fn act_on_stack_with_args_any_err<E>(
-    command: &impl Command,
-    args: Vec<impl Into<String>>,
-    opts: CommandOptions,
-    input_stack: Vec<E>,
-  ) -> anyhow::Error
-  where E: Into<Expr> + Clone {
-    let args = args.into_iter().map(|s| s.into()).collect();
+  ) -> Result<Stack<Expr>, anyhow::Error>
+  where E: Into<Expr> + Clone,
+        A: ActOnStackArg {
     let mut state = state_for_stack(input_stack.clone());
+    let mut args = Vec::new();
     let mut context = CommandContext::default();
-    context.opts = opts;
-    let err = command.run_command(&mut state, args, &context).unwrap_err();
-    assert_eq!(state.into_main_stack(), stack_of(input_stack));
-    err
+    command_modifier.mutate_arg(&mut args, &mut context);
+    match command.run_command(&mut state, args, &context) {
+      Ok(_) => {
+        Ok(state.into_main_stack())
+      }
+      Err(err) => {
+        assert_eq!(state.into_main_stack(), stack_of(input_stack));
+        Err(err)
+      }
+    }
   }
 
-  /// Tests the operation on the given input stack. Expects a
-  /// [`StackError`] to occur. Asserts that the stack is unchanged and
-  /// returns the error.
-  pub fn act_on_stack_with_args_err<E>(
-    command: &impl Command,
-    args: Vec<impl Into<String>>,
-    opts: CommandOptions,
-    input_stack: Vec<E>,
-  ) -> StackError
-  where E: Into<Expr> + Clone {
-    let err = act_on_stack_with_args_any_err(command, args, opts, input_stack);
-    err.downcast::<StackError>().unwrap()
+  /// This function is an [`ActOnStackArg`] which sets up the basic
+  /// simplifier. This is the simplifier used by default in the GUI.
+  pub fn setup_default_simplifier(_args: &mut Vec<String>, context: &mut CommandContext) {
+    static FUNCTION_TABLE: Lazy<FunctionTable> = Lazy::new(build_function_table);
+    context.simplifier = default_simplifier(&FUNCTION_TABLE);
   }
 }

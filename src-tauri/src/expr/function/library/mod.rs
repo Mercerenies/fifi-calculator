@@ -4,7 +4,7 @@
 //!
 //! This module only exports one function: [`build_function_table`].
 
-use crate::expr::function::table::FunctionTable;
+use super::table::FunctionTable;
 
 mod arithmetic;
 mod basic;

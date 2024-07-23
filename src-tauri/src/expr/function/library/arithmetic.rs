@@ -16,6 +16,7 @@ use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::calculus::DifferentiationError;
 use crate::graphics::GRAPHICS_NAME;
 use crate::util::repeated;
+use crate::util::prism::Identity;
 
 use num::{Zero, One};
 
@@ -163,7 +164,7 @@ pub fn multiplication() -> Function {
     .add_case(
       // String repetition
       builder::arity_two().of_types(expr_to_string(), expr_to_usize()).and_then(|s, n, _| {
-        let repeated_str: String = repeated(s, n.into());
+        let repeated_str: String = repeated(s, n);
         Ok(Expr::from(repeated_str))
       })
     )
@@ -246,6 +247,12 @@ pub fn multiplication() -> Function {
 
 pub fn division() -> Function {
   FunctionBuilder::new("/")
+    .add_case(
+      // Division by one
+      builder::arity_two().of_types(Identity, prisms::ExprToOne).and_then(|arg1, _, _| {
+        Ok(arg1)
+      })
+    )
     .add_case(
       // Real number division
       builder::arity_two().both_of_type(expr_to_number()).and_then(|arg1, arg2, context| {

@@ -16,6 +16,12 @@ impl<E> ErrorList<E> {
     self.errors.push(error)
   }
 
+  /// Pushes all errors from `other` onto the end of `self`, leaving
+  /// `other` empty.
+  pub fn append(&mut self, other: &mut Self) {
+    self.errors.append(&mut other.errors)
+  }
+
   pub fn is_empty(&self) -> bool {
     self.errors.is_empty()
   }

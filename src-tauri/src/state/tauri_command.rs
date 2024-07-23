@@ -2,11 +2,11 @@
 //! Tauri command-like functions.
 
 use super::{ApplicationState, UndoDirection};
-use super::validation::{Validator, validate};
+use super::validation::{Validator, ValidationContext, validate};
+use super::query::{Query, QueryContext, run_query};
 use super::events::show_error;
 use crate::command::{CommandContext, CommandOutput};
 use crate::command::dispatch::CommandDispatchTable;
-use crate::command::options::CommandOptions;
 use crate::errorlist::ErrorList;
 use crate::expr::simplifier::default_simplifier;
 use crate::expr::function::table::FunctionTable;
@@ -21,19 +21,14 @@ use std::fmt::Display;
 /// table.
 pub fn run_math_command(
   state: &mut ApplicationState,
-  function_table: &FunctionTable,
+  command_context: CommandContext,
   app_handle: &tauri::AppHandle,
   command_table: &CommandDispatchTable,
   command_name: &str,
   args: Vec<String>,
-  opts: CommandOptions,
 ) -> anyhow::Result<()> {
   let command = command_table.get(command_name)?;
-  let context = CommandContext {
-    opts,
-    simplifier: default_simplifier(function_table),
-  };
-  let output = command.run_command(state, args, &context)?;
+  let output = command.run_command(state, args, &command_context)?;
   handle_command_output(app_handle, &output)?;
 
   state.send_all_updates(app_handle, output.force_scroll_down())?;
@@ -120,11 +115,12 @@ pub fn validate_stack_size(
 /// false and reports the error to the user in the form of a
 /// notification.
 pub fn validate_value(
+  validation_context: &ValidationContext,
   app_handle: &tauri::AppHandle,
   value: String,
   validator: Validator,
 ) -> Result<bool, tauri::Error> {
-  let validation_passed = match validate(validator, value) {
+  let validation_passed = match validate(validator, validation_context, value) {
     Ok(()) => true,
     Err(err) => {
       show_error(app_handle, format!("Error: {}", err))?;
@@ -132,6 +128,25 @@ pub fn validate_value(
     }
   };
   Ok(validation_passed)
+}
+
+/// Runs a Boolean query against a particular element of the stack.
+/// Returns true or false, based on the result of the query. If the
+/// index is out of bounds, shows the user an error and returns false.
+pub fn query_stack(
+  query_context: &QueryContext,
+  app_handle: &tauri::AppHandle,
+  state: &ApplicationState,
+  query: &Query,
+) -> Result<bool, tauri::Error> {
+  let query_result = match run_query(query, query_context, state.main_stack()) {
+    Ok(result) => result,
+    Err(err) => {
+      show_error(app_handle, format!("Error: {}", err))?;
+      false
+    }
+  };
+  Ok(query_result)
 }
 
 /// Handles errors from the referenced [`ErrorList`] by communicating
