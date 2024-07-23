@@ -2,6 +2,7 @@
 //! Subsystem for converting between units and simplifying expressions
 //! which contain units.
 
+pub mod convertible;
 pub mod dimension;
 pub mod parsing;
 pub mod prefix;

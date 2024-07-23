@@ -1,12 +1,12 @@
 
 use super::composite::CompositeUnit;
+use super::convertible::UnitConvertible;
 use crate::util::prism::ErrorWithPayload;
 
 use thiserror::Error;
 use num::One;
 
 use std::fmt::{self, Formatter, Display, Debug};
-use std::ops::{Mul, Div};
 
 /// A scalar quantity, tagged with a unit.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -33,21 +33,18 @@ impl<S, U> Tagged<S, U> {
   }
 
   pub fn into_base(self) -> S
-  where S: for<'a> Mul<&'a U, Output = S>,
-        S: for<'a> Div<&'a U, Output = S> {
+  where S: UnitConvertible<U> {
     self.unit.to_base(self.value)
   }
 
   pub fn from_base(unit: CompositeUnit<U>, base_value: S) -> Self
-  where S: for<'a> Mul<&'a U, Output = S>,
-        S: for<'a> Div<&'a U, Output = S> {
+  where S: UnitConvertible<U> {
     let value = unit.from_base(base_value);
     Self { value, unit }
   }
 
   pub fn try_convert(self, target_unit: CompositeUnit<U>) -> Result<Tagged<S, U>, TryConvertError<S, U>>
-  where S: for<'a> Mul<&'a U, Output = S>,
-        S: for<'a> Div<&'a U, Output = S> {
+  where S: UnitConvertible<U> {
     if self.unit.dimension() == target_unit.dimension() {
       Ok(Tagged::from_base(target_unit, self.into_base()))
     } else {
@@ -56,8 +53,7 @@ impl<S, U> Tagged<S, U> {
   }
 
   pub fn convert_or_panic(self, target_unit: CompositeUnit<U>) -> Tagged<S, U>
-  where S: for<'a> Mul<&'a U, Output = S>,
-        S: for<'a> Div<&'a U, Output = S> {
+  where S: UnitConvertible<U> {
     self.try_convert(target_unit).unwrap_or_else(|err| {
       panic!("Conversion from {} to {} failed", err.tagged_value.unit, err.attempted_target)
     })
