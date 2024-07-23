@@ -95,6 +95,8 @@ where P: UnitParser<Number> + ?Sized {
         (signed_term.sign, parse_composite_unit_term(self.unit_parser, self.term_parser, signed_term.term))
       })
       .into_group_map_by(|(_sign, tagged)| tagged.unit.dimension());
+    // TODO Once we decide how we're sorting polynomials, do it here
+    // too for consistency.
     let polynomial_terms = grouped_terms.into_values()
       .map(|terms| {
         let tagged_polynomial = simplify_sum(terms);
