@@ -122,8 +122,8 @@ impl<T> Unit<T> {
     let composed_units = self.composed_units.and_then(|u| {
       composed_fn(*u).map(Box::new)
     });
-    let temperature_offset = self.temperature_offset.and_then(|u| {
-      Some(Box::new(temperature_fn(*u)))
+    let temperature_offset = self.temperature_offset.map(|u| {
+      Box::new(temperature_fn(*u))
     });
     Unit {
       name: name_fn(self.name),

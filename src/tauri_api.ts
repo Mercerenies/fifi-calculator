@@ -40,7 +40,7 @@ class TauriApi {
   }
 
   showError(errorMessage: string): Promise<void> {
-    let payload: ShowErrorPayload = { errorMessage: "Error: " + errorMessage };
+    const payload: ShowErrorPayload = { errorMessage: "Error: " + errorMessage };
     return emit('show-error', payload);
   }
 
