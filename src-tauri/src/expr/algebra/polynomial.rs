@@ -25,6 +25,14 @@ impl Polynomial {
   pub fn into_terms(self) -> Vec<SignedTerm> {
     self.terms
   }
+
+  pub fn len(&self) -> usize {
+    self.terms.len()
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.terms.is_empty()
+  }
 }
 
 pub fn parse_polynomial(term_parser: &TermParser, expr: Expr) -> Polynomial {
@@ -128,7 +136,7 @@ impl Neg for Polynomial {
 
 impl AddAssign for Polynomial {
   fn add_assign(&mut self, rhs: Self) {
-    self.terms.extend(rhs.terms.into_iter());
+    self.terms.extend(rhs.terms);
   }
 }
 

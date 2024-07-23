@@ -10,7 +10,7 @@ use std::cmp::Ordering;
 
 /// A dimension is a formal product and quotient of zero or more
 /// [`BaseDimension`] values.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct Dimension {
   dims: [i64; NDIMS],
 }
@@ -19,7 +19,7 @@ pub struct Dimension {
 /// a formal product or quotient of zero or more dimensions.
 ///
 /// These are simply the seven base SI units.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BaseDimension {
   Length,
   Time,

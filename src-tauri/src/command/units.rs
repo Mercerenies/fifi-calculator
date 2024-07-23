@@ -17,7 +17,7 @@ use crate::expr::simplifier::chained::ChainedSimplifier;
 use crate::expr::units::{parse_composite_unit_expr, try_parse_unit,
                          unit_into_term, tagged_into_expr,
                          UnitPrism, ParsedCompositeUnit,
-                         UnitTermSimplifier};
+                         UnitTermSimplifier, UnitPolynomialSimplifier};
 use crate::units::CompositeUnit;
 use crate::units::parsing::UnitParser;
 use crate::units::tagged::Tagged;
@@ -111,11 +111,13 @@ where P: UnitParser<Number> + ?Sized {
 
 /// Simplifier which runs a unit simplification step after the usual
 /// simplification step.
-fn unit_simplifier<'a>(term_parser: &'a TermParser, ctx: &'a CommandContext) -> ChainedSimplifier<'a, 'a> {
-  ChainedSimplifier::new(
+fn unit_simplifier<'a>(term_parser: &'a TermParser, ctx: &'a CommandContext) -> Box<dyn Simplifier + 'a> {
+  let simplifiers: [Box<dyn Simplifier + 'a>; 3] = [
     Box::new(ctx.simplifier.as_ref()),
     Box::new(UnitTermSimplifier::new(term_parser, ctx.units_parser)),
-  )
+    Box::new(UnitPolynomialSimplifier::new(term_parser, ctx.units_parser)),
+  ];
+  ChainedSimplifier::several(simplifiers)
 }
 
 /// Unary command which simplifies units on the targeted stack
@@ -125,7 +127,7 @@ pub fn simplify_units_command() -> UnaryFunctionCommand {
     let term_parser = state.term_parser();
     let simplifier = unit_simplifier(&term_parser, ctx);
     let mut simplifier_ctx = SimplifierContext {
-      base_simplifier: &simplifier,
+      base_simplifier: simplifier.as_ref(),
       errors,
     };
     simplifier.simplify_expr(arg, &mut simplifier_ctx)

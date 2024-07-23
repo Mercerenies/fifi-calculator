@@ -18,8 +18,9 @@ impl<'a, 'b> ChainedSimplifier<'a, 'b> {
 }
 
 impl ChainedSimplifier<'static, 'static> {
-  pub fn several<'c>(args: impl Iterator<Item = Box<dyn Simplifier>>) -> Box<dyn Simplifier + 'c> {
-    args.reduce(|a, b| Box::new(ChainedSimplifier::new(a, b)))
+  pub fn several<'c>(args: impl IntoIterator<Item = Box<dyn Simplifier + 'c>>) -> Box<dyn Simplifier + 'c> {
+    args.into_iter()
+      .reduce(|a, b| Box::new(ChainedSimplifier::new(a, b)))
       .unwrap_or_else(|| Box::new(IdentitySimplifier))
   }
 }

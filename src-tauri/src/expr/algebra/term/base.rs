@@ -32,6 +32,13 @@ pub struct Term {
 }
 
 impl Term {
+  pub fn singleton(expr: Expr) -> Self {
+    Self {
+      numerator: vec![expr],
+      denominator: Vec::new(),
+    }
+  }
+
   pub fn numerator(&self) -> &[Expr] {
     &self.numerator
   }
