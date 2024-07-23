@@ -13,3 +13,22 @@ pub trait UnitConvertible<U>: for<'a> Mul<&'a U, Output = Self> + for<'a> Div<&'
 
 impl<S, U> UnitConvertible<U> for S
 where S: for<'a> Mul<&'a U, Output = S> + for<'a> Div<&'a U, Output = S> {}
+
+/// A type which implements this trait can be used as the scalar in a
+/// temperature-sensitive unit conversion. This trait depends on
+/// [`UnitConvertible`] but must be implemented by hand, as its
+/// functionality is not provided by any other specific traits.
+pub trait TemperatureConvertible<U>: UnitConvertible<U> {
+  /// The output type produced after offsetting a value of type `Self`
+  /// by an offset of type `U`.
+  type Output;
+
+  /// Offset `self` by the given offset value.
+  fn offset(self, offset: Option<&U>) -> <Self as TemperatureConvertible<U>>::Output;
+
+  /// Subtracts the offset value from the given output. Note that this
+  /// might NOT be an exact inverse to `Self::offset`, but it should
+  /// produce a mathematical expression that represents the same
+  /// quantity in spirit.
+  fn unoffset(input: <Self as TemperatureConvertible<U>>::Output, offset: Option<&U>) -> Self;
+}
