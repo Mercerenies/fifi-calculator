@@ -9,8 +9,8 @@ use crate::expr::number::Number;
 use crate::expr::units::parse_composite_unit_expr;
 use crate::expr::algebra::term::{Term, TermParser};
 use crate::units::parsing::UnitParser;
-use crate::units::CompositeUnit;
-use crate::units::tagged::Tagged;
+use crate::units::{Unit, CompositeUnit};
+use crate::units::tagged::{Tagged, TemperatureTagged, try_into_basic_temperature_unit};
 use crate::display::language::LanguageMode;
 
 use num::One;
@@ -35,6 +35,12 @@ pub enum Validator {
   /// parse-able unit, even if the entire expression is not a unit
   /// expression. Delegates to [`validate_has_some_units`].
   HasUnits,
+  /// Validator that accepts only a simple temperature unit
+  /// expression.
+  IsTemperatureUnit,
+  /// Validator that accepts an expression (potentially with a scalar
+  /// part) whose unit is a 1-dimensional temperature unit.
+  HasTemperatureUnit,
 }
 
 #[derive(Clone)]
@@ -49,6 +55,8 @@ pub fn validate(validator: Validator, context: &ValidationContext, payload: Stri
     Validator::Variable => validate_var(payload).map(|_| ()),
     Validator::AllUnits => validate_is_all_units(context, &payload).map(|_| ()),
     Validator::HasUnits => validate_has_some_units(context, &payload).map(|_| ()),
+    Validator::IsTemperatureUnit => validate_is_temperature_unit(context, &payload).map(|_| ()),
+    Validator::HasTemperatureUnit => validate_has_temperature_unit(context, &payload).map(|_| ()),
   }
 }
 
@@ -79,6 +87,24 @@ pub fn validate_has_some_units(
   let tagged_expr = parse_composite_unit_expr(context.units_parser, context.term_parser, expr);
   anyhow::ensure!(!tagged_expr.unit.is_empty(), "There are no units in the expression {}", tagged_expr.value);
   Ok(tagged_expr)
+}
+
+pub fn validate_is_temperature_unit(
+  context: &ValidationContext,
+  expr: &str,
+) -> Result<Unit<Number>, anyhow::Error> {
+  let composite_unit = validate_is_all_units(context, expr)?;
+  let final_unit = try_into_basic_temperature_unit(composite_unit)?;
+  Ok(final_unit)
+}
+
+pub fn validate_has_temperature_unit(
+  context: &ValidationContext,
+  expr: &str,
+) -> Result<TemperatureTagged<Term, Number>, anyhow::Error> {
+  let tagged = validate_has_some_units(context, expr)?;
+  let temperature_tagged = TemperatureTagged::try_from(tagged)?;
+  Ok(temperature_tagged)
 }
 
 #[cfg(test)]
@@ -185,6 +211,100 @@ mod tests {
     let err = validate_has_some_units(&context, "(").unwrap_err();
     err.downcast::<ParseError>().unwrap();
     let err = validate_has_some_units(&context, "()").unwrap_err();
+    err.downcast::<ParseError>().unwrap();
+  }
+
+  #[test]
+  fn test_validate_is_temperature_unit() {
+    let units_parser = default_parser();
+    let term_parser = TermParser::new();
+    let language_mode = BasicLanguageMode::from_common_operators();
+    let context = ValidationContext {
+      units_parser: &units_parser,
+      term_parser: &term_parser,
+      language_mode: &language_mode,
+    };
+
+    validate_is_temperature_unit(&context, "degC").unwrap();
+    validate_is_temperature_unit(&context, "K").unwrap();
+    validate_is_temperature_unit(&context, "dF").unwrap();
+    validate_is_temperature_unit(&context, "uK").unwrap(); // micro-Kelvins ;)
+
+    assert_eq!(
+      validate_is_temperature_unit(&context, "1").unwrap_err().to_string(),
+      "Could not parse 1 as a unit",
+    );
+    assert_eq!(
+      validate_is_temperature_unit(&context, "3 * degC").unwrap_err().to_string(),
+      "Could not parse 3 as a unit",
+    );
+    assert_eq!(
+      validate_is_temperature_unit(&context, "degC / 3").unwrap_err().to_string(),
+      "Could not parse 1 / 3 as a unit",
+    );
+    assert_eq!(
+      validate_is_temperature_unit(&context, "aaa / 3").unwrap_err().to_string(),
+      "Could not parse aaa / 3 as a unit",
+    );
+    assert_eq!(
+      validate_is_temperature_unit(&context, "degC + m").unwrap_err().to_string(),
+      "Could not parse +(degC, m) as a unit",
+    );
+    assert_eq!(
+      validate_is_temperature_unit(&context, "EEE").unwrap_err().to_string(),
+      "Could not parse EEE as a unit",
+    );
+    assert_eq!(
+      validate_is_temperature_unit(&context, "km").unwrap_err().to_string(),
+      "Expected temperature unit",
+    );
+    assert_eq!(
+      validate_is_temperature_unit(&context, "degC * rad").unwrap_err().to_string(),
+      "Expected temperature unit",
+    );
+    let err = validate_is_temperature_unit(&context, "(").unwrap_err();
+    err.downcast::<ParseError>().unwrap();
+    let err = validate_is_temperature_unit(&context, "()").unwrap_err();
+    err.downcast::<ParseError>().unwrap();
+  }
+
+  #[test]
+  fn test_validate_has_temperature_unit() {
+    let units_parser = default_parser();
+    let term_parser = TermParser::new();
+    let language_mode = BasicLanguageMode::from_common_operators();
+    let context = ValidationContext {
+      units_parser: &units_parser,
+      term_parser: &term_parser,
+      language_mode: &language_mode,
+    };
+
+    validate_has_temperature_unit(&context, "degC").unwrap();
+    validate_has_temperature_unit(&context, "K").unwrap();
+    validate_has_temperature_unit(&context, "dF").unwrap();
+    validate_has_temperature_unit(&context, "uK").unwrap(); // micro-Kelvins ;)
+    validate_has_temperature_unit(&context, "3 * dF").unwrap();
+    validate_has_temperature_unit(&context, "degC / 10").unwrap();
+
+    assert_eq!(
+      validate_has_temperature_unit(&context, "1").unwrap_err().to_string(),
+      "There are no units in the expression 1",
+    );
+    assert_eq!(
+      validate_has_temperature_unit(&context, "aaa / 3").unwrap_err().to_string(),
+      "There are no units in the expression aaa / 3",
+    );
+    assert_eq!(
+      validate_has_temperature_unit(&context, "km").unwrap_err().to_string(),
+      "Expected temperature unit",
+    );
+    assert_eq!(
+      validate_has_temperature_unit(&context, "3 * km").unwrap_err().to_string(),
+      "Expected temperature unit",
+    );
+    let err = validate_has_temperature_unit(&context, "(").unwrap_err();
+    err.downcast::<ParseError>().unwrap();
+    let err = validate_has_temperature_unit(&context, "()").unwrap_err();
     err.downcast::<ParseError>().unwrap();
   }
 }
