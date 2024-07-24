@@ -467,7 +467,7 @@ pub fn power() -> Function {
               // Rotate the scalar part around the complex plane.
               // (TODO: Better results if arg2 is a positive integer?)
               Ok(Expr::call("*", vec![
-                Expr::from(pow_complex_to_real(ComplexNumber::from_real(-1), arg2.into())),
+                Expr::from(pow_complex_to_real(ComplexNumber::from_real(-1), arg2)),
                 Expr::from(InfiniteConstant::PosInfinity),
               ]))
             } else {
