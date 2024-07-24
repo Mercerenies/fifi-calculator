@@ -1,10 +1,18 @@
 
-use super::InfiniteConstant;
+use super::{InfiniteConstant, SignedInfinity};
 use crate::expr::Expr;
-use crate::util::prism::Prism;
+use crate::util::prism::{Prism, PrismExt, Conversion};
 
 #[derive(Debug, Clone)]
 pub struct ExprToInfinity;
+
+pub fn infinity_to_signed_infinity() -> Conversion<InfiniteConstant, SignedInfinity> {
+  Conversion::new()
+}
+
+pub fn expr_to_signed_infinity() -> impl Prism<Expr, SignedInfinity> + Clone {
+  ExprToInfinity.composed(infinity_to_signed_infinity())
+}
 
 impl Prism<Expr, InfiniteConstant> for ExprToInfinity {
   fn narrow_type(&self, input: Expr) -> Result<InfiniteConstant, Expr> {

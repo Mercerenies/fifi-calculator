@@ -1,17 +1,20 @@
 
 mod prisms;
 
-pub use prisms::ExprToInfinity;
+pub use prisms::{ExprToInfinity, infinity_to_signed_infinity, expr_to_signed_infinity};
 
 use crate::expr::Expr;
 use crate::expr::number::{Number, ComplexLike};
+use crate::util::prism::ErrorWithPayload;
 
 use either::Either;
 use num::{Zero, One};
+use thiserror::Error;
 
 use std::fmt::{self, Display, Formatter};
 use std::ops::{Add, Sub, Mul, MulAssign, Div, Neg};
 use std::cmp::Ordering;
+use std::convert::TryFrom;
 
 pub const INFINITY_NAME: &str = "inf";
 pub const UNDIRECTED_INFINITY_NAME: &str = "uinf";
@@ -37,6 +40,19 @@ pub enum InfiniteConstant {
   NotANumber,
 }
 
+/// An infinity value with a known sign.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SignedInfinity {
+  NegInfinity,
+  PosInfinity,
+}
+
+#[derive(Debug, Clone, Error)]
+#[error("Expected signed infinity")]
+pub struct ExpectedSignedInfinityError {
+  original_constant: InfiniteConstant,
+}
+
 impl InfiniteConstant {
   pub const ALL: [InfiniteConstant; 4] = [
     InfiniteConstant::PosInfinity,
@@ -51,6 +67,33 @@ impl InfiniteConstant {
     } else {
       InfiniteConstant::PosInfinity
     }
+  }
+}
+
+impl From<SignedInfinity> for InfiniteConstant {
+  fn from(s: SignedInfinity) -> InfiniteConstant {
+    match s {
+      SignedInfinity::NegInfinity => InfiniteConstant::NegInfinity,
+      SignedInfinity::PosInfinity => InfiniteConstant::PosInfinity,
+    }
+  }
+}
+
+impl TryFrom<InfiniteConstant> for SignedInfinity {
+  type Error = ExpectedSignedInfinityError;
+
+  fn try_from(c: InfiniteConstant) -> Result<SignedInfinity, ExpectedSignedInfinityError> {
+    match c {
+      InfiniteConstant::NegInfinity => Ok(SignedInfinity::NegInfinity),
+      InfiniteConstant::PosInfinity => Ok(SignedInfinity::PosInfinity),
+      _ => Err(ExpectedSignedInfinityError { original_constant: c }),
+    }
+  }
+}
+
+impl ErrorWithPayload<InfiniteConstant> for ExpectedSignedInfinityError {
+  fn recover_payload(self) -> InfiniteConstant {
+    self.original_constant
   }
 }
 
