@@ -14,7 +14,7 @@ use crate::expr::prisms::{self, expr_to_number, expr_to_string,
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex, pow_complex_to_real};
 use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::calculus::DifferentiationError;
-use crate::expr::algebra::infinity::{is_infinite_constant, multiply_infinities};
+use crate::expr::algebra::infinity::{InfiniteConstant, is_infinite_constant, multiply_infinities};
 use crate::graphics::GRAPHICS_NAME;
 use crate::util::repeated;
 use crate::util::prism::Identity;
@@ -338,6 +338,39 @@ pub fn division() -> Function {
       builder::arity_two().both_of_type(ExprToIntervalLike).and_then(|arg1, arg2, ctx| {
         ctx.errors.push(SimplifierError::custom_error("/", "Interval division is not currently supported"));
         Err((arg1, arg2))
+      })
+    )
+    .add_case(
+      // Infinity division (infinity divided by complex)
+      builder::arity_two().of_types(prisms::ExprToInfinity, ExprToComplex).and_then(|arg1, arg2, _| {
+        if arg1 == InfiniteConstant::NotANumber {
+          Ok(Expr::from(InfiniteConstant::NotANumber))
+        } else if arg2.is_zero() {
+          Ok(Expr::from(InfiniteConstant::UndirInfinity))
+        } else {
+          Ok(multiply_infinities(vec![
+            Either::Right(arg1),
+            Either::Left(arg2.recip()),
+          ]))
+        }
+      })
+    )
+    .add_case(
+      // Infinity division (Complex divided by infinity)
+      builder::arity_two().of_types(ExprToComplex, prisms::ExprToInfinity).and_then(|_arg1, arg2, _| {
+        if arg2 == InfiniteConstant::NotANumber {
+          Ok(Expr::from(InfiniteConstant::NotANumber))
+        } else {
+          Ok(Expr::zero())
+        }
+      })
+    )
+    .add_case(
+      // Infinity division
+      builder::arity_two().both_of_type(prisms::ExprToInfinity).and_then(|_, _, _| {
+        // Cannot divide two infinities; the quantity of the result is
+        // not known, so produce NaN.
+        Ok(Expr::from(InfiniteConstant::NotANumber))
       })
     )
     .set_derivative(

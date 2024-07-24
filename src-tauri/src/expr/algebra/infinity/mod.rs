@@ -50,6 +50,7 @@ pub fn is_infinite_constant(expr: &Expr) -> bool {
   InfiniteConstant::ALL.iter().any(|c| &Expr::from(c) == expr)
 }
 
+// TODO: Nightmarishly long function; clean up!
 pub fn multiply_infinities(args: Vec<Either<ComplexLike, InfiniteConstant>>) -> Expr {
   // If all quantities are finite, then just do regular
   // multiplication.

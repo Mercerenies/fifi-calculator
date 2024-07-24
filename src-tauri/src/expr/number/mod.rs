@@ -98,6 +98,13 @@ impl ComplexLike {
       ComplexLike::Complex(z) => z.abs_sqr(),
     }
   }
+
+  pub fn recip(&self) -> ComplexLike {
+    match self {
+      ComplexLike::Real(r) => ComplexLike::Real(r.recip()),
+      ComplexLike::Complex(z) => ComplexLike::Complex(z.recip()),
+    }
+  }
 }
 
 impl From<ComplexLike> for ComplexNumber {
