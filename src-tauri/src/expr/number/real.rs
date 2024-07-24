@@ -191,15 +191,12 @@ impl Number {
   }
 
   /// Returns the sign of the number, as an exact integer.
-  ///
-  /// If the number is a non-orderable floating-point constant (such
-  /// as NaN), then NaN is returned.
   pub fn signum(&self) -> Number {
     match self.partial_cmp(&Number::zero()) {
       Some(Ordering::Greater) => Number::from(1),
       Some(Ordering::Less) => Number::from(-1),
       Some(Ordering::Equal) => Number::from(0),
-      None => Number::from(f64::NAN),
+      None => unreachable!(), // We should have forbidden non-orderable constants in the constructor.
     }
   }
 

@@ -14,6 +14,7 @@ use crate::expr::prisms::{self, expr_to_number, expr_to_string,
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex, pow_complex_to_real};
 use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::calculus::DifferentiationError;
+use crate::expr::algebra::infinity::{is_infinite_constant, multiply_infinities};
 use crate::graphics::GRAPHICS_NAME;
 use crate::util::repeated;
 use crate::util::prism::Identity;
@@ -206,7 +207,8 @@ pub fn multiplication() -> Function {
         // FunctionCaseResults here are less than ideal. Can we make a
         // builder for this?
         let contains_zero = args.iter().any(Expr::is_zero);
-        if contains_zero {
+        let contains_infinities = args.iter().any(is_infinite_constant);
+        if contains_zero && !contains_infinities {
           FunctionCaseResult::Success(Expr::zero())
         } else {
           FunctionCaseResult::NoMatch(args)
@@ -253,6 +255,12 @@ pub fn multiplication() -> Function {
           .reduce(|a, b| a * b)
           .unwrap(); // unwrap safety: One of the earlier cases would have triggered if arglist was empty
         Ok(Expr::from(sum))
+      })
+    )
+    .add_case(
+      // Infinity multiplication
+      builder::any_arity().of_type(prisms::expr_to_unbounded_complex()).and_then(|args, _| {
+        Ok(multiply_infinities(args))
       })
     )
     .set_derivative(

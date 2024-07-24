@@ -56,12 +56,12 @@ impl ComplexNumber {
     (self.real, self.imag)
   }
 
-  pub fn from_real(real: Number) -> Self {
-    Self { real, imag: Number::zero() }
+  pub fn from_real(real: impl Into<Number>) -> Self {
+    Self { real: real.into(), imag: Number::zero() }
   }
 
-  pub fn from_imag(imag: Number) -> Self {
-    Self { real: Number::zero(), imag }
+  pub fn from_imag(imag: impl Into<Number>) -> Self {
+    Self { real: Number::zero(), imag: imag.into() }
   }
 
   /// Complex conjugate of `self`.
@@ -140,6 +140,18 @@ impl ComplexNumber {
       Ordering::Less => {
         powi_by_repeated_square(self.recip(), -exp)
       }
+    }
+  }
+
+  /// Returns a normalized vector in the same direction as this
+  /// complex number. Returns zero if the input is zero.
+  pub fn signum(&self) -> ComplexNumber {
+    if self.is_zero() {
+      ComplexNumber::zero()
+    } else {
+      // TODO: Revisit exactness once abs() can be exact.
+      let magnitude = ComplexNumber::from_real(self.abs());
+      self.clone() / magnitude
     }
   }
 

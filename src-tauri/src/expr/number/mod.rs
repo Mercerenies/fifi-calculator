@@ -16,7 +16,7 @@ use crate::util::stricteq::StrictEq;
 
 use num::{BigInt, Zero, One};
 
-use std::ops::{Add, Sub, Mul, Div, MulAssign};
+use std::ops::{Add, Sub, Neg, Mul, Div, MulAssign};
 
 // Precondition: exp > 0.
 fn powi_by_repeated_square<T>(mut input: T, mut exp: BigInt) -> T
@@ -71,6 +71,13 @@ impl ComplexLike {
     }
   }
 
+  pub fn is_real(&self) -> bool {
+    match self {
+      ComplexLike::Real(_) => true,
+      ComplexLike::Complex(_) => false,
+    }
+  }
+
   pub fn to_inexact(&self) -> Self {
     match self {
       ComplexLike::Real(r) => ComplexLike::Real(r.to_inexact()),
@@ -99,6 +106,12 @@ impl From<ComplexLike> for ComplexNumber {
       ComplexLike::Real(real) => ComplexNumber::from_real(real),
       ComplexLike::Complex(complex) => complex,
     }
+  }
+}
+
+impl From<i64> for ComplexLike {
+  fn from(input: i64) -> ComplexLike {
+    ComplexLike::Real(Number::from(input))
   }
 }
 
@@ -168,6 +181,17 @@ impl Sub for ComplexLike {
   }
 }
 
+impl Neg for ComplexLike {
+  type Output = ComplexLike;
+
+  fn neg(self) -> Self::Output {
+    match self {
+      ComplexLike::Real(a) => ComplexLike::Real(-a),
+      ComplexLike::Complex(a) => ComplexLike::Complex(-a),
+    }
+  }
+}
+
 impl Mul for ComplexLike {
   type Output = ComplexLike;
 
@@ -176,6 +200,12 @@ impl Mul for ComplexLike {
       (ComplexLike::Real(a), ComplexLike::Real(b)) => ComplexLike::Real(a * b),
       (a, b) => ComplexLike::Complex(ComplexNumber::from(a) * ComplexNumber::from(b)),
     }
+  }
+}
+
+impl MulAssign for ComplexLike {
+  fn mul_assign(&mut self, other: Self) {
+    *self = self.clone() * other
   }
 }
 
