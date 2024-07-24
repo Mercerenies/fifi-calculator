@@ -10,11 +10,13 @@ use super::number::{Number, ComplexNumber, ComplexLike};
 use super::interval::{Interval, IntervalAny, IntervalOrNumber};
 use super::literal::Literal;
 use super::algebra::formula::{Formula, Equation};
+use super::algebra::infinity::InfiniteConstant;
 use crate::util::prism::{Prism, PrismExt, OnVec, OnTuple2, Only, Conversion,
                          LosslessConversion, VecToArray, ErrorWithPayload};
 use crate::graphics::GRAPHICS_NAME;
 
 use num::{Zero, One};
+use either::Either;
 
 // Re-export some useful expression-adjacent prisms.
 pub use super::var::StringToVar;
@@ -148,6 +150,14 @@ pub fn expr_to_any_interval() -> Conversion<Expr, IntervalAny> {
 
 pub fn expr_to_interval() -> Conversion<Expr, Interval> {
   Conversion::new()
+}
+
+pub fn expr_to_unbounded_number() -> impl Prism<Expr, Either<Number, InfiniteConstant>> + Clone {
+  expr_to_number().or(ExprToInfinity)
+}
+
+pub fn expr_to_unbounded_complex() -> impl Prism<Expr, Either<ComplexLike, InfiniteConstant>> + Clone {
+  ExprToComplex.or(ExprToInfinity)
 }
 
 /// Prism which parses an [`Expr`] as a vector (in the expression

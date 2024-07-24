@@ -19,6 +19,7 @@ use crate::util::repeated;
 use crate::util::prism::Identity;
 
 use num::{Zero, One};
+use either::Either;
 
 use std::ops::{Add, Mul};
 
@@ -94,6 +95,18 @@ pub fn addition() -> Function {
       })
     )
     .add_case(
+      // Infinity addition
+      builder::any_arity().of_type(prisms::expr_to_unbounded_complex()).and_then(|args, _| {
+        // We can ignore any finite quantities, since they hold no
+        // sway over the result.
+        let sum = args.into_iter()
+          .filter_map(Either::right)
+          .reduce(|a, b| a + b)
+          .unwrap(); // unwrap safety: One of the earlier cases would have triggered if there were no infinities.
+        Ok(Expr::from(sum))
+      })
+    )
+    .add_case(
       // Graphics object concatenation
       builder::any_arity().of_type(prisms::Graphics2D::prism()).and_then(|args, _| {
         let args = args.into_iter()
@@ -141,6 +154,24 @@ pub fn subtraction() -> Function {
       // Interval subtraction
       builder::arity_two().both_of_type(ExprToIntervalLike).and_then(|arg1, arg2, _| {
         Ok(Expr::from(Interval::from(arg1) - Interval::from(arg2)))
+      })
+    )
+    .add_case(
+      // Pure infinity subtraction
+      builder::arity_two().both_of_type(prisms::ExprToInfinity).and_then(|arg1, arg2, _| {
+        Ok(Expr::from(arg1 - arg2))
+      })
+    )
+    .add_case(
+      // Infinity minus scalar
+      builder::arity_two().of_types(prisms::ExprToInfinity, ExprToComplex).and_then(|arg1, _arg2, _| {
+        Ok(Expr::from(arg1))
+      })
+    )
+    .add_case(
+      // Scalar minus infinity
+      builder::arity_two().of_types(ExprToComplex, prisms::ExprToInfinity).and_then(|_arg1, arg2, _| {
+        Ok(Expr::from(- arg2))
       })
     )
     .set_derivative(
