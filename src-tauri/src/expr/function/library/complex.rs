@@ -9,8 +9,11 @@ use crate::expr::Expr;
 use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder};
-use crate::expr::prisms::ExprToComplex;
+use crate::expr::prisms::{self, ExprToComplex};
 use crate::expr::number::ComplexNumber;
+use crate::expr::algebra::infinity::InfiniteConstant;
+
+use std::f64::consts::PI;
 
 pub fn append_complex_functions(table: &mut FunctionTable) {
   table.insert(conjugate());
@@ -27,6 +30,12 @@ pub fn conjugate() -> Function {
         Ok(Expr::from(ComplexNumber::from(arg).conj()))
       })
     )
+    .add_case(
+      // Conjugate of infinity constant
+      builder::arity_one().of_type(prisms::ExprToInfinity).and_then(|arg, _| {
+        Ok(Expr::from(arg))
+      })
+    )
     .build()
 }
 
@@ -37,6 +46,17 @@ pub fn arg() -> Function {
       builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
         let angle = ComplexNumber::from(arg).angle();
         Ok(Expr::from(angle.0))
+      })
+    )
+    .add_case(
+      // Argument (phase) of infinity
+      builder::arity_one().of_type(prisms::ExprToInfinity).and_then(|arg, _| {
+        let phase = match arg {
+          InfiniteConstant::PosInfinity => Expr::zero(),
+          InfiniteConstant::NegInfinity => Expr::from(PI),
+          InfiniteConstant::NotANumber | InfiniteConstant::UndirInfinity => Expr::from(InfiniteConstant::NotANumber),
+        };
+        Ok(phase)
       })
     )
     .build()
@@ -51,6 +71,16 @@ pub fn re() -> Function {
         Ok(arg.into_parts().0.into())
       })
     )
+    .add_case(
+      // Real part of infinity constant
+      builder::arity_one().of_type(prisms::ExprToInfinity).and_then(|arg, _| {
+        if arg == InfiniteConstant::NotANumber || arg == InfiniteConstant::UndirInfinity {
+          Ok(Expr::from(InfiniteConstant::NotANumber))
+        } else {
+          Ok(Expr::from(arg))
+        }
+      })
+    )
     .build()
 }
 
@@ -61,6 +91,16 @@ pub fn im() -> Function {
       builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
         let arg = ComplexNumber::from(arg);
         Ok(arg.into_parts().1.into())
+      })
+    )
+    .add_case(
+      // Imaginary part of infinity constant
+      builder::arity_one().of_type(prisms::ExprToInfinity).and_then(|arg, _| {
+        if arg == InfiniteConstant::NotANumber || arg == InfiniteConstant::UndirInfinity {
+          Ok(Expr::from(InfiniteConstant::NotANumber))
+        } else {
+          Ok(Expr::zero())
+        }
       })
     )
     .build()
