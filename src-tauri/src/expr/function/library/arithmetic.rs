@@ -696,6 +696,12 @@ pub fn arithmetic_negate() -> Function {
         Ok(Expr::from(- arg))
       })
     )
+    .add_case(
+      // Negation of infinity
+      builder::arity_one().of_type(prisms::ExprToInfinity).and_then(|arg, _| {
+        Ok(Expr::from(- arg))
+      })
+    )
     .set_derivative(
       builder::arity_one_deriv("negate", |arg, engine| {
         Ok(Expr::call("negate", vec![engine.differentiate(arg)?]))
@@ -723,6 +729,12 @@ pub fn abs() -> Function {
       // Norm of a vector
       builder::arity_one().of_type(ExprToVector).and_then(|arg, _| {
         Ok(vector_norm(arg))
+      })
+    )
+    .add_case(
+      // Absolute value of infinity
+      builder::arity_one().of_type(prisms::ExprToInfinity).and_then(|arg, _| {
+        Ok(Expr::from(arg.abs()))
       })
     )
     .set_derivative(
@@ -765,6 +777,19 @@ pub fn signum() -> Function {
           arg.into(),
           Expr::call("||", vec![norm, Expr::from(Number::from(1))]), // Corner case: If vector is zero, return zero
         ]))
+      })
+    )
+    .add_case(
+      // Signum of infinity
+      builder::arity_one().of_type(prisms::ExprToInfinity).and_then(|arg, ctx| {
+        match arg {
+          InfiniteConstant::PosInfinity => Ok(Expr::from(1)),
+          InfiniteConstant::NegInfinity => Ok(Expr::from(-1)),
+          arg => {
+            ctx.errors.push(SimplifierError::custom_error("signum", "Cannot take signum of unsigned infinity"));
+            Err(arg)
+          }
+        }
       })
     )
     .set_derivative(

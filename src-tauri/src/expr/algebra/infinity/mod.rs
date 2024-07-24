@@ -44,6 +44,14 @@ impl InfiniteConstant {
     InfiniteConstant::UndirInfinity,
     InfiniteConstant::NotANumber,
   ];
+
+  pub fn abs(&self) -> InfiniteConstant {
+    if self == &InfiniteConstant::NotANumber {
+      InfiniteConstant::NotANumber
+    } else {
+      InfiniteConstant::PosInfinity
+    }
+  }
 }
 
 pub fn is_infinite_constant(expr: &Expr) -> bool {
