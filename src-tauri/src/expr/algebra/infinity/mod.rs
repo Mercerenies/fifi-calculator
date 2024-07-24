@@ -1,7 +1,7 @@
 
 mod prisms;
 
-pub use prisms::{ExprToInfinity, infinity_to_signed_infinity, expr_to_signed_infinity};
+pub use prisms::{ExprToInfinity, infinity_to_signed_infinity, expr_to_signed_infinity, expr_to_unbounded_number};
 
 use crate::expr::Expr;
 use crate::expr::number::{Number, ComplexLike};
@@ -41,10 +41,17 @@ pub enum InfiniteConstant {
 }
 
 /// An infinity value with a known sign.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SignedInfinity {
   NegInfinity,
   PosInfinity,
+}
+
+/// Either a finite real value or a signed infinity.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UnboundedNumber {
+  Finite(Number),
+  Infinite(SignedInfinity),
 }
 
 #[derive(Debug, Clone, Error)]
@@ -96,6 +103,51 @@ impl ErrorWithPayload<InfiniteConstant> for ExpectedSignedInfinityError {
     self.original_constant
   }
 }
+
+impl PartialEq<Number> for SignedInfinity {
+  fn eq(&self, _: &Number) -> bool {
+    false
+  }
+}
+
+impl PartialOrd<Number> for SignedInfinity {
+  fn partial_cmp(&self, _other: &Number) -> Option<Ordering> {
+    match self {
+      SignedInfinity::NegInfinity => Some(Ordering::Less),
+      SignedInfinity::PosInfinity => Some(Ordering::Greater),
+    }
+  }
+}
+
+impl PartialEq<SignedInfinity> for Number {
+  fn eq(&self, _: &SignedInfinity) -> bool {
+    false
+  }
+}
+
+impl PartialOrd<SignedInfinity> for Number {
+  fn partial_cmp(&self, other: &SignedInfinity) -> Option<Ordering> {
+    other.partial_cmp(self).map(Ordering::reverse)
+  }
+}
+
+impl PartialOrd for UnboundedNumber {
+  fn partial_cmp(&self, other: &UnboundedNumber) -> Option<Ordering> {
+    Some(self.cmp(other))
+  }
+}
+
+impl Ord for UnboundedNumber {
+  fn cmp(&self, other: &Self) -> Ordering {
+    match (self, other) {
+      (UnboundedNumber::Finite(a), UnboundedNumber::Finite(b)) => a.cmp(b),
+      (UnboundedNumber::Finite(a), UnboundedNumber::Infinite(b)) => a.partial_cmp(b).unwrap(),
+      (UnboundedNumber::Infinite(a), UnboundedNumber::Finite(b)) => a.partial_cmp(b).unwrap(),
+      (UnboundedNumber::Infinite(a), UnboundedNumber::Infinite(b)) => a.partial_cmp(b).unwrap(),
+    }
+  }
+}
+
 
 pub fn is_infinite_constant(expr: &Expr) -> bool {
   InfiniteConstant::ALL.iter().any(|c| &Expr::from(c) == expr)
@@ -188,6 +240,21 @@ impl<'a> From<&'a InfiniteConstant> for Expr {
 impl From<InfiniteConstant> for Expr {
   fn from(c: InfiniteConstant) -> Self {
     Expr::from(&c)
+  }
+}
+
+impl From<SignedInfinity> for Expr {
+  fn from(c: SignedInfinity) -> Self {
+    Expr::from(InfiniteConstant::from(c))
+  }
+}
+
+impl From<UnboundedNumber> for Expr {
+  fn from(c: UnboundedNumber) -> Self {
+    match c {
+      UnboundedNumber::Finite(c) => Expr::from(c),
+      UnboundedNumber::Infinite(c) => Expr::from(c),
+    }
   }
 }
 

@@ -99,7 +99,7 @@ pub fn addition() -> Function {
     )
     .add_case(
       // Infinity addition
-      builder::any_arity().of_type(prisms::expr_to_unbounded_complex()).and_then(|args, _| {
+      builder::any_arity().of_type(prisms::expr_to_complex_or_inf()).and_then(|args, _| {
         // We can ignore any finite quantities, since they hold no
         // sway over the result.
         let sum = args.into_iter()
@@ -261,7 +261,7 @@ pub fn multiplication() -> Function {
     )
     .add_case(
       // Infinity multiplication
-      builder::any_arity().of_type(prisms::expr_to_unbounded_complex()).and_then(|args, _| {
+      builder::any_arity().of_type(prisms::expr_to_complex_or_inf()).and_then(|args, _| {
         Ok(multiply_infinities(args))
       })
     )

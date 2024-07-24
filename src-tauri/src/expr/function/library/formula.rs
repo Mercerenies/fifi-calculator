@@ -56,8 +56,8 @@ pub fn not_equal_to() -> Function {
 pub fn less_than() -> Function {
   FunctionBuilder::new("<")
     .add_case(
-      // Real number comparison
-      builder::arity_two().both_of_type(prisms::expr_to_number()).and_then(|left, right, _| {
+      // Real number (possibly infinite) comparison
+      builder::arity_two().both_of_type(prisms::expr_to_unbounded_number()).and_then(|left, right, _| {
         Ok(Expr::from(left < right))
       })
     )
@@ -80,8 +80,8 @@ pub fn less_than() -> Function {
 pub fn less_than_or_equal() -> Function {
   FunctionBuilder::new("<=")
     .add_case(
-      // Real number comparison
-      builder::arity_two().both_of_type(prisms::expr_to_number()).and_then(|left, right, _| {
+      // Real number (possibly infinite) comparison
+      builder::arity_two().both_of_type(prisms::expr_to_unbounded_number()).and_then(|left, right, _| {
         Ok(Expr::from(left <= right))
       })
     )
@@ -104,8 +104,8 @@ pub fn less_than_or_equal() -> Function {
 pub fn greater_than() -> Function {
   FunctionBuilder::new(">")
     .add_case(
-      // Real number comparison
-      builder::arity_two().both_of_type(prisms::expr_to_number()).and_then(|left, right, _| {
+      // Real number (possibly infinite) comparison
+      builder::arity_two().both_of_type(prisms::expr_to_unbounded_number()).and_then(|left, right, _| {
         Ok(Expr::from(left > right))
       })
     )
@@ -128,8 +128,8 @@ pub fn greater_than() -> Function {
 pub fn greater_than_or_equal() -> Function {
   FunctionBuilder::new(">=")
     .add_case(
-      // Real number comparison
-      builder::arity_two().both_of_type(prisms::expr_to_number()).and_then(|left, right, _| {
+      // Real number (possibly infinite) comparison
+      builder::arity_two().both_of_type(prisms::expr_to_unbounded_number()).and_then(|left, right, _| {
         Ok(Expr::from(left >= right))
       })
     )

@@ -7,7 +7,7 @@ use thiserror::Error;
 
 use std::fmt::{self, Write, Display, Formatter};
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Atom {
   Number(Number),
   String(String),

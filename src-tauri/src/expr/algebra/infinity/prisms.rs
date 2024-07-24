@@ -1,7 +1,10 @@
 
-use super::{InfiniteConstant, SignedInfinity};
+use super::{InfiniteConstant, SignedInfinity, UnboundedNumber};
 use crate::expr::Expr;
+use crate::expr::prisms::expr_to_number;
 use crate::util::prism::{Prism, PrismExt, Conversion};
+
+use either::Either;
 
 #[derive(Debug, Clone)]
 pub struct ExprToInfinity;
@@ -12,6 +15,20 @@ pub fn infinity_to_signed_infinity() -> Conversion<InfiniteConstant, SignedInfin
 
 pub fn expr_to_signed_infinity() -> impl Prism<Expr, SignedInfinity> + Clone {
   ExprToInfinity.composed(infinity_to_signed_infinity())
+}
+
+pub fn expr_to_unbounded_number() -> impl Prism<Expr, UnboundedNumber> + Clone {
+  expr_to_signed_infinity().or(expr_to_number()).rmap(|either| {
+    match either {
+      Either::Left(inf) => UnboundedNumber::Infinite(inf),
+      Either::Right(n) => UnboundedNumber::Finite(n),
+    }
+  }, |unbounded| {
+    match unbounded {
+      UnboundedNumber::Infinite(inf) => Either::Left(inf),
+      UnboundedNumber::Finite(n) => Either::Right(n),
+    }
+  })
 }
 
 impl Prism<Expr, InfiniteConstant> for ExprToInfinity {

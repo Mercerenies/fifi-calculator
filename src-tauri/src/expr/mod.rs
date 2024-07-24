@@ -29,7 +29,7 @@ use std::mem;
 use std::fmt::{self, Display, Formatter};
 use std::collections::HashSet;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Expr {
   Atom(Atom),
   Call(String, Vec<Expr>),

@@ -23,7 +23,8 @@ pub use super::var::StringToVar;
 pub use super::vector::ExprToVector;
 pub use super::vector::tensor::ExprToTensor;
 pub use super::number::prisms::{NumberToUsize, NumberToI64};
-pub use super::algebra::infinity::ExprToInfinity;
+pub use super::algebra::infinity::{ExprToInfinity, infinity_to_signed_infinity,
+                                   expr_to_signed_infinity, expr_to_unbounded_number};
 
 /// An expression which is literally equal to the value zero.
 #[derive(Debug, Clone)]
@@ -152,11 +153,11 @@ pub fn expr_to_interval() -> Conversion<Expr, Interval> {
   Conversion::new()
 }
 
-pub fn expr_to_unbounded_number() -> impl Prism<Expr, Either<Number, InfiniteConstant>> + Clone {
+pub fn expr_to_number_or_inf() -> impl Prism<Expr, Either<Number, InfiniteConstant>> + Clone {
   expr_to_number().or(ExprToInfinity)
 }
 
-pub fn expr_to_unbounded_complex() -> impl Prism<Expr, Either<ComplexLike, InfiniteConstant>> + Clone {
+pub fn expr_to_complex_or_inf() -> impl Prism<Expr, Either<ComplexLike, InfiniteConstant>> + Clone {
   ExprToComplex.or(ExprToInfinity)
 }
 
