@@ -1,8 +1,9 @@
 
 use super::{Expr, TryFromExprError};
 use super::number::{Number, ComplexNumber, ComplexLike};
+use super::algebra::infinity::InfiniteConstant;
 use super::vector::Vector;
-use super::prisms::{ExprToComplex, ExprToVector, expr_to_string};
+use super::prisms::{ExprToComplex, ExprToVector, ExprToInfinity, expr_to_string};
 use crate::util::prism::Prism;
 
 use std::convert::TryFrom;
@@ -11,6 +12,12 @@ use std::convert::TryFrom;
 /// represents literal values. This subset is defined inductively.
 ///
 /// * Real or complex number literals are literal values.
+///
+/// * Strings are literal values.
+///
+/// * Known infinity constants are literal values. (Note:
+/// [`InfiniteConstant::NotANumber`] is equal to itself and is NOT
+/// treated specially by this type)
 ///
 /// * A vector (as defined by the [`Vector`] type) is a literal value
 /// iff all of its elements are literals.
@@ -23,6 +30,7 @@ pub struct Literal {
 enum LiteralImpl {
   Numerical(ComplexLike),
   String(String),
+  Infinity(InfiniteConstant),
   Vector(Vec<Literal>),
 }
 
@@ -37,6 +45,10 @@ impl Literal {
 
   fn try_from_as_string(expr: Expr) -> Result<Self, Expr> {
     expr_to_string().narrow_type(expr).map(|s| Literal { data: LiteralImpl::String(s) })
+  }
+
+  fn try_from_as_infinity(expr: Expr) -> Result<Self, Expr> {
+    ExprToInfinity.narrow_type(expr).map(|c| Literal { data: LiteralImpl::Infinity(c) })
   }
 
   fn try_from_as_vector(expr: Expr) -> Result<Self, Expr> {
@@ -74,11 +86,18 @@ impl From<ComplexNumber> for Literal {
   }
 }
 
+impl From<InfiniteConstant> for Literal {
+  fn from(c: InfiniteConstant) -> Self {
+    Literal { data: LiteralImpl::Infinity(c) }
+  }
+}
+
 impl From<Literal> for Expr {
   fn from(lit: Literal) -> Self {
     match lit.data {
       LiteralImpl::String(s) => s.into(),
       LiteralImpl::Numerical(n) => n.into(),
+      LiteralImpl::Infinity(inf) => inf.into(),
       LiteralImpl::Vector(v) => {
         let v: Vector = v.into_iter().map(Expr::from).collect();
         v.into()
@@ -95,6 +114,8 @@ impl TryFrom<Expr> for Literal {
       Literal::try_from_as_vector(expr)
     }).or_else(|expr| {
       Literal::try_from_as_string(expr)
+    }).or_else(|expr| {
+      Literal::try_from_as_infinity(expr)
     }).map_err(|expr| {
       TryFromExprError::new("Literal", expr)
     })
@@ -117,6 +138,7 @@ mod tests {
     expect_roundtrip(Literal::from(Number::from(-2.5)));
     expect_roundtrip(Literal::from(ComplexNumber::new(1, 1)));
     expect_roundtrip(Literal::from(ComplexNumber::new(-2, Number::ratio(1, 2))));
+    expect_roundtrip(Literal::from(InfiniteConstant::NegInfinity));
   }
 
   #[test]
