@@ -1,9 +1,12 @@
 
 mod prisms;
 
+pub use prisms::ExprToInfinity;
+
 use crate::expr::Expr;
 
 use std::fmt::{self, Display, Formatter};
+use std::ops::{Add, Sub, Mul, Div, Neg};
 
 pub const INFINITY_NAME: &str = "inf";
 pub const UNDIRECTED_INFINITY_NAME: &str = "uinf";
@@ -63,5 +66,66 @@ impl Display for InfiniteConstant {
       InfiniteConstant::UndirInfinity => write!(f, "uinf"),
       InfiniteConstant::NotANumber => write!(f, "nan"),
     }
+  }
+}
+
+impl Add for InfiniteConstant {
+  type Output = InfiniteConstant;
+
+  fn add(self, other: InfiniteConstant) -> InfiniteConstant {
+    use InfiniteConstant::*;
+    match (self, other) {
+      (NotANumber, _) | (_, NotANumber) => NotANumber,
+      (UndirInfinity, _) | (_, UndirInfinity) => UndirInfinity,
+      (PosInfinity, NegInfinity) | (NegInfinity, PosInfinity) => NotANumber,
+      (PosInfinity, PosInfinity) => PosInfinity,
+      (NegInfinity, NegInfinity) => PosInfinity,
+    }
+  }
+}
+
+impl Neg for InfiniteConstant {
+  type Output = InfiniteConstant;
+
+  fn neg(self) -> InfiniteConstant {
+    use InfiniteConstant::*;
+    match self {
+      NotANumber => NotANumber,
+      PosInfinity => NegInfinity,
+      NegInfinity => PosInfinity,
+      UndirInfinity => UndirInfinity,
+    }
+  }
+}
+
+impl Sub for InfiniteConstant {
+  type Output = InfiniteConstant;
+
+  fn sub(self, other: InfiniteConstant) -> InfiniteConstant {
+    self + -other
+  }
+}
+
+impl Mul for InfiniteConstant {
+  type Output = InfiniteConstant;
+
+  fn mul(self, other: InfiniteConstant) -> InfiniteConstant {
+    use InfiniteConstant::*;
+    match (self, other) {
+      (NotANumber, _) | (_, NotANumber) => NotANumber,
+      (UndirInfinity, _) | (_, UndirInfinity) => UndirInfinity,
+      (PosInfinity, NegInfinity) | (NegInfinity, PosInfinity) => NegInfinity,
+      (PosInfinity, PosInfinity) | (NegInfinity, NegInfinity) => PosInfinity,
+    }
+  }
+}
+
+/// Trivial implementation of `Div`. Since we can't compare the
+/// relative magnitudes of two infinities, we always get `NotANumber`.
+impl Div for InfiniteConstant {
+  type Output = InfiniteConstant;
+
+  fn div(self, _: InfiniteConstant) -> InfiniteConstant {
+    InfiniteConstant::NotANumber
   }
 }

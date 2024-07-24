@@ -21,6 +21,7 @@ pub use super::var::StringToVar;
 pub use super::vector::ExprToVector;
 pub use super::vector::tensor::ExprToTensor;
 pub use super::number::prisms::{NumberToUsize, NumberToI64};
+pub use super::algebra::infinity::ExprToInfinity;
 
 /// An expression which is literally equal to the value zero.
 #[derive(Debug, Clone)]
