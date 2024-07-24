@@ -2,6 +2,7 @@
 //! Helpers for manipulating expressions algebraically.
 
 pub mod formula;
+pub mod infinity;
 pub mod newton;
 pub mod polynomial;
 pub mod term;
