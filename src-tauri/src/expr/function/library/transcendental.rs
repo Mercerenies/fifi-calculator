@@ -8,6 +8,7 @@ use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder};
 use crate::expr::prisms::{self, expr_to_number, ExprToComplex};
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex};
+use crate::expr::algebra::infinity::InfiniteConstant;
 
 use num::{Zero, One};
 
@@ -47,6 +48,16 @@ pub fn natural_log() -> Function {
           return Err(arg);
         }
         Ok(Expr::from(arg.map_monotone(|x| x.ln())))
+      })
+    )
+    .add_case(
+      // Natural logarithm of infinity
+      builder::arity_one().of_type(prisms::ExprToInfinity).and_then(|arg, _| {
+        if arg == InfiniteConstant::NotANumber {
+          Ok(Expr::from(InfiniteConstant::NotANumber))
+        } else {
+          Ok(Expr::from(InfiniteConstant::PosInfinity))
+        }
       })
     )
     .set_derivative(
@@ -100,6 +111,32 @@ pub fn logarithm() -> Function {
         Ok(Expr::from(arg.map_monotone(|x| x.log(&base))))
       })
     )
+    .add_case(
+      // Logarithm of complex with infinite base
+      builder::arity_two().of_types(prisms::ExprToComplex, prisms::ExprToInfinity).and_then(|_arg, base, _| {
+        if base == InfiniteConstant::NotANumber {
+          Ok(Expr::from(InfiniteConstant::NotANumber))
+        } else {
+          Ok(Expr::zero())
+        }
+      })
+    )
+    .add_case(
+      // Logarithm of infinity with complex base
+      builder::arity_two().of_types(prisms::ExprToInfinity, prisms::ExprToComplex).and_then(|arg, _base, _| {
+        if arg == InfiniteConstant::NotANumber {
+          Ok(Expr::from(InfiniteConstant::NotANumber))
+        } else {
+          Ok(Expr::from(InfiniteConstant::PosInfinity))
+        }
+      })
+    )
+    .add_case(
+      // Logarithm of infinity with infinite base (indeterminate)
+      builder::arity_two().both_of_type(prisms::ExprToInfinity).and_then(|_, _, _| {
+        Ok(Expr::from(InfiniteConstant::NotANumber))
+      })
+    )
     .set_derivative(
       builder::arity_two_deriv("log", |arg, base, engine| {
         // Convert to ln(a) / ln(b) and do the Quotient Rule.
@@ -141,6 +178,16 @@ pub fn exponent() -> Function {
           pow_real(e, x).unwrap_real()
         });
         Ok(Expr::from(value))
+      })
+    )
+    .add_case(
+      // Infinity case
+      builder::arity_one().of_type(prisms::ExprToInfinity).and_then(|arg, _| {
+        match arg {
+          InfiniteConstant::PosInfinity => Ok(Expr::from(InfiniteConstant::PosInfinity)),
+          InfiniteConstant::NegInfinity => Ok(Expr::zero()),
+          InfiniteConstant::UndirInfinity | InfiniteConstant::NotANumber => Ok(Expr::from(InfiniteConstant::NotANumber)),
+        }
       })
     )
     .set_derivative(
