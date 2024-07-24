@@ -113,6 +113,16 @@ pub fn multiply_infinities(args: Vec<Either<ComplexLike, InfiniteConstant>>) -> 
   }
 }
 
+pub fn infinite_pow(left: InfiniteConstant, right: InfiniteConstant) -> Expr {
+  use InfiniteConstant::*;
+  match (left, right) {
+    (NotANumber, _) | (_, NotANumber) => Expr::from(NotANumber),
+    (_, UndirInfinity) => Expr::from(NotANumber),
+    (_, NegInfinity) => Expr::zero(),
+    (left, PosInfinity) => Expr::from(left),
+  }
+}
+
 impl<'a> From<&'a InfiniteConstant> for Expr {
   fn from(c: &'a InfiniteConstant) -> Self {
     match c {

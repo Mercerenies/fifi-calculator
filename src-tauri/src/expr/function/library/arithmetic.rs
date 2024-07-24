@@ -14,7 +14,8 @@ use crate::expr::prisms::{self, expr_to_number, expr_to_string,
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex, pow_complex_to_real};
 use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::calculus::DifferentiationError;
-use crate::expr::algebra::infinity::{InfiniteConstant, is_infinite_constant, multiply_infinities};
+use crate::expr::algebra::infinity::{InfiniteConstant, is_infinite_constant, multiply_infinities,
+                                     infinite_pow};
 use crate::graphics::GRAPHICS_NAME;
 use crate::util::repeated;
 use crate::util::prism::Identity;
@@ -23,6 +24,7 @@ use num::{Zero, One};
 use either::Either;
 
 use std::ops::{Add, Mul};
+use std::cmp::Ordering;
 
 pub fn append_arithmetic_functions(table: &mut FunctionTable) {
   table.insert(addition());
@@ -454,6 +456,98 @@ pub fn power() -> Function {
       builder::arity_two().of_types(ExprToVector, ExprToComplex).and_then(|arg1, arg2, _| {
         let result = arg1.map(|elem| Expr::call("^", vec![elem, Expr::from(arg2.clone())]));
         Ok(result.into_expr())
+      })
+    )
+    .add_case(
+      // Infinity to real power
+      builder::arity_two().of_types(prisms::ExprToInfinity, expr_to_number()).and_then(|arg1, arg2, _| {
+        match arg2.cmp(&Number::zero()) {
+          Ordering::Greater => {
+            if arg1 == InfiniteConstant::NegInfinity {
+              // Rotate the scalar part around the complex plane.
+              // (TODO: Better results if arg2 is a positive integer?)
+              Ok(Expr::call("*", vec![
+                Expr::from(pow_complex_to_real(ComplexNumber::from_real(-1), arg2.into())),
+                Expr::from(InfiniteConstant::PosInfinity),
+              ]))
+            } else {
+              Ok(arg1.into())
+            }
+          }
+          Ordering::Equal => {
+            // Infinity^0 is always NaN
+            Ok(Expr::from(InfiniteConstant::NotANumber))
+          }
+          Ordering::Less => {
+            // Infinity^(-n) is zero, NaN^(-n) is NaN
+            if arg1 == InfiniteConstant::NotANumber {
+              Ok(Expr::from(InfiniteConstant::NotANumber))
+            } else {
+              Ok(Expr::zero())
+            }
+          }
+        }
+      })
+    )
+    .add_case(
+      // Infinity to complex power (not supported, always NaN)
+      builder::arity_two().of_types(prisms::ExprToInfinity, ExprToComplex).and_then(|_, _, _| {
+        Ok(Expr::from(InfiniteConstant::NotANumber))
+      })
+    )
+    .add_case(
+      // Infinity to infinite power
+      builder::arity_two().of_types(prisms::ExprToInfinity, prisms::ExprToInfinity).and_then(|arg1, arg2, _| {
+        Ok(infinite_pow(arg1, arg2))
+      })
+    )
+    .add_case(
+      // Positive real to infinity power
+      builder::arity_two().of_types(prisms::expr_to_positive_number(), prisms::ExprToInfinity).and_then(|arg1, arg2, _| {
+        let arg1 = Number::from(arg1);
+        match arg2 {
+          InfiniteConstant::PosInfinity => {
+            match arg1.cmp(&Number::one()) {
+              Ordering::Greater => Ok(Expr::from(InfiniteConstant::PosInfinity)),
+              Ordering::Less => Ok(Expr::zero()),
+              Ordering::Equal => Ok(Expr::one()),
+            }
+          }
+          InfiniteConstant::NegInfinity => {
+            match arg1.cmp(&Number::one()) {
+              Ordering::Greater => Ok(Expr::zero()),
+              Ordering::Less => Ok(Expr::from(InfiniteConstant::PosInfinity)),
+              Ordering::Equal => Ok(Expr::one())
+            }
+          }
+          InfiniteConstant::UndirInfinity | InfiniteConstant::NotANumber => {
+            Ok(Expr::from(InfiniteConstant::NotANumber))
+          }
+        }
+      })
+    )
+    .add_case(
+      // Complex to infinity power
+      builder::arity_two().of_types(ExprToComplex, prisms::ExprToInfinity).and_then(|arg1, arg2, _| {
+        match arg2 {
+          InfiniteConstant::PosInfinity => {
+            match arg1.abs().cmp(&Number::one()) {
+              Ordering::Greater => Ok(Expr::from(InfiniteConstant::PosInfinity)),
+              Ordering::Less => Ok(Expr::zero()),
+              Ordering::Equal => Ok(Expr::from(InfiniteConstant::NotANumber)),
+            }
+          }
+          InfiniteConstant::NegInfinity => {
+            match arg1.abs().cmp(&Number::one()) {
+              Ordering::Greater => Ok(Expr::zero()),
+              Ordering::Less => Ok(Expr::from(InfiniteConstant::PosInfinity)),
+              Ordering::Equal => Ok(Expr::from(InfiniteConstant::NotANumber)),
+            }
+          }
+          InfiniteConstant::UndirInfinity | InfiniteConstant::NotANumber => {
+            Ok(Expr::from(InfiniteConstant::NotANumber))
+          }
+        }
       })
     )
     .set_derivative(
