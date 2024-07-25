@@ -10,6 +10,7 @@ pub use instances::{Identity, Composed, Only, OnVec, OnTuple2,
 pub use ext::PrismExt;
 
 use std::error::{Error as StdError};
+use std::convert::Infallible;
 
 /// A prism from `Up` to `Down` is an assertion of a subtype
 /// relationship between `Up` and `Down`. Specifically, it asserts
@@ -51,4 +52,10 @@ pub trait Prism<Up, Down> {
 /// the original value can be recovered from the error type.
 pub trait ErrorWithPayload<T>: StdError {
   fn recover_payload(self) -> T;
+}
+
+impl<T> ErrorWithPayload<T> for Infallible {
+  fn recover_payload(self) -> T {
+    match self {}
+  }
 }

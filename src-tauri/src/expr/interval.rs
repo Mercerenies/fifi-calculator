@@ -12,18 +12,6 @@ use std::convert::TryFrom;
 use std::cmp::{Ordering, min};
 use std::ops::{Add, Sub, Mul, Neg};
 
-/// An interval form which allows arbitrary expressions on the left
-/// and right hand sides.
-///
-/// For a variant that requires numbers as interval bounds, see
-/// [`Interval`].
-#[derive(Clone, Debug, PartialEq)]
-pub struct IntervalAny {
-  left: Expr,
-  interval_type: IntervalType,
-  right: Expr,
-}
-
 /// An interval form consisting of specifically real numbers on the
 /// left and right hand sides.
 ///
@@ -91,31 +79,10 @@ pub struct ParseIntervalTypeError {
   _priv: (),
 }
 
-#[derive(Debug, Clone, Error)]
-#[error("Expected Interval of real numbers")]
-pub struct TryFromIntervalAnyError {
-  original_value: IntervalAny,
-  _priv: (),
-}
-
-impl IntervalAny {
-  pub fn new(left: Expr, interval_type: IntervalType, right: Expr) -> Self {
-    Self { left, interval_type, right }
-  }
-}
-
 impl<T: Zero + Ord> Interval<T> {
   /// Constructs a new interval.
   pub fn new(left: T, interval_type: IntervalType, right: T) -> Self {
     Self { left, interval_type, right }.normalize()
-  }
-
-  pub fn left(&self) -> &T {
-    &self.left
-  }
-
-  pub fn right(&self) -> &T {
-    &self.right
   }
 
   /// Constructs a new interval from bounds.
@@ -188,6 +155,16 @@ impl<T: Zero + Ord> Interval<T> {
     let lower = all_combinations.iter().cloned().reduce(Bounded::min).unwrap(); // unwrap: Non-empty array
     let upper = all_combinations.into_iter().reduce(Bounded::max).unwrap(); // unwrap: Non-empty array
     Interval::from_bounds(lower, upper).normalize()
+  }
+}
+
+impl<T> Interval<T> {
+  pub fn left(&self) -> &T {
+    &self.left
+  }
+
+  pub fn right(&self) -> &T {
+    &self.right
   }
 
   pub fn into_raw(self) -> RawInterval<T> {
@@ -360,31 +337,10 @@ impl PartialOrd for IntervalType {
   }
 }
 
-impl From<IntervalAny> for Expr {
-  fn from(interval: IntervalAny) -> Expr {
-    Expr::call(interval.interval_type.name(), vec![interval.left, interval.right])
-  }
-}
-
-impl<T> From<Interval<T>> for IntervalAny
+impl<T> From<RawInterval<T>> for Expr
 where T: Into<Expr> {
-  fn from(interval: Interval<T>) -> Self {
-    Self {
-      left: interval.left.into(),
-      interval_type: interval.interval_type,
-      right: interval.right.into(),
-    }
-  }
-}
-
-impl<T> From<RawInterval<T>> for IntervalAny
-where T: Into<Expr> {
-  fn from(interval: RawInterval<T>) -> Self {
-    Self {
-      left: interval.left.into(),
-      interval_type: interval.interval_type,
-      right: interval.right.into(),
-    }
+  fn from(interval: RawInterval<T>) -> Expr {
+    Expr::call(interval.interval_type.name(), vec![interval.left.into(), interval.right.into()])
   }
 }
 
@@ -401,18 +357,7 @@ impl<T: Ord + Zero> From<RawInterval<T>> for Interval<T> {
 impl<T> From<Interval<T>> for Expr
 where T: Into<Expr> {
   fn from(interval: Interval<T>) -> Expr {
-    Expr::from(
-      IntervalAny::from(interval),
-    )
-  }
-}
-
-impl<T> From<RawInterval<T>> for Expr
-where T: Into<Expr> {
-  fn from(interval: RawInterval<T>) -> Expr {
-    Expr::from(
-      IntervalAny::from(interval),
-    )
+    Expr::from(interval.into_raw())
   }
 }
 
@@ -425,45 +370,38 @@ impl<T: Clone + Ord + Zero> From<IntervalOrScalar<T>> for Interval<T> {
   }
 }
 
-impl TryFrom<Expr> for IntervalAny {
-  type Error = TryFromExprError;
-
-  fn try_from(expr: Expr) -> Result<Self, Self::Error> {
-    const TYPE_NAME: &str = "IntervalAny";
-    if let Expr::Call(name, args) = expr {
-      if args.len() == 2 {
-        if let Ok(op) = IntervalType::parse(&name) {
-          let [left, right] = args.try_into().unwrap(); // unwrap: Just checked the vec length.
-          return Ok(IntervalAny { left, interval_type: op, right });
-        }
+fn try_from_expr_to_interval(expr: Expr) -> Result<RawInterval<Expr>, TryFromExprError> {
+  const TYPE_NAME: &str = "RawInterval";
+  if let Expr::Call(name, args) = expr {
+    if args.len() == 2 {
+      if let Ok(op) = IntervalType::parse(&name) {
+        let [left, right] = args.try_into().unwrap(); // unwrap: Just checked the vec length.
+        return Ok(RawInterval { left, interval_type: op, right });
       }
-      Err(TryFromExprError::new(TYPE_NAME, Expr::Call(name, args)))
-    } else {
-      Err(TryFromExprError::new(TYPE_NAME, expr))
     }
+    Err(TryFromExprError::new(TYPE_NAME, Expr::Call(name, args)))
+  } else {
+    Err(TryFromExprError::new(TYPE_NAME, expr))
   }
 }
 
-impl<T> TryFrom<IntervalAny> for RawInterval<T>
+fn narrow_interval_type<T>(interval: RawInterval<Expr>) -> Result<RawInterval<T>, TryFromExprError>
 where T: TryFrom<Expr>,
       Expr: From<T>,
       T::Error: ErrorWithPayload<Expr> {
-  type Error = TryFromIntervalAnyError;
-
-  fn try_from(interval: IntervalAny) -> Result<Self, Self::Error> {
-    match T::try_from(interval.left) {
-      Err(err) => Err(TryFromIntervalAnyError {
-        original_value: IntervalAny::new(err.recover_payload(), interval.interval_type, interval.right),
-        _priv: (),
-      }),
-      Ok(left) => {
-        match T::try_from(interval.right) {
-          Err(err) => Err(TryFromIntervalAnyError {
-            original_value: IntervalAny::new(left.into(), interval.interval_type, err.recover_payload()),
-            _priv: (),
-          }),
-          Ok(right) => Ok(RawInterval { left, interval_type: interval.interval_type, right }),
-        }
+  const TYPE_NAME: &str = "RawInterval";
+  match T::try_from(interval.left) {
+    Err(err) => Err(TryFromExprError::new(
+      TYPE_NAME,
+      RawInterval::new(err.recover_payload(), interval.interval_type, interval.right).into(),
+    )),
+    Ok(left) => {
+      match T::try_from(interval.right) {
+        Err(err) => Err(TryFromExprError::new(
+          TYPE_NAME,
+          RawInterval::new(left.into(), interval.interval_type, err.recover_payload()).into(),
+        )),
+        Ok(right) => Ok(RawInterval { left, interval_type: interval.interval_type, right }),
       }
     }
   }
@@ -476,33 +414,8 @@ where T: TryFrom<Expr>,
   type Error = TryFromExprError;
 
   fn try_from(expr: Expr) -> Result<Self, Self::Error> {
-    const TYPE_NAME: &str = "RawInterval";
-    IntervalAny::try_from(expr)
-      .map_err(|err| err.with_type_name(TYPE_NAME))
-      .and_then(|interval| {
-        RawInterval::try_from(interval)
-          .map_err(|err| TryFromExprError::new(TYPE_NAME, err.recover_payload().into()))
-      })
-  }
-}
-
-impl<T> TryFrom<Expr> for Interval<T>
-where T: TryFrom<Expr> + Zero + Ord,
-      Expr: From<T>,
-      T::Error: ErrorWithPayload<Expr> {
-  type Error = TryFromExprError;
-
-  fn try_from(expr: Expr) -> Result<Self, Self::Error> {
-    const TYPE_NAME: &str = "Interval";
-    RawInterval::try_from(expr)
-      .map_err(|err| err.with_type_name(TYPE_NAME))
-      .map(Interval::from)
-  }
-}
-
-impl ErrorWithPayload<IntervalAny> for TryFromIntervalAnyError {
-  fn recover_payload(self) -> IntervalAny {
-    self.original_value
+    let raw_interval = try_from_expr_to_interval(expr)?;
+    narrow_interval_type(raw_interval)
   }
 }
 
@@ -674,53 +587,53 @@ mod tests {
   }
 
   #[test]
-  fn test_try_from_expr_for_interval_any() {
+  fn test_try_from_expr_for_raw_interval() {
     let expr = Expr::call("..", vec![Expr::from(0), Expr::from(1)]);
     assert_eq!(
-      IntervalAny::try_from(expr),
-      Ok(IntervalAny::new(Expr::from(0), IntervalType::Closed, Expr::from(1))),
+      RawInterval::<Expr>::try_from(expr),
+      Ok(RawInterval::<Expr>::new(Expr::from(0), IntervalType::Closed, Expr::from(1))),
     );
     let expr = Expr::call("..^", vec![Expr::call("foo", vec![]), Expr::from(2)]);
     assert_eq!(
-      IntervalAny::try_from(expr),
-      Ok(IntervalAny::new(Expr::call("foo", vec![]), IntervalType::RightOpen, Expr::from(2))),
+      RawInterval::<Expr>::try_from(expr),
+      Ok(RawInterval::<Expr>::new(Expr::call("foo", vec![]), IntervalType::RightOpen, Expr::from(2))),
     );
   }
 
   #[test]
-  fn test_try_from_expr_for_interval_any_failed() {
+  fn test_try_from_expr_for_raw_interval_failed() {
     let expr = Expr::call("foo", vec![Expr::from(0), Expr::from(1)]);
     assert_eq!(
-      IntervalAny::try_from(expr),
+      RawInterval::<Expr>::try_from(expr),
       Err(TryFromExprError::new(
-        "IntervalAny",
+        "RawInterval",
         Expr::call("foo", vec![Expr::from(0), Expr::from(1)])
       )),
     );
     let expr = Expr::call("..", vec![Expr::from(0), Expr::from(1), Expr::from(2)]);
     assert_eq!(
-      IntervalAny::try_from(expr),
+      RawInterval::<Expr>::try_from(expr),
       Err(TryFromExprError::new(
-        "IntervalAny",
+        "RawInterval",
         Expr::call("..", vec![Expr::from(0), Expr::from(1), Expr::from(2)])
       )),
     );
     let expr = Expr::from(0);
     assert_eq!(
-      IntervalAny::try_from(expr),
+      RawInterval::<Expr>::try_from(expr),
       Err(TryFromExprError::new(
-        "IntervalAny",
+        "RawInterval",
         Expr::from(0),
       )),
     );
   }
 
   #[test]
-  fn test_try_from_expr_for_interval() {
+  fn test_try_from_expr_for_raw_interval_number() {
     let expr = Expr::call("..", vec![Expr::from(0), Expr::from(1)]);
     assert_eq!(
-      Interval::try_from(expr),
-      Ok(Interval::new(Number::from(0), IntervalType::Closed, Number::from(1))),
+      RawInterval::try_from(expr),
+      Ok(RawInterval::new(Number::from(0), IntervalType::Closed, Number::from(1))),
     );
   }
 
@@ -728,9 +641,9 @@ mod tests {
   fn test_try_from_expr_for_interval_with_non_literal_arg() {
     let expr = Expr::call("..^", vec![Expr::call("foo", vec![]), Expr::from(2)]);
     assert_eq!(
-      Interval::<Number>::try_from(expr),
+      RawInterval::<Number>::try_from(expr),
       Err(TryFromExprError::new(
-        "Interval",
+        "RawInterval",
         Expr::call("..^", vec![Expr::call("foo", vec![]), Expr::from(2)])
       )),
     );
@@ -740,25 +653,25 @@ mod tests {
   fn test_try_from_expr_for_interval_failed() {
     let expr = Expr::call("foo", vec![Expr::from(0), Expr::from(1)]);
     assert_eq!(
-      Interval::<Number>::try_from(expr),
+      RawInterval::<Number>::try_from(expr),
       Err(TryFromExprError::new(
-        "Interval",
+        "RawInterval",
         Expr::call("foo", vec![Expr::from(0), Expr::from(1)])
       )),
     );
     let expr = Expr::call("..", vec![Expr::from(0), Expr::from(1), Expr::from(2)]);
     assert_eq!(
-      Interval::<Number>::try_from(expr),
+      RawInterval::<Number>::try_from(expr),
       Err(TryFromExprError::new(
-        "Interval",
+        "RawInterval",
         Expr::call("..", vec![Expr::from(0), Expr::from(1), Expr::from(2)])
       )),
     );
     let expr = Expr::from(0);
     assert_eq!(
-      Interval::<Number>::try_from(expr),
+      RawInterval::<Number>::try_from(expr),
       Err(TryFromExprError::new(
-        "Interval",
+        "RawInterval",
         Expr::from(0),
       )),
     );

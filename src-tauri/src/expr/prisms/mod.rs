@@ -7,7 +7,7 @@ use super::Expr;
 use super::var::Var;
 use super::atom::Atom;
 use super::number::{Number, ComplexNumber, ComplexLike};
-use super::interval::{RawInterval, IntervalAny, IntervalOrScalar};
+use super::interval::{RawInterval, IntervalOrScalar};
 use super::literal::Literal;
 use super::algebra::formula::{Formula, Equation};
 use super::algebra::infinity::InfiniteConstant;
@@ -145,7 +145,7 @@ pub fn expr_to_equation() -> impl Prism<Expr, Equation> + Clone {
   expr_to_formula().composed(Conversion::new())
 }
 
-pub fn expr_to_any_interval() -> Conversion<Expr, IntervalAny> {
+pub fn expr_to_any_interval() -> Conversion<Expr, RawInterval<Expr>> {
   Conversion::new()
 }
 
