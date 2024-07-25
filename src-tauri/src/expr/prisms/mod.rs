@@ -23,7 +23,8 @@ pub use super::var::StringToVar;
 pub use super::vector::ExprToVector;
 pub use super::vector::tensor::ExprToTensor;
 pub use super::number::prisms::{NumberToUsize, NumberToI64};
-pub use super::algebra::infinity::{ExprToInfinity, infinity_to_signed_infinity,
+pub use super::algebra::infinity::{ExprToInfinity, UnboundedNumber,
+                                   infinity_to_signed_infinity,
                                    expr_to_signed_infinity, expr_to_unbounded_number};
 
 /// An expression which is literally equal to the value zero.
@@ -150,6 +151,10 @@ pub fn expr_to_any_interval() -> Conversion<Expr, RawInterval<Expr>> {
 }
 
 pub fn expr_to_interval() -> Conversion<Expr, RawInterval<Number>> {
+  Conversion::new()
+}
+
+pub fn expr_to_unbounded_interval() -> Conversion<Expr, RawInterval<UnboundedNumber>> {
   Conversion::new()
 }
 
