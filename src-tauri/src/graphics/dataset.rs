@@ -48,7 +48,7 @@ pub enum GenReason {
 /// expression while `XDataSet` does not.
 #[derive(Debug, Clone, PartialEq)]
 pub struct XDataSetExpr {
-  data: Either<Either<Vec<Number>, Interval>, Number>,
+  data: Either<Either<Vec<Number>, Interval<Number>>, Number>,
 }
 
 /// Prism which attempts to parse an `Expr` as a `XDataSetExpr`.
@@ -189,7 +189,7 @@ impl ExprToXDataSet {
     Self { _priv: () }
   }
 
-  fn inner_prism() -> impl Prism<Expr, Either<Either<Vec<Number>, Interval>, Number>> {
+  fn inner_prism() -> impl Prism<Expr, Either<Either<Vec<Number>, Interval<Number>>, Number>> {
     prisms::expr_to_typed_vector(prisms::expr_to_number())
       .or(prisms::expr_to_interval())
       .or(prisms::expr_to_number())
@@ -213,7 +213,7 @@ impl From<XDataSetExpr> for XDataSet {
       Either::Left(Either::Left(vec)) => XDataSetImpl::Vector(vec),
       Either::Left(Either::Right(interval)) => {
         let (min, max) = interval.into_bounds();
-        XDataSetImpl::Interval(min.into_number(), max.into_number())
+        XDataSetImpl::Interval(min.into_scalar(), max.into_scalar())
       }
       Either::Right(number) => XDataSetImpl::Number(number),
     };

@@ -7,7 +7,7 @@ use super::Expr;
 use super::var::Var;
 use super::atom::Atom;
 use super::number::{Number, ComplexNumber, ComplexLike};
-use super::interval::{Interval, IntervalAny, IntervalOrNumber};
+use super::interval::{Interval, IntervalAny, IntervalOrScalar};
 use super::literal::Literal;
 use super::algebra::formula::{Formula, Equation};
 use super::algebra::infinity::InfiniteConstant;
@@ -149,7 +149,7 @@ pub fn expr_to_any_interval() -> Conversion<Expr, IntervalAny> {
   Conversion::new()
 }
 
-pub fn expr_to_interval() -> Conversion<Expr, Interval> {
+pub fn expr_to_interval() -> Conversion<Expr, Interval<Number>> {
   Conversion::new()
 }
 
@@ -350,23 +350,23 @@ impl Prism<String, ParsedUsize> for StringToUsize {
   }
 }
 
-impl Prism<Expr, IntervalOrNumber> for ExprToIntervalLike {
-  fn narrow_type(&self, input: Expr) -> Result<IntervalOrNumber, Expr> {
+impl Prism<Expr, IntervalOrScalar<Number>> for ExprToIntervalLike {
+  fn narrow_type(&self, input: Expr) -> Result<IntervalOrScalar<Number>, Expr> {
     match Interval::try_from(input) {
-      Ok(interval) => Ok(IntervalOrNumber::Interval(interval)),
+      Ok(interval) => Ok(IntervalOrScalar::Interval(interval)),
       Err(err) => {
         let input = err.recover_payload();
         match Number::try_from(input) {
-          Ok(number) => Ok(IntervalOrNumber::Number(number)),
+          Ok(number) => Ok(IntervalOrScalar::Scalar(number)),
           Err(err) => Err(err.recover_payload()),
         }
       }
     }
   }
-  fn widen_type(&self, input: IntervalOrNumber) -> Expr {
+  fn widen_type(&self, input: IntervalOrScalar<Number>) -> Expr {
     match input {
-      IntervalOrNumber::Interval(interval) => interval.into(),
-      IntervalOrNumber::Number(number) => number.into(),
+      IntervalOrScalar::Interval(interval) => interval.into(),
+      IntervalOrScalar::Scalar(number) => number.into(),
     }
   }
 }

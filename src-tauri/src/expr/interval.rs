@@ -3,7 +3,6 @@
 //! interval arithmetic.
 
 use super::{Expr, TryFromExprError};
-use super::number::Number;
 use crate::util::prism::ErrorWithPayload;
 
 use thiserror::Error;
@@ -37,20 +36,20 @@ pub struct IntervalAny {
 /// break the prism laws (it is possible to express non-normalized
 /// intervals in the [`Expr`] language, so it shall be possible in the
 /// [`Interval`] type as well).
-#[derive(Clone, Debug, PartialEq)]
-pub struct Interval {
-  left: Number,
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Interval<T> {
+  left: T,
   interval_type: IntervalType,
-  right: Number,
+  right: T,
 }
 
-/// The disjoint union of the types [`Interval`] and [`Number`]. This
-/// type can be used as the target of any prism that wishes to treat
-/// numbers `n` as singleton intervals `n .. n`.
+/// The disjoint union of the types [`Interval<T>`] and `T`. This type
+/// can be used as the target of any prism that wishes to treat
+/// scalars `n` as singleton intervals `n .. n`.
 #[derive(Clone, Debug)]
-pub enum IntervalOrNumber {
-  Interval(Interval),
-  Number(Number),
+pub enum IntervalOrScalar<T> {
+  Interval(Interval<T>),
+  Scalar(T),
 }
 
 /// The type of interval. Corresponds to the four infix operators
@@ -63,13 +62,13 @@ pub enum IntervalType {
   FullOpen,
 }
 
-/// A [`Number`] together with its bound type.
+/// An interval bound together with its bound type.
 ///
 /// Binary arithmetic operations on bounded numbers always take the
 /// stricter bound of the two arguments.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct BoundedNumber {
-  number: Number,
+pub struct Bounded<T> {
+  scalar: T,
   bound_type: BoundType,
 }
 
@@ -99,45 +98,46 @@ impl IntervalAny {
   }
 }
 
-impl Interval {
+impl<T: Zero + Ord> Interval<T> {
   /// Constructs a new interval. This constructor does NOT normalize
   /// the interval.
-  pub fn new(left: Number, interval_type: IntervalType, right: Number) -> Self {
+  pub fn new(left: T, interval_type: IntervalType, right: T) -> Self {
     Self { left, interval_type, right }
   }
 
-  pub fn left(&self) -> &Number {
+  pub fn left(&self) -> &T {
     &self.left
   }
 
-  pub fn right(&self) -> &Number {
+  pub fn right(&self) -> &T {
     &self.right
   }
 
   /// Constructs a new interval from bounds. This constructor does NOT
   /// normalize the interval.
-  pub fn from_bounds(left: BoundedNumber, right: BoundedNumber) -> Self {
+  pub fn from_bounds(left: Bounded<T>, right: Bounded<T>) -> Self {
     let interval_type = IntervalType::from_bounds(left.bound_type, right.bound_type);
-    Self { left: left.number, interval_type, right: right.number }
+    Self { left: left.scalar, interval_type, right: right.scalar }
   }
 
-  pub fn empty_at(bound: Number) -> Self {
+  pub fn empty_at(bound: T) -> Self
+  where T: Clone {
     Self { left: bound.clone(), interval_type: IntervalType::RightOpen, right: bound }
   }
 
   pub fn empty() -> Self {
-    Self::empty_at(Number::zero())
+    Self { left: T::zero(), interval_type: IntervalType::RightOpen, right: T::zero() }
   }
 
   pub fn is_empty(&self) -> bool {
     self.right < self.left || (self.right == self.left && self.interval_type != IntervalType::Closed)
   }
 
-  pub fn into_bounds(self) -> (BoundedNumber, BoundedNumber) {
+  pub fn into_bounds(self) -> (Bounded<T>, Bounded<T>) {
     let (left_bound, right_bound) = self.interval_type.into_bounds();
     (
-      BoundedNumber { number: self.left, bound_type: left_bound },
-      BoundedNumber { number: self.right, bound_type: right_bound },
+      Bounded { scalar: self.left, bound_type: left_bound },
+      Bounded { scalar: self.right, bound_type: right_bound },
     )
   }
 
@@ -153,10 +153,11 @@ impl Interval {
   /// Applies a unary, monotone function to this interval to produce a
   /// new interval. It is the caller's responsibility to ensure that
   /// the provided function is monotonic.
-  pub fn map_monotone<F>(self, f: F) -> Interval
-  where F: Fn(Number) -> Number {
+  pub fn map_monotone<F, U>(self, f: F) -> Interval<U>
+  where F: Fn(T) -> U,
+        U: Ord + Zero {
     if self.is_empty() {
-      return Self::empty();
+      return Interval::empty();
     }
     let (lower, upper) = self.into_bounds();
     Interval::from_bounds(
@@ -168,10 +169,13 @@ impl Interval {
   /// Applies a binary, monotone function to the two intervals to
   /// produce a new interval. It is the caller's responsibility to
   /// ensure that the provided function is monotonic.
-  pub fn apply_monotone<F>(self, other: Interval, f: F) -> Interval
-  where F: Fn(Number, Number) -> Number {
+  pub fn apply_monotone<F, S, U>(self, other: Interval<S>, f: F) -> Interval<U>
+  where F: Fn(T, S) -> U,
+        T: Clone,
+        S: Clone + Ord + Zero,
+        U: Clone + Ord + Zero {
     if self.is_empty() || other.is_empty() {
-      return Self::empty();
+      return Interval::empty();
     }
 
     let (left_lower, left_upper) = self.into_bounds();
@@ -182,58 +186,58 @@ impl Interval {
       left_upper.clone().apply(right_lower, &f),
       left_upper.apply(right_upper, &f),
     ];
-    let lower = all_combinations.iter().cloned().reduce(BoundedNumber::min).unwrap(); // unwrap: Non-empty array
-    let upper = all_combinations.into_iter().reduce(BoundedNumber::max).unwrap(); // unwrap: Non-empty array
+    let lower = all_combinations.iter().cloned().reduce(Bounded::min).unwrap(); // unwrap: Non-empty array
+    let upper = all_combinations.into_iter().reduce(Bounded::max).unwrap(); // unwrap: Non-empty array
     Interval::from_bounds(lower, upper).normalize()
   }
 }
 
-impl BoundedNumber {
-  pub fn new(number: Number, bound_type: BoundType) -> Self {
-    Self { number, bound_type }
+impl<T> Bounded<T> {
+  pub fn new(scalar: T, bound_type: BoundType) -> Self {
+    Self { scalar, bound_type }
   }
 
   pub fn bound_type(&self) -> BoundType {
     self.bound_type
   }
 
-  pub fn number(&self) -> &Number {
-    &self.number
+  pub fn scalar(&self) -> &T {
+    &self.scalar
   }
 
-  pub fn into_number(self) -> Number {
-    self.number
+  pub fn into_scalar(self) -> T {
+    self.scalar
   }
 
-  pub fn map<F>(self, f: F) -> BoundedNumber
-  where F: FnOnce(Number) -> Number {
-    BoundedNumber {
-      number: f(self.number),
+  pub fn map<F, U>(self, f: F) -> Bounded<U>
+  where F: FnOnce(T) -> U {
+    Bounded {
+      scalar: f(self.scalar),
       bound_type: self.bound_type,
     }
   }
 
-  pub fn apply<F>(self, other: BoundedNumber, f: F) -> BoundedNumber
-  where F: FnOnce(Number, Number) -> Number {
-    BoundedNumber {
-      number: f(self.number, other.number),
+  pub fn apply<F, S, U>(self, other: Bounded<S>, f: F) -> Bounded<U>
+  where F: FnOnce(T, S) -> U {
+    Bounded {
+      scalar: f(self.scalar, other.scalar),
       bound_type: min(self.bound_type, other.bound_type), // Take the *stricter* bound
     }
   }
 
-  pub fn min(self, other: BoundedNumber) -> BoundedNumber {
-    match self.number.cmp(&other.number) {
+  pub fn min(self, other: Bounded<T>) -> Bounded<T> where T: Ord {
+    match self.scalar.cmp(&other.scalar) {
       Ordering::Greater => other,
       Ordering::Less => self,
-      Ordering::Equal => BoundedNumber::new(self.number, self.bound_type.max(other.bound_type)),
+      Ordering::Equal => Bounded::new(self.scalar, self.bound_type.max(other.bound_type)),
     }
   }
 
-  pub fn max(self, other: BoundedNumber) -> BoundedNumber {
-    match self.number.cmp(&other.number) {
+  pub fn max(self, other: Bounded<T>) -> Bounded<T> where T: Ord {
+    match self.scalar.cmp(&other.scalar) {
       Ordering::Greater => self,
       Ordering::Less => other,
-      Ordering::Equal => BoundedNumber::new(self.number, self.bound_type.max(other.bound_type)),
+      Ordering::Equal => Bounded::new(self.scalar, self.bound_type.max(other.bound_type)),
     }
   }
 }
@@ -332,8 +336,9 @@ impl From<IntervalAny> for Expr {
   }
 }
 
-impl From<Interval> for IntervalAny {
-  fn from(interval: Interval) -> Self {
+impl<T> From<Interval<T>> for IntervalAny
+where T: Into<Expr> {
+  fn from(interval: Interval<T>) -> Self {
     Self {
       left: interval.left.into(),
       interval_type: interval.interval_type,
@@ -342,19 +347,20 @@ impl From<Interval> for IntervalAny {
   }
 }
 
-impl From<Interval> for Expr {
-  fn from(interval: Interval) -> Expr {
+impl<T> From<Interval<T>> for Expr
+where T: Into<Expr> {
+  fn from(interval: Interval<T>) -> Expr {
     Expr::from(
       IntervalAny::from(interval),
     )
   }
 }
 
-impl From<IntervalOrNumber> for Interval {
-  fn from(interval_or_number: IntervalOrNumber) -> Self {
+impl<T: Clone + Ord + Zero> From<IntervalOrScalar<T>> for Interval<T> {
+  fn from(interval_or_number: IntervalOrScalar<T>) -> Self {
     match interval_or_number {
-      IntervalOrNumber::Interval(interval) => interval,
-      IntervalOrNumber::Number(number) => Interval::new(number.clone(), IntervalType::Closed, number),
+      IntervalOrScalar::Interval(interval) => interval,
+      IntervalOrScalar::Scalar(scalar) => Interval::new(scalar.clone(), IntervalType::Closed, scalar),
     }
   }
 }
@@ -378,17 +384,20 @@ impl TryFrom<Expr> for IntervalAny {
   }
 }
 
-impl TryFrom<IntervalAny> for Interval {
+impl<T> TryFrom<IntervalAny> for Interval<T>
+where T: TryFrom<Expr>,
+      Expr: From<T>,
+      T::Error: ErrorWithPayload<Expr> {
   type Error = TryFromIntervalAnyError;
 
   fn try_from(interval: IntervalAny) -> Result<Self, Self::Error> {
-    match Number::try_from(interval.left) {
+    match T::try_from(interval.left) {
       Err(err) => Err(TryFromIntervalAnyError {
         original_value: IntervalAny::new(err.recover_payload(), interval.interval_type, interval.right),
         _priv: (),
       }),
       Ok(left) => {
-        match Number::try_from(interval.right) {
+        match T::try_from(interval.right) {
           Err(err) => Err(TryFromIntervalAnyError {
             original_value: IntervalAny::new(left.into(), interval.interval_type, err.recover_payload()),
             _priv: (),
@@ -400,7 +409,10 @@ impl TryFrom<IntervalAny> for Interval {
   }
 }
 
-impl TryFrom<Expr> for Interval {
+impl<T> TryFrom<Expr> for Interval<T>
+where T: TryFrom<Expr>,
+      Expr: From<T>,
+      T::Error: ErrorWithPayload<Expr> {
   type Error = TryFromExprError;
 
   fn try_from(expr: Expr) -> Result<Self, Self::Error> {
@@ -420,66 +432,75 @@ impl ErrorWithPayload<IntervalAny> for TryFromIntervalAnyError {
   }
 }
 
-impl Add for BoundedNumber {
-  type Output = Self;
+impl<T: Add> Add for Bounded<T> {
+  type Output = Bounded<T::Output>;
 
-  fn add(self, other: Self) -> Self {
-    self.apply(other, Number::add)
+  fn add(self, other: Self) -> Bounded<T::Output> {
+    self.apply(other, |x, y| x + y)
   }
 }
 
-impl Sub for BoundedNumber {
-  type Output = Self;
+impl<T: Sub> Sub for Bounded<T> {
+  type Output = Bounded<T::Output>;
 
-  fn sub(self, other: Self) -> Self {
-    self.apply(other, Number::sub)
+  fn sub(self, other: Self) -> Bounded<T::Output> {
+    self.apply(other, |x, y| x - y)
   }
 }
 
-impl Mul for BoundedNumber {
-  type Output = Self;
+impl<T: Mul> Mul for Bounded<T> {
+  type Output = Bounded<T::Output>;
 
-  fn mul(self, other: Self) -> Self {
-    self.apply(other, Number::mul)
+  fn mul(self, other: Self) -> Bounded<T::Output> {
+    self.apply(other, |x, y| x * y)
   }
 }
 
-impl Add for Interval {
-  type Output = Self;
+impl<T: Add + Zero + Ord> Add for Interval<T>
+where <T as Add>::Output: Zero + Ord {
+  type Output = Interval<<T as Add>::Output>;
 
-  fn add(self, other: Self) -> Self {
+  fn add(self, other: Self) -> Self::Output {
     if self.is_empty() || other.is_empty() {
-      return Self::empty();
+      return Interval::empty();
     }
     let interval_type = self.interval_type.min(other.interval_type);
     Interval::new(self.left + other.left, interval_type, self.right + other.right).normalize()
   }
 }
 
-impl Sub for Interval {
-  type Output = Self;
+impl<T: Sub + Zero + Ord> Sub for Interval<T>
+where <T as Sub>::Output: Zero + Ord {
+  type Output = Interval<<T as Sub>::Output>;
 
-  fn sub(self, other: Self) -> Self {
+  fn sub(self, other: Self) -> Self::Output {
     if self.is_empty() || other.is_empty() {
-      return Self::empty();
+      return Interval::empty();
     }
     let interval_type = self.interval_type.min(other.interval_type.flipped());
     Interval::new(self.left - other.right, interval_type, self.right - other.left).normalize()
   }
 }
 
-impl Mul for Interval {
-  type Output = Self;
+/// Note: This instance assumes that the multiplication on `T` is a
+/// monotone operation with respect to its `Ord` instance.
+impl<T> Mul for Interval<T>
+where T: Mul + Zero + Ord + Clone,
+      <T as Mul>::Output: Zero + Ord + Clone {
+  type Output = Interval<<T as Mul>::Output>;
 
-  fn mul(self, other: Self) -> Self {
-    self.apply_monotone(other, Number::mul)
+  fn mul(self, other: Self) -> Self::Output {
+    self.apply_monotone(other, |x, y| x * y)
   }
 }
 
-impl Neg for Interval {
-  type Output = Self;
+/// Note: This instance assumes that the `T: Neg` instance is
+/// order-reversing with respect to the `T: Ord` instance.
+impl<T: Neg> Neg for Interval<T>
+where <T as Neg>::Output: Zero + Ord {
+  type Output = Interval<<T as Neg>::Output>;
 
-  fn neg(self) -> Self {
+  fn neg(self) -> Self::Output {
     let interval_type = self.interval_type.flipped();
     Interval::new(-self.right, interval_type, -self.left).normalize()
   }
@@ -488,6 +509,7 @@ impl Neg for Interval {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::expr::number::Number;
 
   #[test]
   fn test_normalize_nonempty_interval() {
@@ -632,7 +654,7 @@ mod tests {
   fn test_try_from_expr_for_interval_with_non_literal_arg() {
     let expr = Expr::call("..^", vec![Expr::call("foo", vec![]), Expr::from(2)]);
     assert_eq!(
-      Interval::try_from(expr),
+      Interval::<Number>::try_from(expr),
       Err(TryFromExprError::new(
         "Interval",
         Expr::call("..^", vec![Expr::call("foo", vec![]), Expr::from(2)])
@@ -644,7 +666,7 @@ mod tests {
   fn test_try_from_expr_for_interval_failed() {
     let expr = Expr::call("foo", vec![Expr::from(0), Expr::from(1)]);
     assert_eq!(
-      Interval::try_from(expr),
+      Interval::<Number>::try_from(expr),
       Err(TryFromExprError::new(
         "Interval",
         Expr::call("foo", vec![Expr::from(0), Expr::from(1)])
@@ -652,7 +674,7 @@ mod tests {
     );
     let expr = Expr::call("..", vec![Expr::from(0), Expr::from(1), Expr::from(2)]);
     assert_eq!(
-      Interval::try_from(expr),
+      Interval::<Number>::try_from(expr),
       Err(TryFromExprError::new(
         "Interval",
         Expr::call("..", vec![Expr::from(0), Expr::from(1), Expr::from(2)])
@@ -660,7 +682,7 @@ mod tests {
     );
     let expr = Expr::from(0);
     assert_eq!(
-      Interval::try_from(expr),
+      Interval::<Number>::try_from(expr),
       Err(TryFromExprError::new(
         "Interval",
         Expr::from(0),
