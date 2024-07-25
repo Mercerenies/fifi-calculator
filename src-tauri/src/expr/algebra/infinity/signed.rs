@@ -6,6 +6,7 @@ use crate::expr::Expr;
 
 use thiserror::Error;
 
+use std::ops::{Neg, Mul};
 use std::cmp::Ordering;
 
 /// An infinity value with a known sign.
@@ -78,5 +79,28 @@ impl PartialOrd<SignedInfinity> for Number {
 impl From<SignedInfinity> for Expr {
   fn from(c: SignedInfinity) -> Self {
     Expr::from(InfiniteConstant::from(c))
+  }
+}
+
+impl Neg for SignedInfinity {
+  type Output = Self;
+
+  fn neg(self) -> Self::Output {
+    match self {
+      SignedInfinity::NegInfinity => SignedInfinity::PosInfinity,
+      SignedInfinity::PosInfinity => SignedInfinity::NegInfinity,
+    }
+  }
+}
+
+impl Mul for SignedInfinity {
+  type Output = Self;
+
+  fn mul(self, other: Self) -> Self::Output {
+    if self == other {
+      SignedInfinity::PosInfinity
+    } else {
+      SignedInfinity::NegInfinity
+    }
   }
 }
