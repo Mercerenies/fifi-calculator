@@ -1,11 +1,12 @@
 
 mod prisms;
 
-pub use prisms::{ExprToInfinity, infinity_to_signed_infinity, expr_to_signed_infinity, expr_to_unbounded_number};
+pub use prisms::{ExprToInfinity, infinity_to_signed_infinity,
+                 expr_to_signed_infinity, expr_to_unbounded_number};
 
-use crate::expr::Expr;
+use crate::expr::{Expr, TryFromExprError};
 use crate::expr::number::{Number, ComplexLike};
-use crate::util::prism::ErrorWithPayload;
+use crate::util::prism::{ErrorWithPayload, Prism};
 
 use either::Either;
 use num::{Zero, One};
@@ -95,6 +96,15 @@ impl TryFrom<InfiniteConstant> for SignedInfinity {
       InfiniteConstant::PosInfinity => Ok(SignedInfinity::PosInfinity),
       _ => Err(ExpectedSignedInfinityError { original_constant: c }),
     }
+  }
+}
+
+impl TryFrom<Expr> for UnboundedNumber {
+  type Error = TryFromExprError;
+
+  fn try_from(expr: Expr) -> Result<UnboundedNumber, TryFromExprError> {
+    expr_to_unbounded_number().narrow_type(expr)
+      .map_err(|expr| TryFromExprError::new("UnboundedNumber", expr))
   }
 }
 
