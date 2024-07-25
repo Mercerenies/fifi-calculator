@@ -27,15 +27,10 @@ pub struct IntervalAny {
 /// An interval form consisting of specifically real numbers on the
 /// left and right hand sides.
 ///
-/// An interval is said to be *normalized* if it is either (a)
+/// Intervals are always kept in normal form, which is defined as
+/// follows. An interval is in normal form if it is either (a)
 /// nonempty or (b) equal to the interval `0..^0`. Put another way,
-/// the normal form of the empty interval is `0..^0`. An interval can
-/// be normalized with [`Interval::normalize`].
-///
-/// Intervals are NOT automatically normalized, as doing so would
-/// break the prism laws (it is possible to express non-normalized
-/// intervals in the [`Expr`] language, so it shall be possible in the
-/// [`Interval`] type as well).
+/// the normal form of the empty interval is `0..^0`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Interval<T> {
   left: T,
@@ -43,12 +38,23 @@ pub struct Interval<T> {
   right: T,
 }
 
-/// The disjoint union of the types [`Interval<T>`] and `T`. This type
+/// Equivalent to the [`Interval`] type but does not force its
+/// structure into normal form. This is useful as the target of
+/// prisms, since there is no data loss when storing information in
+/// this structure.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RawInterval<T> {
+  pub left: T,
+  pub interval_type: IntervalType,
+  pub right: T,
+}
+
+/// The disjoint union of the types [`RawInterval<T>`] and `T`. This type
 /// can be used as the target of any prism that wishes to treat
 /// scalars `n` as singleton intervals `n .. n`.
 #[derive(Clone, Debug)]
 pub enum IntervalOrScalar<T> {
-  Interval(Interval<T>),
+  Interval(RawInterval<T>),
   Scalar(T),
 }
 
@@ -99,10 +105,9 @@ impl IntervalAny {
 }
 
 impl<T: Zero + Ord> Interval<T> {
-  /// Constructs a new interval. This constructor does NOT normalize
-  /// the interval.
+  /// Constructs a new interval.
   pub fn new(left: T, interval_type: IntervalType, right: T) -> Self {
-    Self { left, interval_type, right }
+    Self { left, interval_type, right }.normalize()
   }
 
   pub fn left(&self) -> &T {
@@ -113,16 +118,10 @@ impl<T: Zero + Ord> Interval<T> {
     &self.right
   }
 
-  /// Constructs a new interval from bounds. This constructor does NOT
-  /// normalize the interval.
+  /// Constructs a new interval from bounds.
   pub fn from_bounds(left: Bounded<T>, right: Bounded<T>) -> Self {
     let interval_type = IntervalType::from_bounds(left.bound_type, right.bound_type);
-    Self { left: left.scalar, interval_type, right: right.scalar }
-  }
-
-  pub fn empty_at(bound: T) -> Self
-  where T: Clone {
-    Self { left: bound.clone(), interval_type: IntervalType::RightOpen, right: bound }
+    Self { left: left.scalar, interval_type, right: right.scalar }.normalize()
   }
 
   pub fn empty() -> Self {
@@ -141,7 +140,7 @@ impl<T: Zero + Ord> Interval<T> {
     )
   }
 
-  pub fn normalize(self) -> Self {
+  fn normalize(self) -> Self {
     if self.is_empty() {
       // The interval is empty, so represent it as the canonical empty interval.
       Self::empty()
@@ -189,6 +188,37 @@ impl<T: Zero + Ord> Interval<T> {
     let lower = all_combinations.iter().cloned().reduce(Bounded::min).unwrap(); // unwrap: Non-empty array
     let upper = all_combinations.into_iter().reduce(Bounded::max).unwrap(); // unwrap: Non-empty array
     Interval::from_bounds(lower, upper).normalize()
+  }
+
+  pub fn into_raw(self) -> RawInterval<T> {
+    RawInterval { left: self.left, interval_type: self.interval_type, right: self.right }
+  }
+}
+
+impl<T> RawInterval<T> {
+  /// Constructs a new interval. This constructor does NOT normalize
+  /// the interval.
+  pub fn new(left: T, interval_type: IntervalType, right: T) -> Self {
+    Self { left, interval_type, right }
+  }
+
+  /// Constructs a new interval from bounds. This constructor does NOT
+  /// normalize the interval.
+  pub fn from_bounds(left: Bounded<T>, right: Bounded<T>) -> Self {
+    let interval_type = IntervalType::from_bounds(left.bound_type, right.bound_type);
+    Self { left: left.scalar, interval_type, right: right.scalar }
+  }
+
+  pub fn normalize(self) -> Self where T: Ord + Zero {
+    Interval::from(self).into_raw()
+  }
+
+  pub fn into_bounds(self) -> (Bounded<T>, Bounded<T>) {
+    let (left_bound, right_bound) = self.interval_type.into_bounds();
+    (
+      Bounded { scalar: self.left, bound_type: left_bound },
+      Bounded { scalar: self.right, bound_type: right_bound },
+    )
   }
 }
 
@@ -347,6 +377,27 @@ where T: Into<Expr> {
   }
 }
 
+impl<T> From<RawInterval<T>> for IntervalAny
+where T: Into<Expr> {
+  fn from(interval: RawInterval<T>) -> Self {
+    Self {
+      left: interval.left.into(),
+      interval_type: interval.interval_type,
+      right: interval.right.into(),
+    }
+  }
+}
+
+impl<T: Ord + Zero> From<RawInterval<T>> for Interval<T> {
+  fn from(interval: RawInterval<T>) -> Self {
+    Self::new(
+      interval.left,
+      interval.interval_type,
+      interval.right,
+    )
+  }
+}
+
 impl<T> From<Interval<T>> for Expr
 where T: Into<Expr> {
   fn from(interval: Interval<T>) -> Expr {
@@ -356,10 +407,19 @@ where T: Into<Expr> {
   }
 }
 
+impl<T> From<RawInterval<T>> for Expr
+where T: Into<Expr> {
+  fn from(interval: RawInterval<T>) -> Expr {
+    Expr::from(
+      IntervalAny::from(interval),
+    )
+  }
+}
+
 impl<T: Clone + Ord + Zero> From<IntervalOrScalar<T>> for Interval<T> {
   fn from(interval_or_number: IntervalOrScalar<T>) -> Self {
     match interval_or_number {
-      IntervalOrScalar::Interval(interval) => interval,
+      IntervalOrScalar::Interval(interval) => interval.into(),
       IntervalOrScalar::Scalar(scalar) => Interval::new(scalar.clone(), IntervalType::Closed, scalar),
     }
   }
@@ -384,7 +444,7 @@ impl TryFrom<Expr> for IntervalAny {
   }
 }
 
-impl<T> TryFrom<IntervalAny> for Interval<T>
+impl<T> TryFrom<IntervalAny> for RawInterval<T>
 where T: TryFrom<Expr>,
       Expr: From<T>,
       T::Error: ErrorWithPayload<Expr> {
@@ -402,27 +462,41 @@ where T: TryFrom<Expr>,
             original_value: IntervalAny::new(left.into(), interval.interval_type, err.recover_payload()),
             _priv: (),
           }),
-          Ok(right) => Ok(Interval { left, interval_type: interval.interval_type, right }),
+          Ok(right) => Ok(RawInterval { left, interval_type: interval.interval_type, right }),
         }
       }
     }
   }
 }
 
-impl<T> TryFrom<Expr> for Interval<T>
+impl<T> TryFrom<Expr> for RawInterval<T>
 where T: TryFrom<Expr>,
       Expr: From<T>,
       T::Error: ErrorWithPayload<Expr> {
   type Error = TryFromExprError;
 
   fn try_from(expr: Expr) -> Result<Self, Self::Error> {
-    const TYPE_NAME: &str = "Interval";
+    const TYPE_NAME: &str = "RawInterval";
     IntervalAny::try_from(expr)
       .map_err(|err| err.with_type_name(TYPE_NAME))
       .and_then(|interval| {
-        Interval::try_from(interval)
+        RawInterval::try_from(interval)
           .map_err(|err| TryFromExprError::new(TYPE_NAME, err.recover_payload().into()))
       })
+  }
+}
+
+impl<T> TryFrom<Expr> for Interval<T>
+where T: TryFrom<Expr> + Zero + Ord,
+      Expr: From<T>,
+      T::Error: ErrorWithPayload<Expr> {
+  type Error = TryFromExprError;
+
+  fn try_from(expr: Expr) -> Result<Self, Self::Error> {
+    const TYPE_NAME: &str = "Interval";
+    RawInterval::try_from(expr)
+      .map_err(|err| err.with_type_name(TYPE_NAME))
+      .map(Interval::from)
   }
 }
 
@@ -748,21 +822,21 @@ mod tests {
 
   #[test]
   fn test_add_empty_intervals() {
-    let interval1 = Interval::empty_at(Number::from(19)); // Note: Not normalized
+    let interval1 = Interval::empty();
     let interval2 = Interval::new(Number::from(1), IntervalType::Closed, Number::from(2));
     assert_eq!(interval1 + interval2, Interval::empty());
   }
 
   #[test]
   fn test_sub_empty_intervals() {
-    let interval1 = Interval::empty_at(Number::from(19)); // Note: Not normalized
+    let interval1 = Interval::empty();
     let interval2 = Interval::new(Number::from(1), IntervalType::Closed, Number::from(2));
     assert_eq!(interval1 - interval2, Interval::empty());
   }
 
   #[test]
   fn test_mul_empty_intervals() {
-    let interval1 = Interval::empty_at(Number::from(19)); // Note: Not normalized
+    let interval1 = Interval::empty();
     let interval2 = Interval::new(Number::from(1), IntervalType::Closed, Number::from(2));
     assert_eq!(interval1.clone() * interval2.clone(), Interval::empty());
     assert_eq!(interval2 * interval1, Interval::empty());

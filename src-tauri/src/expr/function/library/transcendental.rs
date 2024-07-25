@@ -9,6 +9,7 @@ use crate::expr::function::builder::{self, FunctionBuilder};
 use crate::expr::prisms::{self, expr_to_number, ExprToComplex};
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex};
 use crate::expr::algebra::infinity::InfiniteConstant;
+use crate::expr::interval::Interval;
 
 use num::{Zero, One};
 
@@ -43,10 +44,11 @@ pub fn natural_log() -> Function {
     .add_case(
       // Natural logarithm of interval of positive reals
       builder::arity_one().of_type(prisms::expr_to_interval()).and_then(|arg, ctx| {
-        if arg.left() <= &Number::zero() || arg.right() <= &Number::zero() {
+        if arg.left <= Number::zero() || arg.right <= Number::zero() {
           ctx.errors.push(SimplifierError::custom_error("ln", "Expected interval of positive reals"));
           return Err(arg);
         }
+        let arg = Interval::from(arg);
         Ok(Expr::from(arg.map_monotone(|x| x.ln())))
       })
     )
@@ -103,11 +105,12 @@ pub fn logarithm() -> Function {
     .add_case(
       // Arbitrary-base logarithm of an interval with positive real base
       builder::arity_two().of_types(prisms::expr_to_interval(), prisms::expr_to_positive_number()).and_then(|arg, base, ctx| {
-        if arg.left() <= &Number::zero() || arg.right() <= &Number::zero() {
+        if arg.left <= Number::zero() || arg.right <= Number::zero() {
           ctx.errors.push(SimplifierError::custom_error("log", "Expected interval of positive reals"));
           return Err((arg, base));
         }
         let base = Number::from(base);
+        let arg = Interval::from(arg);
         Ok(Expr::from(arg.map_monotone(|x| x.log(&base))))
       })
     )
@@ -172,6 +175,7 @@ pub fn exponent() -> Function {
     .add_case(
       // Interval case
       builder::arity_one().of_type(prisms::expr_to_interval()).and_then(|arg, _| {
+        let arg = Interval::from(arg);
         let value = arg.map_monotone(|x| {
           let e = Number::from(consts::E);
           // unwrap: Raising a positive constant to a power will always get a real result.

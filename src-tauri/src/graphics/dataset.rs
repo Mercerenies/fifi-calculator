@@ -3,7 +3,7 @@
 
 use crate::expr::Expr;
 use crate::expr::number::Number;
-use crate::expr::interval::Interval;
+use crate::expr::interval::{Interval, RawInterval};
 use crate::expr::prisms;
 use crate::util::prism::{Prism, PrismExt};
 
@@ -48,7 +48,7 @@ pub enum GenReason {
 /// expression while `XDataSet` does not.
 #[derive(Debug, Clone, PartialEq)]
 pub struct XDataSetExpr {
-  data: Either<Either<Vec<Number>, Interval<Number>>, Number>,
+  data: Either<Either<Vec<Number>, RawInterval<Number>>, Number>,
 }
 
 /// Prism which attempts to parse an `Expr` as a `XDataSetExpr`.
@@ -189,7 +189,7 @@ impl ExprToXDataSet {
     Self { _priv: () }
   }
 
-  fn inner_prism() -> impl Prism<Expr, Either<Either<Vec<Number>, Interval<Number>>, Number>> {
+  fn inner_prism() -> impl Prism<Expr, Either<Either<Vec<Number>, RawInterval<Number>>, Number>> {
     prisms::expr_to_typed_vector(prisms::expr_to_number())
       .or(prisms::expr_to_interval())
       .or(prisms::expr_to_number())
@@ -211,7 +211,8 @@ impl From<XDataSetExpr> for XDataSet {
   fn from(data: XDataSetExpr) -> Self {
     let data = match data.data {
       Either::Left(Either::Left(vec)) => XDataSetImpl::Vector(vec),
-      Either::Left(Either::Right(interval)) => {
+      Either::Left(Either::Right(raw_interval)) => {
+        let interval = Interval::from(raw_interval);
         let (min, max) = interval.into_bounds();
         XDataSetImpl::Interval(min.into_scalar(), max.into_scalar())
       }

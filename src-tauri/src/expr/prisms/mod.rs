@@ -7,7 +7,7 @@ use super::Expr;
 use super::var::Var;
 use super::atom::Atom;
 use super::number::{Number, ComplexNumber, ComplexLike};
-use super::interval::{Interval, IntervalAny, IntervalOrScalar};
+use super::interval::{RawInterval, IntervalAny, IntervalOrScalar};
 use super::literal::Literal;
 use super::algebra::formula::{Formula, Equation};
 use super::algebra::infinity::InfiniteConstant;
@@ -149,7 +149,7 @@ pub fn expr_to_any_interval() -> Conversion<Expr, IntervalAny> {
   Conversion::new()
 }
 
-pub fn expr_to_interval() -> Conversion<Expr, Interval<Number>> {
+pub fn expr_to_interval() -> Conversion<Expr, RawInterval<Number>> {
   Conversion::new()
 }
 
@@ -352,8 +352,8 @@ impl Prism<String, ParsedUsize> for StringToUsize {
 
 impl Prism<Expr, IntervalOrScalar<Number>> for ExprToIntervalLike {
   fn narrow_type(&self, input: Expr) -> Result<IntervalOrScalar<Number>, Expr> {
-    match Interval::try_from(input) {
-      Ok(interval) => Ok(IntervalOrScalar::Interval(interval)),
+    match RawInterval::try_from(input) {
+      Ok(raw_interval) => Ok(IntervalOrScalar::Interval(raw_interval)),
       Err(err) => {
         let input = err.recover_payload();
         match Number::try_from(input) {

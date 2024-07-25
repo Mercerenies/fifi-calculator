@@ -29,7 +29,7 @@ impl Simplifier for IntervalNormalizer {
   fn simplify_expr_part(&self, expr: Expr, _ctx: &mut SimplifierContext) -> Expr {
     match expr_to_interval().narrow_type(expr) {
       Err(expr) => expr,
-      Ok(interval) => interval.normalize().into(),
+      Ok(raw_interval) => Expr::from(raw_interval.normalize()),
     }
   }
 }
