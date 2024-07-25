@@ -12,8 +12,6 @@ pub use bound::{Bounded, BoundType};
 pub use raw::RawInterval;
 pub use interval_type::IntervalType;
 
-use num::Zero;
-
 /// The disjoint union of the types [`RawInterval<T>`] and `T`. This type
 /// can be used as the target of any prism that wishes to treat
 /// scalars `n` as singleton intervals `n .. n`.
@@ -23,7 +21,7 @@ pub enum IntervalOrScalar<T> {
   Scalar(T),
 }
 
-impl<T: Clone + Ord + Zero> From<IntervalOrScalar<T>> for Interval<T> {
+impl<T: Clone + Ord + Default> From<IntervalOrScalar<T>> for Interval<T> {
   fn from(interval_or_number: IntervalOrScalar<T>) -> Self {
     match interval_or_number {
       IntervalOrScalar::Interval(interval) => interval.into(),

@@ -4,8 +4,6 @@ use super::bound::Bounded;
 use super::raw::RawInterval;
 use crate::expr::Expr;
 
-use num::Zero;
-
 use std::ops::{Add, Sub, Mul, Neg};
 
 /// An interval form consisting of specifically real numbers on the
@@ -13,8 +11,9 @@ use std::ops::{Add, Sub, Mul, Neg};
 ///
 /// Intervals are always kept in normal form, which is defined as
 /// follows. An interval is in normal form if it is either (a)
-/// nonempty or (b) equal to the interval `0..^0`. Put another way,
-/// the normal form of the empty interval is `0..^0`.
+/// nonempty or (b) equal to the interval `0..^0` (where 0 is the
+/// value [`T::default()`]). Put another way, the normal form of the
+/// empty interval is `0..^0`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Interval<T> {
   left: T,
@@ -22,7 +21,7 @@ pub struct Interval<T> {
   right: T,
 }
 
-impl<T: Zero + Ord> Interval<T> {
+impl<T: Default + Ord> Interval<T> {
   /// Constructs a new interval.
   pub fn new(left: T, interval_type: IntervalType, right: T) -> Self {
     Self { left, interval_type, right }.normalize()
@@ -35,7 +34,7 @@ impl<T: Zero + Ord> Interval<T> {
   }
 
   pub fn empty() -> Self {
-    Self { left: T::zero(), interval_type: IntervalType::RightOpen, right: T::zero() }
+    Self { left: T::default(), interval_type: IntervalType::RightOpen, right: T::default() }
   }
 
   pub fn is_empty(&self) -> bool {
@@ -64,7 +63,7 @@ impl<T: Zero + Ord> Interval<T> {
   /// the provided function is monotonic.
   pub fn map_monotone<F, U>(self, f: F) -> Interval<U>
   where F: Fn(T) -> U,
-        U: Ord + Zero {
+        U: Ord + Default {
     if self.is_empty() {
       return Interval::empty();
     }
@@ -81,8 +80,8 @@ impl<T: Zero + Ord> Interval<T> {
   pub fn apply_monotone<F, S, U>(self, other: Interval<S>, f: F) -> Interval<U>
   where F: Fn(T, S) -> U,
         T: Clone,
-        S: Clone + Ord + Zero,
-        U: Clone + Ord + Zero {
+        S: Clone + Ord + Default,
+        U: Clone + Ord + Default {
     if self.is_empty() || other.is_empty() {
       return Interval::empty();
     }
@@ -122,8 +121,8 @@ where T: Into<Expr> {
   }
 }
 
-impl<T: Add + Zero + Ord> Add for Interval<T>
-where <T as Add>::Output: Zero + Ord {
+impl<T: Add + Default + Ord> Add for Interval<T>
+where <T as Add>::Output: Default + Ord {
   type Output = Interval<<T as Add>::Output>;
 
   fn add(self, other: Self) -> Self::Output {
@@ -135,8 +134,8 @@ where <T as Add>::Output: Zero + Ord {
   }
 }
 
-impl<T: Sub + Zero + Ord> Sub for Interval<T>
-where <T as Sub>::Output: Zero + Ord {
+impl<T: Sub + Default + Ord> Sub for Interval<T>
+where <T as Sub>::Output: Default + Ord {
   type Output = Interval<<T as Sub>::Output>;
 
   fn sub(self, other: Self) -> Self::Output {
@@ -151,8 +150,8 @@ where <T as Sub>::Output: Zero + Ord {
 /// Note: This instance assumes that the multiplication on `T` is a
 /// monotone operation with respect to its `Ord` instance.
 impl<T> Mul for Interval<T>
-where T: Mul + Zero + Ord + Clone,
-      <T as Mul>::Output: Zero + Ord + Clone {
+where T: Mul + Default + Ord + Clone,
+      <T as Mul>::Output: Default + Ord + Clone {
   type Output = Interval<<T as Mul>::Output>;
 
   fn mul(self, other: Self) -> Self::Output {
@@ -163,7 +162,7 @@ where T: Mul + Zero + Ord + Clone,
 /// Note: This instance assumes that the `T: Neg` instance is
 /// order-reversing with respect to the `T: Ord` instance.
 impl<T: Neg> Neg for Interval<T>
-where <T as Neg>::Output: Zero + Ord {
+where <T as Neg>::Output: Default + Ord {
   type Output = Interval<<T as Neg>::Output>;
 
   fn neg(self) -> Self::Output {

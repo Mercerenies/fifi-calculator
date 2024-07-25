@@ -5,8 +5,6 @@ use super::interval_type::IntervalType;
 use crate::expr::{Expr, TryFromExprError};
 use crate::util::prism::ErrorWithPayload;
 
-use num::Zero;
-
 use std::convert::TryFrom;
 
 /// Equivalent to the [`Interval`] type but does not force its
@@ -34,7 +32,7 @@ impl<T> RawInterval<T> {
     Self { left: left.scalar, interval_type, right: right.scalar }
   }
 
-  pub fn normalize(self) -> Self where T: Ord + Zero {
+  pub fn normalize(self) -> Self where T: Ord + Default {
     Interval::from(self).into_raw()
   }
 
@@ -54,7 +52,7 @@ where T: Into<Expr> {
   }
 }
 
-impl<T: Ord + Zero> From<RawInterval<T>> for Interval<T> {
+impl<T: Ord + Default> From<RawInterval<T>> for Interval<T> {
   fn from(interval: RawInterval<T>) -> Self {
     Self::new(
       interval.left,

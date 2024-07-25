@@ -91,16 +91,9 @@ impl Add for UnboundedNumber {
   }
 }
 
-impl Zero for UnboundedNumber {
-  fn zero() -> Self {
-    UnboundedNumber::Finite(Number::zero())
-  }
-
-  fn is_zero(&self) -> bool {
-    match self {
-      UnboundedNumber::Finite(a) => a.is_zero(),
-      _ => false,
-    }
+impl Default for UnboundedNumber {
+  fn default() -> Self {
+    UnboundedNumber::Finite(Number::default())
   }
 }
 
