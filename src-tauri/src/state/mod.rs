@@ -21,6 +21,7 @@ use crate::expr::algebra::term::TermParser;
 use crate::command::default_dispatch_table;
 use crate::command::dispatch::CommandDispatchTable;
 use crate::mode::display::DisplaySettings;
+use crate::mode::calculation::CalculationMode;
 use crate::undo::{UndoStack, UndoError};
 use crate::units::parsing::{UnitParser, default_parser};
 
@@ -47,6 +48,7 @@ pub struct ApplicationState {
 pub struct UndoableState {
   main_stack: Stack<Expr>,
   display_settings: DisplaySettings,
+  calculation_mode: CalculationMode,
   variables: VarTable<Expr>,
 }
 
@@ -121,9 +123,14 @@ impl ApplicationState {
   pub fn modeline(&self) -> String {
     let mut modeline = String::new();
     if self.display_settings().is_graphics_enabled {
-      modeline.push('G');
+      modeline.push_str("Gr");
     } else {
-      modeline.push('-');
+      modeline.push_str("- ");
+    }
+    if self.calculation_mode().has_infinity_flag() {
+      modeline.push_str("Inf");
+    } else {
+      modeline.push_str("-  ");
     }
     modeline
   }
@@ -134,6 +141,14 @@ impl ApplicationState {
 
   pub fn display_settings_mut(&mut self) -> &mut DisplaySettings {
     &mut self.undoable_state.display_settings
+  }
+
+  pub fn calculation_mode(&self) -> &CalculationMode {
+    &self.undoable_state.calculation_mode
+  }
+
+  pub fn calculation_mode_mut(&mut self) -> &mut CalculationMode {
+    &mut self.undoable_state.calculation_mode
   }
 
   pub fn variable_table(&self) -> &VarTable<Expr> {
@@ -202,6 +217,14 @@ impl UndoableState {
 
   pub fn display_settings_mut(&mut self) -> &mut DisplaySettings {
     &mut self.display_settings
+  }
+
+  pub fn calculation_mode(&self) -> &CalculationMode {
+    &self.calculation_mode
+  }
+
+  pub fn calculation_mode_mut(&mut self) -> &mut CalculationMode {
+    &mut self.calculation_mode
   }
 
   pub fn variable_table(&self) -> &VarTable<Expr> {
