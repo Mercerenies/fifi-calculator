@@ -20,6 +20,7 @@ use crate::util::prism::Identity;
 
 use num::{Zero, One};
 use either::Either;
+use try_traits::ops::{TryAdd, TrySub, TryMul};
 
 use std::ops::{Add, Mul};
 use std::cmp::Ordering;
@@ -87,12 +88,17 @@ pub fn addition() -> Function {
     )
     .add_case(
       // Interval addition
-      builder::any_arity().of_type(prisms::expr_to_interval_like()).and_then(|args, _| {
+      builder::any_arity().of_type(prisms::expr_to_interval_like()).and_then(|args, ctx| {
         let sum = args.into_iter()
           .map(Interval::from)
-          .reduce(|a, b| a + b)
-          .unwrap(); // unwrap safety: One of the earlier cases would have triggered if arglist was empty
-        Ok(Expr::from(sum))
+          .try_fold(Interval::default(), |a, b| a.try_add(b));
+        match sum {
+          Ok(sum) => Ok(Expr::from(sum)),
+          Err(err) => {
+            ctx.errors.push(SimplifierError::new("+", err));
+            Ok(Expr::from(InfiniteConstant::NotANumber))
+          }
+        }
       })
     )
     .add_case(
@@ -153,8 +159,14 @@ pub fn subtraction() -> Function {
     )
     .add_case(
       // Interval subtraction
-      builder::arity_two().both_of_type(prisms::expr_to_interval_like()).and_then(|arg1, arg2, _| {
-        Ok(Expr::from(Interval::from(arg1) - Interval::from(arg2)))
+      builder::arity_two().both_of_type(prisms::expr_to_interval_like()).and_then(|arg1, arg2, ctx| {
+        match Interval::from(arg1).try_sub(Interval::from(arg2)) {
+          Ok(interval) => Ok(Expr::from(interval)),
+          Err(err) => {
+            ctx.errors.push(SimplifierError::new("-", err));
+            Ok(Expr::from(InfiniteConstant::NotANumber))
+          }
+        }
       })
     )
     .add_case(
@@ -249,12 +261,17 @@ pub fn multiplication() -> Function {
     )
     .add_case(
       // Interval multiplication
-      builder::any_arity().of_type(prisms::expr_to_interval_like()).and_then(|args, _| {
-        let sum = args.into_iter()
+      builder::any_arity().of_type(prisms::expr_to_interval_like()).and_then(|args, ctx| {
+        let product = args.into_iter()
           .map(Interval::from)
-          .reduce(|a, b| a * b)
-          .unwrap(); // unwrap safety: One of the earlier cases would have triggered if arglist was empty
-        Ok(Expr::from(sum))
+          .try_fold(Interval::singleton(Number::one()), |a, b| a.try_mul(b));
+        match product {
+          Ok(product) => Ok(Expr::from(product)),
+          Err(err) => {
+            ctx.errors.push(SimplifierError::new("*", err));
+            Ok(Expr::from(InfiniteConstant::NotANumber))
+          }
+        }
       })
     )
     .add_case(

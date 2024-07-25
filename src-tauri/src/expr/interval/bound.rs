@@ -52,6 +52,16 @@ impl<T> Bounded<T> {
     }
   }
 
+  pub fn apply_err<F, S, U, E>(self, other: Bounded<S>, f: F) -> Result<Bounded<U>, E>
+  where F: FnOnce(T, S) -> Result<U, E> {
+    Ok(
+      Bounded {
+        scalar: f(self.scalar, other.scalar)?,
+        bound_type: min(self.bound_type, other.bound_type), // Take the *stricter* bound
+      },
+    )
+  }
+
   pub fn min(self, other: Bounded<T>) -> Bounded<T> where T: Ord {
     match self.scalar.cmp(&other.scalar) {
       Ordering::Greater => other,

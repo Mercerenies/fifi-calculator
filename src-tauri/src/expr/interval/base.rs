@@ -3,8 +3,11 @@ use super::interval_type::IntervalType;
 use super::bound::Bounded;
 use super::raw::RawInterval;
 use crate::expr::Expr;
+use crate::util::unwrap_infallible;
 
-use std::ops::{Add, Sub, Mul, Neg};
+use try_traits::ops::{TryAdd, TrySub, TryMul};
+
+use std::ops::Neg;
 
 /// An interval form consisting of specifically real numbers on the
 /// left and right hand sides.
@@ -25,6 +28,10 @@ impl<T: Default + Ord> Interval<T> {
   /// Constructs a new interval.
   pub fn new(left: T, interval_type: IntervalType, right: T) -> Self {
     Self { left, interval_type, right }.normalize()
+  }
+
+  pub fn singleton(value: T) -> Self where T: Clone {
+    Self { left: value.clone(), interval_type: IntervalType::Closed, right: value }
   }
 
   /// Constructs a new interval from bounds.
@@ -77,26 +84,42 @@ impl<T: Default + Ord> Interval<T> {
   /// Applies a binary, monotone function to the two intervals to
   /// produce a new interval. It is the caller's responsibility to
   /// ensure that the provided function is monotonic.
-  pub fn apply_monotone<F, S, U>(self, other: Interval<S>, f: F) -> Interval<U>
-  where F: Fn(T, S) -> U,
+  ///
+  /// If the underlying operation fails, then failures are propagated
+  /// to the caller.
+  pub fn apply_monotone_err<F, S, U, E>(self, other: Interval<S>, f: F) -> Result<Interval<U>, E>
+  where F: Fn(T, S) -> Result<U, E>,
         T: Clone,
         S: Clone + Ord + Default,
         U: Clone + Ord + Default {
     if self.is_empty() || other.is_empty() {
-      return Interval::empty();
+      return Ok(Interval::empty());
     }
 
     let (left_lower, left_upper) = self.into_bounds();
     let (right_lower, right_upper) = other.into_bounds();
     let all_combinations = [
-      left_lower.clone().apply(right_lower.clone(), &f),
-      left_lower.clone().apply(right_upper.clone(), &f),
-      left_upper.clone().apply(right_lower, &f),
-      left_upper.apply(right_upper, &f),
+      left_lower.clone().apply_err(right_lower.clone(), &f)?,
+      left_lower.clone().apply_err(right_upper.clone(), &f)?,
+      left_upper.clone().apply_err(right_lower, &f)?,
+      left_upper.apply_err(right_upper, &f)?,
     ];
     let lower = all_combinations.iter().cloned().reduce(Bounded::min).unwrap(); // unwrap: Non-empty array
     let upper = all_combinations.into_iter().reduce(Bounded::max).unwrap(); // unwrap: Non-empty array
-    Interval::from_bounds(lower, upper).normalize()
+    Ok(Interval::from_bounds(lower, upper).normalize())
+  }
+
+  /// Applies a binary, monotone function to the two intervals to
+  /// produce a new interval. It is the caller's responsibility to
+  /// ensure that the provided function is monotonic.
+  pub fn apply_monotone<F, S, U>(self, other: Interval<S>, f: F) -> Interval<U>
+  where F: Fn(T, S) -> U,
+        T: Clone,
+        S: Clone + Ord + Default,
+        U: Clone + Ord + Default {
+    unwrap_infallible(
+      self.apply_monotone_err(other, |x, y| Ok(f(x, y))),
+    )
   }
 }
 
@@ -114,6 +137,12 @@ impl<T> Interval<T> {
   }
 }
 
+impl<T: Default + Ord> Default for Interval<T> {
+  fn default() -> Self {
+    Self::empty()
+  }
+}
+
 impl<T> From<Interval<T>> for Expr
 where T: Into<Expr> {
   fn from(interval: Interval<T>) -> Expr {
@@ -121,41 +150,54 @@ where T: Into<Expr> {
   }
 }
 
-impl<T: Add + Default + Ord> Add for Interval<T>
-where <T as Add>::Output: Default + Ord {
-  type Output = Interval<<T as Add>::Output>;
+// Note: In principle, we would also supply impl Add, Mul, Sub, etc.
+// for Interval when the underlying type supports it. Unfortunately,
+// due to blanket impls of TryAdd, etc. in try_traits, that creates a
+// trait conflict. So we just impl the Try* versions, and if Error =
+// Infallible then so be it.
 
-  fn add(self, other: Self) -> Self::Output {
+impl<T: TryAdd + Default + Ord> TryAdd for Interval<T>
+where <T as TryAdd>::Output: Default + Ord {
+  type Output = Interval<<T as TryAdd>::Output>;
+  type Error = <T as TryAdd>::Error;
+
+  fn try_add(self, other: Self) -> Result<Self::Output, Self::Error> {
     if self.is_empty() || other.is_empty() {
-      return Interval::empty();
+      return Ok(Interval::empty());
     }
+    let left = self.left.try_add(other.left)?;
+    let right = self.right.try_add(other.right)?;
     let interval_type = self.interval_type.min(other.interval_type);
-    Interval::new(self.left + other.left, interval_type, self.right + other.right).normalize()
+    Ok(Interval::new(left, interval_type, right).normalize())
   }
 }
 
-impl<T: Sub + Default + Ord> Sub for Interval<T>
-where <T as Sub>::Output: Default + Ord {
-  type Output = Interval<<T as Sub>::Output>;
+impl<T: TrySub + Default + Ord> TrySub for Interval<T>
+where <T as TrySub>::Output: Default + Ord {
+  type Output = Interval<<T as TrySub>::Output>;
+  type Error = <T as TrySub>::Error;
 
-  fn sub(self, other: Self) -> Self::Output {
+  fn try_sub(self, other: Self) -> Result<Self::Output, Self::Error> {
     if self.is_empty() || other.is_empty() {
-      return Interval::empty();
+      return Ok(Interval::empty());
     }
+    let left = self.left.try_sub(other.right)?;
+    let right = self.right.try_sub(other.left)?;
     let interval_type = self.interval_type.min(other.interval_type.flipped());
-    Interval::new(self.left - other.right, interval_type, self.right - other.left).normalize()
+    Ok(Interval::new(left, interval_type, right).normalize())
   }
 }
 
 /// Note: This instance assumes that the multiplication on `T` is a
 /// monotone operation with respect to its `Ord` instance.
-impl<T> Mul for Interval<T>
-where T: Mul + Default + Ord + Clone,
-      <T as Mul>::Output: Default + Ord + Clone {
-  type Output = Interval<<T as Mul>::Output>;
+impl<T> TryMul for Interval<T>
+where T: TryMul + Default + Ord + Clone,
+      <T as TryMul>::Output: Default + Ord + Clone {
+  type Output = Interval<<T as TryMul>::Output>;
+  type Error = <T as TryMul>::Error;
 
-  fn mul(self, other: Self) -> Self::Output {
-    self.apply_monotone(other, |x, y| x * y)
+  fn try_mul(self, other: Self) -> Result<Self::Output, Self::Error> {
+    self.apply_monotone_err(other, |x, y| x.try_mul(y))
   }
 }
 
@@ -233,25 +275,25 @@ mod tests {
     let interval1 = Interval::new(Number::from(1), IntervalType::Closed, Number::from(2));
     let interval2 = Interval::new(Number::from(10), IntervalType::Closed, Number::from(20));
     assert_eq!(
-      interval1 + interval2,
+      interval1.try_add(interval2).unwrap(),
       Interval::new(Number::from(11), IntervalType::Closed, Number::from(22)),
     );
     let interval1 = Interval::new(Number::from(1), IntervalType::LeftOpen, Number::from(2));
     let interval2 = Interval::new(Number::from(10), IntervalType::FullOpen, Number::from(20));
     assert_eq!(
-      interval1 + interval2,
+      interval1.try_add(interval2).unwrap(),
       Interval::new(Number::from(11), IntervalType::FullOpen, Number::from(22)),
     );
     let interval1 = Interval::new(Number::from(1), IntervalType::LeftOpen, Number::from(2));
     let interval2 = Interval::new(Number::from(10), IntervalType::RightOpen, Number::from(20));
     assert_eq!(
-      interval1 + interval2,
+      interval1.try_add(interval2).unwrap(),
       Interval::new(Number::from(11), IntervalType::FullOpen, Number::from(22)),
     );
     let interval1 = Interval::new(Number::from(1), IntervalType::RightOpen, Number::from(2));
     let interval2 = Interval::new(Number::from(10), IntervalType::RightOpen, Number::from(20));
     assert_eq!(
-      interval1 + interval2,
+      interval1.try_add(interval2).unwrap(),
       Interval::new(Number::from(11), IntervalType::RightOpen, Number::from(22)),
     );
   }
@@ -261,25 +303,25 @@ mod tests {
     let interval1 = Interval::new(Number::from(1), IntervalType::Closed, Number::from(2));
     let interval2 = Interval::new(Number::from(10), IntervalType::Closed, Number::from(20));
     assert_eq!(
-      interval1 - interval2,
+      interval1.try_sub(interval2).unwrap(),
       Interval::new(Number::from(-19), IntervalType::Closed, Number::from(-8)),
     );
     let interval1 = Interval::new(Number::from(1), IntervalType::LeftOpen, Number::from(2));
     let interval2 = Interval::new(Number::from(10), IntervalType::FullOpen, Number::from(20));
     assert_eq!(
-      interval1 - interval2,
+      interval1.try_sub(interval2).unwrap(),
       Interval::new(Number::from(-19), IntervalType::FullOpen, Number::from(-8)),
     );
     let interval1 = Interval::new(Number::from(1), IntervalType::LeftOpen, Number::from(2));
     let interval2 = Interval::new(Number::from(10), IntervalType::RightOpen, Number::from(20));
     assert_eq!(
-      interval1 - interval2,
+      interval1.try_sub(interval2).unwrap(),
       Interval::new(Number::from(-19), IntervalType::LeftOpen, Number::from(-8)),
     );
     let interval1 = Interval::new(Number::from(1), IntervalType::RightOpen, Number::from(2));
     let interval2 = Interval::new(Number::from(10), IntervalType::RightOpen, Number::from(20));
     assert_eq!(
-      interval1 - interval2,
+      interval1.try_sub(interval2).unwrap(),
       Interval::new(Number::from(-19), IntervalType::FullOpen, Number::from(-8)),
     );
   }
@@ -288,22 +330,22 @@ mod tests {
   fn test_add_empty_intervals() {
     let interval1 = Interval::empty();
     let interval2 = Interval::new(Number::from(1), IntervalType::Closed, Number::from(2));
-    assert_eq!(interval1 + interval2, Interval::empty());
+    assert_eq!(interval1.try_add(interval2).unwrap(), Interval::empty());
   }
 
   #[test]
   fn test_sub_empty_intervals() {
     let interval1 = Interval::empty();
     let interval2 = Interval::new(Number::from(1), IntervalType::Closed, Number::from(2));
-    assert_eq!(interval1 - interval2, Interval::empty());
+    assert_eq!(interval1.try_sub(interval2).unwrap(), Interval::empty());
   }
 
   #[test]
   fn test_mul_empty_intervals() {
     let interval1 = Interval::empty();
     let interval2 = Interval::new(Number::from(1), IntervalType::Closed, Number::from(2));
-    assert_eq!(interval1.clone() * interval2.clone(), Interval::empty());
-    assert_eq!(interval2 * interval1, Interval::empty());
+    assert_eq!(interval1.clone().try_mul(interval2.clone()).unwrap(), Interval::empty());
+    assert_eq!(interval2.try_mul(interval1).unwrap(), Interval::empty());
   }
 
   #[test]
@@ -311,19 +353,19 @@ mod tests {
     let interval1 = Interval::new(Number::from(1), IntervalType::RightOpen, Number::from(3));
     let interval2 = Interval::new(Number::from(4), IntervalType::Closed, Number::from(6));
     assert_eq!(
-      interval1 * interval2,
+      interval1.try_mul(interval2).unwrap(),
       Interval::new(Number::from(4), IntervalType::RightOpen, Number::from(18)),
     );
     let interval1 = Interval::new(Number::from(-1), IntervalType::LeftOpen, Number::from(4));
     let interval2 = Interval::new(Number::from(0), IntervalType::FullOpen, Number::from(12));
     assert_eq!(
-      interval1 * interval2,
+      interval1.try_mul(interval2).unwrap(),
       Interval::new(Number::from(-12), IntervalType::FullOpen, Number::from(48)),
     );
     let interval1 = Interval::new(Number::from(3), IntervalType::Closed, Number::from(3));
     let interval2 = Interval::new(Number::from(0), IntervalType::FullOpen, Number::from(2));
     assert_eq!(
-      interval1 * interval2,
+      interval1.try_mul(interval2).unwrap(),
       Interval::new(Number::from(0), IntervalType::FullOpen, Number::from(6)),
     );
   }
