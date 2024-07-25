@@ -1,18 +1,19 @@
 
 mod base;
 mod prisms;
+mod signed;
 
 pub use base::InfiniteConstant;
+pub use signed::{SignedInfinity, ExpectedSignedInfinityError};
 pub use prisms::{ExprToInfinity, infinity_to_signed_infinity,
                  expr_to_signed_infinity, expr_to_unbounded_number};
 
 use crate::expr::{Expr, TryFromExprError};
 use crate::expr::number::{Number, ComplexLike};
-use crate::util::prism::{ErrorWithPayload, Prism};
+use crate::util::prism::Prism;
 
 use either::Either;
 use num::{Zero, One};
-use thiserror::Error;
 
 use std::cmp::Ordering;
 use std::convert::TryFrom;
@@ -21,45 +22,11 @@ pub const INFINITY_NAME: &str = "inf";
 pub const UNDIRECTED_INFINITY_NAME: &str = "uinf";
 pub const NAN_NAME: &str = "nan";
 
-/// An infinity value with a known sign.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum SignedInfinity {
-  NegInfinity,
-  PosInfinity,
-}
-
 /// Either a finite real value or a signed infinity.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UnboundedNumber {
   Finite(Number),
   Infinite(SignedInfinity),
-}
-
-#[derive(Debug, Clone, Error)]
-#[error("Expected signed infinity")]
-pub struct ExpectedSignedInfinityError {
-  original_constant: InfiniteConstant,
-}
-
-impl From<SignedInfinity> for InfiniteConstant {
-  fn from(s: SignedInfinity) -> InfiniteConstant {
-    match s {
-      SignedInfinity::NegInfinity => InfiniteConstant::NegInfinity,
-      SignedInfinity::PosInfinity => InfiniteConstant::PosInfinity,
-    }
-  }
-}
-
-impl TryFrom<InfiniteConstant> for SignedInfinity {
-  type Error = ExpectedSignedInfinityError;
-
-  fn try_from(c: InfiniteConstant) -> Result<SignedInfinity, ExpectedSignedInfinityError> {
-    match c {
-      InfiniteConstant::NegInfinity => Ok(SignedInfinity::NegInfinity),
-      InfiniteConstant::PosInfinity => Ok(SignedInfinity::PosInfinity),
-      _ => Err(ExpectedSignedInfinityError { original_constant: c }),
-    }
-  }
 }
 
 impl TryFrom<Expr> for UnboundedNumber {
@@ -68,39 +35,6 @@ impl TryFrom<Expr> for UnboundedNumber {
   fn try_from(expr: Expr) -> Result<UnboundedNumber, TryFromExprError> {
     expr_to_unbounded_number().narrow_type(expr)
       .map_err(|expr| TryFromExprError::new("UnboundedNumber", expr))
-  }
-}
-
-impl ErrorWithPayload<InfiniteConstant> for ExpectedSignedInfinityError {
-  fn recover_payload(self) -> InfiniteConstant {
-    self.original_constant
-  }
-}
-
-impl PartialEq<Number> for SignedInfinity {
-  fn eq(&self, _: &Number) -> bool {
-    false
-  }
-}
-
-impl PartialOrd<Number> for SignedInfinity {
-  fn partial_cmp(&self, _other: &Number) -> Option<Ordering> {
-    match self {
-      SignedInfinity::NegInfinity => Some(Ordering::Less),
-      SignedInfinity::PosInfinity => Some(Ordering::Greater),
-    }
-  }
-}
-
-impl PartialEq<SignedInfinity> for Number {
-  fn eq(&self, _: &SignedInfinity) -> bool {
-    false
-  }
-}
-
-impl PartialOrd<SignedInfinity> for Number {
-  fn partial_cmp(&self, other: &SignedInfinity) -> Option<Ordering> {
-    other.partial_cmp(self).map(Ordering::reverse)
   }
 }
 
@@ -196,12 +130,6 @@ pub fn infinite_pow(left: InfiniteConstant, right: InfiniteConstant) -> Expr {
     (_, UndirInfinity) => Expr::from(NotANumber),
     (_, NegInfinity) => Expr::zero(),
     (left, PosInfinity) => Expr::from(left),
-  }
-}
-
-impl From<SignedInfinity> for Expr {
-  fn from(c: SignedInfinity) -> Self {
-    Expr::from(InfiniteConstant::from(c))
   }
 }
 
