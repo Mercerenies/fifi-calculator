@@ -5,7 +5,7 @@ use crate::util::prism::Prism;
 use super::prisms::expr_to_unbounded_number;
 use super::signed::SignedInfinity;
 
-use num::Zero;
+use num::{Zero, One};
 use try_traits::ops::{TryAdd, TrySub, TryMul};
 use thiserror::Error;
 
@@ -44,6 +44,14 @@ impl UnboundedNumber {
       UnboundedNumber::Infinite(_) => true,
       _ => false,
     }
+  }
+
+  pub fn zero() -> Self {
+    UnboundedNumber::Finite(Number::zero())
+  }
+
+  pub fn one() -> Self {
+    UnboundedNumber::Finite(Number::one())
   }
 }
 

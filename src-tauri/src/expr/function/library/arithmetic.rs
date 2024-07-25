@@ -12,8 +12,8 @@ use crate::expr::prisms::{self, expr_to_number, ExprToComplex};
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex, pow_complex_to_real};
 use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::calculus::DifferentiationError;
-use crate::expr::algebra::infinity::{InfiniteConstant, is_infinite_constant, multiply_infinities,
-                                     infinite_pow};
+use crate::expr::algebra::infinity::{InfiniteConstant, UnboundedNumber, is_infinite_constant,
+                                     multiply_infinities, infinite_pow};
 use crate::graphics::GRAPHICS_NAME;
 use crate::util::repeated;
 use crate::util::prism::Identity;
@@ -88,10 +88,10 @@ pub fn addition() -> Function {
     )
     .add_case(
       // Interval addition
-      builder::any_arity().of_type(prisms::expr_to_interval_like()).and_then(|args, ctx| {
+      builder::any_arity().of_type(prisms::expr_to_unbounded_interval_like()).and_then(|args, ctx| {
         let sum = args.into_iter()
           .map(Interval::from)
-          .try_fold(Interval::default(), |a, b| a.try_add(b));
+          .try_fold(Interval::singleton(UnboundedNumber::zero()), |a, b| a.try_add(b));
         match sum {
           Ok(sum) => Ok(Expr::from(sum)),
           Err(err) => {
@@ -159,7 +159,7 @@ pub fn subtraction() -> Function {
     )
     .add_case(
       // Interval subtraction
-      builder::arity_two().both_of_type(prisms::expr_to_interval_like()).and_then(|arg1, arg2, ctx| {
+      builder::arity_two().both_of_type(prisms::expr_to_unbounded_interval_like()).and_then(|arg1, arg2, ctx| {
         match Interval::from(arg1).try_sub(Interval::from(arg2)) {
           Ok(interval) => Ok(Expr::from(interval)),
           Err(err) => {
@@ -261,10 +261,10 @@ pub fn multiplication() -> Function {
     )
     .add_case(
       // Interval multiplication
-      builder::any_arity().of_type(prisms::expr_to_interval_like()).and_then(|args, ctx| {
+      builder::any_arity().of_type(prisms::expr_to_unbounded_interval_like()).and_then(|args, ctx| {
         let product = args.into_iter()
           .map(Interval::from)
-          .try_fold(Interval::singleton(Number::one()), |a, b| a.try_mul(b));
+          .try_fold(Interval::singleton(UnboundedNumber::one()), |a, b| a.try_mul(b));
         match product {
           Ok(product) => Ok(Expr::from(product)),
           Err(err) => {
