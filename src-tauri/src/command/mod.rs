@@ -4,11 +4,11 @@ pub mod arguments;
 mod base;
 pub mod calculus;
 pub mod dispatch;
-pub mod display;
 pub mod functional;
 pub mod general;
 pub mod graphics;
 pub mod input;
+pub mod modes;
 pub mod nullary;
 pub mod options;
 pub mod shuffle;
@@ -86,7 +86,8 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("plot".to_string(), Box::new(graphics::PlotCommand::new()));
   map.insert("contourplot".to_string(), Box::new(graphics::ContourPlotCommand::new()));
   map.insert("xy".to_string(), Box::new(BinaryFunctionCommand::named("xy")));
-  map.insert("toggle_graphics".to_string(), Box::new(display::toggle_graphics_command()));
+  map.insert("toggle_graphics".to_string(), Box::new(modes::toggle_graphics_command()));
+  map.insert("toggle_infinity".to_string(), Box::new(modes::toggle_infinity_command()));
 
   // Commands which accept a single string.
   map.insert("push_number".to_string(), Box::new(input::push_number_command()));

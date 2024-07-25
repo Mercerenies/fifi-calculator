@@ -37,7 +37,7 @@ impl CalculationMode {
 
   /// Sets the infinity flag. See
   /// [`CalculationMode::has_infinity_flag`].
-  pub fn set_infinity_mode(&mut self, mode: bool) {
+  pub fn set_infinity_flag(&mut self, mode: bool) {
     self.inner.set(CalculationModeBits::INFINITY, mode);
   }
 }

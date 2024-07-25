@@ -15,6 +15,10 @@ use crate::state::UndoableState;
 #[derive(Clone, Debug)]
 pub struct ToggleGraphicsChange;
 
+/// [`UndoableChange`] which toggles the infinity mode.
+#[derive(Clone, Debug)]
+pub struct ToggleInfinityChange;
+
 pub fn toggle_graphics_command() -> impl Command + Send + Sync {
   GeneralCommand::new(|state, args, _| {
     NullaryArgumentSchema::new().validate(args)?;
@@ -22,6 +26,17 @@ pub fn toggle_graphics_command() -> impl Command + Send + Sync {
     state.undo_stack_mut().push_change(ToggleGraphicsChange);
     let settings = state.display_settings_mut();
     settings.is_graphics_enabled = !settings.is_graphics_enabled;
+    Ok(CommandOutput::success())
+  })
+}
+
+pub fn toggle_infinity_command() -> impl Command + Send + Sync {
+  GeneralCommand::new(|state, args, _| {
+    NullaryArgumentSchema::new().validate(args)?;
+    state.undo_stack_mut().push_cut();
+    state.undo_stack_mut().push_change(ToggleInfinityChange);
+    let calc = state.calculation_mode_mut();
+    calc.set_infinity_flag(!calc.has_infinity_flag());
     Ok(CommandOutput::success())
   })
 }
@@ -35,6 +50,22 @@ impl UndoableChange<UndoableState> for ToggleGraphicsChange {
   fn play_backward(&self, state: &mut UndoableState) {
     let settings = state.display_settings_mut();
     settings.is_graphics_enabled = !settings.is_graphics_enabled;
+  }
+
+  fn undo_summary(&self) -> String {
+    format!("{:?}", self)
+  }
+}
+
+impl UndoableChange<UndoableState> for ToggleInfinityChange {
+  fn play_forward(&self, state: &mut UndoableState) {
+    let calc = state.calculation_mode_mut();
+    calc.set_infinity_flag(!calc.has_infinity_flag());
+  }
+
+  fn play_backward(&self, state: &mut UndoableState) {
+    let calc = state.calculation_mode_mut();
+    calc.set_infinity_flag(!calc.has_infinity_flag());
   }
 
   fn undo_summary(&self) -> String {

@@ -8,6 +8,7 @@ import { TranscendentalButtonGrid } from "./transcendental_button_grid.js";
 import { GraphingButtonGrid } from "./graphing_button_grid.js";
 import { StringButtonGrid } from "./string_button_grid.js";
 import { DisplayButtonGrid } from "./display_button_grid.js";
+import { ModesButtonGrid } from "./modes_button_grid.js";
 import { UnitsButtonGrid } from "./units_button_grid.js";
 import { DispatchButton, GotoButton } from './button.js';
 import { NumericalInputButton, AlgebraicInputButton,
@@ -73,6 +74,7 @@ export class MainButtonGrid extends ButtonGrid {
       [
         new DispatchButton("-", "-", "-"),
         new DispatchButton("<math><mo fence='true'>|</mo><mo>·</mo><mo fence='true'>|</mo></math>", "abs", "A"),
+        new GotoButton("mo", "m", this.subgrids.modes),
       ],
       [
         new DispatchButton("<math><mo>&times;</mo></math>", "*", "*"),
@@ -175,6 +177,7 @@ class Subgrids {
   readonly display: DisplayButtonGrid;
   readonly strings: StringButtonGrid;
   readonly units: UnitsButtonGrid;
+  readonly modes: ModesButtonGrid;
 
   constructor(mainGrid: MainButtonGrid, inputManager: InputBoxManager) {
     this.algebra = new AlgebraButtonGrid(mainGrid, inputManager);
@@ -186,5 +189,6 @@ class Subgrids {
     this.display = new DisplayButtonGrid(mainGrid, inputManager);
     this.strings = new StringButtonGrid(mainGrid, inputManager);
     this.units = new UnitsButtonGrid(mainGrid, inputManager);
+    this.modes = new ModesButtonGrid(mainGrid, inputManager);
   }
 }
