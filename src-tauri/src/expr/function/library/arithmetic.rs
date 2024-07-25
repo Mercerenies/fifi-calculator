@@ -8,9 +8,7 @@ use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
 use crate::expr::vector::Vector;
 use crate::expr::vector::tensor::Tensor;
-use crate::expr::prisms::{self, expr_to_number, expr_to_string,
-                          ExprToComplex, ExprToVector, ExprToTensor,
-                          ExprToIntervalLike, expr_to_interval, expr_to_usize};
+use crate::expr::prisms::{self, expr_to_number, ExprToComplex};
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex, pow_complex_to_real};
 use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::calculus::DifferentiationError;
@@ -68,7 +66,7 @@ pub fn addition() -> Function {
     )
     .add_case(
       // Vector addition (with broadcasting)
-      builder::any_arity().of_type(ExprToTensor).and_then(|args, context| {
+      builder::any_arity().of_type(prisms::ExprToTensor).and_then(|args, context| {
         if let Err(err) = Tensor::check_compatible_lengths(args.iter()) {
           context.errors.push(SimplifierError::new("+", err));
           return Err(args);
@@ -83,13 +81,13 @@ pub fn addition() -> Function {
     )
     .add_case(
       // String concatenation
-      builder::any_arity().of_type(expr_to_string()).and_then(|args, _| {
+      builder::any_arity().of_type(prisms::expr_to_string()).and_then(|args, _| {
         Ok(Expr::from(args.join("")))
       })
     )
     .add_case(
       // Interval addition
-      builder::any_arity().of_type(ExprToIntervalLike).and_then(|args, _| {
+      builder::any_arity().of_type(prisms::ExprToIntervalLike).and_then(|args, _| {
         let sum = args.into_iter()
           .map(Interval::from)
           .reduce(|a, b| a + b)
@@ -145,7 +143,7 @@ pub fn subtraction() -> Function {
     )
     .add_case(
       // Vector subtraction (with broadcasting)
-      builder::arity_two().both_of_type(ExprToTensor).and_then(|arg1, arg2, context| {
+      builder::arity_two().both_of_type(prisms::ExprToTensor).and_then(|arg1, arg2, context| {
         if let Err(err) = Tensor::check_compatible_lengths([&arg1, &arg2]) {
           context.errors.push(SimplifierError::new("-", err));
           return Err((arg1, arg2));
@@ -155,7 +153,7 @@ pub fn subtraction() -> Function {
     )
     .add_case(
       // Interval subtraction
-      builder::arity_two().both_of_type(ExprToIntervalLike).and_then(|arg1, arg2, _| {
+      builder::arity_two().both_of_type(prisms::ExprToIntervalLike).and_then(|arg1, arg2, _| {
         Ok(Expr::from(Interval::from(arg1) - Interval::from(arg2)))
       })
     )
@@ -197,7 +195,7 @@ pub fn multiplication() -> Function {
     )
     .add_case(
       // String repetition
-      builder::arity_two().of_types(expr_to_string(), expr_to_usize()).and_then(|s, n, _| {
+      builder::arity_two().of_types(prisms::expr_to_string(), prisms::expr_to_usize()).and_then(|s, n, _| {
         let repeated_str: String = repeated(s, n);
         Ok(Expr::from(repeated_str))
       })
@@ -236,7 +234,7 @@ pub fn multiplication() -> Function {
     )
     .add_case(
       // Vector multiplication (with broadcasting)
-      builder::any_arity().of_type(ExprToTensor).and_then(|args, context| {
+      builder::any_arity().of_type(prisms::ExprToTensor).and_then(|args, context| {
         if let Err(err) = Tensor::check_compatible_lengths(args.iter()) {
           context.errors.push(SimplifierError::new("*", err));
           return Err(args);
@@ -251,7 +249,7 @@ pub fn multiplication() -> Function {
     )
     .add_case(
       // Interval multiplication
-      builder::any_arity().of_type(ExprToIntervalLike).and_then(|args, _| {
+      builder::any_arity().of_type(prisms::ExprToIntervalLike).and_then(|args, _| {
         let sum = args.into_iter()
           .map(Interval::from)
           .reduce(|a, b| a * b)
@@ -318,7 +316,7 @@ pub fn division() -> Function {
     )
     .add_case(
       // Vector division (with broadcasting)
-      builder::arity_two().both_of_type(ExprToTensor).and_then(|arg1, arg2, context| {
+      builder::arity_two().both_of_type(prisms::ExprToTensor).and_then(|arg1, arg2, context| {
         if let Err(err) = Tensor::check_compatible_lengths([&arg1, &arg2]) {
           context.errors.push(SimplifierError::new("/", err));
           return Err((arg1, arg2));
@@ -337,7 +335,7 @@ pub fn division() -> Function {
       // Interval division (currently a trap case)
       //
       // TODO: Implement this once we have infinities (Issue #4)
-      builder::arity_two().both_of_type(ExprToIntervalLike).and_then(|arg1, arg2, ctx| {
+      builder::arity_two().both_of_type(prisms::ExprToIntervalLike).and_then(|arg1, arg2, ctx| {
         ctx.errors.push(SimplifierError::custom_error("/", "Interval division is not currently supported"));
         Err((arg1, arg2))
       })
@@ -453,7 +451,7 @@ pub fn power() -> Function {
       //
       // (We just distribute scalar exponents over the elements of the
       // vector)
-      builder::arity_two().of_types(ExprToVector, ExprToComplex).and_then(|arg1, arg2, _| {
+      builder::arity_two().of_types(prisms::ExprToVector, ExprToComplex).and_then(|arg1, arg2, _| {
         let result = arg1.map(|elem| Expr::call("^", vec![elem, Expr::from(arg2.clone())]));
         Ok(result.into_expr())
       })
@@ -685,14 +683,14 @@ pub fn arithmetic_negate() -> Function {
     )
     .add_case(
       // Negation of a vector
-      builder::arity_one().of_type(ExprToVector).and_then(|arg, _| {
+      builder::arity_one().of_type(prisms::ExprToVector).and_then(|arg, _| {
         let result = arg.map(|e| Expr::call("negate", vec![e]));
         Ok(result.into_expr())
       })
     )
     .add_case(
       // Negation of an interval
-      builder::arity_one().of_type(expr_to_interval()).and_then(|arg, _| {
+      builder::arity_one().of_type(prisms::expr_to_interval()).and_then(|arg, _| {
         let arg = Interval::from(arg);
         Ok(Expr::from(- arg))
       })
@@ -728,7 +726,7 @@ pub fn abs() -> Function {
     )
     .add_case(
       // Norm of a vector
-      builder::arity_one().of_type(ExprToVector).and_then(|arg, _| {
+      builder::arity_one().of_type(prisms::ExprToVector).and_then(|arg, _| {
         Ok(vector_norm(arg))
       })
     )
@@ -772,7 +770,7 @@ pub fn signum() -> Function {
     )
     .add_case(
       // Normalized vector
-      builder::arity_one().of_type(ExprToVector).and_then(|arg, _| {
+      builder::arity_one().of_type(prisms::ExprToVector).and_then(|arg, _| {
         let norm = vector_norm(arg.clone());
         Ok(Expr::call("/", vec![
           arg.into(),
