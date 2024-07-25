@@ -806,6 +806,7 @@ dependencies = [
  "tauri-plugin-os",
  "tauri-plugin-shell",
  "thiserror",
+ "try-traits",
 ]
 
 [[package]]
@@ -3798,6 +3799,12 @@ name = "try-lock"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
+
+[[package]]
+name = "try-traits"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9373e3d7b53927daabbec34ebd9cfda454cc0888939e5e3e929c324e0645c1f8"
 
 [[package]]
 name = "typenum"

@@ -6,16 +6,24 @@ use super::prisms::expr_to_unbounded_number;
 use super::signed::SignedInfinity;
 
 use num::Zero;
+use try_traits::ops::{TryAdd, TrySub, TryMul};
+use thiserror::Error;
 
 use std::convert::TryFrom;
 use std::cmp::Ordering;
-use std::ops::{Add, Sub, Mul, Neg};
+use std::ops::Neg;
 
 /// Either a finite real value or a signed infinity.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UnboundedNumber {
   Finite(Number),
   Infinite(SignedInfinity),
+}
+
+#[derive(Debug, Clone, Error)]
+#[error("Indeterminate form: {message}")]
+pub struct IndeterminateFormError {
+  message: &'static str,
 }
 
 impl UnboundedNumber {
@@ -74,19 +82,18 @@ impl From<UnboundedNumber> for Expr {
   }
 }
 
-impl Add for UnboundedNumber {
+impl TryAdd for UnboundedNumber {
   type Output = Self;
+  type Error = IndeterminateFormError;
 
-  /// Adds two unbounded numbers. Panics if the inputs are infinities
-  /// of different signs.
-  fn add(self, other: Self) -> Self {
+  fn try_add(self, other: Self) -> Result<Self, IndeterminateFormError> {
     use UnboundedNumber::*;
     match (self, other) {
       (Infinite(a), Infinite(b)) =>
-        if a == b { Infinite(a) } else { panic!("Cannot add infinities of different signs"); },
-      (Infinite(a), _) => Infinite(a),
-      (_, Infinite(b)) => Infinite(b),
-      (Finite(a), Finite(b)) => Finite(a + b),
+        if a == b { Ok(Infinite(a)) } else { Err(IndeterminateFormError { message: "inf - inf" }) },
+      (Infinite(a), _) => Ok(Infinite(a)),
+      (_, Infinite(b)) => Ok(Infinite(b)),
+      (Finite(a), Finite(b)) => Ok(Finite(a + b)),
     }
   }
 }
@@ -108,32 +115,32 @@ impl Neg for UnboundedNumber {
   }
 }
 
-impl Sub for UnboundedNumber {
+impl TrySub for UnboundedNumber {
   type Output = Self;
+  type Error = IndeterminateFormError;
 
-  /// Subtracts two unbounded numbers. Panics if the inputs are
-  /// infinities of the same sign.
-  fn sub(self, other: Self) -> Self {
-    self + -other
+  fn try_sub(self, other: Self) -> Result<Self, IndeterminateFormError> {
+    self.try_add(-other)
   }
 }
 
-impl Mul for UnboundedNumber {
+impl TryMul for UnboundedNumber {
   type Output = Self;
+  type Error = IndeterminateFormError;
 
   /// Multiplies the two unbounded numbers. Panics on infinity times
   /// zero.
-  fn mul(self, other: Self) -> Self {
+  fn try_mul(self, other: Self) -> Result<Self, IndeterminateFormError> {
     use UnboundedNumber::*;
     match (self, other) {
-      (Infinite(a), Infinite(b)) => Infinite(a * b),
+      (Infinite(a), Infinite(b)) => Ok(Infinite(a * b)),
       (Infinite(a), Finite(b)) => match b.cmp(&Number::zero()) {
-        Ordering::Greater => Infinite(a),
-        Ordering::Less => Infinite(-a),
-        Ordering::Equal => panic!("Cannot multiply infinity by zero"),
+        Ordering::Greater => Ok(Infinite(a)),
+        Ordering::Less => Ok(Infinite(-a)),
+        Ordering::Equal => Err(IndeterminateFormError { message: "inf * 0" }),
       }
-      (Finite(a), Infinite(b)) => Infinite(b) * Finite(a), // See above case
-      (Finite(a), Finite(b)) => Finite(a * b),
+      (Finite(a), Infinite(b)) => Infinite(b).try_mul(Finite(a)), // See above case
+      (Finite(a), Finite(b)) => Ok(Finite(a * b)),
     }
   }
 }

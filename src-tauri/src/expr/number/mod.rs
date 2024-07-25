@@ -18,6 +18,8 @@ use num::{BigInt, Zero, One};
 
 use std::ops::{Add, Sub, Neg, Mul, Div, MulAssign};
 
+// TODO: Consider using try_traits for some of our failable ops like Div.
+
 // Precondition: exp > 0.
 fn powi_by_repeated_square<T>(mut input: T, mut exp: BigInt) -> T
 where T: One + MulAssign + Clone {
