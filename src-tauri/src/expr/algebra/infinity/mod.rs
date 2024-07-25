@@ -2,59 +2,25 @@
 mod base;
 mod prisms;
 mod signed;
+mod unbounded;
 
 pub use base::InfiniteConstant;
 pub use signed::{SignedInfinity, ExpectedSignedInfinityError};
 pub use prisms::{ExprToInfinity, infinity_to_signed_infinity,
                  expr_to_signed_infinity, expr_to_unbounded_number};
+pub use unbounded::UnboundedNumber;
 
-use crate::expr::{Expr, TryFromExprError};
+use crate::expr::Expr;
 use crate::expr::number::{Number, ComplexLike};
-use crate::util::prism::Prism;
 
 use either::Either;
 use num::{Zero, One};
 
 use std::cmp::Ordering;
-use std::convert::TryFrom;
 
 pub const INFINITY_NAME: &str = "inf";
 pub const UNDIRECTED_INFINITY_NAME: &str = "uinf";
 pub const NAN_NAME: &str = "nan";
-
-/// Either a finite real value or a signed infinity.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum UnboundedNumber {
-  Finite(Number),
-  Infinite(SignedInfinity),
-}
-
-impl TryFrom<Expr> for UnboundedNumber {
-  type Error = TryFromExprError;
-
-  fn try_from(expr: Expr) -> Result<UnboundedNumber, TryFromExprError> {
-    expr_to_unbounded_number().narrow_type(expr)
-      .map_err(|expr| TryFromExprError::new("UnboundedNumber", expr))
-  }
-}
-
-impl PartialOrd for UnboundedNumber {
-  fn partial_cmp(&self, other: &UnboundedNumber) -> Option<Ordering> {
-    Some(self.cmp(other))
-  }
-}
-
-impl Ord for UnboundedNumber {
-  fn cmp(&self, other: &Self) -> Ordering {
-    match (self, other) {
-      (UnboundedNumber::Finite(a), UnboundedNumber::Finite(b)) => a.cmp(b),
-      (UnboundedNumber::Finite(a), UnboundedNumber::Infinite(b)) => a.partial_cmp(b).unwrap(),
-      (UnboundedNumber::Infinite(a), UnboundedNumber::Finite(b)) => a.partial_cmp(b).unwrap(),
-      (UnboundedNumber::Infinite(a), UnboundedNumber::Infinite(b)) => a.partial_cmp(b).unwrap(),
-    }
-  }
-}
-
 
 pub fn is_infinite_constant(expr: &Expr) -> bool {
   InfiniteConstant::ALL.iter().any(|c| &Expr::from(c) == expr)
@@ -130,15 +96,6 @@ pub fn infinite_pow(left: InfiniteConstant, right: InfiniteConstant) -> Expr {
     (_, UndirInfinity) => Expr::from(NotANumber),
     (_, NegInfinity) => Expr::zero(),
     (left, PosInfinity) => Expr::from(left),
-  }
-}
-
-impl From<UnboundedNumber> for Expr {
-  fn from(c: UnboundedNumber) -> Self {
-    match c {
-      UnboundedNumber::Finite(c) => Expr::from(c),
-      UnboundedNumber::Infinite(c) => Expr::from(c),
-    }
   }
 }
 
