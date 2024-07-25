@@ -9,7 +9,7 @@ use crate::stack::base::{StackLike, RandomAccessStackLike};
 use crate::expr::Expr;
 use crate::expr::prisms::{StringToUsize, ParsedUsize};
 use crate::util::prism::Identity;
-use crate::display::language::LanguageMode;
+use crate::mode::display::language::LanguageMode;
 use crate::errorlist::ErrorList;
 
 use std::cmp::Ordering;

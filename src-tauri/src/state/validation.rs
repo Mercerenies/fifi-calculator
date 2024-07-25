@@ -11,7 +11,7 @@ use crate::expr::algebra::term::{Term, TermParser};
 use crate::units::parsing::UnitParser;
 use crate::units::{Unit, CompositeUnit};
 use crate::units::tagged::{Tagged, TemperatureTagged, try_into_basic_temperature_unit};
-use crate::display::language::LanguageMode;
+use crate::mode::display::language::LanguageMode;
 
 use num::One;
 use serde::{Serialize, Deserialize};
@@ -111,7 +111,7 @@ pub fn validate_has_temperature_unit(
 mod tests {
   use super::*;
   use crate::units::parsing::default_parser;
-  use crate::display::language::basic::BasicLanguageMode;
+  use crate::mode::display::language::basic::BasicLanguageMode;
   use crate::expr::basic_parser::ParseError;
 
   #[test]

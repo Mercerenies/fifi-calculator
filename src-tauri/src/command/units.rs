@@ -8,7 +8,7 @@ use crate::errorlist::ErrorList;
 use crate::state::ApplicationState;
 use crate::stack::base::StackLike;
 use crate::stack::keepable::KeepableStack;
-use crate::display::language::LanguageMode;
+use crate::mode::display::language::LanguageMode;
 use crate::expr::Expr;
 use crate::expr::algebra::term::TermParser;
 use crate::expr::number::Number;

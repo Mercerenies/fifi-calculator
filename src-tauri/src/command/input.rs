@@ -9,7 +9,7 @@ use crate::expr::Expr;
 use crate::expr::number::Number;
 use crate::state::ApplicationState;
 use crate::stack::base::StackLike;
-use crate::display::language::LanguageMode;
+use crate::mode::display::language::LanguageMode;
 use crate::errorlist::ErrorList;
 
 use std::str::FromStr;

@@ -20,7 +20,7 @@ use crate::expr::number::Number;
 use crate::expr::algebra::term::TermParser;
 use crate::command::default_dispatch_table;
 use crate::command::dispatch::CommandDispatchTable;
-use crate::display::DisplaySettings;
+use crate::mode::display::DisplaySettings;
 use crate::undo::{UndoStack, UndoError};
 use crate::units::parsing::{UnitParser, default_parser};
 

@@ -4,10 +4,10 @@
 #![allow(clippy::manual_non_exhaustive)]
 
 pub mod command;
-pub mod display;
 pub mod errorlist;
 pub mod expr;
 pub mod graphics;
+pub mod mode;
 pub mod parsing;
 pub mod runner;
 pub mod stack;

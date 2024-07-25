@@ -3,7 +3,7 @@ use crate::util::prism::Prism;
 use crate::units::CompositeUnit;
 use crate::units::parsing::UnitParser;
 use crate::expr::algebra::term::TermParser;
-use crate::display::language::LanguageMode;
+use crate::mode::display::language::LanguageMode;
 use super::parser::parse_composite_unit_expr;
 
 use num::One;
