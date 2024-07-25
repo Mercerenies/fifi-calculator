@@ -87,7 +87,7 @@ pub fn addition() -> Function {
     )
     .add_case(
       // Interval addition
-      builder::any_arity().of_type(prisms::ExprToIntervalLike).and_then(|args, _| {
+      builder::any_arity().of_type(prisms::expr_to_interval_like()).and_then(|args, _| {
         let sum = args.into_iter()
           .map(Interval::from)
           .reduce(|a, b| a + b)
@@ -153,7 +153,7 @@ pub fn subtraction() -> Function {
     )
     .add_case(
       // Interval subtraction
-      builder::arity_two().both_of_type(prisms::ExprToIntervalLike).and_then(|arg1, arg2, _| {
+      builder::arity_two().both_of_type(prisms::expr_to_interval_like()).and_then(|arg1, arg2, _| {
         Ok(Expr::from(Interval::from(arg1) - Interval::from(arg2)))
       })
     )
@@ -249,7 +249,7 @@ pub fn multiplication() -> Function {
     )
     .add_case(
       // Interval multiplication
-      builder::any_arity().of_type(prisms::ExprToIntervalLike).and_then(|args, _| {
+      builder::any_arity().of_type(prisms::expr_to_interval_like()).and_then(|args, _| {
         let sum = args.into_iter()
           .map(Interval::from)
           .reduce(|a, b| a * b)
@@ -335,7 +335,7 @@ pub fn division() -> Function {
       // Interval division (currently a trap case)
       //
       // TODO: Implement this once we have infinities (Issue #4)
-      builder::arity_two().both_of_type(prisms::ExprToIntervalLike).and_then(|arg1, arg2, ctx| {
+      builder::arity_two().both_of_type(prisms::expr_to_interval_like()).and_then(|arg1, arg2, ctx| {
         ctx.errors.push(SimplifierError::custom_error("/", "Interval division is not currently supported"));
         Err((arg1, arg2))
       })

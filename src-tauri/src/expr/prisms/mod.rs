@@ -11,8 +11,8 @@ use super::interval::{RawInterval, IntervalOrScalar};
 use super::literal::Literal;
 use super::algebra::formula::{Formula, Equation};
 use super::algebra::infinity::InfiniteConstant;
-use crate::util::prism::{Prism, PrismExt, OnVec, OnTuple2, Only, Conversion,
-                         LosslessConversion, VecToArray, ErrorWithPayload};
+use crate::util::prism::{Prism, PrismExt, Iso, OnVec, OnTuple2, Only, Conversion,
+                         LosslessConversion, VecToArray};
 use crate::graphics::GRAPHICS_NAME;
 
 use num::{Zero, One};
@@ -59,10 +59,6 @@ pub struct ExprToOne;
 /// real or a complex number.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct ExprToComplex;
-
-/// Prism which accepts either [`Interval`] values or real numbers.
-#[derive(Debug, Clone, Copy, Default)]
-pub struct ExprToIntervalLike;
 
 /// Prism which only accepts expressions which are a [`Var`].
 #[derive(Debug, Clone, Copy, Default)]
@@ -156,6 +152,24 @@ pub fn expr_to_interval() -> Conversion<Expr, RawInterval<Number>> {
 
 pub fn expr_to_unbounded_interval() -> Conversion<Expr, RawInterval<UnboundedNumber>> {
   Conversion::new()
+}
+
+pub fn expr_to_interval_like() -> impl Prism<Expr, IntervalOrScalar<Number>> + Clone {
+  expr_to_interval().or(expr_to_number()).composed(either_to_interval_like())
+}
+
+pub fn expr_to_unbounded_interval_like() -> impl Prism<Expr, IntervalOrScalar<UnboundedNumber>> + Clone {
+  expr_to_unbounded_interval().or(expr_to_unbounded_number()).composed(either_to_interval_like())
+}
+
+fn either_to_interval_like<T>() -> Iso<Either<RawInterval<T>, T>, IntervalOrScalar<T>, fn(Either<RawInterval<T>, T>) -> IntervalOrScalar<T>, fn(IntervalOrScalar<T>) -> Either<RawInterval<T>, T>> {
+  Iso::new(|either| match either {
+    Either::Left(i) => IntervalOrScalar::Interval(i),
+    Either::Right(n) => IntervalOrScalar::Scalar(n),
+  }, |interval_like| match interval_like {
+    IntervalOrScalar::Interval(i) => Either::Left(i),
+    IntervalOrScalar::Scalar(n) => Either::Right(n),
+  })
 }
 
 pub fn expr_to_number_or_inf() -> impl Prism<Expr, Either<Number, InfiniteConstant>> + Clone {
@@ -352,26 +366,5 @@ impl Prism<String, ParsedUsize> for StringToUsize {
   }
   fn widen_type(&self, input: ParsedUsize) -> String {
     input.input
-  }
-}
-
-impl Prism<Expr, IntervalOrScalar<Number>> for ExprToIntervalLike {
-  fn narrow_type(&self, input: Expr) -> Result<IntervalOrScalar<Number>, Expr> {
-    match RawInterval::try_from(input) {
-      Ok(raw_interval) => Ok(IntervalOrScalar::Interval(raw_interval)),
-      Err(err) => {
-        let input = err.recover_payload();
-        match Number::try_from(input) {
-          Ok(number) => Ok(IntervalOrScalar::Scalar(number)),
-          Err(err) => Err(err.recover_payload()),
-        }
-      }
-    }
-  }
-  fn widen_type(&self, input: IntervalOrScalar<Number>) -> Expr {
-    match input {
-      IntervalOrScalar::Interval(interval) => interval.into(),
-      IntervalOrScalar::Scalar(number) => number.into(),
-    }
   }
 }

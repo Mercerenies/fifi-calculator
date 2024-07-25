@@ -75,7 +75,7 @@ pub struct LosslessConversion<Up, Down> { // TODO: This is just Iso.
 }
 
 /// A prism which always succeeds by running the given functions.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Iso<Up, Down, Narrow, Widen>
 where Narrow: Fn(Up) -> Down,
       Widen: Fn(Down) -> Up {
@@ -358,6 +358,18 @@ where Narrow: Fn(Up) -> Down,
   }
   fn widen_type(&self, input: Down) -> Up {
     (self.widen)(input)
+  }
+}
+
+impl<Up, Down, Narrow, Widen> Clone for Iso<Up, Down, Narrow, Widen>
+where Narrow: Clone + Fn(Up) -> Down,
+      Widen: Clone + Fn(Down) -> Up {
+  fn clone(&self) -> Self {
+    Self {
+      narrow: self.narrow.clone(),
+      widen: self.widen.clone(),
+      _phantom: PhantomData
+    }
   }
 }
 
