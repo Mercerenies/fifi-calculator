@@ -19,6 +19,9 @@ pub enum UnboundedNumber {
 }
 
 impl UnboundedNumber {
+  pub const POS_INFINITY: Self = UnboundedNumber::Infinite(SignedInfinity::PosInfinity);
+  pub const NEG_INFINITY: Self = UnboundedNumber::Infinite(SignedInfinity::NegInfinity);
+
   /// Returns true if this number is finite.
   pub fn is_finite(&self) -> bool {
     match self {
@@ -84,6 +87,19 @@ impl Add for UnboundedNumber {
       (Infinite(a), _) => Infinite(a),
       (_, Infinite(b)) => Infinite(b),
       (Finite(a), Finite(b)) => Finite(a + b),
+    }
+  }
+}
+
+impl Zero for UnboundedNumber {
+  fn zero() -> Self {
+    UnboundedNumber::Finite(Number::zero())
+  }
+
+  fn is_zero(&self) -> bool {
+    match self {
+      UnboundedNumber::Finite(a) => a.is_zero(),
+      _ => false,
     }
   }
 }
