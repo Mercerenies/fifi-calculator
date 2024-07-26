@@ -1,6 +1,7 @@
 
 use crate::expr::{Expr, TryFromExprError};
 use crate::expr::atom::Atom;
+use crate::stack::base::RandomAccessStackLike;
 
 use thiserror::Error;
 
@@ -45,6 +46,15 @@ pub struct TryFromExprRefError {
   _priv: (),
 }
 
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum PopUntilDelimiterError {
+  #[error("Reached end of stack, expecting '{expected}'")]
+  UnexpectedEOF { expected: IncompleteObject },
+  #[error("Found '{actual}' when expecting '{expected}'")]
+  UnexpectedDelimiter { expected: IncompleteObject, actual: IncompleteObject },
+}
+
 impl IncompleteObject {
   pub const FUNCTION_NAME: &'static str = "incomplete";
 
@@ -74,6 +84,36 @@ impl ObjectType {
       "[" => Ok(ObjectType::LeftBracket),
       "(" => Ok(ObjectType::LeftParen),
       _ => Err(ObjectTypeParseError { input_string: input_string.into() }),
+    }
+  }
+}
+
+pub fn is_incomplete_object(expr: &Expr) -> bool {
+  IncompleteObject::try_from(expr).is_ok()
+}
+
+/// Pops elements from the stack until the given incomplete object is
+/// encountered. Produces an error if there are no incomplete objects
+/// on the stack or if an unexpected incomplete object is encountered.
+/// In case of error, the stack will be left unmodified.
+pub fn pop_until_delimiter<S>(
+  target_object: &IncompleteObject,
+  stack: &mut S,
+) -> Result<Vec<Expr>, PopUntilDelimiterError>
+where S: RandomAccessStackLike<Elem = Expr> {
+  let first_delimiter_index = (0..stack.len() as i64).into_iter()
+    .find(|i| is_incomplete_object(&stack.get(*i).unwrap()));
+  match first_delimiter_index {
+    None => Err(PopUntilDelimiterError::UnexpectedEOF { expected: target_object.clone() }),
+    Some(first_delimiter_index) => {
+      let first_delimiter = IncompleteObject::try_from(&*stack.get(first_delimiter_index).unwrap()).unwrap();
+      if &first_delimiter == target_object {
+        let mut elements = stack.pop_several((first_delimiter_index + 1) as usize).unwrap();
+        elements.remove(0); // Do not include the incomplete object itself in the result.
+        Ok(elements)
+      } else {
+        Err(PopUntilDelimiterError::UnexpectedDelimiter { expected: target_object.clone(), actual: first_delimiter })
+      }
     }
   }
 }
@@ -127,6 +167,7 @@ impl TryFrom<Expr> for IncompleteObject {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::stack::Stack;
 
   #[test]
   fn test_to_string() {
@@ -170,5 +211,49 @@ mod tests {
     assert_eq!(IncompleteObject::try_from(expr), Err(TryFromExprError::new("IncompleteObject", Expr::call("wrong_function_name", vec![Expr::string("(")]))));
     let expr = Expr::call("incomplete", vec![Expr::string("("), Expr::string("(")]);
     assert_eq!(IncompleteObject::try_from(expr), Err(TryFromExprError::new("IncompleteObject", Expr::call("incomplete", vec![Expr::string("("), Expr::string("(")]))));
+  }
+
+  #[test]
+  fn test_pop_until_delimiter() {
+    let mut stack = Stack::from(vec![
+      Expr::from(10),
+      IncompleteObject::new(ObjectType::LeftBracket).into(),
+      Expr::from(20),
+      Expr::from(30),
+      Expr::from(40),
+    ]);
+    let elements = pop_until_delimiter(&IncompleteObject::new(ObjectType::LeftBracket), &mut stack).unwrap();
+    assert_eq!(elements, vec![Expr::from(20), Expr::from(30), Expr::from(40)]);
+    assert_eq!(stack.into_iter().collect::<Vec<_>>(), vec![Expr::from(10)]);
+  }
+
+  #[test]
+  fn test_pop_until_delimiter_with_no_incomplete_objects_on_stack() {
+    let mut stack = Stack::from(vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::from(30),
+      Expr::from(40),
+    ]);
+    let original_stack = stack.clone();
+    let err = pop_until_delimiter(&IncompleteObject::new(ObjectType::LeftBracket), &mut stack).unwrap_err();
+    assert_eq!(err, PopUntilDelimiterError::UnexpectedEOF { expected: IncompleteObject::new(ObjectType::LeftBracket) });
+    assert_eq!(stack, original_stack);
+  }
+
+  #[test]
+  fn test_pop_until_delimiter_with_wrong_delimiter_on_stack() {
+    let mut stack = Stack::from(vec![
+      Expr::from(10),
+      IncompleteObject::new(ObjectType::LeftBracket).into(),
+      Expr::from(20),
+      IncompleteObject::new(ObjectType::LeftParen).into(),
+      Expr::from(30),
+      Expr::from(40),
+    ]);
+    let original_stack = stack.clone();
+    let err = pop_until_delimiter(&IncompleteObject::new(ObjectType::LeftBracket), &mut stack).unwrap_err();
+    assert_eq!(err, PopUntilDelimiterError::UnexpectedDelimiter { expected: IncompleteObject::new(ObjectType::LeftBracket), actual: IncompleteObject::new(ObjectType::LeftParen) });
+    assert_eq!(stack, original_stack);
   }
 }
