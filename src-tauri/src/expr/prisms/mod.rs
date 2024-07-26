@@ -162,6 +162,7 @@ pub fn expr_to_unbounded_interval_like() -> impl Prism<Expr, IntervalOrScalar<Un
   expr_to_unbounded_interval().or(expr_to_unbounded_number()).composed(either_to_interval_like())
 }
 
+#[allow(clippy::type_complexity)] // It's an internal function for code reuse purposes; users never see this type.
 fn either_to_interval_like<T>() -> Iso<Either<RawInterval<T>, T>, IntervalOrScalar<T>, fn(Either<RawInterval<T>, T>) -> IntervalOrScalar<T>, fn(IntervalOrScalar<T>) -> Either<RawInterval<T>, T>> {
   Iso::new(|either| match either {
     Either::Left(i) => IntervalOrScalar::Interval(i),

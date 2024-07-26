@@ -32,18 +32,12 @@ impl UnboundedNumber {
 
   /// Returns true if this number is finite.
   pub fn is_finite(&self) -> bool {
-    match self {
-      UnboundedNumber::Finite(_) => true,
-      _ => false,
-    }
+    matches!(self, UnboundedNumber::Finite(_))
   }
 
   /// Returns true if this number is an infinity.
   pub fn is_infinite(&self) -> bool {
-    match self {
-      UnboundedNumber::Infinite(_) => true,
-      _ => false,
-    }
+    matches!(self, UnboundedNumber::Infinite(_))
   }
 
   pub fn zero() -> Self {
