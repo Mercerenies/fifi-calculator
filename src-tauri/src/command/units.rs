@@ -227,6 +227,8 @@ impl Command for ConvertUnitsCommand {
     let target_unit = CompositeUnit::from(target_unit);
     let term_parser = state.term_parser();
 
+    let calculation_mode = state.calculation_mode().clone();
+
     let remainder_unit = calculate_remainder_unit(
       ctx.units_parser,
       &source_unit.dimension(),
@@ -247,7 +249,7 @@ impl Command for ConvertUnitsCommand {
     let expr = Expr::from(term);
 
     let mut errors = ErrorList::new();
-    stack.push(ctx.simplify_expr(expr, &mut errors));
+    stack.push(ctx.simplify_expr(expr, calculation_mode, &mut errors));
     Ok(CommandOutput::from_errors(errors))
   }
 }
@@ -259,6 +261,8 @@ impl Command for ContextualConvertUnitsCommand {
     args: Vec<String>,
     ctx: &CommandContext,
   ) -> anyhow::Result<CommandOutput> {
+    let calculation_mode = state.calculation_mode().clone();
+
     let term_parser = state.term_parser();
     let target_unit = validate_schema(&Self::argument_schema(state, ctx), args)?;
     let target_unit = CompositeUnit::from(target_unit);
@@ -279,7 +283,7 @@ impl Command for ContextualConvertUnitsCommand {
     let expr = tagged_into_expr_lossy(tagged_term);
 
     let mut errors = ErrorList::new();
-    stack.push(ctx.simplify_expr(expr, &mut errors));
+    stack.push(ctx.simplify_expr(expr, calculation_mode, &mut errors));
     Ok(CommandOutput::from_errors(errors))
   }
 }
@@ -291,6 +295,8 @@ impl Command for ConvertTemperatureCommand {
     args: Vec<String>,
     ctx: &CommandContext,
   ) -> anyhow::Result<CommandOutput> {
+    let calculation_mode = state.calculation_mode().clone();
+
     let (source_unit, target_unit) = validate_schema(&Self::argument_schema(state, ctx), args)?;
     let source_unit = try_into_basic_temperature_unit(CompositeUnit::from(source_unit))?;
     let target_unit = try_into_basic_temperature_unit(CompositeUnit::from(target_unit))?;
@@ -307,7 +313,7 @@ impl Command for ConvertTemperatureCommand {
     let expr = Expr::from(term.into_value());
 
     let mut errors = ErrorList::new();
-    stack.push(ctx.simplify_expr(expr, &mut errors));
+    stack.push(ctx.simplify_expr(expr, calculation_mode, &mut errors));
     Ok(CommandOutput::from_errors(errors))
   }
 }
@@ -319,6 +325,8 @@ impl Command for ContextualConvertTemperatureCommand {
     args: Vec<String>,
     ctx: &CommandContext,
   ) -> anyhow::Result<CommandOutput> {
+    let calculation_mode = state.calculation_mode().clone();
+
     let term_parser = state.term_parser();
     let target_unit = validate_schema(&Self::argument_schema(state, ctx), args)?;
     let target_unit = try_into_basic_temperature_unit(CompositeUnit::from(target_unit))?;
@@ -345,7 +353,7 @@ impl Command for ContextualConvertTemperatureCommand {
     let expr = tagged_into_expr_lossy(temperature_term.into());
 
     let mut errors = ErrorList::new();
-    stack.push(ctx.simplify_expr(expr, &mut errors));
+    stack.push(ctx.simplify_expr(expr, calculation_mode, &mut errors));
     Ok(CommandOutput::from_errors(errors))
   }
 }

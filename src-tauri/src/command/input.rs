@@ -41,12 +41,13 @@ where F: Fn(String, &dyn LanguageMode) -> anyhow::Result<Expr> {
     args: Vec<String>,
     context: &CommandContext,
   ) -> anyhow::Result<CommandOutput> {
+    let calculation_mode = state.calculation_mode().clone();
     let arg = validate_schema(&argument_schema(), args)?;
     let mut errors = ErrorList::new();
 
     state.undo_stack_mut().push_cut();
     let expr = self.try_parse(arg, state.display_settings().language_mode().as_ref())?;
-    let expr = context.simplify_expr(expr, &mut errors);
+    let expr = context.simplify_expr(expr, calculation_mode, &mut errors);
     state.main_stack_mut().push(expr);
     Ok(CommandOutput::from_errors(errors))
   }

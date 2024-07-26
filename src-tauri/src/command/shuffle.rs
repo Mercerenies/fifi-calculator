@@ -230,12 +230,14 @@ impl Command for ReplaceStackElemCommand {
   ) -> anyhow::Result<CommandOutput> {
     let (index, value) = validate_schema(&Self::argument_schema(), args)?;
 
+    let calculation_mode = state.calculation_mode().clone();
+
     let mut errors = ErrorList::new();
     let index = usize::from(index);
     state.undo_stack_mut().push_cut();
 
     let expr = self.try_parse(value, state.display_settings().language_mode().as_ref())?;
-    let expr = ctx.simplify_expr(expr, &mut errors);
+    let expr = ctx.simplify_expr(expr, calculation_mode, &mut errors);
 
     let mut stack = state.main_stack_mut();
     if ctx.opts.keep_modifier {

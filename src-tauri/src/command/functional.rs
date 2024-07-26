@@ -119,6 +119,8 @@ impl UnaryFunctionCommand {
     element_count: usize,
     ctx: &CommandContext,
   ) -> anyhow::Result<CommandOutput> {
+    let calculation_mode = state.calculation_mode().clone();
+
     let mut errors = ErrorList::new();
     let values = {
       let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
@@ -126,7 +128,7 @@ impl UnaryFunctionCommand {
     };
     let values: Vec<_> = values.into_iter().map(|e| {
       let e = self.wrap_expr(e, state, ctx, &mut errors);
-      ctx.simplify_expr(e, &mut errors)
+      ctx.simplify_expr(e, calculation_mode.clone(), &mut errors)
     }).collect();
     state.main_stack_mut().push_several(values);
     Ok(CommandOutput::from_errors(errors))
@@ -138,6 +140,8 @@ impl UnaryFunctionCommand {
     element_index: usize,
     ctx: &CommandContext,
   ) -> anyhow::Result<CommandOutput> {
+    let calculation_mode = state.calculation_mode().clone();
+
     let mut errors = ErrorList::new();
     let mut expr = state.main_stack_mut().pop_nth(element_index)?;
     if ctx.opts.keep_modifier {
@@ -147,7 +151,7 @@ impl UnaryFunctionCommand {
     }
     expr.mutate(|e| {
       let e = self.wrap_expr(e, state, ctx, &mut errors);
-      ctx.simplify_expr(e, &mut errors)
+      ctx.simplify_expr(e, calculation_mode.clone(), &mut errors)
     });
     // expect safety: We just popped a value from that position, so
     // it's safe to re-insert.
@@ -217,11 +221,13 @@ impl Command for PushConstantCommand {
     // Note: keep_modifier has no effect on this command (since there
     // are no pops), so we don't construct a KeepableStack.
     validate_schema(&NullaryArgumentSchema::new(), args)?;
+    let calculation_mode = state.calculation_mode().clone();
+
     state.undo_stack_mut().push_cut();
     let arg = ctx.opts.argument.unwrap_or(1).max(0);
     let mut errors = ErrorList::new();
     for _ in 0..arg {
-      state.main_stack_mut().push(ctx.simplify_expr(self.expr.clone(), &mut errors));
+      state.main_stack_mut().push(ctx.simplify_expr(self.expr.clone(), calculation_mode.clone(), &mut errors));
     }
     Ok(CommandOutput::from_errors(errors))
   }
@@ -264,6 +270,8 @@ impl Command for BinaryFunctionCommand {
   ) -> anyhow::Result<CommandOutput> {
     validate_schema(&NullaryArgumentSchema::new(), args)?;
     state.undo_stack_mut().push_cut();
+    let calculation_mode = state.calculation_mode().clone();
+
     let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
 
     let mut errors = ErrorList::new();
@@ -274,7 +282,7 @@ impl Command for BinaryFunctionCommand {
         let values = stack.pop_several(arg as usize)?;
         let result = self.reduce_exprs(values)
           .expect("Empty stack"); // expect safety: We popped at least one element off the stack
-        let result = ctx.simplify_expr(result, &mut errors);
+        let result = ctx.simplify_expr(result, calculation_mode, &mut errors);
         stack.push(result);
       }
       Ordering::Less => {
@@ -283,7 +291,7 @@ impl Command for BinaryFunctionCommand {
         // expect safety: We popped at least two values, so removing one is safe.
         let second_argument = values.pop().expect("Empty stack");
         for e in values.iter_mut() {
-          e.mutate(|e| ctx.simplify_expr(self.wrap_exprs(e, second_argument.clone()), &mut errors));
+          e.mutate(|e| ctx.simplify_expr(self.wrap_exprs(e, second_argument.clone()), calculation_mode.clone(), &mut errors));
         }
         stack.push_several(values);
       }
@@ -293,7 +301,7 @@ impl Command for BinaryFunctionCommand {
         let values = stack.pop_all();
         let result = self.reduce_exprs(values)
           .expect("Empty stack"); // expect safety: We just checked that the stack was non-empty
-        let result = ctx.simplify_expr(result, &mut errors);
+        let result = ctx.simplify_expr(result, calculation_mode, &mut errors);
         stack.push(result);
       }
     }

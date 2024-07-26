@@ -94,6 +94,8 @@ impl Command for PlotCommand {
   ) -> anyhow::Result<CommandOutput> {
     validate_schema(&PlotCommand::argument_schema(), args)?;
 
+    let calculation_mode = state.calculation_mode().clone();
+
     let arg = context.opts.argument.unwrap_or(1);
     let mut errors = ErrorList::new();
     state.undo_stack_mut().push_cut();
@@ -111,7 +113,7 @@ impl Command for PlotCommand {
           GRAPHICS_NAME,
           y_values_vec.into_iter().map(|y_values| PlotCommand::basic_plot(x_values.clone(), y_values)).collect(),
         );
-        let expr = context.simplify_expr(expr, &mut errors);
+        let expr = context.simplify_expr(expr, calculation_mode, &mut errors);
         stack.push(expr);
       }
       Ordering::Less => {
@@ -132,7 +134,7 @@ impl Command for PlotCommand {
           GRAPHICS_NAME,
           xy_values.into_iter().map(|[x_values, y_values]| PlotCommand::basic_plot(x_values, y_values)).collect(),
         );
-        let expr = context.simplify_expr(expr, &mut errors);
+        let expr = context.simplify_expr(expr, calculation_mode, &mut errors);
         stack.push(expr);
       }
       Ordering::Equal => {
@@ -151,7 +153,7 @@ impl Command for PlotCommand {
               GRAPHICS_NAME,
               y_values_vec.into_iter().map(|y_values| PlotCommand::basic_plot(x_values.clone(), y_values)).collect(),
             );
-            let expr = context.simplify_expr(expr, &mut errors);
+            let expr = context.simplify_expr(expr, calculation_mode, &mut errors);
             stack.push(expr);
           }
         }
@@ -171,6 +173,8 @@ impl Command for ContourPlotCommand {
   ) -> anyhow::Result<CommandOutput> {
     validate_schema(&ContourPlotCommand::argument_schema(), args)?;
 
+    let calculation_mode = state.calculation_mode().clone();
+
     let should_produce_vector = context.opts.argument.is_some();
     let mut errors = ErrorList::new();
     state.undo_stack_mut().push_cut();
@@ -188,7 +192,7 @@ impl Command for ContourPlotCommand {
           ContourPlotCommand::contour_plot(x_values.clone(), y_values.clone(), real_data_values),
         ],
       );
-      let expr = context.simplify_expr(expr, &mut errors);
+      let expr = context.simplify_expr(expr, calculation_mode.clone(), &mut errors);
       stack.push(expr);
       // Imag part
       let expr = Expr::call(
@@ -197,7 +201,7 @@ impl Command for ContourPlotCommand {
           ContourPlotCommand::contour_plot(x_values, y_values, imag_data_values),
         ],
       );
-      let expr = context.simplify_expr(expr, &mut errors);
+      let expr = context.simplify_expr(expr, calculation_mode, &mut errors);
       stack.push(expr);
     } else {
       // Single contour plot
@@ -206,7 +210,7 @@ impl Command for ContourPlotCommand {
         GRAPHICS_NAME,
         vec![ContourPlotCommand::contour_plot(x_values, y_values, data_values)],
       );
-      let expr = context.simplify_expr(expr, &mut errors);
+      let expr = context.simplify_expr(expr, calculation_mode, &mut errors);
       stack.push(expr);
     }
 

@@ -42,6 +42,7 @@ impl Command for FindRootCommand {
     args: Vec<String>,
     context: &CommandContext,
   ) -> anyhow::Result<CommandOutput> {
+    let calculation_mode = state.calculation_mode().clone();
     let variable_name = validate_schema(&FindRootCommand::argument_schema(), args)?;
 
     // TODO: Should the numerical argument do anything for this command?
@@ -52,7 +53,7 @@ impl Command for FindRootCommand {
     let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
     let [expr, guess] = stack.pop_several(2)?.try_into().unwrap();
     let expr = Expr::call("find_root", vec![expr, Expr::Atom(Atom::Var(variable_name)), guess]);
-    let expr = context.simplify_expr(expr, &mut errors);
+    let expr = context.simplify_expr(expr, calculation_mode, &mut errors);
     stack.push(expr);
 
     Ok(CommandOutput::from_errors(errors))

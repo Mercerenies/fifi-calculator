@@ -97,6 +97,7 @@ impl Command for SubstituteVarCommand {
     args: Vec<String>,
     context: &CommandContext,
   ) -> anyhow::Result<CommandOutput> {
+    let calculation_mode = state.calculation_mode().clone();
     let (variable_name, new_value) = validate_schema(&SubstituteVarCommand::argument_schema(), args)?;
 
     let mut errors = ErrorList::new();
@@ -110,7 +111,7 @@ impl Command for SubstituteVarCommand {
     let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
     let expr = stack.pop()?;
     let expr = Expr::call("substitute", vec![expr, Expr::from(variable_name), new_value]);
-    let expr = context.simplify_expr(expr, &mut errors);
+    let expr = context.simplify_expr(expr, calculation_mode, &mut errors);
     stack.push(expr);
 
     Ok(CommandOutput::from_errors(errors))

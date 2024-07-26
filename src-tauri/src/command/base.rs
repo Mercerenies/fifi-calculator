@@ -28,7 +28,6 @@ pub struct CommandContext<'a, 'b> {
   pub opts: CommandOptions,
   pub simplifier: Box<dyn Simplifier + 'a>,
   pub units_parser: &'b dyn UnitParser<Number>,
-  pub calculation_mode: CalculationMode,
 }
 
 /// The result of performing a command, including any non-fatal errors
@@ -40,11 +39,16 @@ pub struct CommandOutput {
 }
 
 impl<'a, 'b> CommandContext<'a, 'b> {
-  pub fn simplify_expr(&self, expr: Expr, errors: &mut ErrorList<SimplifierError>) -> Expr {
+  pub fn simplify_expr(
+    &self,
+    expr: Expr,
+    calculation_mode: CalculationMode,
+    errors: &mut ErrorList<SimplifierError>,
+  ) -> Expr {
     let mut simplifier_context = SimplifierContext {
       base_simplifier: self.simplifier.as_ref(),
       errors,
-      calculation_mode: self.calculation_mode.clone(),
+      calculation_mode,
     };
     self.simplifier.simplify_expr(expr, &mut simplifier_context)
   }
@@ -99,7 +103,6 @@ impl Default for CommandContext<'static, 'static> {
       opts: CommandOptions::default(),
       simplifier: Box::new(IdentitySimplifier),
       units_parser: &NullaryUnitParser,
-      calculation_mode: CalculationMode::default(),
     }
   }
 }

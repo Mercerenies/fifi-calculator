@@ -120,12 +120,14 @@ impl Command for PackCommand {
     validate_schema(&NullaryArgumentSchema::new(), args)?;
     state.undo_stack_mut().push_cut();
 
+    let calculation_mode = state.calculation_mode().clone();
+
     let mut errors = ErrorList::new();
     if let Some(arg) = context.opts.argument {
       anyhow::ensure!(arg >= 0, "PackCommand: negative argument not supported, got {arg}");
       // Pop `arg` values and construct a vector.
       let vector = PackCommand::pop_and_construct_vector(state, context, arg as usize)?;
-      let expr = context.simplify_expr(vector.into(), &mut errors);
+      let expr = context.simplify_expr(vector.into(), calculation_mode, &mut errors);
       state.main_stack_mut().push(expr);
     } else {
       // Pop one value, use that to determine the length of the
@@ -140,7 +142,7 @@ impl Command for PackCommand {
           return Err(err);
         }
       };
-      let expr = context.simplify_expr(vector.into(), &mut errors);
+      let expr = context.simplify_expr(vector.into(), calculation_mode, &mut errors);
       if context.opts.keep_modifier {
         state.main_stack_mut().push(Expr::from(BigInt::from(arg)));
       }
@@ -161,11 +163,13 @@ impl Command for UnpackCommand {
     validate_schema(&NullaryArgumentSchema::new(), args)?;
     state.undo_stack_mut().push_cut();
 
+    let calculation_mode = state.calculation_mode().clone();
+
     let mut errors = ErrorList::new();
     let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
     match stack.pop()? {
       Expr::Call(_, args) => {
-        let args = args.into_iter().map(|arg| context.simplify_expr(arg, &mut errors));
+        let args = args.into_iter().map(|arg| context.simplify_expr(arg, calculation_mode.clone(), &mut errors));
         stack.push_several(args);
       }
       Expr::Atom(Atom::String(s)) => {
@@ -195,13 +199,15 @@ impl Command for RepeatCommand {
     validate_schema(&NullaryArgumentSchema::new(), args)?;
     state.undo_stack_mut().push_cut();
 
+    let calculation_mode = state.calculation_mode().clone();
+
     let arg = context.opts.argument.unwrap_or(2);
     let mut errors = ErrorList::new();
     let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
 
     let expr = stack.pop()?;
     let expr = Expr::call("repeat", vec![expr, Expr::from(arg)]);
-    let expr = context.simplify_expr(expr, &mut errors);
+    let expr = context.simplify_expr(expr, calculation_mode, &mut errors);
     stack.push(expr);
 
     Ok(CommandOutput::from_errors(errors))

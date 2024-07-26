@@ -43,6 +43,7 @@ impl Command for DerivativeCommand {
     args: Vec<String>,
     context: &CommandContext,
   ) -> anyhow::Result<CommandOutput> {
+    let calculation_mode = state.calculation_mode().clone();
     let variable_name = validate_schema(&DerivativeCommand::argument_schema(), args)?;
 
     let times = context.opts.argument.unwrap_or(1);
@@ -54,7 +55,7 @@ impl Command for DerivativeCommand {
     let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
     let expr = stack.pop()?;
     let expr = Expr::call("deriv", vec![expr, Expr::Atom(Atom::Var(variable_name)), Expr::from(times)]);
-    let expr = context.simplify_expr(expr, &mut errors);
+    let expr = context.simplify_expr(expr, calculation_mode, &mut errors);
     stack.push(expr);
 
     Ok(CommandOutput::from_errors(errors))
