@@ -4,6 +4,7 @@ pub mod atom;
 pub mod basic_parser;
 pub mod calculus;
 pub mod function;
+pub mod incomplete;
 pub mod interval;
 pub mod literal;
 pub mod number;
@@ -87,6 +88,12 @@ impl Expr {
       }
       _ => false,
     }
+  }
+
+  /// Equivalent to [`Expr::from`] but can be used to make the
+  /// intention clearer.
+  pub fn string(s: impl Into<String>) -> Expr {
+    Expr::from(s.into())
   }
 
   pub fn var(name: &str) -> Option<Expr> {

@@ -17,6 +17,7 @@ pub fn append_datatype_functions(table: &mut FunctionTable) {
   table.insert(right_open_interval());
   table.insert(left_open_interval());
   table.insert(full_open_interval());
+  table.insert(incomplete_object());
 }
 
 pub fn vector_function() -> Function {
@@ -64,5 +65,10 @@ pub fn left_open_interval() -> Function {
 
 pub fn full_open_interval() -> Function {
   FunctionBuilder::new("^..^")
+    .build()
+}
+
+pub fn incomplete_object() -> Function {
+  FunctionBuilder::new("incomplete")
     .build()
 }
