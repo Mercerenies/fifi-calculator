@@ -217,7 +217,7 @@ impl BasicLanguageMode {
   fn incomplete_object_to_html(&self, engine: &LanguageModeEngine, out: &mut String, args: &[Expr]) {
     assert_eq!(args.len(), 1, "Expecting slice of two Exprs, got {:?}", args);
     if let Expr::Atom(Atom::String(s)) = &args[0] {
-      if let Ok(object_type) = ObjectType::parse(&s) {
+      if let Ok(object_type) = ObjectType::parse(s) {
         let incomplete_object = IncompleteObject::new(object_type);
         out.push_str(&incomplete_object.to_string());
         return;

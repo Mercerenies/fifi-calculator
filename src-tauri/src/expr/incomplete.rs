@@ -101,7 +101,7 @@ pub fn pop_until_delimiter<S>(
   target_object: &IncompleteObject,
 ) -> Result<Vec<Expr>, PopUntilDelimiterError>
 where S: RandomAccessStackLike<Elem = Expr> {
-  let first_delimiter_index = (0..stack.len() as i64).into_iter()
+  let first_delimiter_index = (0..stack.len() as i64)
     .find(|i| is_incomplete_object(&stack.get(*i).unwrap()));
   match first_delimiter_index {
     None => Err(PopUntilDelimiterError::UnexpectedEOF { expected: target_object.clone() }),
@@ -150,7 +150,7 @@ impl<'a> TryFrom<&'a Expr> for IncompleteObject {
         Err(_) => Err(TryFromExprRefError { _priv: () }),
       }
     } else {
-      return Err(TryFromExprRefError { _priv: () });
+      Err(TryFromExprRefError { _priv: () })
     }
   }
 }
