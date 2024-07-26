@@ -479,6 +479,27 @@ mod tests {
     assert_eq!(mode.to_html(&expr), "[-99]");
   }
 
+  #[test]
+  fn test_incomplete_object() {
+    let mode = BasicLanguageMode::from_common_operators();
+    let expr = Expr::call(
+      "incomplete",
+      vec![Expr::string("[")],
+    );
+    assert_eq!(mode.to_html(&expr), "[ ...");
+  }
+
+  #[test]
+  fn test_incomplete_object_in_reversible_mode() {
+    let mode = BasicLanguageMode::from_common_operators();
+    let mode = mode.to_reversible_language_mode();
+    let expr = Expr::call(
+      "incomplete",
+      vec![Expr::string("[")],
+    );
+    assert_eq!(mode.to_html(&expr), r#"incomplete("[")"#);
+  }
+
   // TODO Common operators doesn't have any postfix ops right now,
   // test those when we get them
 }
