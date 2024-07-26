@@ -17,10 +17,11 @@ pub mod variables;
 pub mod vector;
 
 pub use base::{Command, CommandContext, CommandOutput};
-use functional::{UnaryFunctionCommand, BinaryFunctionCommand};
+use functional::{PushConstantCommand, UnaryFunctionCommand, BinaryFunctionCommand};
 use dispatch::CommandDispatchTable;
 use crate::expr::Expr;
 use crate::expr::number::ComplexNumber;
+use crate::expr::algebra::infinity::InfiniteConstant;
 use crate::state::ApplicationState;
 
 use std::collections::HashMap;
@@ -31,7 +32,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   // TODO: We could probably get several of these automatically from
   // the function table. That would be nice.
 
-  // Nullary commands
+  // Basc arithmetic (no arguments)
   map.insert("nop".to_string(), Box::new(nullary::NullaryCommand));
   map.insert("+".to_string(), Box::new(BinaryFunctionCommand::named("+")));
   map.insert("-".to_string(), Box::new(BinaryFunctionCommand::named("-")));
@@ -47,9 +48,25 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("*i".to_string(), Box::new(UnaryFunctionCommand::new(times_i)));
   map.insert("e^".to_string(), Box::new(UnaryFunctionCommand::named("exp")));
   map.insert("negate".to_string(), Box::new(UnaryFunctionCommand::new(times_minus_one)));
+
+  // Stack shuffling (no arguments)
   map.insert("pop".to_string(), Box::new(shuffle::PopCommand));
   map.insert("swap".to_string(), Box::new(shuffle::SwapCommand));
   map.insert("dup".to_string(), Box::new(shuffle::DupCommand));
+
+  // Constructors (no arguments)
+  map.insert("..".to_string(), Box::new(BinaryFunctionCommand::named("..")));
+  map.insert("..^".to_string(), Box::new(BinaryFunctionCommand::named("..^")));
+  map.insert("^..".to_string(), Box::new(BinaryFunctionCommand::named("^..")));
+  map.insert("^..^".to_string(), Box::new(BinaryFunctionCommand::named("^..^")));
+
+  // Constants (no arguments)
+  map.insert("infinity".to_string(), Box::new(PushConstantCommand::new(InfiniteConstant::PosInfinity)));
+  map.insert("neg_infinity".to_string(), Box::new(PushConstantCommand::new(InfiniteConstant::NegInfinity)));
+  map.insert("undir_infinity".to_string(), Box::new(PushConstantCommand::new(InfiniteConstant::UndirInfinity)));
+  map.insert("nan_infinity".to_string(), Box::new(PushConstantCommand::new(InfiniteConstant::NotANumber)));
+
+  // Other nullary
   map.insert("substitute_vars".to_string(), Box::new(UnaryFunctionCommand::with_state(substitute_vars)));
   map.insert("pack".to_string(), Box::new(vector::PackCommand::new()));
   map.insert("unpack".to_string(), Box::new(vector::UnpackCommand::new()));
@@ -66,6 +83,19 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("im".to_string(), Box::new(UnaryFunctionCommand::named("im")));
   map.insert("lowercase".to_string(), Box::new(UnaryFunctionCommand::named("lowercase")));
   map.insert("uppercase".to_string(), Box::new(UnaryFunctionCommand::named("uppercase")));
+  map.insert("=".to_string(), Box::new(BinaryFunctionCommand::named("=")));
+  map.insert("!=".to_string(), Box::new(BinaryFunctionCommand::named("!=")));
+  map.insert("<".to_string(), Box::new(BinaryFunctionCommand::named("<")));
+  map.insert("<=".to_string(), Box::new(BinaryFunctionCommand::named("<=")));
+  map.insert(">".to_string(), Box::new(BinaryFunctionCommand::named(">")));
+  map.insert(">=".to_string(), Box::new(BinaryFunctionCommand::named(">=")));
+  map.insert("plot".to_string(), Box::new(graphics::PlotCommand::new()));
+  map.insert("contourplot".to_string(), Box::new(graphics::ContourPlotCommand::new()));
+  map.insert("xy".to_string(), Box::new(BinaryFunctionCommand::named("xy")));
+  map.insert("toggle_graphics".to_string(), Box::new(modes::toggle_graphics_command()));
+  map.insert("toggle_infinity".to_string(), Box::new(modes::toggle_infinity_command()));
+
+  // Unit conversion
   map.insert("simplify_units".to_string(), Box::new(units::simplify_units_command()));
   map.insert("remove_units".to_string(), Box::new(units::remove_units_command()));
   map.insert("extract_units".to_string(), Box::new(units::extract_units_command()));
@@ -73,21 +103,6 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("convert_units_with_context".to_string(), Box::new(units::ContextualConvertUnitsCommand::new()));
   map.insert("convert_temp".to_string(), Box::new(units::ConvertTemperatureCommand::new()));
   map.insert("convert_temp_with_context".to_string(), Box::new(units::ContextualConvertTemperatureCommand::new()));
-  map.insert("=".to_string(), Box::new(BinaryFunctionCommand::named("=")));
-  map.insert("!=".to_string(), Box::new(BinaryFunctionCommand::named("!=")));
-  map.insert("<".to_string(), Box::new(BinaryFunctionCommand::named("<")));
-  map.insert("<=".to_string(), Box::new(BinaryFunctionCommand::named("<=")));
-  map.insert(">".to_string(), Box::new(BinaryFunctionCommand::named(">")));
-  map.insert(">=".to_string(), Box::new(BinaryFunctionCommand::named(">=")));
-  map.insert("..".to_string(), Box::new(BinaryFunctionCommand::named("..")));
-  map.insert("..^".to_string(), Box::new(BinaryFunctionCommand::named("..^")));
-  map.insert("^..".to_string(), Box::new(BinaryFunctionCommand::named("^..")));
-  map.insert("^..^".to_string(), Box::new(BinaryFunctionCommand::named("^..^")));
-  map.insert("plot".to_string(), Box::new(graphics::PlotCommand::new()));
-  map.insert("contourplot".to_string(), Box::new(graphics::ContourPlotCommand::new()));
-  map.insert("xy".to_string(), Box::new(BinaryFunctionCommand::named("xy")));
-  map.insert("toggle_graphics".to_string(), Box::new(modes::toggle_graphics_command()));
-  map.insert("toggle_infinity".to_string(), Box::new(modes::toggle_infinity_command()));
 
   // Commands which accept a single string.
   map.insert("push_number".to_string(), Box::new(input::push_number_command()));

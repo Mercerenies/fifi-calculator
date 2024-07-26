@@ -65,8 +65,8 @@ pub struct BinaryFunctionCommand {
 }
 
 impl PushConstantCommand {
-  pub fn new(expr: Expr) -> PushConstantCommand {
-    PushConstantCommand { expr }
+  pub fn new(expr: impl Into<Expr>) -> PushConstantCommand {
+    PushConstantCommand { expr: expr.into() }
   }
 }
 

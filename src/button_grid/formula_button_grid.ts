@@ -36,7 +36,12 @@ export class FormulaButtonGrid extends ButtonGrid {
         new DispatchButton("^..", "^..", null),
         new DispatchButton("^..^", "^..^", null),
       ],
-      [],
+      [
+        new DispatchButton("<math><mi>∞</mi></math>", "infinity", null),
+        new DispatchButton("<math><mo>-</mo><mi>∞</mi></math>", "neg_infinity", null),
+        new DispatchButton("<math><mover><mrow><mi>∞</mi></mrow><mo>~</mo></mover></math>", "undir_infinity", null),
+        new DispatchButton("nan", "nan_infinity", null),
+      ],
       [
         backButton(this.rootGrid),
       ],
