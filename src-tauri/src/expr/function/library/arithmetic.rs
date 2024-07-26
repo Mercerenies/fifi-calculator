@@ -724,7 +724,7 @@ pub fn arithmetic_negate() -> Function {
     )
     .add_case(
       // Negation of an interval
-      builder::arity_one().of_type(prisms::expr_to_interval()).and_then(|arg, _| {
+      builder::arity_one().of_type(prisms::expr_to_unbounded_interval()).and_then(|arg, _| {
         let arg = Interval::from(arg);
         Ok(Expr::from(- arg))
       })

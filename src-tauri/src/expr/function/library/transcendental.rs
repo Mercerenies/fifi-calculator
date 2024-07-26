@@ -3,13 +3,13 @@
 
 use crate::expr::Expr;
 use crate::expr::simplifier::error::SimplifierError;
-use crate::expr::function::Function;
+use crate::expr::function::{Function, FunctionContext};
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder};
 use crate::expr::prisms::{self, expr_to_number, ExprToComplex};
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex};
-use crate::expr::algebra::infinity::InfiniteConstant;
-use crate::expr::interval::Interval;
+use crate::expr::algebra::infinity::{InfiniteConstant, SignedInfinity, UnboundedNumber};
+use crate::expr::interval::{RawInterval, Interval, includes_infinity};
 
 use num::{Zero, One};
 
@@ -43,13 +43,8 @@ pub fn natural_log() -> Function {
     )
     .add_case(
       // Natural logarithm of interval of positive reals
-      builder::arity_one().of_type(prisms::expr_to_interval()).and_then(|arg, ctx| {
-        if arg.left <= Number::zero() || arg.right <= Number::zero() {
-          ctx.errors.push(SimplifierError::custom_error("ln", "Expected interval of positive reals"));
-          return Err(arg);
-        }
-        let arg = Interval::from(arg);
-        Ok(Expr::from(arg.map_monotone(|x| x.ln())))
+      builder::arity_one().of_type(prisms::expr_to_unbounded_interval()).and_then(|arg, ctx| {
+        ln_of_interval(arg, ctx).map(Expr::from)
       })
     )
     .add_case(
@@ -69,6 +64,39 @@ pub fn natural_log() -> Function {
       })
     )
     .build()
+}
+
+fn ln_of_interval(
+  arg: RawInterval<UnboundedNumber>,
+  ctx: &mut FunctionContext,
+) -> Result<Interval<UnboundedNumber>, RawInterval<UnboundedNumber>> {
+  if arg.left < UnboundedNumber::zero() || arg.right <= UnboundedNumber::zero() {
+    ctx.errors.push(SimplifierError::custom_error("ln", "Expected interval of positive reals"));
+    return Err(arg);
+  }
+  let arg_interval = Interval::from(arg.clone());
+  let arg_has_infinity = includes_infinity(&arg_interval);
+
+  let result_interval = arg_interval.map_monotone(ln_unbounded);
+  if !arg_has_infinity && includes_infinity(&result_interval) && !ctx.calculation_mode.has_infinity_flag() {
+    ctx.errors.push(SimplifierError::custom_error("ln", "Expected interval of positive reals"));
+    return Err(arg);
+  }
+
+  Ok(result_interval)
+}
+
+/// Panics if input < 0.
+fn ln_unbounded(input: UnboundedNumber) -> UnboundedNumber {
+  assert!(input >= UnboundedNumber::zero());
+  if input == UnboundedNumber::zero() {
+    return UnboundedNumber::Infinite(SignedInfinity::NegInfinity);
+  }
+  match input {
+    UnboundedNumber::Finite(x) => UnboundedNumber::Finite(x.ln()),
+    UnboundedNumber::Infinite(SignedInfinity::PosInfinity) => UnboundedNumber::Infinite(SignedInfinity::PosInfinity),
+    UnboundedNumber::Infinite(SignedInfinity::NegInfinity) => unreachable!(),
+  }
 }
 
 pub fn logarithm() -> Function {
@@ -104,14 +132,14 @@ pub fn logarithm() -> Function {
     )
     .add_case(
       // Arbitrary-base logarithm of an interval with positive real base
-      builder::arity_two().of_types(prisms::expr_to_interval(), prisms::expr_to_positive_number()).and_then(|arg, base, ctx| {
-        if arg.left <= Number::zero() || arg.right <= Number::zero() {
+      builder::arity_two().of_types(prisms::expr_to_unbounded_interval(), prisms::expr_to_positive_number()).and_then(|arg, base, ctx| {
+        if arg.left < UnboundedNumber::zero() || arg.right <= UnboundedNumber::zero() {
           ctx.errors.push(SimplifierError::custom_error("log", "Expected interval of positive reals"));
           return Err((arg, base));
         }
-        let base = Number::from(base);
-        let arg = Interval::from(arg);
-        Ok(Expr::from(arg.map_monotone(|x| x.log(&base))))
+        let result = ln_of_interval(arg, ctx).map_err(|arg| (arg, base.clone()))?;
+        let result = result.map_monotone(|x| x / Number::from(base.clone()).ln());
+        Ok(result.into())
       })
     )
     .add_case(
@@ -174,12 +202,18 @@ pub fn exponent() -> Function {
     )
     .add_case(
       // Interval case
-      builder::arity_one().of_type(prisms::expr_to_interval()).and_then(|arg, _| {
+      builder::arity_one().of_type(prisms::expr_to_unbounded_interval()).and_then(|arg, _| {
         let arg = Interval::from(arg);
         let value = arg.map_monotone(|x| {
-          let e = Number::from(consts::E);
-          // unwrap: Raising a positive constant to a power will always get a real result.
-          pow_real(e, x).unwrap_real()
+          match x {
+            UnboundedNumber::Infinite(SignedInfinity::PosInfinity) => UnboundedNumber::Infinite(SignedInfinity::PosInfinity),
+            UnboundedNumber::Infinite(SignedInfinity::NegInfinity) => UnboundedNumber::zero(),
+            UnboundedNumber::Finite(x) => {
+              let e = Number::from(consts::E);
+              // unwrap: Raising a positive constant to a power will always get a real result.
+              UnboundedNumber::Finite(pow_real(e, x).unwrap_real())
+            }
+          }
         });
         Ok(Expr::from(value))
       })

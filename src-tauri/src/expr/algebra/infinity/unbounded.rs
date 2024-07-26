@@ -11,7 +11,7 @@ use thiserror::Error;
 
 use std::convert::TryFrom;
 use std::cmp::Ordering;
-use std::ops::Neg;
+use std::ops::{Neg, Div};
 
 /// Either a finite real value or a signed infinity.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -149,6 +149,25 @@ impl TryMul for UnboundedNumber {
       }
       (Finite(a), Infinite(b)) => Infinite(b).try_mul(Finite(a)), // See above case
       (Finite(a), Finite(b)) => Ok(Finite(a * b)),
+    }
+  }
+}
+
+/// Scalar division. Panics on division by zero.
+impl Div<Number> for UnboundedNumber {
+  type Output = Self;
+
+  fn div(self, other: Number) -> Self {
+    assert!(other != Number::zero(), "Division by zero");
+    match self {
+      UnboundedNumber::Finite(a) => {
+        UnboundedNumber::Finite(a / other)
+      }
+      UnboundedNumber::Infinite(a) => {
+        UnboundedNumber::Infinite(
+          if other < Number::zero() { - a } else { a },
+        )
+      }
     }
   }
 }
