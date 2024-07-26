@@ -2,6 +2,7 @@
 pub mod basic;
 pub mod graphics;
 
+use crate::util::cow_dyn::CowDyn;
 use crate::expr::Expr;
 use crate::parsing::operator::Precedence;
 
@@ -36,7 +37,7 @@ pub trait LanguageMode {
   /// parsers that are incompatible with their renderer. This function
   /// produces a renderer which is compatible with the parser, even if
   /// it might be simpler than `self`.
-  fn to_reversible_language_mode(&self) -> &dyn LanguageMode;
+  fn to_reversible_language_mode(&self) -> CowDyn<dyn LanguageMode>;
 
   fn to_html(&self, expr: &Expr) -> String {
     let engine = LanguageModeEngine { data: self.to_trait_object() };
@@ -73,7 +74,7 @@ impl<'a, T: LanguageMode + ?Sized> LanguageMode for &'a T {
     (**self).to_trait_object()
   }
 
-  fn to_reversible_language_mode(&self) -> &dyn LanguageMode {
+  fn to_reversible_language_mode(&self) -> CowDyn<dyn LanguageMode> {
     (**self).to_reversible_language_mode()
   }
 }
@@ -91,7 +92,7 @@ impl<T: LanguageMode + ?Sized> LanguageMode for Box<T> {
     (**self).to_trait_object()
   }
 
-  fn to_reversible_language_mode(&self) -> &dyn LanguageMode {
+  fn to_reversible_language_mode(&self) -> CowDyn<dyn LanguageMode> {
     (**self).to_reversible_language_mode()
   }
 }

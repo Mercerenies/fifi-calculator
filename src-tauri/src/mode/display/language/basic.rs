@@ -7,12 +7,17 @@ use crate::expr::number::{Number, ComplexNumber};
 use crate::expr::atom::{Atom, write_escaped_str};
 use crate::expr::basic_parser::ExprParser;
 use crate::expr::vector::Vector;
+use crate::util::cow_dyn::CowDyn;
 
 use num::Zero;
 
 #[derive(Clone, Debug, Default)]
 pub struct BasicLanguageMode {
   known_operators: OperatorTable,
+  // Default is false. If true, the output should be readable by the
+  // default parser. If false, some things may be pretty-printed (such
+  // as incomplete objects).
+  uses_reversible_output: bool,
 }
 
 impl BasicLanguageMode {
@@ -23,6 +28,7 @@ impl BasicLanguageMode {
   pub fn from_operators(known_operators: OperatorTable) -> Self {
     Self {
       known_operators,
+      uses_reversible_output: false,
     }
   }
 
@@ -249,8 +255,8 @@ impl LanguageMode for BasicLanguageMode {
     self
   }
 
-  fn to_reversible_language_mode(&self) -> &dyn LanguageMode {
-    self
+  fn to_reversible_language_mode(&self) -> CowDyn<dyn LanguageMode> {
+    CowDyn::Borrowed(self)
   }
 
   fn parse(&self, text: &str) -> anyhow::Result<Expr> {

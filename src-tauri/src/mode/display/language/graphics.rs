@@ -3,6 +3,7 @@ use super::{LanguageMode, LanguageModeEngine};
 use crate::expr::Expr;
 use crate::parsing::operator::Precedence;
 use crate::graphics::payload::{GraphicsPayload, SerializedGraphicsPayload};
+use crate::util::cow_dyn::CowDyn;
 
 use std::convert::TryFrom;
 use std::fmt::Write;
@@ -58,7 +59,7 @@ impl<'a, L: LanguageMode + ?Sized> LanguageMode for GraphicsLanguageMode<'a, L> 
     self
   }
 
-  fn to_reversible_language_mode(&self) -> &dyn LanguageMode {
+  fn to_reversible_language_mode(&self) -> CowDyn<dyn LanguageMode> {
     self.inner.to_reversible_language_mode()
   }
 }
