@@ -39,6 +39,12 @@ pub struct ObjectTypeParseError {
   input_string: String,
 }
 
+#[derive(Debug, Clone, Error)]
+#[error("Error parsing Expr as IncompleteObject")]
+pub struct TryFromExprRefError {
+  _priv: (),
+}
+
 impl IncompleteObject {
   pub const FUNCTION_NAME: &'static str = "incomplete";
 
@@ -90,23 +96,31 @@ impl From<IncompleteObject> for Expr {
   }
 }
 
+impl<'a> TryFrom<&'a Expr> for IncompleteObject {
+  type Error = TryFromExprRefError;
+
+  fn try_from(expr: &'a Expr) -> Result<Self, Self::Error> {
+    let Expr::Call(function_name, args) = expr else {
+      return Err(TryFromExprRefError { _priv: () });
+    };
+    if function_name == IncompleteObject::FUNCTION_NAME && args.len() == 1 && matches!(args[0], Expr::Atom(Atom::String(_))) {
+      let Expr::Atom(Atom::String(name)) = &args[0] else { unreachable!() };
+      match ObjectType::parse(name) {
+        Ok(object_type) => Ok(IncompleteObject::new(object_type)),
+        Err(_) => Err(TryFromExprRefError { _priv: () }),
+      }
+    } else {
+      return Err(TryFromExprRefError { _priv: () });
+    }
+  }
+}
+
 impl TryFrom<Expr> for IncompleteObject {
   type Error = TryFromExprError;
 
   fn try_from(expr: Expr) -> Result<Self, Self::Error> {
-    if let Expr::Call(function_name, mut args) = expr {
-      if function_name == IncompleteObject::FUNCTION_NAME && args.len() == 1 && matches!(args[0], Expr::Atom(Atom::String(_))) {
-        let Expr::Atom(Atom::String(name)) = args.swap_remove(0) else { unreachable!() };
-        match ObjectType::parse(&name) {
-          Ok(object_type) => Ok(IncompleteObject::new(object_type)),
-          Err(_) => Err(TryFromExprError::new("IncompleteObject", Expr::Call(function_name, vec![name.into()]))),
-        }
-      } else {
-        return Err(TryFromExprError::new("IncompleteObject", Expr::Call(function_name, args)));
-      }
-    } else {
-      Err(TryFromExprError::new("IncompleteObject", expr))
-    }
+    IncompleteObject::try_from(&expr)
+      .map_err(|_| TryFromExprError::new("IncompleteObject", expr))
   }
 }
 
