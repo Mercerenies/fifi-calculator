@@ -22,6 +22,7 @@ use dispatch::CommandDispatchTable;
 use crate::expr::Expr;
 use crate::expr::number::ComplexNumber;
 use crate::expr::algebra::infinity::InfiniteConstant;
+use crate::expr::incomplete::{IncompleteObject, ObjectType};
 use crate::state::ApplicationState;
 
 use std::collections::HashMap;
@@ -65,6 +66,8 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("neg_infinity".to_string(), Box::new(PushConstantCommand::new(InfiniteConstant::NegInfinity)));
   map.insert("undir_infinity".to_string(), Box::new(PushConstantCommand::new(InfiniteConstant::UndirInfinity)));
   map.insert("nan_infinity".to_string(), Box::new(PushConstantCommand::new(InfiniteConstant::NotANumber)));
+  map.insert("incomplete[".to_string(), Box::new(PushConstantCommand::new(IncompleteObject::new(ObjectType::LeftBracket))));
+  map.insert("incomplete(".to_string(), Box::new(PushConstantCommand::new(IncompleteObject::new(ObjectType::LeftParen))));
 
   // Other nullary
   map.insert("substitute_vars".to_string(), Box::new(UnaryFunctionCommand::with_state(substitute_vars)));

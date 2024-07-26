@@ -122,6 +122,12 @@ export class MainButtonGrid extends ButtonGrid {
       return KeyResponse.BLOCK;
     }
 
+    if (["[", "("].includes(key)) {
+      const vectorTable = this.subgrids.vector.getKeyMappingTable();
+      await vectorTable[key].fire(manager);
+      return KeyResponse.BLOCK;
+    }
+
     // Emacs compatibility: Forward "|" to vector button grid.
     if (key == "|") {
       const vectorTable = this.subgrids.vector.getKeyMappingTable();

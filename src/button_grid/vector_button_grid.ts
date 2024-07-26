@@ -31,8 +31,12 @@ export class VectorButtonGrid extends ButtonGrid {
       [
         new DispatchButton("1<sup>st</sup>", "head", "h"),
       ],
-      [],
-      [],
+      [
+        new DispatchButton("[", "incomplete[", "["),
+      ],
+      [
+        new DispatchButton("(", "incomplete(", "("),
+      ],
       [
         backButton(this.rootGrid),
       ],
