@@ -87,6 +87,14 @@ impl IntervalType {
       IntervalType::FullOpen => IntervalType::FullOpen,
     }
   }
+
+  pub fn includes_left(&self) -> bool {
+    *self == IntervalType::Closed || *self == IntervalType::RightOpen
+  }
+
+  pub fn includes_right(&self) -> bool {
+    *self == IntervalType::Closed || *self == IntervalType::LeftOpen
+  }
 }
 
 /// The `PartialOrd` implementation for `IntervalType` is ordered by

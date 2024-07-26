@@ -8,7 +8,7 @@ pub use base::InfiniteConstant;
 pub use signed::{SignedInfinity, ExpectedSignedInfinityError};
 pub use prisms::{ExprToInfinity, infinity_to_signed_infinity,
                  expr_to_signed_infinity, expr_to_unbounded_number};
-pub use unbounded::UnboundedNumber;
+pub use unbounded::{UnboundedNumber, IndeterminateFormError};
 
 use crate::expr::Expr;
 use crate::expr::number::{Number, ComplexLike};

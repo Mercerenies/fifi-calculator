@@ -132,6 +132,10 @@ impl<T> Interval<T> {
     &self.right
   }
 
+  pub fn interval_type(&self) -> IntervalType {
+    self.interval_type
+  }
+
   pub fn into_raw(self) -> RawInterval<T> {
     RawInterval { left: self.left, interval_type: self.interval_type, right: self.right }
   }
