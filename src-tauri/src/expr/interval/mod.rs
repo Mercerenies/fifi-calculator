@@ -137,3 +137,131 @@ pub fn interval_div(
 ) -> Result<Interval<UnboundedNumber>, IndeterminateFormError> {
   left.try_mul(interval_recip(right))
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn pos_infinity() -> UnboundedNumber {
+    UnboundedNumber::POS_INFINITY
+  }
+
+  fn neg_infinity() -> UnboundedNumber {
+    UnboundedNumber::NEG_INFINITY
+  }
+
+  fn finite(n: f64) -> UnboundedNumber {
+    UnboundedNumber::Finite(n.into())
+  }
+
+  #[test]
+  fn test_interval_recip_finite_without_zero() {
+    let interval = Interval::new(finite(1.0), IntervalType::LeftOpen, finite(10.0));
+    assert_eq!(
+      interval_recip(interval),
+      Interval::new(finite(0.1), IntervalType::RightOpen, finite(1.0))
+    );
+
+    let interval = Interval::new(finite(-10.0), IntervalType::Closed, finite(-0.5));
+    assert_eq!(
+      interval_recip(interval),
+      Interval::new(finite(-2.0), IntervalType::Closed, finite(-0.1))
+    );
+
+    let interval = Interval::new(finite(4.0), IntervalType::Closed, finite(4.0));
+    assert_eq!(
+      interval_recip(interval),
+      Interval::new(finite(0.25), IntervalType::Closed, finite(0.25))
+    );
+  }
+
+  #[test]
+  fn test_interval_recip_finite_right_zero() {
+    let interval = Interval::new(finite(-4.0), IntervalType::LeftOpen, finite(0.0));
+    assert_eq!(
+      interval_recip(interval),
+      Interval::new(neg_infinity(), IntervalType::RightOpen, finite(-0.25))
+    );
+
+    let interval = Interval::new(finite(-4.0), IntervalType::RightOpen, finite(0.0));
+    assert_eq!(
+      interval_recip(interval),
+      Interval::new(neg_infinity(), IntervalType::LeftOpen, finite(-0.25))
+    );
+  }
+
+  #[test]
+  fn test_interval_recip_finite_left_zero() {
+    let interval = Interval::new(finite(0.0), IntervalType::LeftOpen, finite(10.0));
+    assert_eq!(
+      interval_recip(interval),
+      Interval::new(finite(0.1), IntervalType::RightOpen, pos_infinity())
+    );
+
+    let interval = Interval::new(finite(0.0), IntervalType::RightOpen, finite(20.0));
+    assert_eq!(
+      interval_recip(interval),
+      Interval::new(finite(0.05), IntervalType::LeftOpen, pos_infinity())
+    );
+  }
+
+  #[test]
+  fn test_interval_recip_finite_includes_zero() {
+    let interval = Interval::new(finite(-5.0), IntervalType::LeftOpen, finite(10.0));
+    assert_eq!(
+      interval_recip(interval),
+      Interval::new(neg_infinity(), IntervalType::Closed, pos_infinity())
+    );
+  }
+
+  #[test]
+  fn test_interval_recip_all_reals() {
+    let interval = Interval::new(neg_infinity(), IntervalType::Closed, pos_infinity());
+    assert_eq!(
+      interval_recip(interval),
+      Interval::new(neg_infinity(), IntervalType::Closed, pos_infinity()),
+    );
+  }
+
+  #[test]
+  fn test_interval_recip_negative_unbounded() {
+    let interval = Interval::new(neg_infinity(), IntervalType::RightOpen, finite(-2.0));
+    assert_eq!(
+      interval_recip(interval),
+      Interval::new(finite(-0.5), IntervalType::LeftOpen, finite(0.0)),
+    );
+
+    let interval = Interval::new(neg_infinity(), IntervalType::RightOpen, finite(0.0));
+    assert_eq!(
+      interval_recip(interval),
+      Interval::new(neg_infinity(), IntervalType::LeftOpen, finite(0.0)),
+    );
+
+    let interval = Interval::new(neg_infinity(), IntervalType::RightOpen, finite(2.0));
+    assert_eq!(
+      interval_recip(interval),
+      Interval::new(neg_infinity(), IntervalType::Closed, pos_infinity()),
+    );
+  }
+
+  #[test]
+  fn test_interval_recip_positive_unbounded() {
+    let interval = Interval::new(finite(2.0), IntervalType::FullOpen, pos_infinity());
+    assert_eq!(
+      interval_recip(interval),
+      Interval::new(finite(0.0), IntervalType::FullOpen, finite(0.5)),
+    );
+
+    let interval = Interval::new(finite(0.0), IntervalType::RightOpen, pos_infinity());
+    assert_eq!(
+      interval_recip(interval),
+      Interval::new(finite(0.0), IntervalType::LeftOpen, pos_infinity()),
+    );
+
+    let interval = Interval::new(finite(-2.0), IntervalType::RightOpen, pos_infinity());
+    assert_eq!(
+      interval_recip(interval),
+      Interval::new(neg_infinity(), IntervalType::Closed, pos_infinity()),
+    );
+  }
+}
