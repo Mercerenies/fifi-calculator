@@ -180,6 +180,7 @@ pub fn simplify_units_command() -> UnaryFunctionCommand {
     let simplifier = unit_simplifier(&term_parser, ctx);
     let mut simplifier_ctx = SimplifierContext {
       base_simplifier: simplifier.as_ref(),
+      calculation_mode: state.calculation_mode().clone(),
       errors,
     };
     simplifier.simplify_expr(arg, &mut simplifier_ctx)

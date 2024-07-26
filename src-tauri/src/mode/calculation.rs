@@ -23,6 +23,12 @@ impl CalculationMode {
     Self::default()
   }
 
+  /// A reasonable default calculation mode for local evaluations
+  /// while performing computer algebra or numerical approximations.
+  pub fn for_algebra() -> Self {
+    Self::default()
+  }
+
   /// The infinity flag is off by default. If the infinity flag is
   /// off, then calculations which would produce infinity, such as
   /// `ln(0)` or `1 / 0`, will produce an error. If the infinity flag

@@ -25,7 +25,7 @@ impl<'a> Simplifier for FunctionEvaluator<'a> {
         let Some(known_function) = self.function_table.get(&function_name) else {
           return Expr::Call(function_name, args);
         };
-        match known_function.call(args, ctx.errors, ctx.base_simplifier, self.function_table) {
+        match known_function.call(args, ctx.errors, ctx.base_simplifier, self.function_table, ctx.calculation_mode.clone()) {
           Ok(expr) => expr,
           Err(args) => Expr::Call(function_name, args),
         }

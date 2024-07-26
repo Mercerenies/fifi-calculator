@@ -2,6 +2,7 @@
 use crate::expr::Expr;
 use crate::expr::walker::postorder_walk_ok;
 use crate::errorlist::ErrorList;
+use crate::mode::calculation::CalculationMode;
 use super::error::SimplifierError;
 
 /// A simplifier provides a way to simplify mathematical expressions
@@ -30,6 +31,7 @@ pub trait Simplifier {
 
 pub struct SimplifierContext<'a, 'b> {
   pub base_simplifier: &'a dyn Simplifier,
+  pub calculation_mode: CalculationMode,
   pub errors: &'b mut ErrorList<SimplifierError>,
 }
 

@@ -14,6 +14,7 @@ use crate::expr::number::{ComplexLike, Number};
 use crate::expr::var::Var;
 use crate::expr::simplifier::{Simplifier, SimplifierContext};
 use crate::expr::prisms::{expr_to_number, ExprToComplex};
+use crate::mode::calculation::CalculationMode;
 
 use thiserror::Error;
 
@@ -87,7 +88,11 @@ impl<'a> ExprFunction<'a> {
     // ExprFunction, we ignore any errors that arise from the
     // simplifier.
     let mut errors = ErrorList::new();
-    let mut context = SimplifierContext { base_simplifier: self.simplifier, errors: &mut errors };
+    let mut context = SimplifierContext {
+      base_simplifier: self.simplifier,
+      calculation_mode: CalculationMode::for_algebra(),
+      errors: &mut errors,
+    };
     self.simplifier.simplify_expr(expr, &mut context)
   }
 }
@@ -108,7 +113,11 @@ impl<'a> ExprFunction2<'a> {
     // ExprFunction2, we ignore any errors that arise from the
     // simplifier.
     let mut errors = ErrorList::new();
-    let mut context = SimplifierContext { base_simplifier: self.simplifier, errors: &mut errors };
+    let mut context = SimplifierContext {
+      base_simplifier: self.simplifier,
+      calculation_mode: CalculationMode::for_algebra(),
+      errors: &mut errors,
+    };
     self.simplifier.simplify_expr(expr, &mut context)
   }
 

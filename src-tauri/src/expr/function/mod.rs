@@ -6,6 +6,7 @@ pub mod table;
 
 use flags::FunctionFlags;
 use table::FunctionTable;
+use crate::mode::calculation::CalculationMode;
 use crate::graphics::response::GraphicsDirective;
 use crate::expr::Expr;
 use crate::expr::simplifier::Simplifier;
@@ -32,6 +33,7 @@ pub struct FunctionContext<'a, 'b, 'c> {
   pub errors: &'a mut ErrorList<SimplifierError>,
   pub simplifier: &'b dyn Simplifier,
   pub function_table: &'c FunctionTable,
+  pub calculation_mode: CalculationMode,
   _private: (),
 }
 
@@ -71,8 +73,9 @@ impl Function {
     errors: &mut ErrorList<SimplifierError>,
     simplifier: &dyn Simplifier,
     function_table: &FunctionTable,
+    calculation_mode: CalculationMode,
   ) -> Result<Expr, Vec<Expr>> {
-    let context = FunctionContext { errors, simplifier, function_table, _private: () };
+    let context = FunctionContext { errors, simplifier, function_table, calculation_mode, _private: () };
     (self.body)(args, context)
   }
 
@@ -83,8 +86,9 @@ impl Function {
     errors: &mut ErrorList<SimplifierError>,
     simplifier: &dyn Simplifier,
     function_table: &FunctionTable,
+    calculation_mode: CalculationMode,
   ) -> Result<GraphicsDirective, Vec<Expr>> {
-    let context = FunctionContext { errors, simplifier, function_table, _private: () };
+    let context = FunctionContext { errors, simplifier, function_table, calculation_mode, _private: () };
     (self.graphics_body)(args, context)
   }
 

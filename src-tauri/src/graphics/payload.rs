@@ -5,6 +5,7 @@ use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::function::table::FunctionTable;
 use crate::errorlist::ErrorList;
 use crate::state::events::show_error;
+use crate::mode::calculation::CalculationMode;
 use super::GraphicsType;
 use super::response::GraphicsResponse;
 
@@ -85,6 +86,7 @@ impl GraphicsPayload {
     errors: &mut ErrorList<SimplifierError>,
     simplifier: &dyn Simplifier,
     function_table: &FunctionTable,
+    calculation_mode: CalculationMode,
   ) -> Result<GraphicsResponse, CompileGraphicsError> {
     let mut response = GraphicsResponse::new();
     for expr in self.arguments {
@@ -94,7 +96,7 @@ impl GraphicsPayload {
       let function = function_table.get(&name).ok_or_else(|| {
         CompileGraphicsError::UnknownFunction(name)
       })?;
-      let directive = function.call_for_graphics(args, errors, simplifier, function_table)
+      let directive = function.call_for_graphics(args, errors, simplifier, function_table, calculation_mode.clone())
         .map_err(|_| CompileGraphicsError::GraphicsDirectiveError)?;
       response.directives.push(directive);
     }

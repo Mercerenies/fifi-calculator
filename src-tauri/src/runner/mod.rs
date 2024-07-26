@@ -44,10 +44,12 @@ fn run_math_command(
   opts: CommandOptions,
 ) -> Result<(), tauri::Error> {
   let mut state = app_state.state.lock().expect("poisoned mutex");
+  let calculation_mode = state.calculation_mode().clone();
   let command_context = CommandContext {
     opts,
     simplifier: default_simplifier(&app_state.function_table),
     units_parser: app_state.units_parser.as_ref(),
+    calculation_mode,
   };
   let command_table = &app_state.command_table;
   handle_non_tauri_errors(
@@ -69,10 +71,12 @@ fn render_graphics(
   app_handle: tauri::AppHandle,
   payload: SerializedGraphicsPayload,
 ) -> Result<Option<GraphicsResponse>, tauri::Error> {
+  let mut state = app_state.state.lock().expect("poisoned mutex");
   let function_table = &app_state.function_table;
   handle_non_tauri_errors(
     &app_handle,
     tauri_command::render_graphics(
+      &mut state,
       function_table,
       &app_handle,
       payload,

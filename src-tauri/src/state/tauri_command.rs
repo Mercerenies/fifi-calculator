@@ -38,15 +38,17 @@ pub fn run_math_command(
 /// Renders a `graphics` command in the expression language into a set
 /// of directives for the frontend to follow.
 pub fn render_graphics(
+  state: &mut ApplicationState,
   function_table: &FunctionTable,
   app_handle: &tauri::AppHandle,
   payload: SerializedGraphicsPayload,
 ) -> anyhow::Result<Option<GraphicsResponse>> {
   let simplifier = default_simplifier(function_table);
+  let calculation_mode = state.calculation_mode().clone();
   let mut errors = ErrorList::new();
 
   let payload = payload.try_deserialize()?;
-  let response = match payload.compile(&mut errors, simplifier.as_ref(), function_table) {
+  let response = match payload.compile(&mut errors, simplifier.as_ref(), function_table, calculation_mode) {
     Err(err) => {
       err.report_to_user(app_handle)?;
       None
