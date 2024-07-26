@@ -110,28 +110,10 @@ export class MainButtonGrid extends ButtonGrid {
   async onUnhandledKey(input: KeyEventInput, manager: ButtonGridManager): Promise<KeyResponse> {
     const key = input.toEmacsSyntax();
 
-    if (["L", "B", "E", "G", "J"].includes(key)) {
-      const transcendentalTable = this.subgrids.transcendental.getKeyMappingTable();
-      await transcendentalTable[key].fire(manager);
-      return KeyResponse.BLOCK;
-    }
-
-    if (["M-u", "M-l"].includes(key)) {
-      const stringTable = this.subgrids.strings.getKeyMappingTable();
-      await stringTable[key].fire(manager);
-      return KeyResponse.BLOCK;
-    }
-
-    if (["[", "("].includes(key)) {
-      const vectorTable = this.subgrids.vector.getKeyMappingTable();
-      await vectorTable[key].fire(manager);
-      return KeyResponse.BLOCK;
-    }
-
-    // Emacs compatibility: Forward "|" to vector button grid.
-    if (key == "|") {
-      const vectorTable = this.subgrids.vector.getKeyMappingTable();
-      await vectorTable[key].fire(manager);
+    const forwardingRule = SUBGRID_FORWARDING_TABLE[key];
+    if (forwardingRule !== undefined) {
+      const table = this.subgrids[forwardingRule].getKeyMappingTable();
+      await table[key].fire(manager);
       return KeyResponse.BLOCK;
     }
 
@@ -198,3 +180,16 @@ class Subgrids {
     this.modes = new ModesButtonGrid(mainGrid, inputManager);
   }
 }
+
+const SUBGRID_FORWARDING_TABLE: Record<string, keyof Subgrids> = {
+  "L": "transcendental",
+  "B": "transcendental",
+  "E": "formula",
+  "G": "graphing",
+  "J": "display",
+  "M-u": "strings",
+  "M-l": "strings",
+  "[": "vector",
+  "(": "vector",
+  "|": "vector",
+};
