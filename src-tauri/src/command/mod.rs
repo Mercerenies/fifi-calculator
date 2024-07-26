@@ -65,6 +65,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("incomplete[".to_string(), Box::new(PushConstantCommand::new(IncompleteObject::new(ObjectType::LeftBracket))));
   map.insert("incomplete(".to_string(), Box::new(PushConstantCommand::new(IncompleteObject::new(ObjectType::LeftParen))));
   map.insert("incomplete]".to_string(), Box::new(vector::VectorFromIncompleteObjectCommand::new()));
+  map.insert("incomplete)".to_string(), Box::new(vector::ComplexFromIncompleteObjectCommand::new()));
 
   // Constants (no arguments)
   map.insert("infinity".to_string(), Box::new(PushConstantCommand::new(InfiniteConstant::PosInfinity)));

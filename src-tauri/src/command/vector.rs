@@ -9,7 +9,7 @@ use crate::errorlist::ErrorList;
 use crate::expr::Expr;
 use crate::expr::prisms;
 use crate::expr::atom::Atom;
-use crate::expr::number::Number;
+use crate::expr::number::{Number, ComplexNumber};
 use crate::expr::vector::Vector;
 use crate::expr::simplifier::error::DomainError;
 use crate::expr::incomplete::{IncompleteObject, ObjectType, pop_until_delimiter};
@@ -63,7 +63,7 @@ pub struct RepeatCommand {
   _priv: (),
 }
 
-/// `VectorFromIncompleteCommand` pops stack elements until it finds
+/// `VectorFromIncompleteObjectCommand` pops stack elements until it finds
 /// the incomplete object [`ObjectType::LeftBracket`]. Then it pushes
 /// a vector containing every value popped up to that point.
 ///
@@ -75,6 +75,30 @@ pub struct RepeatCommand {
 /// argument.
 #[derive(Debug, Default)]
 pub struct VectorFromIncompleteObjectCommand {
+  _priv: (),
+}
+
+/// `ComplexFromIncompleteObjectCommand` pops stack elements until it
+/// finds the incomplete object [`ObjectType::LeftParen`]. Its
+/// behavior from there depends on how many elements were popped.
+///
+/// * If one element was popped, that element is pushed back onto the
+/// stack.
+///
+/// * If two elements were popped, they are treated as the real and
+/// imaginary parts of a new complex number, which is pushed onto the
+/// stack.
+///
+/// * If any other number of elements is popped, an error is produced.
+///
+/// In any error case (including lack of incomplete object, or a wrong
+/// number of elements), the resulting stack is left in the same state
+/// as before the command was run.
+///
+/// Respects the "keep" modifier but does not use a numerical
+/// argument.
+#[derive(Debug, Default)]
+pub struct ComplexFromIncompleteObjectCommand {
   _priv: (),
 }
 
@@ -127,6 +151,12 @@ impl RepeatCommand {
 }
 
 impl VectorFromIncompleteObjectCommand {
+  pub fn new() -> Self {
+    Self::default()
+  }
+}
+
+impl ComplexFromIncompleteObjectCommand {
   pub fn new() -> Self {
     Self::default()
   }
@@ -251,6 +281,51 @@ impl Command for VectorFromIncompleteObjectCommand {
     let vector = Vector::from(elems);
     stack.push(vector.into());
     Ok(CommandOutput::success())
+  }
+}
+
+impl Command for ComplexFromIncompleteObjectCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    context: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    validate_schema(&NullaryArgumentSchema::new(), args)?;
+    state.undo_stack_mut().push_cut();
+
+    let calculation_mode = state.calculation_mode().clone();
+
+    let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
+    let elems = pop_until_delimiter(&mut stack, &IncompleteObject::new(ObjectType::LeftParen))?;
+    match elems.len() {
+      1 => {
+        // Single element; push as-is.
+        let [elem] = elems.try_into().unwrap();
+        stack.push(elem);
+        Ok(CommandOutput::success())
+      }
+      2 => {
+        // Complex number.
+        let mut errors = ErrorList::new();
+        let [real, imag] = elems.try_into().unwrap();
+        let complex = Expr::call("+", vec![
+          real,
+          Expr::call("*", vec![imag, Expr::from(ComplexNumber::ii())]),
+        ]);
+        let complex = context.simplify_expr(complex, calculation_mode, &mut errors);
+        stack.push(complex);
+        Ok(CommandOutput::from_errors(errors))
+      }
+      len => {
+        if !context.opts.keep_modifier {
+          // Return the stack elements if we didn't keep them.
+          stack.push(IncompleteObject::new(ObjectType::LeftParen).into());
+          stack.push_several(elems);
+        }
+        anyhow::bail!("Expected 1 or 2 elements, got {len}");
+      }
+    }
   }
 }
 

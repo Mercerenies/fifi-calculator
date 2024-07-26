@@ -6,7 +6,7 @@ import { TAURI, defaultCommandOptions } from '../tauri_api.js';
 // Input method that accepts numerical input.
 export class NumericalInputMethod implements InputMethod {
   // TODO Get this from somewhere automated.
-  static AUTO_SUBMIT_KEYS = new Set(["*", "/", "^"]);
+  static AUTO_SUBMIT_KEYS = new Set(["*", "/", "^", "]", ")"]);
 
   labelHtml: string = "#:";
   inputType: "number" = "number" as const;
