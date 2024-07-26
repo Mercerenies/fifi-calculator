@@ -47,6 +47,10 @@ impl UnboundedNumber {
   pub fn one() -> Self {
     UnboundedNumber::Finite(Number::one())
   }
+
+  pub fn finite(n: impl Into<Number>) -> Self {
+    UnboundedNumber::Finite(n.into())
+  }
 }
 
 impl TryFrom<Expr> for UnboundedNumber {

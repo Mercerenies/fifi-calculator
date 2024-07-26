@@ -1,10 +1,12 @@
 
 use super::{Expr, TryFromExprError};
 use super::number::{Number, ComplexNumber, ComplexLike};
-use super::algebra::infinity::InfiniteConstant;
+use super::algebra::infinity::{InfiniteConstant, UnboundedNumber};
 use super::vector::Vector;
 use super::incomplete::IncompleteObject;
-use super::prisms::{ExprToComplex, ExprToVector, ExprToInfinity, expr_to_string, expr_to_incomplete_object};
+use super::interval::RawInterval;
+use super::prisms::{ExprToComplex, ExprToVector, ExprToInfinity,
+                    expr_to_string, expr_to_incomplete_object, expr_to_unbounded_interval};
 use crate::util::prism::Prism;
 
 use std::convert::TryFrom;
@@ -20,6 +22,9 @@ use std::convert::TryFrom;
 /// [`InfiniteConstant::NotANumber`] is equal to itself and is NOT
 /// treated specially by this type)
 ///
+/// * Intervals, where each bound is either a real number or a
+/// *signed* infinity, are literal values.
+///
 /// * Incomplete objects are literal values.
 ///
 /// * A vector (as defined by the [`Vector`] type) is a literal value
@@ -34,6 +39,7 @@ enum LiteralImpl {
   Numerical(ComplexLike),
   String(String),
   IncompleteObject(IncompleteObject),
+  Interval(RawInterval<UnboundedNumber>),
   Infinity(InfiniteConstant),
   Vector(Vec<Literal>),
 }
@@ -57,6 +63,10 @@ impl Literal {
 
   fn try_from_as_incomplete_object(expr: Expr) -> Result<Self, Expr> {
     expr_to_incomplete_object().narrow_type(expr).map(|c| Literal { data: LiteralImpl::IncompleteObject(c) })
+  }
+
+  fn try_from_as_interval(expr: Expr) -> Result<Self, Expr> {
+    expr_to_unbounded_interval().narrow_type(expr).map(|c| Literal { data: LiteralImpl::Interval(c) })
   }
 
   fn try_from_as_vector(expr: Expr) -> Result<Self, Expr> {
@@ -106,6 +116,12 @@ impl From<IncompleteObject> for Literal {
   }
 }
 
+impl From<RawInterval<UnboundedNumber>> for Literal {
+  fn from(c: RawInterval<UnboundedNumber>) -> Self {
+    Literal { data: LiteralImpl::Interval(c) }
+  }
+}
+
 impl From<Literal> for Expr {
   fn from(lit: Literal) -> Self {
     match lit.data {
@@ -113,6 +129,7 @@ impl From<Literal> for Expr {
       LiteralImpl::Numerical(n) => n.into(),
       LiteralImpl::Infinity(inf) => inf.into(),
       LiteralImpl::IncompleteObject(inc) => inc.into(),
+      LiteralImpl::Interval(i) => i.into(),
       LiteralImpl::Vector(v) => {
         let v: Vector = v.into_iter().map(Expr::from).collect();
         v.into()
@@ -133,6 +150,8 @@ impl TryFrom<Expr> for Literal {
       Literal::try_from_as_infinity(expr)
     }).or_else(|expr| {
       Literal::try_from_as_incomplete_object(expr)
+    }).or_else(|expr| {
+      Literal::try_from_as_interval(expr)
     }).map_err(|expr| {
       TryFromExprError::new("Literal", expr)
     })
@@ -143,6 +162,7 @@ impl TryFrom<Expr> for Literal {
 mod tests {
   use super::*;
   use crate::expr::incomplete::ObjectType;
+  use crate::expr::interval::{Interval, IntervalType};
 
   fn expect_roundtrip(literal: Literal) {
     let expr = Expr::from(literal.clone());
@@ -157,6 +177,7 @@ mod tests {
     expect_roundtrip(Literal::from(ComplexNumber::new(1, 1)));
     expect_roundtrip(Literal::from(ComplexNumber::new(-2, Number::ratio(1, 2))));
     expect_roundtrip(Literal::from(InfiniteConstant::NegInfinity));
+    expect_roundtrip(Literal::from(Interval::new(UnboundedNumber::finite(3), IntervalType::Closed, UnboundedNumber::POS_INFINITY).into_raw()));
     expect_roundtrip(Literal::from(IncompleteObject::new(ObjectType::LeftParen)));
   }
 
