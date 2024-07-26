@@ -33,9 +33,12 @@ pub fn natural_log() -> Function {
       // Natural logarithm of a non-zero complex number
       builder::arity_one().of_type(prisms::ExprToComplex).and_then(|arg, ctx| {
         if arg.is_zero() {
-          // TODO: Negative infinity
-          ctx.errors.push(SimplifierError::custom_error("ln", "Expected non-zero complex number"));
-          return Err(arg);
+          if ctx.calculation_mode.has_infinity_flag() {
+            return Ok(Expr::from(InfiniteConstant::NegInfinity))
+          } else {
+            ctx.errors.push(SimplifierError::custom_error("ln", "Expected non-zero complex number"));
+            return Err(arg);
+          }
         }
         let arg = ComplexNumber::from(arg);
         Ok(Expr::from(arg.ln()))
@@ -116,14 +119,28 @@ pub fn logarithm() -> Function {
     .add_case(
       // Arbitrary-base logarithm with non-zero complex arguments
       builder::arity_two().both_of_type(prisms::ExprToComplex).and_then(|arg, base, ctx| {
-        // TODO: Infinity handling
-        if arg.is_zero() || base.is_zero() {
-          ctx.errors.push(SimplifierError::custom_error("log", "Expected non-zero complex arguments"));
-          return Err((arg, base));
+        if base.is_zero() {
+          return Ok(Expr::zero());
+        }
+        if arg.is_zero() {
+          if ctx.calculation_mode.has_infinity_flag() {
+            // Let `ln` and `/` do the work.
+            return Ok(Expr::call("/", vec![
+              Expr::call("ln", vec![arg.into()]),
+              Expr::call("ln", vec![base.into()]),
+            ]));
+          } else {
+            ctx.errors.push(SimplifierError::custom_error("log", "Expected non-zero complex arguments"));
+            return Err((arg, base));
+          }
         }
         if base.is_one() {
-          ctx.errors.push(SimplifierError::division_by_zero("log"));
-          return Err((arg, base));
+          if ctx.calculation_mode.has_infinity_flag() {
+            return Ok(Expr::from(InfiniteConstant::UndirInfinity));
+          } else {
+            ctx.errors.push(SimplifierError::division_by_zero("log"));
+            return Err((arg, base));
+          }
         }
         let arg = ComplexNumber::from(arg);
         let base = ComplexNumber::from(base);

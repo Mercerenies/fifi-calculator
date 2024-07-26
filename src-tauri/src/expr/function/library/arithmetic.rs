@@ -3,7 +3,7 @@
 
 use crate::expr::Expr;
 use crate::expr::interval::{Interval, interval_div, includes_infinity};
-use crate::expr::function::Function;
+use crate::expr::function::{Function, FunctionContext};
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
 use crate::expr::vector::Vector;
@@ -87,6 +87,18 @@ pub fn addition() -> Function {
       })
     )
     .add_case(
+      // Infinity addition
+      builder::any_arity().of_type(prisms::expr_to_complex_or_inf()).and_then(|args, _| {
+        // We can ignore any finite quantities, since they hold no
+        // sway over the result.
+        let sum = args.into_iter()
+          .filter_map(Either::right)
+          .reduce(|a, b| a + b)
+          .unwrap(); // unwrap safety: One of the earlier cases would have triggered if there were no infinities.
+        Ok(Expr::from(sum))
+      })
+    )
+    .add_case(
       // Interval addition
       builder::any_arity().of_type(prisms::expr_to_unbounded_interval_like()).and_then(|args, ctx| {
         let sum = args.into_iter()
@@ -99,18 +111,6 @@ pub fn addition() -> Function {
             Ok(Expr::from(InfiniteConstant::NotANumber))
           }
         }
-      })
-    )
-    .add_case(
-      // Infinity addition
-      builder::any_arity().of_type(prisms::expr_to_complex_or_inf()).and_then(|args, _| {
-        // We can ignore any finite quantities, since they hold no
-        // sway over the result.
-        let sum = args.into_iter()
-          .filter_map(Either::right)
-          .reduce(|a, b| a + b)
-          .unwrap(); // unwrap safety: One of the earlier cases would have triggered if there were no infinities.
-        Ok(Expr::from(sum))
       })
     )
     .add_case(
@@ -158,18 +158,6 @@ pub fn subtraction() -> Function {
       })
     )
     .add_case(
-      // Interval subtraction
-      builder::arity_two().both_of_type(prisms::expr_to_unbounded_interval_like()).and_then(|arg1, arg2, ctx| {
-        match Interval::from(arg1).try_sub(Interval::from(arg2)) {
-          Ok(interval) => Ok(Expr::from(interval)),
-          Err(err) => {
-            ctx.errors.push(SimplifierError::new("-", err));
-            Ok(Expr::from(InfiniteConstant::NotANumber))
-          }
-        }
-      })
-    )
-    .add_case(
       // Pure infinity subtraction
       builder::arity_two().both_of_type(prisms::ExprToInfinity).and_then(|arg1, arg2, _| {
         Ok(Expr::from(arg1 - arg2))
@@ -185,6 +173,18 @@ pub fn subtraction() -> Function {
       // Scalar minus infinity
       builder::arity_two().of_types(ExprToComplex, prisms::ExprToInfinity).and_then(|_arg1, arg2, _| {
         Ok(Expr::from(- arg2))
+      })
+    )
+    .add_case(
+      // Interval subtraction
+      builder::arity_two().both_of_type(prisms::expr_to_unbounded_interval_like()).and_then(|arg1, arg2, ctx| {
+        match Interval::from(arg1).try_sub(Interval::from(arg2)) {
+          Ok(interval) => Ok(Expr::from(interval)),
+          Err(err) => {
+            ctx.errors.push(SimplifierError::new("-", err));
+            Ok(Expr::from(InfiniteConstant::NotANumber))
+          }
+        }
       })
     )
     .set_derivative(
@@ -260,6 +260,12 @@ pub fn multiplication() -> Function {
       })
     )
     .add_case(
+      // Infinity multiplication
+      builder::any_arity().of_type(prisms::expr_to_complex_or_inf()).and_then(|args, _| {
+        Ok(multiply_infinities(args))
+      })
+    )
+    .add_case(
       // Interval multiplication
       builder::any_arity().of_type(prisms::expr_to_unbounded_interval_like()).and_then(|args, ctx| {
         let product = args.into_iter()
@@ -272,12 +278,6 @@ pub fn multiplication() -> Function {
             Ok(Expr::from(InfiniteConstant::NotANumber))
           }
         }
-      })
-    )
-    .add_case(
-      // Infinity multiplication
-      builder::any_arity().of_type(prisms::expr_to_complex_or_inf()).and_then(|args, _| {
-        Ok(multiply_infinities(args))
       })
     )
     .set_derivative(
@@ -313,8 +313,7 @@ pub fn division() -> Function {
       // Real number division
       builder::arity_two().both_of_type(expr_to_number()).and_then(|arg1, arg2, context| {
         if arg2.is_zero() {
-          context.errors.push(SimplifierError::division_by_zero("/"));
-          return Err((arg1, arg2));
+          return division_by_zero(context, "/", (arg1, arg2));
         }
         let quotient = arg1 / arg2;
         Ok(Expr::from(quotient))
@@ -324,8 +323,7 @@ pub fn division() -> Function {
       // Complex number division
       builder::arity_two().both_of_type(ExprToComplex).and_then(|arg1, arg2, context| {
         if arg2.is_zero() {
-          context.errors.push(SimplifierError::division_by_zero("/"));
-          return Err((arg1, arg2));
+          return division_by_zero(context, "/", (arg1, arg2));
         }
         let quotient = ComplexNumber::from(arg1) / ComplexNumber::from(arg2);
         Ok(Expr::from(quotient))
@@ -346,32 +344,6 @@ pub fn division() -> Function {
         // does NOT invoke Number::div or ComplexNumber::div, so
         // division by zero will NOT panic here.
         Ok(Expr::from(arg1 / arg2))
-      })
-    )
-    .add_case(
-      // Interval division
-      builder::arity_two().both_of_type(prisms::expr_to_unbounded_interval_like()).and_then(|arg1, arg2, ctx| {
-        let arg1_interval = Interval::from(arg1.clone());
-        let arg2_interval = Interval::from(arg2.clone());
-
-        let inputs_have_infinity = includes_infinity(&arg1_interval) || includes_infinity(&arg2_interval);
-
-        match interval_div(arg1_interval, arg2_interval) {
-          Err(err) => {
-            ctx.errors.push(SimplifierError::new("/", err));
-            Err((arg1, arg2))
-          }
-          Ok(quotient) => {
-            if !inputs_have_infinity && includes_infinity(&quotient) && !ctx.calculation_mode.has_infinity_flag() {
-              // Do not produce infinities if the calculation mode
-              // doesn't allow it.
-              ctx.errors.push(SimplifierError::division_by_zero("/"));
-              Err((arg1, arg2))
-            } else {
-              Ok(quotient.into())
-            }
-          }
-        }
       })
     )
     .add_case(
@@ -407,6 +379,32 @@ pub fn division() -> Function {
         Ok(Expr::from(InfiniteConstant::NotANumber))
       })
     )
+    .add_case(
+      // Interval division
+      builder::arity_two().both_of_type(prisms::expr_to_unbounded_interval_like()).and_then(|arg1, arg2, ctx| {
+        let arg1_interval = Interval::from(arg1.clone());
+        let arg2_interval = Interval::from(arg2.clone());
+
+        let inputs_have_infinity = includes_infinity(&arg1_interval) || includes_infinity(&arg2_interval);
+
+        match interval_div(arg1_interval, arg2_interval) {
+          Err(err) => {
+            ctx.errors.push(SimplifierError::new("/", err));
+            Err((arg1, arg2))
+          }
+          Ok(quotient) => {
+            if !inputs_have_infinity && includes_infinity(&quotient) && !ctx.calculation_mode.has_infinity_flag() {
+              // Do not produce infinities if the calculation mode
+              // doesn't allow it.
+              ctx.errors.push(SimplifierError::division_by_zero("/"));
+              Err((arg1, arg2))
+            } else {
+              Ok(quotient.into())
+            }
+          }
+        }
+      })
+    )
     .set_derivative(
       builder::arity_two_deriv("/", |arg1, arg2, engine| {
         let arg1_deriv = engine.differentiate(arg1.clone())?;
@@ -439,8 +437,7 @@ pub fn power() -> Function {
           return Err((arg1, arg2));
         }
         if arg1.is_zero() && arg2 < Number::zero() {
-          context.errors.push(SimplifierError::division_by_zero("^"));
-          return Err((arg1, arg2));
+          return division_by_zero(context, "^", (arg1, arg2));
         }
         let power = pow_real(arg1, arg2);
         Ok(Expr::from(power))
@@ -454,8 +451,7 @@ pub fn power() -> Function {
           return Err((arg1, arg2));
         }
         if arg1.is_zero() && arg2 < Number::zero() {
-          context.errors.push(SimplifierError::division_by_zero("^"));
-          return Err((arg1, arg2));
+          return division_by_zero(context, "^", (arg1, arg2));
         }
         let power = pow_complex_to_real(arg1.into(), arg2);
         Ok(Expr::from(power))
@@ -684,8 +680,7 @@ pub fn floor_division() -> Function {
       // Real floor div
       builder::arity_two().both_of_type(expr_to_number()).and_then(|arg1, arg2, context| {
         if arg2.is_zero() {
-          context.errors.push(SimplifierError::division_by_zero("div"));
-          return Err((arg1, arg2));
+          return division_by_zero_or_nan(context, "div", (arg1, arg2));
         }
         Ok(Expr::from(arg1.div_floor(&arg2)))
       })
@@ -839,4 +834,28 @@ fn vector_norm(vec: Vector) -> Expr {
     Expr::call("+", addends),
     Expr::from(Number::ratio(1, 2)),
   ])
+}
+
+/// Returns [`InfiniteConstant::UndirInfinity`] if the infinity flag
+/// on `context` is set, or produces an error and refuses to evaluate
+/// otherwise.
+fn division_by_zero<E>(context: &mut FunctionContext, function_name: &str, err: E) -> Result<Expr, E> {
+  if context.calculation_mode.has_infinity_flag() {
+    Ok(Expr::from(InfiniteConstant::UndirInfinity))
+  } else {
+    context.errors.push(SimplifierError::division_by_zero(function_name));
+    Err(err)
+  }
+}
+
+/// Returns [`InfiniteConstant::NotANumber`] if the infinity flag
+/// on `context` is set, or produces an error and refuses to evaluate
+/// otherwise.
+fn division_by_zero_or_nan<E>(context: &mut FunctionContext, function_name: &str, err: E) -> Result<Expr, E> {
+  if context.calculation_mode.has_infinity_flag() {
+    Ok(Expr::from(InfiniteConstant::NotANumber))
+  } else {
+    context.errors.push(SimplifierError::division_by_zero(function_name));
+    Err(err)
+  }
 }
