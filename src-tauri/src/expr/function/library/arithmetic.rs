@@ -2,7 +2,7 @@
 //! Basic arithmetic function evaluation rules.
 
 use crate::expr::Expr;
-use crate::expr::interval::Interval;
+use crate::expr::interval::{Interval, interval_div, includes_infinity};
 use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
@@ -349,12 +349,29 @@ pub fn division() -> Function {
       })
     )
     .add_case(
-      // Interval division (currently a trap case)
-      //
-      // TODO: Implement this once we have infinities (Issue #4)
-      builder::arity_two().both_of_type(prisms::expr_to_interval_like()).and_then(|arg1, arg2, ctx| {
-        ctx.errors.push(SimplifierError::custom_error("/", "Interval division is not currently supported"));
-        Err((arg1, arg2))
+      // Interval division
+      builder::arity_two().both_of_type(prisms::expr_to_unbounded_interval_like()).and_then(|arg1, arg2, ctx| {
+        let arg1_interval = Interval::from(arg1.clone());
+        let arg2_interval = Interval::from(arg2.clone());
+
+        let inputs_have_infinity = includes_infinity(&arg1_interval) || includes_infinity(&arg2_interval);
+
+        match interval_div(arg1_interval, arg2_interval) {
+          Err(err) => {
+            ctx.errors.push(SimplifierError::new("/", err));
+            Err((arg1, arg2))
+          }
+          Ok(quotient) => {
+            if !inputs_have_infinity && includes_infinity(&quotient) && !ctx.calculation_mode.has_infinity_flag() {
+              // Do not produce infinities if the calculation mode
+              // doesn't allow it.
+              ctx.errors.push(SimplifierError::division_by_zero("/"));
+              Err((arg1, arg2))
+            } else {
+              Ok(quotient.into())
+            }
+          }
+        }
       })
     )
     .add_case(
