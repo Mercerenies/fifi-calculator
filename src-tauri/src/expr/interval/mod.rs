@@ -264,4 +264,14 @@ mod tests {
       Interval::new(neg_infinity(), IntervalType::Closed, pos_infinity()),
     );
   }
+
+  #[test]
+  fn test_interval_div() {
+    let a = Interval::new(finite(2.0), IntervalType::FullOpen, finite(4.0));
+    let b = Interval::new(finite(-4.0), IntervalType::Closed, finite(-2.0));
+    assert_eq!(
+      interval_div(a, b).unwrap(),
+      Interval::new(finite(-2.0), IntervalType::FullOpen, finite(-0.5)),
+    );
+  }
 }
