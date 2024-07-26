@@ -12,6 +12,7 @@ use crate::expr::atom::Atom;
 use crate::expr::number::Number;
 use crate::expr::vector::Vector;
 use crate::expr::simplifier::error::DomainError;
+use crate::expr::incomplete::{IncompleteObject, ObjectType, pop_until_delimiter};
 use crate::state::ApplicationState;
 use crate::stack::base::StackLike;
 use crate::stack::keepable::KeepableStack;
@@ -62,6 +63,21 @@ pub struct RepeatCommand {
   _priv: (),
 }
 
+/// `VectorFromIncompleteCommand` pops stack elements until it finds
+/// the incomplete object [`ObjectType::LeftBracket`]. Then it pushes
+/// a vector containing every value popped up to that point.
+///
+/// If we don't find the incomplete object or if we find the wrong
+/// incomplete object, produces an error and does NOT modify the
+/// stack.
+///
+/// Respects the "keep" modifier but does not use a numerical
+/// argument.
+#[derive(Debug, Default)]
+pub struct VectorFromIncompleteObjectCommand {
+  _priv: (),
+}
+
 impl PackCommand {
   pub fn new() -> Self {
     Self::default()
@@ -105,6 +121,12 @@ impl UnpackCommand {
 }
 
 impl RepeatCommand {
+  pub fn new() -> Self {
+    Self::default()
+  }
+}
+
+impl VectorFromIncompleteObjectCommand {
   pub fn new() -> Self {
     Self::default()
   }
@@ -211,6 +233,24 @@ impl Command for RepeatCommand {
     stack.push(expr);
 
     Ok(CommandOutput::from_errors(errors))
+  }
+}
+
+impl Command for VectorFromIncompleteObjectCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    context: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    validate_schema(&NullaryArgumentSchema::new(), args)?;
+    state.undo_stack_mut().push_cut();
+
+    let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
+    let elems = pop_until_delimiter(&mut stack, &IncompleteObject::new(ObjectType::LeftBracket))?;
+    let vector = Vector::from(elems);
+    stack.push(vector.into());
+    Ok(CommandOutput::success())
   }
 }
 

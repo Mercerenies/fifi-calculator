@@ -190,6 +190,7 @@ const SUBGRID_FORWARDING_TABLE: Record<string, keyof Subgrids> = {
   "M-u": "strings",
   "M-l": "strings",
   "[": "vector",
+  "]": "vector",
   "(": "vector",
   "|": "vector",
 };

@@ -61,13 +61,16 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("^..".to_string(), Box::new(BinaryFunctionCommand::named("^..")));
   map.insert("^..^".to_string(), Box::new(BinaryFunctionCommand::named("^..^")));
 
+  // Incomplete object handling
+  map.insert("incomplete[".to_string(), Box::new(PushConstantCommand::new(IncompleteObject::new(ObjectType::LeftBracket))));
+  map.insert("incomplete(".to_string(), Box::new(PushConstantCommand::new(IncompleteObject::new(ObjectType::LeftParen))));
+  map.insert("incomplete]".to_string(), Box::new(vector::VectorFromIncompleteObjectCommand::new()));
+
   // Constants (no arguments)
   map.insert("infinity".to_string(), Box::new(PushConstantCommand::new(InfiniteConstant::PosInfinity)));
   map.insert("neg_infinity".to_string(), Box::new(PushConstantCommand::new(InfiniteConstant::NegInfinity)));
   map.insert("undir_infinity".to_string(), Box::new(PushConstantCommand::new(InfiniteConstant::UndirInfinity)));
   map.insert("nan_infinity".to_string(), Box::new(PushConstantCommand::new(InfiniteConstant::NotANumber)));
-  map.insert("incomplete[".to_string(), Box::new(PushConstantCommand::new(IncompleteObject::new(ObjectType::LeftBracket))));
-  map.insert("incomplete(".to_string(), Box::new(PushConstantCommand::new(IncompleteObject::new(ObjectType::LeftParen))));
 
   // Other nullary
   map.insert("substitute_vars".to_string(), Box::new(UnaryFunctionCommand::with_state(substitute_vars)));

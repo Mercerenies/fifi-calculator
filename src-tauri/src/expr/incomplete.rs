@@ -97,8 +97,8 @@ pub fn is_incomplete_object(expr: &Expr) -> bool {
 /// on the stack or if an unexpected incomplete object is encountered.
 /// In case of error, the stack will be left unmodified.
 pub fn pop_until_delimiter<S>(
-  target_object: &IncompleteObject,
   stack: &mut S,
+  target_object: &IncompleteObject,
 ) -> Result<Vec<Expr>, PopUntilDelimiterError>
 where S: RandomAccessStackLike<Elem = Expr> {
   let first_delimiter_index = (0..stack.len() as i64).into_iter()
@@ -222,7 +222,7 @@ mod tests {
       Expr::from(30),
       Expr::from(40),
     ]);
-    let elements = pop_until_delimiter(&IncompleteObject::new(ObjectType::LeftBracket), &mut stack).unwrap();
+    let elements = pop_until_delimiter(&mut stack, &IncompleteObject::new(ObjectType::LeftBracket)).unwrap();
     assert_eq!(elements, vec![Expr::from(20), Expr::from(30), Expr::from(40)]);
     assert_eq!(stack.into_iter().collect::<Vec<_>>(), vec![Expr::from(10)]);
   }
@@ -236,7 +236,7 @@ mod tests {
       Expr::from(40),
     ]);
     let original_stack = stack.clone();
-    let err = pop_until_delimiter(&IncompleteObject::new(ObjectType::LeftBracket), &mut stack).unwrap_err();
+    let err = pop_until_delimiter(&mut stack, &IncompleteObject::new(ObjectType::LeftBracket)).unwrap_err();
     assert_eq!(err, PopUntilDelimiterError::UnexpectedEOF { expected: IncompleteObject::new(ObjectType::LeftBracket) });
     assert_eq!(stack, original_stack);
   }
@@ -252,7 +252,7 @@ mod tests {
       Expr::from(40),
     ]);
     let original_stack = stack.clone();
-    let err = pop_until_delimiter(&IncompleteObject::new(ObjectType::LeftBracket), &mut stack).unwrap_err();
+    let err = pop_until_delimiter(&mut stack, &IncompleteObject::new(ObjectType::LeftBracket)).unwrap_err();
     assert_eq!(err, PopUntilDelimiterError::UnexpectedDelimiter { expected: IncompleteObject::new(ObjectType::LeftBracket), actual: IncompleteObject::new(ObjectType::LeftParen) });
     assert_eq!(stack, original_stack);
   }
