@@ -7,6 +7,7 @@ use crate::expr::number::{Number, ComplexNumber};
 use crate::expr::atom::{Atom, write_escaped_str};
 use crate::expr::basic_parser::ExprParser;
 use crate::expr::vector::Vector;
+use crate::expr::incomplete::{IncompleteObject, ObjectType};
 use crate::util::cow_dyn::CowDyn;
 
 use num::Zero;
@@ -212,6 +213,18 @@ impl BasicLanguageMode {
     engine.write_to_html(out, &args[1], Precedence::MIN);
     out.push(')');
   }
+
+  fn incomplete_object_to_html(&self, engine: &LanguageModeEngine, out: &mut String, args: &[Expr]) {
+    assert_eq!(args.len(), 1, "Expecting slice of two Exprs, got {:?}", args);
+    if let Expr::Atom(Atom::String(s)) = &args[0] {
+      if let Ok(object_type) = ObjectType::parse(&s) {
+        let incomplete_object = IncompleteObject::new(object_type);
+        out.push_str(&incomplete_object.to_string());
+        return;
+      }
+    }
+    self.fn_call_to_html(engine, out, IncompleteObject::FUNCTION_NAME, args);
+  }
 }
 
 impl LanguageMode for BasicLanguageMode {
@@ -234,7 +247,9 @@ impl LanguageMode for BasicLanguageMode {
         write_escaped_str(out, s).unwrap(); // unwrap: impl Write for String doesn't fail.
       }
       Expr::Call(f, args) => {
-        if f == ComplexNumber::FUNCTION_NAME && args.len() == 2 {
+        if !self.uses_reversible_output && f == IncompleteObject::FUNCTION_NAME && args.len() == 1 {
+          self.incomplete_object_to_html(engine, out, args);
+        } else if f == ComplexNumber::FUNCTION_NAME && args.len() == 2 {
           self.complex_to_html(engine, out, args);
         } else if f == Vector::FUNCTION_NAME {
           self.vector_to_html(engine, out, args);
@@ -256,7 +271,13 @@ impl LanguageMode for BasicLanguageMode {
   }
 
   fn to_reversible_language_mode(&self) -> CowDyn<dyn LanguageMode> {
-    CowDyn::Borrowed(self)
+    if self.uses_reversible_output {
+      CowDyn::Borrowed(self)
+    } else {
+      let mut language_mode = self.clone();
+      language_mode.uses_reversible_output = true;
+      CowDyn::Owned(Box::new(language_mode))
+    }
   }
 
   fn parse(&self, text: &str) -> anyhow::Result<Expr> {

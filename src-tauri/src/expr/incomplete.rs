@@ -80,7 +80,7 @@ impl Display for ObjectType {
 
 impl Display for IncompleteObject {
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.object_type)
+    write!(f, "{} ...", self.object_type)
   }
 }
 
@@ -116,8 +116,8 @@ mod tests {
 
   #[test]
   fn test_to_string() {
-    assert_eq!(IncompleteObject::new(ObjectType::LeftBracket).to_string(), "[");
-    assert_eq!(IncompleteObject::new(ObjectType::LeftParen).to_string(), "(");
+    assert_eq!(IncompleteObject::new(ObjectType::LeftBracket).to_string(), "[ ...");
+    assert_eq!(IncompleteObject::new(ObjectType::LeftParen).to_string(), "( ...");
   }
 
   #[test]
