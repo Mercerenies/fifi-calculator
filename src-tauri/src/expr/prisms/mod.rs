@@ -9,6 +9,7 @@ use super::atom::Atom;
 use super::number::{Number, ComplexNumber, ComplexLike};
 use super::interval::{RawInterval, IntervalOrScalar};
 use super::literal::Literal;
+use super::incomplete::IncompleteObject;
 use super::algebra::formula::{Formula, Equation};
 use super::algebra::infinity::InfiniteConstant;
 use crate::util::prism::{Prism, PrismExt, Iso, OnVec, OnTuple2, Only, Conversion,
@@ -102,6 +103,10 @@ pub fn expr_to_number() -> impl Prism<Expr, Number> + Clone {
 
 /// Prism which only accepts string literals.
 pub fn expr_to_string() -> impl Prism<Expr, String> + Clone {
+  Conversion::new()
+}
+
+pub fn expr_to_incomplete_object() -> impl Prism<Expr, IncompleteObject> + Clone {
   Conversion::new()
 }
 

@@ -3,7 +3,8 @@ use super::{Expr, TryFromExprError};
 use super::number::{Number, ComplexNumber, ComplexLike};
 use super::algebra::infinity::InfiniteConstant;
 use super::vector::Vector;
-use super::prisms::{ExprToComplex, ExprToVector, ExprToInfinity, expr_to_string};
+use super::incomplete::IncompleteObject;
+use super::prisms::{ExprToComplex, ExprToVector, ExprToInfinity, expr_to_string, expr_to_incomplete_object};
 use crate::util::prism::Prism;
 
 use std::convert::TryFrom;
@@ -19,6 +20,8 @@ use std::convert::TryFrom;
 /// [`InfiniteConstant::NotANumber`] is equal to itself and is NOT
 /// treated specially by this type)
 ///
+/// * Incomplete objects are literal values.
+///
 /// * A vector (as defined by the [`Vector`] type) is a literal value
 /// iff all of its elements are literals.
 #[derive(Debug, Clone, PartialEq)]
@@ -30,6 +33,7 @@ pub struct Literal {
 enum LiteralImpl {
   Numerical(ComplexLike),
   String(String),
+  IncompleteObject(IncompleteObject),
   Infinity(InfiniteConstant),
   Vector(Vec<Literal>),
 }
@@ -49,6 +53,10 @@ impl Literal {
 
   fn try_from_as_infinity(expr: Expr) -> Result<Self, Expr> {
     ExprToInfinity.narrow_type(expr).map(|c| Literal { data: LiteralImpl::Infinity(c) })
+  }
+
+  fn try_from_as_incomplete_object(expr: Expr) -> Result<Self, Expr> {
+    expr_to_incomplete_object().narrow_type(expr).map(|c| Literal { data: LiteralImpl::IncompleteObject(c) })
   }
 
   fn try_from_as_vector(expr: Expr) -> Result<Self, Expr> {
@@ -92,12 +100,19 @@ impl From<InfiniteConstant> for Literal {
   }
 }
 
+impl From<IncompleteObject> for Literal {
+  fn from(c: IncompleteObject) -> Self {
+    Literal { data: LiteralImpl::IncompleteObject(c) }
+  }
+}
+
 impl From<Literal> for Expr {
   fn from(lit: Literal) -> Self {
     match lit.data {
       LiteralImpl::String(s) => s.into(),
       LiteralImpl::Numerical(n) => n.into(),
       LiteralImpl::Infinity(inf) => inf.into(),
+      LiteralImpl::IncompleteObject(inc) => inc.into(),
       LiteralImpl::Vector(v) => {
         let v: Vector = v.into_iter().map(Expr::from).collect();
         v.into()
@@ -116,6 +131,8 @@ impl TryFrom<Expr> for Literal {
       Literal::try_from_as_string(expr)
     }).or_else(|expr| {
       Literal::try_from_as_infinity(expr)
+    }).or_else(|expr| {
+      Literal::try_from_as_incomplete_object(expr)
     }).map_err(|expr| {
       TryFromExprError::new("Literal", expr)
     })
@@ -125,6 +142,7 @@ impl TryFrom<Expr> for Literal {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::expr::incomplete::ObjectType;
 
   fn expect_roundtrip(literal: Literal) {
     let expr = Expr::from(literal.clone());
@@ -139,6 +157,7 @@ mod tests {
     expect_roundtrip(Literal::from(ComplexNumber::new(1, 1)));
     expect_roundtrip(Literal::from(ComplexNumber::new(-2, Number::ratio(1, 2))));
     expect_roundtrip(Literal::from(InfiniteConstant::NegInfinity));
+    expect_roundtrip(Literal::from(IncompleteObject::new(ObjectType::LeftParen)));
   }
 
   #[test]
