@@ -296,6 +296,21 @@ macro_rules! impl_digits_trait_floating {
       }
     }
   };
+  (impl FromDigits for $type_: ident) => {
+    impl FromDigits for $type_ {
+      fn from_digits(digits: Digits, radix: Radix) -> Result<Self, FromDigitsError> {
+        let whole_part = digits.whole
+          .into_iter()
+          .fold(0.0, |acc, digit| acc * radix.value as $type_ + digit as $type_);
+        let fractional_part = digits.fraction
+          .into_iter()
+          .rev()
+          .fold(0.0, |acc, digit| acc / radix.value as $type_ + digit as $type_) / radix.value as $type_;
+        let sign = if digits.sign == Sign::Negative { -1.0 } else { 1.0 };
+        Ok(sign * (whole_part + fractional_part))
+      }
+    }
+  };
 }
 
 impl_digits_trait_signed!(impl ToDigits for i8 by u8);
@@ -320,6 +335,9 @@ impl_digits_trait_unsigned!(impl FromDigits for u64);
 
 impl_digits_trait_floating!(impl ToDigits for f32);
 impl_digits_trait_floating!(impl ToDigits for f64);
+
+impl_digits_trait_floating!(impl FromDigits for f32);
+impl_digits_trait_floating!(impl FromDigits for f64);
 
 #[cfg(test)]
 mod tests {
@@ -430,6 +448,30 @@ mod tests {
     assert_eq!(BigInt::from_digits(digits, Radix::HEXADECIMAL), Ok(BigInt::from(-31)));
     let digits = Digits::new(Sign::Positive, vec![1, 0, 0, 0, 1, 1, 0], Vec::new());
     assert_eq!(BigInt::from_digits(digits, Radix::BINARY), Ok(BigInt::from(70)));
+  }
+
+  #[test]
+  fn test_floating_from_digits_on_integral_input() {
+    let digits = Digits::new(Sign::Positive, vec![3, 4, 7], Vec::new());
+    assert_eq!(f64::from_digits(digits, Radix::DECIMAL), Ok(347.0));
+    let digits = Digits::new(Sign::Positive, Vec::new(), Vec::new());
+    assert_eq!(f64::from_digits(digits, Radix::DECIMAL), Ok(0.0));
+    let digits = Digits::new(Sign::Negative, vec![1, 15], Vec::new());
+    assert_eq!(f64::from_digits(digits, Radix::HEXADECIMAL), Ok(-31.0));
+    let digits = Digits::new(Sign::Positive, vec![1, 0, 0, 0, 1, 1, 0], Vec::new());
+    assert_eq!(f64::from_digits(digits, Radix::BINARY), Ok(70.0));
+  }
+
+  #[test]
+  fn test_floating_from_digits_on_fractional_input() {
+    let digits = Digits::new(Sign::Positive, vec![1, 2], vec![1, 2, 3]);
+    assert_eq!(f64::from_digits(digits, Radix::DECIMAL), Ok(12.123));
+    let digits = Digits::new(Sign::Positive, vec![1, 2], vec![0, 0, 1]);
+    assert_eq!(f64::from_digits(digits, Radix::DECIMAL), Ok(12.001));
+    let digits = Digits::new(Sign::Positive, vec![10, 11], vec![10]);
+    assert_eq!(f64::from_digits(digits, Radix::HEXADECIMAL), Ok(171.625));
+    let digits = Digits::new(Sign::Negative, vec![10, 11], vec![10]);
+    assert_eq!(f64::from_digits(digits, Radix::HEXADECIMAL), Ok(-171.625));
   }
 
   #[test]
