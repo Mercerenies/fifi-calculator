@@ -290,28 +290,34 @@ impl LanguageMode for BasicLanguageMode {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::mode::display::language::LanguageSettings;
+
+  fn to_html(mode: &BasicLanguageMode, expr: &Expr) -> String {
+    let settings = LanguageSettings::default();
+    mode.to_html(expr, &settings)
+  }
 
   #[test]
   fn test_atoms() {
     let mode = BasicLanguageMode::default();
-    assert_eq!(mode.to_html(&Expr::from(9)), "9");
-    assert_eq!(mode.to_html(&Expr::var("x").unwrap()), "x");
-    assert_eq!(mode.to_html(&Expr::from(r#"abc"def\"#)), r#""abc\"def\\""#);
+    assert_eq!(to_html(&mode, &Expr::from(9)), "9");
+    assert_eq!(to_html(&mode, &Expr::var("x").unwrap()), "x");
+    assert_eq!(to_html(&mode, &Expr::from(r#"abc"def\"#)), r#""abc\"def\\""#);
   }
 
   #[test]
   fn test_complex_numbers() {
     let mode = BasicLanguageMode::default();
     assert_eq!(
-      mode.to_html(&Expr::from(ComplexNumber::new(2, -2))),
+      to_html(&mode, &Expr::from(ComplexNumber::new(2, -2))),
       "(2, -2)",
     );
     assert_eq!(
-      mode.to_html(&Expr::from(ComplexNumber::new(0, 2))),
+      to_html(&mode, &Expr::from(ComplexNumber::new(0, 2))),
       "(0, 2)",
     );
     assert_eq!(
-      mode.to_html(&Expr::from(ComplexNumber::new(-1, 0))),
+      to_html(&mode, &Expr::from(ComplexNumber::new(-1, 0))),
       "(-1, 0)",
     );
   }
@@ -320,11 +326,11 @@ mod tests {
   fn test_simple_function_call() {
     let mode = BasicLanguageMode::default();
     let expr = Expr::call("foo", vec![Expr::from(9), Expr::from(8), Expr::from(7)]);
-    assert_eq!(mode.to_html(&expr), "foo(9, 8, 7)");
+    assert_eq!(to_html(&mode, &expr), "foo(9, 8, 7)");
     let expr = Expr::call("foo", vec![Expr::from(9)]);
-    assert_eq!(mode.to_html(&expr), "foo(9)");
+    assert_eq!(to_html(&mode, &expr), "foo(9)");
     let expr = Expr::call("foo", vec![]);
-    assert_eq!(mode.to_html(&expr), "foo()");
+    assert_eq!(to_html(&mode, &expr), "foo()");
   }
 
   #[test]
@@ -338,14 +344,14 @@ mod tests {
         Expr::call("baz", vec![Expr::from(3), Expr::from(-1)]),
       ],
     );
-    assert_eq!(mode.to_html(&expr), "foo(10, bar(), baz(3, -1))");
+    assert_eq!(to_html(&mode, &expr), "foo(10, bar(), baz(3, -1))");
   }
 
   #[test]
   fn test_fully_assoc_op() {
     let mode = BasicLanguageMode::from_common_operators();
     let expr = Expr::call("+", vec![Expr::from(1), Expr::from(2), Expr::from(3)]);
-    assert_eq!(mode.to_html(&expr), "1 + 2 + 3");
+    assert_eq!(to_html(&mode, &expr), "1 + 2 + 3");
   }
 
   #[test]
@@ -358,7 +364,7 @@ mod tests {
         Expr::call("+", vec![Expr::from(3), Expr::from(4)]),
       ],
     );
-    assert_eq!(mode.to_html(&expr), "1 + 2 + 3 + 4");
+    assert_eq!(to_html(&mode, &expr), "1 + 2 + 3 + 4");
   }
 
   #[test]
@@ -371,7 +377,7 @@ mod tests {
         Expr::call("*", vec![Expr::from(3), Expr::from(4)]),
       ],
     );
-    assert_eq!(mode.to_html(&expr), "1 2 + 3 4");
+    assert_eq!(to_html(&mode, &expr), "1 2 + 3 4");
   }
 
   #[test]
@@ -384,7 +390,7 @@ mod tests {
         Expr::call("+", vec![Expr::from(3), Expr::from(4)]),
       ],
     );
-    assert_eq!(mode.to_html(&expr), "(1 + 2) (3 + 4)");
+    assert_eq!(to_html(&mode, &expr), "(1 + 2) (3 + 4)");
   }
 
   #[test]
@@ -397,7 +403,7 @@ mod tests {
         Expr::call("-", vec![Expr::from(3), Expr::from(4)]),
       ],
     );
-    assert_eq!(mode.to_html(&expr), "1 - 2 - (3 - 4)");
+    assert_eq!(to_html(&mode, &expr), "1 - 2 - (3 - 4)");
   }
 
   #[test]
@@ -410,7 +416,7 @@ mod tests {
         Expr::call("^", vec![Expr::from(3), Expr::from(4)]),
       ],
     );
-    assert_eq!(mode.to_html(&expr), "(1 ^ 2) ^ 3 ^ 4");
+    assert_eq!(to_html(&mode, &expr), "(1 ^ 2) ^ 3 ^ 4");
   }
 
   #[test]
@@ -423,14 +429,14 @@ mod tests {
         Expr::call("%", vec![Expr::from(3), Expr::from(4)]),
       ],
     );
-    assert_eq!(mode.to_html(&expr), "(1 % 2) % (3 % 4)");
+    assert_eq!(to_html(&mode, &expr), "(1 % 2) % (3 % 4)");
   }
 
   #[test]
   fn test_power_with_negative_base() {
     let mode = BasicLanguageMode::from_common_operators();
     let expr = Expr::call("^", vec![Expr::from(-1), Expr::from(2)]);
-    assert_eq!(mode.to_html(&expr), "(-1) ^ 2");
+    assert_eq!(to_html(&mode, &expr), "(-1) ^ 2");
   }
 
   #[test]
@@ -440,13 +446,13 @@ mod tests {
       "negate",
       vec![Expr::from(1)],
     );
-    assert_eq!(mode.to_html(&expr), "- 1");
+    assert_eq!(to_html(&mode, &expr), "- 1");
 
     let expr = Expr::call(
       "identity",
       vec![Expr::from(1)],
     );
-    assert_eq!(mode.to_html(&expr), "+ 1");
+    assert_eq!(to_html(&mode, &expr), "+ 1");
   }
 
   #[test]
@@ -456,7 +462,7 @@ mod tests {
       "vector",
       vec![Expr::from(1), Expr::from(2), Expr::from(3)],
     );
-    assert_eq!(mode.to_html(&expr), "[1, 2, 3]");
+    assert_eq!(to_html(&mode, &expr), "[1, 2, 3]");
   }
 
   #[test]
@@ -466,7 +472,7 @@ mod tests {
       "vector",
       vec![],
     );
-    assert_eq!(mode.to_html(&expr), "[]");
+    assert_eq!(to_html(&mode, &expr), "[]");
   }
 
   #[test]
@@ -476,7 +482,7 @@ mod tests {
       "vector",
       vec![Expr::from(-99)],
     );
-    assert_eq!(mode.to_html(&expr), "[-99]");
+    assert_eq!(to_html(&mode, &expr), "[-99]");
   }
 
   #[test]
@@ -486,7 +492,7 @@ mod tests {
       "incomplete",
       vec![Expr::string("[")],
     );
-    assert_eq!(mode.to_html(&expr), "[ ...");
+    assert_eq!(to_html(&mode, &expr), "[ ...");
   }
 
   #[test]
@@ -497,7 +503,7 @@ mod tests {
       "incomplete",
       vec![Expr::string("[")],
     );
-    assert_eq!(mode.to_html(&expr), r#"incomplete("[")"#);
+    assert_eq!(mode.to_html(&expr, &LanguageSettings::default()), r#"incomplete("[")"#);
   }
 
   // TODO Common operators doesn't have any postfix ops right now,

@@ -39,8 +39,8 @@ pub trait LanguageMode {
   /// it might be simpler than `self`.
   fn to_reversible_language_mode(&self) -> CowDyn<dyn LanguageMode>;
 
-  fn to_html(&self, expr: &Expr) -> String {
-    let engine = LanguageModeEngine { data: self.to_trait_object() };
+  fn to_html(&self, expr: &Expr, language_settings: &LanguageSettings) -> String {
+    let engine = LanguageModeEngine { data: self.to_trait_object(), language_settings };
 
     let mut out = String::new();
     self.write_to_html(&engine, &mut out, expr, Precedence::MIN);
@@ -48,15 +48,35 @@ pub trait LanguageMode {
   }
 }
 
-/// Helper struct to implement open recursion on `LanguageMode` so
-/// that multiple language modes can be composed in a convenient way.
-pub struct LanguageModeEngine<'a> {
+/// Helper struct passed to [`LanguageMode`] methods. Any recursive
+/// calls to `write_to_html` from [`LanguageMode::write_to_html`]
+/// should be made on this argument, NOT on the `LanguageMode` itself,
+/// so that nested language modes correctly implement open recursion.
+/// Additionally, this structure stores various additional display
+/// settings that are passed to the language mode as parameters.
+pub struct LanguageModeEngine<'a, 'b> {
   data: &'a dyn LanguageMode,
+  language_settings: &'b LanguageSettings,
 }
 
-impl<'a> LanguageModeEngine<'a> {
+#[derive(Debug, Clone)]
+pub struct LanguageSettings {
+  pub preferred_radix: u32,
+}
+
+impl<'a, 'b> LanguageModeEngine<'a, 'b> {
   pub fn write_to_html(&self, out: &mut String, expr: &Expr, prec: Precedence) {
     self.data.write_to_html(self, out, expr, prec);
+  }
+
+  pub fn language_settings(&self) -> &LanguageSettings {
+    &self.language_settings
+  }
+}
+
+impl Default for LanguageSettings {
+  fn default() -> Self {
+    LanguageSettings { preferred_radix: 10 }
   }
 }
 
