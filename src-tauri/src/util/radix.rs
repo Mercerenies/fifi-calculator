@@ -26,17 +26,32 @@ pub struct Digits {
   pub fraction: Vec<u8>,
 }
 
+/// Options for [`ToDigits::to_digits_opts`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ToDigitsOptions {
+  /// Maximum number of digits after the decimal point. Anything else
+  /// will be truncated toward zero.
+  ///
+  /// Integer types which implement `ToDigits` should ignore this
+  /// field.
+  pub max_fractional_digits: usize,
+}
+
 /// An implementor of this trait is a number-like type that can be
 /// converted into its digits.
 pub trait ToDigits {
-  fn to_digits(&self, radix: Radix) -> Digits;
+  fn to_digits_opts(&self, radix: Radix, opts: ToDigitsOptions) -> Digits;
+
+  fn to_digits(&self, radix: Radix) -> Digits {
+    self.to_digits_opts(radix, ToDigitsOptions::default())
+  }
 
   fn to_string_radix(&self, radix: Radix) -> String {
     self.to_digits(radix).to_string()
   }
 }
 
-fn digit_into_char(digit: u8) -> char {
+pub fn digit_into_char(digit: u8) -> char {
   if digit < 10 {
     (b'0' + digit) as char
   } else if digit < 36 {
@@ -103,10 +118,18 @@ impl From<Radix> for u8 {
   }
 }
 
+impl Default for ToDigitsOptions {
+  fn default() -> Self {
+    Self {
+      max_fractional_digits: 10,
+    }
+  }
+}
+
 macro_rules! impl_to_digits_signed {
   (impl ToDigits for $signed_type: ident by $_unsigned_type: ident) => {
     impl ToDigits for $signed_type {
-      fn to_digits(&self, radix: Radix) -> Digits {
+      fn to_digits_opts(&self, radix: Radix, _: ToDigitsOptions) -> Digits {
         let sign = if *self < 0 { Sign::Negative } else { Sign::Positive };
         let mut digits = self.unsigned_abs().to_digits(radix);
         digits.sign = sign;
@@ -119,7 +142,7 @@ macro_rules! impl_to_digits_signed {
 macro_rules! impl_to_digits_unsigned {
   (impl ToDigits for $unsigned_type: ident) => {
     impl ToDigits for $unsigned_type {
-      fn to_digits(&self, radix: Radix) -> Digits {
+      fn to_digits_opts(&self, radix: Radix, _: ToDigitsOptions) -> Digits {
         let mut digits = Vec::new();
         let mut n = *self;
         while n != 0 {
