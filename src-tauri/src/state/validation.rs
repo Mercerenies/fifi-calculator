@@ -12,6 +12,8 @@ use crate::units::parsing::UnitParser;
 use crate::units::{Unit, CompositeUnit};
 use crate::units::tagged::{Tagged, TemperatureTagged, try_into_basic_temperature_unit};
 use crate::mode::display::language::LanguageMode;
+use crate::util::radix::{Radix, StringToRadix};
+use crate::util::prism::Prism;
 
 use num::One;
 use serde::{Serialize, Deserialize};
@@ -23,6 +25,9 @@ pub enum Validator {
   /// Validator that checks whether its input is a valid variable
   /// name. Invokes [`validate_var`].
   Variable,
+  /// Validator that checks whether its input is a positive integer
+  /// which corresponds to a valid display radix.
+  Radix,
   /// Validator that only accepts expressions which can be fully
   /// parsed as a unit expression. Delegates to
   /// [`validate_is_all_units`].
@@ -53,6 +58,7 @@ pub struct ValidationContext<'a, 'b, 'c> {
 pub fn validate(validator: Validator, context: &ValidationContext, payload: String) -> anyhow::Result<()> {
   match validator {
     Validator::Variable => validate_var(payload).map(|_| ()),
+    Validator::Radix => validate_radix(payload).map(|_| ()),
     Validator::AllUnits => validate_is_all_units(context, &payload).map(|_| ()),
     Validator::HasUnits => validate_has_some_units(context, &payload).map(|_| ()),
     Validator::IsTemperatureUnit => validate_is_temperature_unit(context, &payload).map(|_| ()),
@@ -63,6 +69,13 @@ pub fn validate(validator: Validator, context: &ValidationContext, payload: Stri
 /// Validates that the given string is a valid variable name.
 pub fn validate_var(name: String) -> Result<Var, anyhow::Error> {
   Var::try_from(name).context("Validation failed: invalid variable name")
+}
+
+/// Validates that the given string is a positive integer which
+/// denotes a valid radix value.
+pub fn validate_radix(payload: String) -> Result<Radix, anyhow::Error> {
+  StringToRadix.narrow_type(payload)
+    .map_err(|_| anyhow::anyhow!("Validation failed: invalid radix"))
 }
 
 /// Validates that the string is a valid expression which consists
