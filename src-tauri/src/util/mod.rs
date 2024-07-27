@@ -6,6 +6,7 @@ pub mod cow_dyn;
 pub mod matrix;
 pub mod point;
 pub mod prism;
+pub mod radix;
 pub mod stricteq;
 
 use regex::{Regex, escape};
