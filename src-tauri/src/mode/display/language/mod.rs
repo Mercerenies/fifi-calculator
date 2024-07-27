@@ -3,6 +3,7 @@ pub mod basic;
 pub mod graphics;
 
 use crate::util::cow_dyn::CowDyn;
+use crate::util::radix::Radix;
 use crate::expr::Expr;
 use crate::parsing::operator::Precedence;
 
@@ -61,7 +62,7 @@ pub struct LanguageModeEngine<'a, 'b> {
 
 #[derive(Debug, Clone)]
 pub struct LanguageSettings {
-  pub preferred_radix: u32,
+  pub preferred_radix: Radix,
 }
 
 impl<'a, 'b> LanguageModeEngine<'a, 'b> {
@@ -76,7 +77,7 @@ impl<'a, 'b> LanguageModeEngine<'a, 'b> {
 
 impl Default for LanguageSettings {
   fn default() -> Self {
-    LanguageSettings { preferred_radix: 10 }
+    LanguageSettings { preferred_radix: Radix::DECIMAL }
   }
 }
 
