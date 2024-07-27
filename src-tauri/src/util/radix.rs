@@ -3,9 +3,11 @@
 
 use super::Sign;
 use crate::util::remove_suffix;
+use crate::util::prism::Prism;
 
 use num::{BigInt, Zero, Signed, ToPrimitive};
 
+use std::str::FromStr;
 use std::fmt::{self, Display, Formatter};
 
 /// A numerical radix. Supported radixes are from 2 up to 36 inclusive
@@ -15,6 +17,10 @@ use std::fmt::{self, Display, Formatter};
 pub struct Radix {
   value: u8,
 }
+
+/// Prism which parses a string as a valid numerical radix.
+#[derive(Debug, Clone)]
+pub struct StringToRadix;
 
 /// The digits of a number. All digits are stored with the most
 /// significant digit first.
@@ -90,6 +96,17 @@ impl Digits {
   /// Creates a new `Digits` from a whole and fraction part.
   pub fn new(sign: Sign, whole: Vec<u8>, fraction: Vec<u8>) -> Self {
     Self { sign, whole, fraction }
+  }
+}
+
+impl Prism<String, Radix> for StringToRadix {
+  fn narrow_type(&self, input: String) -> Result<Radix, String> {
+    let Ok(n) = u8::from_str(&input) else { return Err(input); };
+    Radix::try_new(n).ok_or(input)
+  }
+
+  fn widen_type(&self, radix: Radix) -> String {
+    u8::from(radix).to_string()
   }
 }
 
@@ -331,5 +348,20 @@ mod tests {
         fraction: vec![1, 1, 1, 1],
       },
     );
+  }
+
+  #[test]
+  fn test_prism_widen() {
+    assert_eq!(StringToRadix.widen_type(Radix::new(32)), "32");
+  }
+
+  #[test]
+  fn test_prism_narrow() {
+    assert_eq!(StringToRadix.narrow_type(String::from("3")), Ok(Radix::new(3)));
+    assert_eq!(StringToRadix.narrow_type(String::from("19")), Ok(Radix::new(19)));
+    assert_eq!(StringToRadix.narrow_type(String::from("")), Err(String::from("")));
+    assert_eq!(StringToRadix.narrow_type(String::from("e")), Err(String::from("e")));
+    assert_eq!(StringToRadix.narrow_type(String::from("-1")), Err(String::from("-1")));
+    assert_eq!(StringToRadix.narrow_type(String::from("37")), Err(String::from("37")));
   }
 }
