@@ -54,10 +54,10 @@ impl Radix {
 
   /// Constructs a new radix, performing a bounds check first.
   pub fn try_new(value: u8) -> Option<Self> {
-    if value < 2 || value > 36 {
-      None
-    } else {
+    if (2..=36).contains(&value) {
       Some(Radix { value })
+    } else {
+      None
     }
   }
 
@@ -104,11 +104,11 @@ impl From<Radix> for u8 {
 }
 
 macro_rules! impl_to_digits_signed {
-  (impl ToDigits for $signed_type: ident by $unsigned_type: ident) => {
+  (impl ToDigits for $signed_type: ident by $_unsigned_type: ident) => {
     impl ToDigits for $signed_type {
       fn to_digits(&self, radix: Radix) -> Digits {
         let sign = if *self < 0 { Sign::Negative } else { Sign::Positive };
-        let mut digits = (self.abs() as $unsigned_type).to_digits(radix);
+        let mut digits = self.unsigned_abs().to_digits(radix);
         digits.sign = sign;
         digits
       }
@@ -147,3 +147,5 @@ impl_to_digits_unsigned!(impl ToDigits for u8);
 impl_to_digits_unsigned!(impl ToDigits for u16);
 impl_to_digits_unsigned!(impl ToDigits for u32);
 impl_to_digits_unsigned!(impl ToDigits for u64);
+
+///// test!!!

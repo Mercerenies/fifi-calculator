@@ -70,7 +70,7 @@ impl<'a, 'b> LanguageModeEngine<'a, 'b> {
   }
 
   pub fn language_settings(&self) -> &LanguageSettings {
-    &self.language_settings
+    self.language_settings
   }
 }
 
