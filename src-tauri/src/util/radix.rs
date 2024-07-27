@@ -2,6 +2,7 @@
 //! Utilities for working with numbers of different radixes.
 
 use super::Sign;
+use crate::util::remove_suffix;
 
 use std::fmt::{self, Display, Formatter};
 
@@ -161,6 +162,44 @@ macro_rules! impl_to_digits_unsigned {
   }
 }
 
+macro_rules! impl_to_digits_floating {
+  (impl ToDigits for $type_: ident) => {
+    impl ToDigits for $type_ {
+      fn to_digits_opts(&self, radix: Radix, opts: ToDigitsOptions) -> Digits {
+        const EPSILON: $type_ = 0.000_001;
+
+        let sign = if *self < 0.0 { Sign::Negative } else { Sign::Positive };
+        let n = self.abs();
+
+        // Whole digits
+        let mut whole_digits = Vec::new();
+        let mut whole_part = n.floor();
+        while whole_part.abs() > EPSILON {
+          let digit = (whole_part % radix.value as $type_) as u8;
+          whole_digits.push(digit);
+          whole_part /= radix.value as $type_;
+          whole_part = whole_part.floor();
+        }
+        whole_digits.reverse();
+
+        // Fractional digits
+        let mut fraction_digits = Vec::new();
+        let mut fraction_part = n - whole_part;
+        let mut i = 0;
+        while fraction_part != 0.0 && i < opts.max_fractional_digits {
+          fraction_part *= radix.value as $type_;
+          let digit = (fraction_part.floor() % radix.value as $type_) as u8;
+          fraction_digits.push(digit);
+          i += 1;
+        }
+        remove_suffix(&mut fraction_digits, |x| *x == 0);
+
+        Digits::new(sign, whole_digits, fraction_digits)
+      }
+    }
+  }
+}
+
 impl_to_digits_signed!(impl ToDigits for i8 by u8);
 impl_to_digits_signed!(impl ToDigits for i16 by u16);
 impl_to_digits_signed!(impl ToDigits for i32 by u32);
@@ -170,6 +209,9 @@ impl_to_digits_unsigned!(impl ToDigits for u8);
 impl_to_digits_unsigned!(impl ToDigits for u16);
 impl_to_digits_unsigned!(impl ToDigits for u32);
 impl_to_digits_unsigned!(impl ToDigits for u64);
+
+impl_to_digits_floating!(impl ToDigits for f32);
+impl_to_digits_floating!(impl ToDigits for f64);
 
 #[cfg(test)]
 mod tests {
@@ -231,5 +273,35 @@ mod tests {
   fn test_signed_to_base36() {
     assert_eq!(24_236_467i64.to_string_radix(Radix::new(36)), "EFGZ7");
     assert_eq!((-24_236_467i64).to_string_radix(Radix::new(36)), "-EFGZ7");
+  }
+
+  #[test]
+  fn test_floating_to_binary() {
+    assert_eq!(35f64.to_string_radix(Radix::BINARY), "100011");
+    assert_eq!(0.0f64.to_string_radix(Radix::BINARY), "0");
+    assert_eq!(0.5f64.to_string_radix(Radix::BINARY), "0.1");
+    assert_eq!(0.25f64.to_string_radix(Radix::BINARY), "0.01");
+    assert_eq!(0.75f64.to_string_radix(Radix::BINARY), "0.11");
+  }
+
+  #[test]
+  fn test_floating_to_hexadecimal() {
+    assert_eq!(3.6875f64.to_string_radix(Radix::HEXADECIMAL), "3.B");
+    assert_eq!((-3.6875f64).to_string_radix(Radix::HEXADECIMAL), "-3.B");
+  }
+
+  #[test]
+  fn test_floating_to_digits() {
+    let opts = ToDigitsOptions {
+      max_fractional_digits: 4,
+    };
+    assert_eq!(
+      0.5f64.to_digits_opts(Radix::new(3), opts),
+      Digits {
+        sign: Sign::Positive,
+        whole: vec![],
+        fraction: vec![1, 1, 1, 1],
+      },
+    );
   }
 }
