@@ -6,6 +6,7 @@ use crate::util::remove_suffix;
 use crate::util::prism::Prism;
 
 use num::{BigInt, Zero, Signed, ToPrimitive};
+use thiserror::Error;
 
 use std::str::FromStr;
 use std::fmt::{self, Display, Formatter};
@@ -46,6 +47,16 @@ pub struct ToDigitsOptions {
   pub max_fractional_digits: usize,
 }
 
+/// Error type for [`FromDigits`].
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum FromDigitsError {
+  #[error("Attempt to convert a negative number to an unsigned representation")]
+  NegativeToUnsigned,
+  #[error("Attempt to convert a fractional number into an integral type")]
+  FractionalToIntegral,
+}
+
 /// An implementor of this trait is a number-like type that can be
 /// converted into its digits.
 pub trait ToDigits {
@@ -58,6 +69,13 @@ pub trait ToDigits {
   fn to_string_radix(&self, radix: Radix) -> String {
     self.to_digits(radix).to_string()
   }
+}
+
+/// An implementor of this trait can convert back from a digit-based
+/// representation to a number of the given type.
+pub trait FromDigits {
+  fn from_digits(digits: Digits, radix: Radix) -> Result<Self, FromDigitsError>
+  where Self: Sized;
 }
 
 pub fn digit_into_char(digit: u8) -> char {
@@ -146,6 +164,7 @@ impl Default for ToDigitsOptions {
   }
 }
 
+
 impl ToDigits for BigInt {
   fn to_digits_opts(&self, radix: Radix, _: ToDigitsOptions) -> Digits {
     let sign = if *self < BigInt::zero() { Sign::Negative } else { Sign::Positive };
@@ -165,7 +184,7 @@ impl ToDigits for BigInt {
   }
 }
 
-macro_rules! impl_to_digits_signed {
+macro_rules! impl_digits_trait_signed {
   (impl ToDigits for $signed_type: ident by $_unsigned_type: ident) => {
     impl ToDigits for $signed_type {
       fn to_digits_opts(&self, radix: Radix, _: ToDigitsOptions) -> Digits {
@@ -175,10 +194,20 @@ macro_rules! impl_to_digits_signed {
         digits
       }
     }
-  }
+  };
+  (impl FromDigits for $signed_type: ident by $unsigned_type: ident) => {
+    impl FromDigits for $signed_type {
+      fn from_digits(mut digits: Digits, radix: Radix) -> Result<Self, FromDigitsError> {
+        let sign = if digits.sign == Sign::Negative { -1 } else { 1 };
+        digits.sign = Sign::Positive;
+        let magnitude = $unsigned_type::from_digits(digits, radix)? as $signed_type;
+        Ok(magnitude * sign)
+      }
+    }
+  };
 }
 
-macro_rules! impl_to_digits_unsigned {
+macro_rules! impl_digits_trait_unsigned {
   (impl ToDigits for $unsigned_type: ident) => {
     impl ToDigits for $unsigned_type {
       fn to_digits_opts(&self, radix: Radix, _: ToDigitsOptions) -> Digits {
@@ -197,10 +226,27 @@ macro_rules! impl_to_digits_unsigned {
         }
       }
     }
-  }
+  };
+  (impl FromDigits for $unsigned_type: ident) => {
+    impl FromDigits for $unsigned_type {
+      fn from_digits(digits: Digits, radix: Radix) -> Result<Self, FromDigitsError> {
+        if digits.sign == Sign::Negative {
+          return Err(FromDigitsError::NegativeToUnsigned);
+        }
+        if !digits.fraction.is_empty() {
+          return Err(FromDigitsError::FractionalToIntegral);
+        }
+        Ok(
+          digits.whole
+            .into_iter()
+            .fold(0, |acc, digit| acc * radix.value as $unsigned_type + digit as $unsigned_type)
+        )
+      }
+    }
+  };
 }
 
-macro_rules! impl_to_digits_floating {
+macro_rules! impl_digits_trait_floating {
   (impl ToDigits for $type_: ident) => {
     impl ToDigits for $type_ {
       fn to_digits_opts(&self, radix: Radix, opts: ToDigitsOptions) -> Digits {
@@ -235,21 +281,31 @@ macro_rules! impl_to_digits_floating {
         Digits::new(sign, whole_digits, fraction_digits)
       }
     }
-  }
+  };
 }
 
-impl_to_digits_signed!(impl ToDigits for i8 by u8);
-impl_to_digits_signed!(impl ToDigits for i16 by u16);
-impl_to_digits_signed!(impl ToDigits for i32 by u32);
-impl_to_digits_signed!(impl ToDigits for i64 by u64);
+impl_digits_trait_signed!(impl ToDigits for i8 by u8);
+impl_digits_trait_signed!(impl ToDigits for i16 by u16);
+impl_digits_trait_signed!(impl ToDigits for i32 by u32);
+impl_digits_trait_signed!(impl ToDigits for i64 by u64);
 
-impl_to_digits_unsigned!(impl ToDigits for u8);
-impl_to_digits_unsigned!(impl ToDigits for u16);
-impl_to_digits_unsigned!(impl ToDigits for u32);
-impl_to_digits_unsigned!(impl ToDigits for u64);
+impl_digits_trait_signed!(impl FromDigits for i8 by u8);
+impl_digits_trait_signed!(impl FromDigits for i16 by u16);
+impl_digits_trait_signed!(impl FromDigits for i32 by u32);
+impl_digits_trait_signed!(impl FromDigits for i64 by u64);
 
-impl_to_digits_floating!(impl ToDigits for f32);
-impl_to_digits_floating!(impl ToDigits for f64);
+impl_digits_trait_unsigned!(impl ToDigits for u8);
+impl_digits_trait_unsigned!(impl ToDigits for u16);
+impl_digits_trait_unsigned!(impl ToDigits for u32);
+impl_digits_trait_unsigned!(impl ToDigits for u64);
+
+impl_digits_trait_unsigned!(impl FromDigits for u8);
+impl_digits_trait_unsigned!(impl FromDigits for u16);
+impl_digits_trait_unsigned!(impl FromDigits for u32);
+impl_digits_trait_unsigned!(impl FromDigits for u64);
+
+impl_digits_trait_floating!(impl ToDigits for f32);
+impl_digits_trait_floating!(impl ToDigits for f64);
 
 #[cfg(test)]
 mod tests {
@@ -348,6 +404,35 @@ mod tests {
         fraction: vec![1, 1, 1, 1],
       },
     );
+  }
+
+  #[test]
+  fn test_signed_from_digits() {
+    let digits = Digits::new(Sign::Positive, vec![3, 4, 7], Vec::new());
+    assert_eq!(i64::from_digits(digits, Radix::DECIMAL), Ok(347));
+    let digits = Digits::new(Sign::Positive, Vec::new(), Vec::new());
+    assert_eq!(i64::from_digits(digits, Radix::DECIMAL), Ok(0));
+    let digits = Digits::new(Sign::Negative, vec![1, 15], Vec::new());
+    assert_eq!(i64::from_digits(digits, Radix::HEXADECIMAL), Ok(-31));
+    let digits = Digits::new(Sign::Positive, vec![1, 0, 0, 0, 1, 1, 0], Vec::new());
+    assert_eq!(i64::from_digits(digits, Radix::BINARY), Ok(70));
+  }
+
+  #[test]
+  fn test_unsigned_from_digits() {
+    let digits = Digits::new(Sign::Positive, vec![3, 4, 7], Vec::new());
+    assert_eq!(u64::from_digits(digits, Radix::DECIMAL), Ok(347));
+    let digits = Digits::new(Sign::Negative, vec![1, 15], Vec::new());
+    assert_eq!(u64::from_digits(digits, Radix::HEXADECIMAL), Err(FromDigitsError::NegativeToUnsigned));
+    let digits = Digits::new(Sign::Positive, vec![1, 0, 0, 0, 1, 1, 0], Vec::new());
+    assert_eq!(u64::from_digits(digits, Radix::BINARY), Ok(70));
+  }
+
+  #[test]
+  fn test_integral_type_from_digits_on_fractional_value() {
+    let digits = Digits::new(Sign::Positive, vec![0, 5, 0], vec![1]);
+    assert_eq!(i32::from_digits(digits.clone(), Radix::DECIMAL), Err(FromDigitsError::FractionalToIntegral));
+    assert_eq!(u32::from_digits(digits, Radix::DECIMAL), Err(FromDigitsError::FractionalToIntegral));
   }
 
   #[test]
