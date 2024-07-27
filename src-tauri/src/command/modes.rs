@@ -5,11 +5,12 @@
 //! argument, so the simpler commands are simply [`GeneralCommand`]
 //! instances.
 
-use super::base::{Command, CommandOutput};
+use super::base::{Command, CommandOutput, CommandContext};
 use super::general::GeneralCommand;
-use super::arguments::{ArgumentSchema, NullaryArgumentSchema};
+use super::arguments::{ArgumentSchema, NullaryArgumentSchema, UnaryArgumentSchema};
 use crate::undo::UndoableChange;
-use crate::state::UndoableState;
+use crate::state::{ApplicationState, UndoableState};
+use crate::util::radix::{Radix, StringToRadix};
 
 /// [`UndoableChange`] which toggles the graphics enabled state.
 #[derive(Clone, Debug)]
@@ -18,6 +19,35 @@ pub struct ToggleGraphicsChange;
 /// [`UndoableChange`] which toggles the infinity mode.
 #[derive(Clone, Debug)]
 pub struct ToggleInfinityChange;
+
+/// [`UndoableChange`] which changes the display settings' preferred
+/// radix to a given value.
+#[derive(Clone, Debug)]
+pub struct SetDisplayRadixChange {
+  pub old_value: Radix,
+  pub new_value: Radix,
+}
+
+/// Command which sets the display radix to the given value. Expects a
+/// single radix value (per [`StringToRadix`]) as argument. Does not
+/// use the keep modifier or numerical argument.
+#[derive(Debug, Clone, Default)]
+pub struct SetDisplayRadixCommand {
+  _priv: (),
+}
+
+impl SetDisplayRadixCommand {
+  pub fn new() -> Self {
+    Self { _priv: () }
+  }
+
+  fn argument_schema() -> UnaryArgumentSchema<StringToRadix, Radix> {
+    UnaryArgumentSchema::new(
+      String::from("valid numerical radix"),
+      StringToRadix,
+    )
+  }
+}
 
 pub fn toggle_graphics_command() -> impl Command + Send + Sync {
   GeneralCommand::new(|state, args, _| {
@@ -39,6 +69,28 @@ pub fn toggle_infinity_command() -> impl Command + Send + Sync {
     calc.set_infinity_flag(!calc.has_infinity_flag());
     Ok(CommandOutput::success())
   })
+}
+
+impl Command for SetDisplayRadixCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    _: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    let old_radix = state.display_settings().language_settings.preferred_radix;
+    let new_radix = Self::argument_schema().validate(args)?;
+    if old_radix == new_radix {
+      // Nothing to change, so don't modify the undo stack.
+      return Ok(CommandOutput::success());
+    }
+
+    state.display_settings_mut().language_settings.preferred_radix = new_radix;
+    state.undo_stack_mut().push_cut();
+    state.undo_stack_mut()
+      .push_change(SetDisplayRadixChange { old_value: old_radix, new_value: new_radix });
+    Ok(CommandOutput::success())
+  }
 }
 
 impl UndoableChange<UndoableState> for ToggleGraphicsChange {
@@ -66,6 +118,22 @@ impl UndoableChange<UndoableState> for ToggleInfinityChange {
   fn play_backward(&self, state: &mut UndoableState) {
     let calc = state.calculation_mode_mut();
     calc.set_infinity_flag(!calc.has_infinity_flag());
+  }
+
+  fn undo_summary(&self) -> String {
+    format!("{:?}", self)
+  }
+}
+
+impl UndoableChange<UndoableState> for SetDisplayRadixChange {
+  fn play_forward(&self, state: &mut UndoableState) {
+    let settings = state.display_settings_mut();
+    settings.language_settings.preferred_radix = self.new_value;
+  }
+
+  fn play_backward(&self, state: &mut UndoableState) {
+    let settings = state.display_settings_mut();
+    settings.language_settings.preferred_radix = self.old_value;
   }
 
   fn undo_summary(&self) -> String {

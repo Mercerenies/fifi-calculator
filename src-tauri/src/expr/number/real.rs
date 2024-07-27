@@ -2,7 +2,9 @@
 use super::visitor::NumberPair;
 use super::repr::NumberRepr;
 use super::powi_by_repeated_square;
+use crate::util::Sign;
 use crate::util::stricteq::StrictEq;
+use crate::util::radix::{Radix, Digits, ToDigits};
 
 use num::{BigInt, BigRational, Zero, One, FromPrimitive};
 use num::pow::Pow;
@@ -14,7 +16,7 @@ use regex::Regex;
 use approx::{AbsDiffEq, RelativeEq, UlpsEq};
 use serde::{Serialize, Deserialize};
 
-use std::fmt::{self, Display, Formatter};
+use std::fmt::{self, Write, Display, Formatter};
 use std::str::FromStr;
 use std::ops;
 use std::cmp::Ordering;
@@ -253,6 +255,49 @@ impl Number {
       NumberPair::Floats(arg, base) => float_log(arg, base),
     }
   }
+
+  /// Converts the number to a string, using the given numerical
+  /// radix. Prints an appropriate prefix if the radix is not the
+  /// default value of 10.
+  pub fn to_string_radix(&self, radix: Radix) -> String {
+    match &self.inner {
+      NumberImpl::Integer(i) => {
+        digits_to_string_radix(i.to_digits(radix), false, radix)
+      }
+      NumberImpl::Ratio(r) => {
+        format!(
+          "{}:{}",
+          digits_to_string_radix(r.numer().to_digits(radix), false, radix),
+          r.denom().to_string_radix(radix),
+        )
+      }
+      NumberImpl::Float(f) => {
+        digits_to_string_radix(f.to_digits(radix), true, radix)
+      }
+    }
+  }
+}
+
+fn digits_to_string_radix(mut digits: Digits, is_floating: bool, radix: Radix) -> String {
+  // If we're printing out a floating value, make sure there's at
+  // least one fractional digit.
+  if is_floating && digits.fraction.is_empty() {
+    digits.fraction.push(0);
+  }
+
+  let mut s = String::new();
+  if digits.sign == Sign::Negative {
+    s.push('-');
+  }
+  if radix != Radix::DECIMAL {
+    s.push_str(&u8::from(radix).to_string());
+    s.push('#');
+  }
+
+  // Now print out the digits normally.
+  digits.sign = Sign::Positive;
+  write!(s, "{}", digits).expect("Failed to write digits to string");
+  s
 }
 
 impl TryFrom<Number> for BigInt {
@@ -945,5 +990,30 @@ mod tests {
   fn test_number_stricteq() {
     assert!(Number::from(0).strict_eq(&Number::from(0)));
     assert!(!Number::from(0).strict_eq(&Number::from(0.0)));
+  }
+
+  #[test]
+  fn test_integer_to_string_radix() {
+    assert_eq!(Number::from(0).to_string_radix(Radix::HEXADECIMAL), "16#0");
+    assert_eq!(Number::from(31).to_string_radix(Radix::HEXADECIMAL), "16#1F");
+    assert_eq!(Number::from(31).to_string_radix(Radix::DECIMAL), "31");
+    assert_eq!(Number::from(-31).to_string_radix(Radix::HEXADECIMAL), "-16#1F");
+  }
+
+  #[test]
+  fn test_ratio_to_string_radix() {
+    assert_eq!(Number::ratio(1, 2).to_string_radix(Radix::BINARY), "2#1:10");
+    assert_eq!(Number::ratio(3, 4).to_string_radix(Radix::BINARY), "2#11:100");
+    assert_eq!(Number::ratio(5, 4).to_string_radix(Radix::BINARY), "2#101:100");
+    assert_eq!(Number::ratio(-5, 4).to_string_radix(Radix::BINARY), "-2#101:100");
+  }
+
+  #[test]
+  fn test_float_to_string_radix() {
+    assert_eq!(Number::from(1.0).to_string_radix(Radix::BINARY), "2#1.0");
+    assert_eq!(Number::from(1.5).to_string_radix(Radix::BINARY), "2#1.1");
+    assert_eq!(Number::from(1.25).to_string_radix(Radix::BINARY), "2#1.01");
+    assert_eq!(Number::from(0.25).to_string_radix(Radix::BINARY), "2#0.01");
+    assert_eq!(Number::from(-0.25).to_string_radix(Radix::BINARY), "-2#0.01");
   }
 }

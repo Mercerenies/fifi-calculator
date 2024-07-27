@@ -24,6 +24,7 @@ use crate::mode::display::DisplaySettings;
 use crate::mode::calculation::CalculationMode;
 use crate::undo::{UndoStack, UndoError};
 use crate::units::parsing::{UnitParser, default_parser};
+use crate::util::radix::Radix;
 
 use serde::{Serialize, Deserialize};
 
@@ -122,15 +123,16 @@ impl ApplicationState {
 
   pub fn modeline(&self) -> String {
     let mut modeline = String::new();
-    if self.display_settings().is_graphics_enabled {
-      modeline.push_str("Gr");
-    } else {
-      modeline.push_str("- ");
-    }
+    modeline.push_str(&modeline_str_for_radix(self.display_settings().language_settings.preferred_radix));
     if self.calculation_mode().has_infinity_flag() {
       modeline.push_str("Inf");
     } else {
       modeline.push_str("-  ");
+    }
+    if self.display_settings().is_graphics_enabled {
+      modeline.push_str("Gr");
+    } else {
+      modeline.push_str("- ");
     }
     modeline
   }
@@ -200,6 +202,17 @@ impl ApplicationState {
   pub fn redo(&mut self) -> Result<(), UndoError> {
     self.undo_stack.redo(&mut self.undoable_state)
   }
+}
+
+fn modeline_str_for_radix(radix: Radix) -> String {
+  let s = match u8::from(radix) {
+    2 => String::from("Bin"),
+    8 => String::from("Oct"),
+    10 => String::from("Dec"),
+    16 => String::from("Hex"),
+    n => format!("R={}", n),
+  };
+  format!("{:5}", s)
 }
 
 impl UndoableState {

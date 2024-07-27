@@ -127,6 +127,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("mouse_move_stack_elem".to_string(), Box::new(shuffle::MoveStackElemCommand));
   map.insert("mouse_replace_stack_elem".to_string(), Box::new(shuffle::ReplaceStackElemCommand { is_mouse_interaction: true }));
   map.insert("replace_stack_elem".to_string(), Box::new(shuffle::ReplaceStackElemCommand { is_mouse_interaction: false }));
+  map.insert("set_display_radix".to_string(), Box::new(modes::SetDisplayRadixCommand::new()));
 
   CommandDispatchTable::from_hash_map(map)
 }

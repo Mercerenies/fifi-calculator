@@ -235,7 +235,7 @@ impl LanguageMode for BasicLanguageMode {
         if needs_parens {
           out.push('(');
         }
-        out.push_str(&n.to_string());
+        out.push_str(&n.to_string_radix(engine.language_settings().preferred_radix));
         if needs_parens {
           out.push(')');
         }
