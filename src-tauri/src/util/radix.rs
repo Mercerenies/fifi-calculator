@@ -148,4 +148,65 @@ impl_to_digits_unsigned!(impl ToDigits for u16);
 impl_to_digits_unsigned!(impl ToDigits for u32);
 impl_to_digits_unsigned!(impl ToDigits for u64);
 
-///// test!!!
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_radix_constructor() {
+    Radix::try_new(2).unwrap();
+    Radix::try_new(8).unwrap();
+    Radix::try_new(11).unwrap();
+    Radix::try_new(35).unwrap();
+    Radix::try_new(36).unwrap();
+    assert_eq!(Radix::try_new(37), None);
+    assert_eq!(Radix::try_new(1), None);
+    assert_eq!(Radix::try_new(0), None);
+    assert_eq!(Radix::try_new(99), None);
+  }
+
+  #[test]
+  fn test_radix_panicking_constructor() {
+    Radix::new(2);
+    Radix::new(36);
+  }
+
+  #[test]
+  #[should_panic]
+  fn test_radix_panicking_constructor_on_out_of_bounds() {
+    Radix::new(38);
+  }
+
+  #[test]
+  fn test_radix_to_u8() {
+    let radix = Radix::new(17);
+    assert_eq!(u8::from(radix), 17);
+  }
+
+  #[test]
+  fn test_unsigned_to_binary() {
+    assert_eq!(5u64.to_string_radix(Radix::BINARY), "101");
+    assert_eq!(99u64.to_string_radix(Radix::BINARY), "1100011");
+    assert_eq!(100u64.to_string_radix(Radix::BINARY), "1100100");
+    assert_eq!(0u64.to_string_radix(Radix::BINARY), "0");
+  }
+
+  #[test]
+  fn test_signed_to_binary() {
+    assert_eq!(5i64.to_string_radix(Radix::BINARY), "101");
+    assert_eq!((-6i64).to_string_radix(Radix::BINARY), "-110");
+    assert_eq!(0i64.to_string_radix(Radix::BINARY), "0");
+  }
+
+  #[test]
+  fn test_signed_to_hexadecimal() {
+    assert_eq!(108i64.to_string_radix(Radix::HEXADECIMAL), "6C");
+    assert_eq!((-108i64).to_string_radix(Radix::HEXADECIMAL), "-6C");
+  }
+
+  #[test]
+  fn test_signed_to_base36() {
+    assert_eq!(24_236_467i64.to_string_radix(Radix::new(36)), "EFGZ7");
+    assert_eq!((-24_236_467i64).to_string_radix(Radix::new(36)), "-EFGZ7");
+  }
+}
