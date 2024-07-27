@@ -5,4 +5,5 @@ mod signed;
 
 pub use base::Term;
 pub use parser::TermParser;
-pub use signed::{SignedTerm, Sign};
+pub use signed::SignedTerm;
+pub use crate::util::Sign;

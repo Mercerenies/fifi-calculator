@@ -1,6 +1,7 @@
 
 use super::base::Term;
 use crate::expr::Expr;
+use crate::util::Sign;
 
 use std::fmt::{self, Formatter, Display};
 use std::ops::{Mul, Div, Neg};
@@ -10,12 +11,6 @@ use std::ops::{Mul, Div, Neg};
 pub struct SignedTerm {
   pub sign: Sign,
   pub term: Term,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Sign {
-  Negative,
-  Positive,
 }
 
 impl SignedTerm {
@@ -31,39 +26,9 @@ impl SignedTerm {
   }
 }
 
-impl Sign {
-  pub fn other(self) -> Self {
-    match self {
-      Self::Negative => Self::Positive,
-      Self::Positive => Self::Negative,
-    }
-  }
-}
-
-impl Display for Sign {
-  fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-    match self {
-      Self::Negative => write!(f, "-"),
-      Self::Positive => write!(f, "+"),
-    }
-  }
-}
-
 impl Display for SignedTerm {
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
     write!(f, "{} {}", self.sign, self.term)
-  }
-}
-
-impl Mul for Sign {
-  type Output = Self;
-
-  fn mul(self, other: Self) -> Self::Output {
-    if self == other {
-      Self::Positive
-    } else {
-      Self::Negative
-    }
   }
 }
 
@@ -96,14 +61,6 @@ impl From<SignedTerm> for Expr {
       Sign::Negative => Expr::call("negate", vec![expr]),
       Sign::Positive => expr,
     }
-  }
-}
-
-impl Neg for Sign {
-  type Output = Self;
-
-  fn neg(self) -> Self::Output {
-    self.other()
   }
 }
 

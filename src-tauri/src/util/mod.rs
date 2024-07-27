@@ -11,9 +11,55 @@ pub mod stricteq;
 use regex::{Regex, escape};
 use either::Either;
 
+use std::fmt::{self, Formatter, Display};
 use std::convert::Infallible;
 use std::cmp::{Reverse, Ordering};
 use std::iter::{self, Extend};
+use std::ops::{Mul, Neg};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Sign {
+  Negative,
+  Positive,
+}
+
+impl Sign {
+  pub fn other(self) -> Self {
+    match self {
+      Self::Negative => Self::Positive,
+      Self::Positive => Self::Negative,
+    }
+  }
+}
+
+impl Display for Sign {
+  fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::Negative => write!(f, "-"),
+      Self::Positive => write!(f, "+"),
+    }
+  }
+}
+
+impl Mul for Sign {
+  type Output = Self;
+
+  fn mul(self, other: Self) -> Self::Output {
+    if self == other {
+      Self::Positive
+    } else {
+      Self::Negative
+    }
+  }
+}
+
+impl Neg for Sign {
+  type Output = Self;
+
+  fn neg(self) -> Self::Output {
+    self.other()
+  }
+}
 
 pub fn unwrap_infallible<T>(res: Result<T, Infallible>) -> T {
   match res {
