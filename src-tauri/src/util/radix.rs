@@ -184,6 +184,20 @@ impl ToDigits for BigInt {
   }
 }
 
+impl FromDigits for BigInt {
+  fn from_digits(digits: Digits, radix: Radix) -> Result<Self, FromDigitsError> {
+    if !digits.fraction.is_empty() {
+      return Err(FromDigitsError::FractionalToIntegral);
+    }
+    let mut n = BigInt::zero();
+    for digit in digits.whole.iter() {
+      n *= radix.value;
+      n += *digit;
+    }
+    Ok(if digits.sign == Sign::Negative { -n } else { n })
+  }
+}
+
 macro_rules! impl_digits_trait_signed {
   (impl ToDigits for $signed_type: ident by $_unsigned_type: ident) => {
     impl ToDigits for $signed_type {
@@ -407,6 +421,18 @@ mod tests {
   }
 
   #[test]
+  fn test_bigint_from_digits() {
+    let digits = Digits::new(Sign::Positive, vec![3, 4, 7], Vec::new());
+    assert_eq!(BigInt::from_digits(digits, Radix::DECIMAL), Ok(BigInt::from(347)));
+    let digits = Digits::new(Sign::Positive, Vec::new(), Vec::new());
+    assert_eq!(BigInt::from_digits(digits, Radix::DECIMAL), Ok(BigInt::from(0)));
+    let digits = Digits::new(Sign::Negative, vec![1, 15], Vec::new());
+    assert_eq!(BigInt::from_digits(digits, Radix::HEXADECIMAL), Ok(BigInt::from(-31)));
+    let digits = Digits::new(Sign::Positive, vec![1, 0, 0, 0, 1, 1, 0], Vec::new());
+    assert_eq!(BigInt::from_digits(digits, Radix::BINARY), Ok(BigInt::from(70)));
+  }
+
+  #[test]
   fn test_signed_from_digits() {
     let digits = Digits::new(Sign::Positive, vec![3, 4, 7], Vec::new());
     assert_eq!(i64::from_digits(digits, Radix::DECIMAL), Ok(347));
@@ -432,7 +458,8 @@ mod tests {
   fn test_integral_type_from_digits_on_fractional_value() {
     let digits = Digits::new(Sign::Positive, vec![0, 5, 0], vec![1]);
     assert_eq!(i32::from_digits(digits.clone(), Radix::DECIMAL), Err(FromDigitsError::FractionalToIntegral));
-    assert_eq!(u32::from_digits(digits, Radix::DECIMAL), Err(FromDigitsError::FractionalToIntegral));
+    assert_eq!(u32::from_digits(digits.clone(), Radix::DECIMAL), Err(FromDigitsError::FractionalToIntegral));
+    assert_eq!(BigInt::from_digits(digits, Radix::DECIMAL), Err(FromDigitsError::FractionalToIntegral));
   }
 
   #[test]
