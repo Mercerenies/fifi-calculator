@@ -4,6 +4,8 @@
 use super::Sign;
 use crate::util::remove_suffix;
 
+use num::{BigInt, Zero, Signed, ToPrimitive};
+
 use std::fmt::{self, Display, Formatter};
 
 /// A numerical radix. Supported radixes are from 2 up to 36 inclusive
@@ -123,6 +125,25 @@ impl Default for ToDigitsOptions {
   fn default() -> Self {
     Self {
       max_fractional_digits: 10,
+    }
+  }
+}
+
+impl ToDigits for BigInt {
+  fn to_digits_opts(&self, radix: Radix, _: ToDigitsOptions) -> Digits {
+    let sign = if *self < BigInt::zero() { Sign::Negative } else { Sign::Positive };
+    let mut digits = Vec::new();
+    let mut n = self.abs();
+    while !n.is_zero() {
+      let digit = &n % radix.value;
+      digits.push(digit.to_u8().unwrap()); // unwrap: radix.value is at most 36, which fits in a u8
+      n /= radix.value;
+    }
+    digits.reverse();
+    Digits {
+      sign,
+      whole: digits,
+      fraction: Vec::new(),
     }
   }
 }
@@ -273,6 +294,13 @@ mod tests {
   fn test_signed_to_base36() {
     assert_eq!(24_236_467i64.to_string_radix(Radix::new(36)), "EFGZ7");
     assert_eq!((-24_236_467i64).to_string_radix(Radix::new(36)), "-EFGZ7");
+  }
+
+  #[test]
+  fn test_bigint_to_hexadecimal() {
+    assert_eq!(BigInt::from(108i64).to_string_radix(Radix::HEXADECIMAL), "6C");
+    assert_eq!(BigInt::from(0i64).to_string_radix(Radix::HEXADECIMAL), "0");
+    assert_eq!(BigInt::from(-108i64).to_string_radix(Radix::HEXADECIMAL), "-6C");
   }
 
   #[test]
