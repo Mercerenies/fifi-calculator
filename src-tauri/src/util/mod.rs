@@ -240,6 +240,17 @@ pub fn double_borrow_mut<T>(slice: &mut [T], i: usize, j: usize) -> (&mut T, &mu
   }
 }
 
+/// Removes a longest suffix from a vector which satisfies the
+/// predicate.
+pub fn remove_suffix<T, F>(vec: &mut Vec<T>, mut pred: F)
+where F: FnMut(&T) -> bool {
+  let mut i = vec.len();
+  while i > 0 && pred(&vec[i - 1]) {
+    i -= 1;
+  }
+  vec.truncate(i);
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -391,5 +402,33 @@ mod tests {
   fn test_double_borrow_mut_panic() {
     let mut arr = [30, 40, 50];
     double_borrow_mut(&mut arr, 0, 0);
+  }
+
+  #[test]
+  fn test_remove_suffix_vec() {
+    let mut vec = vec![10, 20, 30, 40, 50];
+    remove_suffix(&mut vec, |x| *x > 30);
+    assert_eq!(vec, &[10, 20, 30]);
+  }
+
+  #[test]
+  fn test_remove_suffix_vec_no_op() {
+    let mut vec = vec![10, 20, 30, 40, 50];
+    remove_suffix(&mut vec, |x| *x < 30);
+    assert_eq!(vec, &[10, 20, 30, 40, 50]);
+  }
+
+  #[test]
+  fn test_remove_suffix_vec_all_elements() {
+    let mut vec = vec![10, 20, 30, 40, 50];
+    remove_suffix(&mut vec, |x| *x >= 0);
+    assert_eq!(vec, Vec::<i64>::new());
+  }
+
+  #[test]
+  fn test_remove_suffix_vec_on_empty_vec() {
+    let mut vec = Vec::<i64>::new();
+    remove_suffix(&mut vec, |_| panic!("Should not be called"));
+    assert_eq!(vec, Vec::<i64>::new());
   }
 }
