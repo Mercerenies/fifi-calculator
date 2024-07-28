@@ -256,6 +256,72 @@ impl Number {
     }
   }
 
+  pub fn sin(&self) -> Number {
+    let f = self.to_f64_or_nan();
+    Number::from(f.sin())
+  }
+
+  pub fn cos(&self) -> Number {
+    let f = self.to_f64_or_nan();
+    Number::from(f.cos())
+  }
+
+  pub fn tan(&self) -> Number {
+    let f = self.to_f64_or_nan();
+    Number::from(f.tan())
+  }
+
+  pub fn asin(&self) -> Number {
+    let f = self.to_f64_or_nan();
+    Number::from(f.asin())
+  }
+
+  pub fn acos(&self) -> Number {
+    let f = self.to_f64_or_nan();
+    Number::from(f.acos())
+  }
+
+  pub fn atan(&self) -> Number {
+    let f = self.to_f64_or_nan();
+    Number::from(f.atan())
+  }
+
+  pub fn atan2(&self, other: &Number) -> Number {
+    let f = self.to_f64_or_nan();
+    let g = other.to_f64_or_nan();
+    Number::from(f.atan2(g))
+  }
+
+  pub fn sinh(&self) -> Number {
+    let f = self.to_f64_or_nan();
+    Number::from(f.sinh())
+  }
+
+  pub fn cosh(&self) -> Number {
+    let f = self.to_f64_or_nan();
+    Number::from(f.cosh())
+  }
+
+  pub fn tanh(&self) -> Number {
+    let f = self.to_f64_or_nan();
+    Number::from(f.tanh())
+  }
+
+  pub fn asinh(&self) -> Number {
+    let f = self.to_f64_or_nan();
+    Number::from(f.asinh())
+  }
+
+  pub fn acosh(&self) -> Number {
+    let f = self.to_f64_or_nan();
+    Number::from(f.acosh())
+  }
+
+  pub fn atanh(&self) -> Number {
+    let f = self.to_f64_or_nan();
+    Number::from(f.atanh())
+  }
+
   /// Converts the number to a string, using the given numerical
   /// radix. Prints an appropriate prefix if the radix is not the
   /// default value of 10.
