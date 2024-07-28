@@ -119,11 +119,11 @@ pub fn digit_into_char(digit: u8) -> char {
 }
 
 pub fn char_into_digit(ch: char) -> Option<u8> {
-  if ('0'..='9').contains(&ch) {
+  if ch.is_ascii_digit() {
     Some((ch as u8) - b'0')
-  } else if ('A'..='Z').contains(&ch) {
+  } else if ch.is_ascii_uppercase() {
     Some((ch as u8) - b'A' + 10)
-  } else if ('a'..='z').contains(&ch) {
+  } else if ch.is_ascii_lowercase() {
     Some((ch as u8) - b'a' + 10)
   } else {
     None
@@ -220,7 +220,7 @@ impl FromStr for Radix {
   type Err = RadixFromStrError;
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
-    let Ok(n) = u8::from_str(&s) else { return Err(RadixFromStrError { input: s.into() }) };
+    let Ok(n) = u8::from_str(s) else { return Err(RadixFromStrError { input: s.into() }) };
     Radix::try_new(n).ok_or_else(|| RadixFromStrError { input: s.into() })
   }
 }
