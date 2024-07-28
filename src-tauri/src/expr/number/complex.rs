@@ -158,6 +158,34 @@ impl ComplexNumber {
   pub fn powf(&self, exp: f64) -> ComplexNumber {
     ComplexNumber::from_polar_inexact(self.abs().powf(exp), self.angle() * exp)
   }
+
+  pub fn sin(&self) -> ComplexNumber {
+    ComplexNumber::new(
+      self.real.sin() * self.imag.cosh(),
+      self.real.cos() * self.imag.sinh(),
+    )
+  }
+
+  pub fn cos(&self) -> ComplexNumber {
+    ComplexNumber::new(
+      self.real.cos() * self.imag.cosh(),
+      - self.real.sin() * self.imag.sinh(),
+    )
+  }
+
+  pub fn tan(&self) -> ComplexNumber {
+    self.sin() / self.cos()
+  }
+
+  // Complex inverse trig functions: http://scipp.ucsc.edu/~haber/archives/physics116A10/arc_10.pdf
+
+  pub fn asin(&self) -> ComplexNumber {
+    let arg = (ComplexNumber::one() - self * self).angle() / 2.0;
+    let abs_sqrt = (ComplexNumber::one() - self * self).abs().powf(0.5);
+    (Self::ii() * self.clone() + Self::from_polar_inexact(abs_sqrt, arg)).ln() / Self::ii()
+  }
+
+  // TODO: The other trig functions
 }
 
 impl StrictEq for ComplexNumber {

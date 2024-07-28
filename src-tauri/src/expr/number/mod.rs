@@ -107,6 +107,15 @@ impl ComplexLike {
       ComplexLike::Complex(z) => ComplexLike::Complex(z.recip()),
     }
   }
+
+  pub fn map<F, G>(self, real_fn: F, complex_fn: G) -> ComplexLike
+  where F: FnOnce(Number) -> Number,
+        G: FnOnce(ComplexNumber) -> ComplexNumber {
+    match self {
+      ComplexLike::Real(r) => ComplexLike::Real(real_fn(r)),
+      ComplexLike::Complex(z) => ComplexLike::Complex(complex_fn(z)),
+    }
+  }
 }
 
 impl From<ComplexLike> for ComplexNumber {
