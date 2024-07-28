@@ -54,10 +54,20 @@ export interface ModifierArgPanelArgs {
 
 export class ModifierArgumentsManager {
   private _keepModifier: boolean = false;
+  private _hyperbolicModifier: boolean = false;
+  private _inverseModifier: boolean = false;
   readonly modifiersChangedSignal: Signal<ModifiersChangedEvent> = new Signal<ModifiersChangedEvent>();
 
   get keepModifier(): boolean {
     return this._keepModifier;
+  }
+
+  get hyperbolicModifier(): boolean {
+    return this._hyperbolicModifier;
+  }
+
+  get inverseModifier(): boolean {
+    return this._inverseModifier;
   }
 
   set keepModifier(keepModifier: boolean) {
@@ -68,9 +78,27 @@ export class ModifierArgumentsManager {
     });
   }
 
+  set hyperbolicModifier(hyperbolicModifier: boolean) {
+    this._hyperbolicModifier = hyperbolicModifier;
+    this.modifiersChangedSignal.emit({
+      type: "modifiers-changed",
+      newModifierValues: this.values,
+    });
+  }
+
+  set inverseModifier(inverseModifier: boolean) {
+    this._inverseModifier = inverseModifier;
+    this.modifiersChangedSignal.emit({
+      type: "modifiers-changed",
+      newModifierValues: this.values,
+    });
+  }
+
   get values(): ModifierArgumentsValues {
     return {
-      keepModifier: this._keepModifier
+      keepModifier: this._keepModifier,
+      hyperbolicModifier: this._hyperbolicModifier,
+      inverseModifier: this._inverseModifier,
     };
   }
 
@@ -79,8 +107,7 @@ export class ModifierArgumentsManager {
   }
 }
 
-// Modifier delegate that handles modifier flags (currently just the
-// "Keep" modifier).
+// Modifier delegate that handles modifier flags
 export class ModifierFlagsDelegate implements ModifierDelegate {
   private manager: ModifierArgumentsManager;
 
@@ -94,12 +121,20 @@ export class ModifierFlagsDelegate implements ModifierDelegate {
 
   resetModifiers(): void {
     this.manager.keepModifier = false;
+    this.manager.hyperbolicModifier = false;
+    this.manager.inverseModifier = false;
   }
 
   onKeyDown(input: KeyEventInput): Promise<KeyResponse> {
     switch (input.toEmacsSyntax()) {
     case "K":
       this.manager.keepModifier = !this.manager.keepModifier;
+      return Promise.resolve(KeyResponse.BLOCK);
+    case "H":
+      this.manager.hyperbolicModifier = !this.manager.hyperbolicModifier;
+      return Promise.resolve(KeyResponse.BLOCK);
+    case "I":
+      this.manager.inverseModifier = !this.manager.inverseModifier;
       return Promise.resolve(KeyResponse.BLOCK);
     default:
       return Promise.resolve(KeyResponse.PASS);
@@ -109,6 +144,8 @@ export class ModifierFlagsDelegate implements ModifierDelegate {
 
 export interface ModifierArgumentsValues {
   keepModifier: boolean;
+  hyperbolicModifier: boolean;
+  inverseModifier: boolean;
 }
 
 export interface ModifiersChangedEvent {
