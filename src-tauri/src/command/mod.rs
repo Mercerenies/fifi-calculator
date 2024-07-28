@@ -50,6 +50,9 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("e^".to_string(), Box::new(UnaryFunctionCommand::named("exp")));
   map.insert("negate".to_string(), Box::new(UnaryFunctionCommand::new(times_minus_one)));
 
+  // Trigonometry
+  map.insert("sin".to_string(), Box::new(UnaryFunctionCommand::named("sin")));
+
   // Stack shuffling (no arguments)
   map.insert("pop".to_string(), Box::new(shuffle::PopCommand));
   map.insert("swap".to_string(), Box::new(shuffle::SwapCommand));
