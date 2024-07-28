@@ -20,6 +20,7 @@ pub fn append_transcendental_functions(table: &mut FunctionTable) {
   table.insert(logarithm());
   table.insert(exponent());
   table.insert(sine());
+  table.insert(cosine());
 }
 
 pub fn natural_log() -> Function {
@@ -279,6 +280,34 @@ pub fn sine() -> Function {
         Ok(Expr::call("*", vec![
           arg_deriv,
           Expr::call("cos", vec![arg]),
+        ]))
+      })
+    )
+    .build()
+}
+
+pub fn cosine() -> Function {
+  FunctionBuilder::new("cos")
+    .add_case(
+      // Real number case
+      builder::arity_one().of_type(expr_to_number()).and_then(|arg, _| {
+        Ok(Expr::from(arg.cos()))
+      })
+    )
+    .add_case(
+      // Complex number case
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
+        let arg = ComplexNumber::from(arg);
+        Ok(Expr::from(arg.cos()))
+      })
+    )
+    .set_derivative(
+      builder::arity_one_deriv("sin", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("*", vec![
+          Expr::from(Number::from(-1)),
+          arg_deriv,
+          Expr::call("sin", vec![arg]),
         ]))
       })
     )
