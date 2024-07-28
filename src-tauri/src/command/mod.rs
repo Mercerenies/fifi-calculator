@@ -53,6 +53,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   // Trigonometry
   map.insert("sin".to_string(), Box::new(UnaryFunctionCommand::named("sin")));
   map.insert("cos".to_string(), Box::new(UnaryFunctionCommand::named("cos")));
+  map.insert("tan".to_string(), Box::new(UnaryFunctionCommand::named("tan")));
 
   // Stack shuffling (no arguments)
   map.insert("pop".to_string(), Box::new(shuffle::PopCommand));

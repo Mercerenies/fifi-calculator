@@ -37,6 +37,7 @@ export class TranscendentalButtonGrid extends ButtonGrid {
       [
         new DispatchButton("sin", "sin", "S"),
         new DispatchButton("cos", "cos", "C"),
+        new DispatchButton("tan", "tan", "T"),
       ],
       [
         backButton(this.rootGrid),
