@@ -22,6 +22,9 @@ pub fn append_transcendental_functions(table: &mut FunctionTable) {
   table.insert(sine());
   table.insert(cosine());
   table.insert(tangent());
+  table.insert(secant());
+  table.insert(cosecant());
+  table.insert(cotangent());
 }
 
 pub fn natural_log() -> Function {
@@ -361,6 +364,82 @@ pub fn tangent() -> Function {
           arg_deriv,
           Expr::call("^", vec![
             Expr::call("sec", vec![arg]),
+            Expr::from(2),
+          ]),
+        ]))
+      })
+    )
+    .build()
+}
+
+pub fn secant() -> Function {
+  FunctionBuilder::new("sec")
+    .add_case(
+      // Complex number case (simplify to cos)
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
+        Ok(Expr::call("/", vec![
+          Expr::from(1),
+          Expr::call("cos", vec![arg.into()]),
+        ]))
+      })
+    )
+    .set_derivative(
+      builder::arity_one_deriv("sec", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("*", vec![
+          arg_deriv,
+          Expr::call("sec", vec![arg.clone()]),
+          Expr::call("tan", vec![arg]),
+        ]))
+      })
+    )
+    .build()
+}
+
+pub fn cosecant() -> Function {
+  FunctionBuilder::new("csc")
+    .add_case(
+      // Complex number case (simplify to sin)
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
+        Ok(Expr::call("/", vec![
+          Expr::from(1),
+          Expr::call("sin", vec![arg.into()]),
+        ]))
+      })
+    )
+    .set_derivative(
+      builder::arity_one_deriv("csc", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("*", vec![
+          Expr::from(-1),
+          arg_deriv,
+          Expr::call("csc", vec![arg.clone()]),
+          Expr::call("cot", vec![arg]),
+        ]))
+      })
+    )
+    .build()
+}
+
+pub fn cotangent() -> Function {
+  FunctionBuilder::new("cot")
+    .add_case(
+      // Complex number case (simplify to tan)
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
+        Ok(Expr::call("/", vec![
+          Expr::from(1),
+          Expr::call("tan", vec![arg.into()]),
+        ]))
+      })
+    )
+    .set_derivative(
+      builder::arity_one_deriv("cot", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("*", vec![
+          Expr::from(-1),
+          arg_deriv,
+          Expr::call("^", vec![
+            Expr::call("cot", vec![arg]),
             Expr::from(2),
           ]),
         ]))
