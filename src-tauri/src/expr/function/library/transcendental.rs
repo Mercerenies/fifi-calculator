@@ -7,7 +7,7 @@ use crate::expr::function::{Function, FunctionContext};
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder};
 use crate::expr::prisms::{self, expr_to_number, ExprToComplex};
-use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex};
+use crate::expr::number::{Number, ComplexNumber, ComplexLike, pow_real, pow_complex};
 use crate::expr::algebra::infinity::{InfiniteConstant, SignedInfinity, UnboundedNumber};
 use crate::expr::interval::{RawInterval, Interval, includes_infinity};
 
@@ -21,6 +21,7 @@ pub fn append_transcendental_functions(table: &mut FunctionTable) {
   table.insert(exponent());
   table.insert(sine());
   table.insert(cosine());
+  table.insert(tangent());
 }
 
 pub fn natural_log() -> Function {
@@ -302,12 +303,66 @@ pub fn cosine() -> Function {
       })
     )
     .set_derivative(
-      builder::arity_one_deriv("sin", |arg, engine| {
+      builder::arity_one_deriv("cos", |arg, engine| {
         let arg_deriv = engine.differentiate(arg.clone())?;
         Ok(Expr::call("*", vec![
           Expr::from(Number::from(-1)),
           arg_deriv,
           Expr::call("sin", vec![arg]),
+        ]))
+      })
+    )
+    .build()
+}
+
+pub fn tangent() -> Function {
+  FunctionBuilder::new("tan")
+    .add_case(
+      // Real number case
+      builder::arity_one().of_type(expr_to_number()).and_then(|arg, ctx| {
+        let s = arg.sin();
+        let c = arg.cos();
+        if c.is_zero() {
+          if ctx.calculation_mode.has_infinity_flag() {
+            Ok(Expr::from(InfiniteConstant::UndirInfinity))
+          } else {
+            ctx.errors.push(SimplifierError::division_by_zero("tan"));
+            Err(arg)
+          }
+        } else {
+          Ok(Expr::from(s / c))
+        }
+      })
+    )
+    .add_case(
+      // Complex number case
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, ctx| {
+        let arg = ComplexNumber::from(arg);
+        let s = arg.sin();
+        let c = arg.cos();
+        if c.is_zero() {
+          if ctx.calculation_mode.has_infinity_flag() {
+            Ok(Expr::from(InfiniteConstant::UndirInfinity))
+          } else {
+            ctx.errors.push(SimplifierError::division_by_zero("tan"));
+            // Note: If arg was real, then case 1 would have
+            // triggered, so we know arg was properly complex.
+            Err(ComplexLike::Complex(arg))
+          }
+        } else {
+          Ok(Expr::from(s / c))
+        }
+      })
+    )
+    .set_derivative(
+      builder::arity_one_deriv("tan", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("*", vec![
+          arg_deriv,
+          Expr::call("^", vec![
+            Expr::call("sec", vec![arg]),
+            Expr::from(2),
+          ]),
         ]))
       })
     )
