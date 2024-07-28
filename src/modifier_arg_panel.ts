@@ -5,21 +5,27 @@ import { KeyEventInput, KeyResponse } from './keyboard.js';
 
 export class ModifierArgPanel {
   private modifierArgumentsManager: ModifierArgumentsManager;
-  private keepModifierCheckbox: HTMLInputElement;
+  private modifierArgPanel: HTMLElement;
 
   private signalListener: SignalListener<ModifiersChangedEvent> | undefined;
 
   constructor(args: ModifierArgPanelArgs) {
     this.modifierArgumentsManager = args.modifierArgumentsManager;
-    this.keepModifierCheckbox = args.keepModifierCheckbox;
+    this.modifierArgPanel = args.modifierArgPanel;
   }
 
   initListeners(): void {
     this.signalListener = (event) => this.onModifiersChanged(event);
     this.modifierArgumentsManager.modifiersChangedSignal.addListener(this.signalListener);
-    this.keepModifierCheckbox.addEventListener("change", () => {
-      this.modifierArgumentsManager.keepModifier = this.keepModifierCheckbox.checked;
-    });
+    for (const checkbox of this.getCheckboxes()) {
+      checkbox.addEventListener("change", () => {
+        const checkboxArg = checkbox.dataset.modifierArg!;
+        if (!(checkboxArg in this.modifierArgumentsManager.values)) {
+          throw new Error("Unexpected checkbox arg: " + checkboxArg);
+        }
+        this.modifierArgumentsManager[checkboxArg as keyof ModifierArgumentsValues] = checkbox.checked;
+      });
+    }
   }
 
   uninitListeners(): void {
@@ -29,14 +35,21 @@ export class ModifierArgPanel {
     }
   }
 
+  private getCheckboxes(): NodeListOf<HTMLInputElement> {
+    return this.modifierArgPanel.querySelectorAll("input[type=checkbox][data-modifier-arg]");
+  }
+
   private onModifiersChanged(event: ModifiersChangedEvent): void {
-    this.keepModifierCheckbox.checked = event.newModifierValues.keepModifier;
+    for (const checkbox of this.getCheckboxes()) {
+      const checkboxArg = checkbox.dataset.modifierArg as keyof ModifierArgumentsValues;
+      checkbox.checked = event.newModifierValues[checkboxArg];
+    }
   }
 }
 
 export interface ModifierArgPanelArgs {
   modifierArgumentsManager: ModifierArgumentsManager;
-  keepModifierCheckbox: HTMLInputElement;
+  modifierArgPanel: HTMLElement;
 }
 
 export class ModifierArgumentsManager {

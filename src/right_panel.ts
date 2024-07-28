@@ -58,7 +58,7 @@ export class RightPanelManager {
 export interface RightPanelArguments {
   buttonGrid: HTMLElement,
   prefixPanel: HTMLElement,
-  keepModifierCheckbox: HTMLInputElement,
+  modifierArgPanel: HTMLElement,
   initialGrid: ButtonGrid,
   undoButton: HTMLButtonElement,
   redoButton: HTMLButtonElement,

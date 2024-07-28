@@ -30,7 +30,7 @@ export class UiManager {
     this.rightPanelManager = new RightPanelManager({
       buttonGrid: Page.getButtonGridContainer(),
       prefixPanel: Page.getPrefixArgPanel(),
-      keepModifierCheckbox: Page.getModifierArgKeepArgCheckbox(),
+      modifierArgPanel: Page.getModifierArgPanel(),
       initialGrid: new MainButtonGrid(this.inputManager, this.notificationManager),
       undoButton: Page.getUndoButton(),
       redoButton: Page.getRedoButton(),
