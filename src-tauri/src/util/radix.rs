@@ -67,6 +67,12 @@ pub enum DigitsFromStrError {
   BadChar(char),
 }
 
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
+#[error("Failed to parse {input:?} as a radix")]
+pub struct RadixFromStrError {
+  input: String,
+}
+
 /// Validation error when checking if a [`Digits`] object is valid for
 /// a particular radix. See [`Digits::validate_for_radix`].
 #[derive(Debug, Clone, Error, PartialEq, Eq)]
@@ -174,8 +180,7 @@ impl Digits {
 
 impl Prism<String, Radix> for StringToRadix {
   fn narrow_type(&self, input: String) -> Result<Radix, String> {
-    let Ok(n) = u8::from_str(&input) else { return Err(input); };
-    Radix::try_new(n).ok_or(input)
+    Radix::from_str(&input).map_err(|_| input)
   }
 
   fn widen_type(&self, radix: Radix) -> String {
@@ -208,6 +213,15 @@ impl Display for Digits {
       }
     }
     Ok(())
+  }
+}
+
+impl FromStr for Radix {
+  type Err = RadixFromStrError;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    let Ok(n) = u8::from_str(&s) else { return Err(RadixFromStrError { input: s.into() }) };
+    Radix::try_new(n).ok_or_else(|| RadixFromStrError { input: s.into() })
   }
 }
 

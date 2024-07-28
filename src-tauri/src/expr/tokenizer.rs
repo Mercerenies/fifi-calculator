@@ -4,9 +4,12 @@ use super::var::Var;
 use super::atom::{write_escaped_str, process_escape_char, InvalidEscapeError};
 use crate::parsing::operator::{Operator, OperatorTable};
 use crate::parsing::source::{Span, SourceOffset};
-use crate::parsing::tokenizer::TokenizerState;
+use crate::parsing::tokenizer::{TokenizerState, TokenizerCaptures};
 use crate::util::regex_opt_with;
+use crate::util::radix::{Radix, Digits, FromDigits, RadixFromStrError,
+                         ValidateForRadixError, DigitsFromStrError, FromDigitsError};
 
+use num::{BigInt, Zero};
 use regex::Regex;
 use once_cell::sync::Lazy;
 use thiserror::Error;
@@ -57,7 +60,22 @@ pub enum TokenizerError {
   #[error("Failed to parse number")]
   ParseNumberError(#[from] ParseNumberError),
   #[error("{0}")]
+  TokenizerRadixError(#[from] TokenizerRadixError),
+  #[error("{0}")]
   InvalidEscapeError(#[from] InvalidEscapeError),
+}
+
+#[derive(Debug, Clone, Error, PartialEq)]
+#[non_exhaustive]
+pub enum TokenizerRadixError {
+  #[error("{0}")]
+  RadixFromStrError(#[from] RadixFromStrError),
+  #[error("{0}")]
+  FromDigitsError(#[from] FromDigitsError),
+  #[error("{0}")]
+  ValidateForRadixError(#[from] ValidateForRadixError),
+  #[error("{0}")]
+  DigitsFromStrError(#[from] DigitsFromStrError),
 }
 
 impl<'a> ExprTokenizer<'a> {
@@ -96,6 +114,8 @@ impl<'a> ExprTokenizer<'a> {
       Ok(tok)
     } else if let Some(tok) = self.read_variable_token(state) {
       Ok(tok)
+    } else if let Some(res) = self.read_radix_number_literal(state) {
+      res
     } else if let Some(res) = self.read_number_literal(state) {
       res
     } else if let Some(tok) = self.read_operator(state) {
@@ -190,6 +210,58 @@ impl<'a> ExprTokenizer<'a> {
     })
   }
 
+  fn read_radix_number_literal(&self, state: &mut TokenizerState<'_>) -> Option<Result<Token, TokenizerError>> {
+    static RE: Lazy<Regex> = Lazy::new(|| {
+      let radix_re = r"([0-9]{1,2})#";
+      let ratio_re = r"[0-9A-Za-z]+:[0-9A-Za-z]+";
+      let int_float_re = r"[0-9A-Za-z]+(\.[0-9A-Za-z]+)?"; // TODO: Scientific notation?
+      Regex::new(&format!("^{radix_re}({ratio_re}|{int_float_re})")).unwrap()
+    });
+    let reset_pos = state.current_pos();
+    let m = state.read_regex_with_captures(&RE)?;
+    Some(match self.read_radix_number_literal_committed(m) {
+      Ok(x) => Ok(x),
+      Err(err) => {
+        state.seek(reset_pos);
+        Err(err)
+      }
+    })
+  }
+
+  fn read_radix_number_literal_committed(
+    &self,
+    m: TokenizerCaptures,
+  ) -> Result<Token, TokenizerError> {
+    let radix = Radix::from_str(m.get(1).expect("expected at least one capture group"))?;
+    let digits_str = m.get(2).expect("expected at least two capture groups");
+    if digits_str.contains(':') {
+      // Rational number
+      let [numer, denom] = digits_str.split(':').collect::<Vec<_>>().try_into().unwrap();
+      let numer_digits = Digits::from_str(numer)?;
+      let denom_digits = Digits::from_str(denom)?;
+      numer_digits.validate_for_radix(radix)?;
+      denom_digits.validate_for_radix(radix)?;
+      let numer = BigInt::from_digits(numer_digits, radix)?;
+      let denom = BigInt::from_digits(denom_digits, radix)?;
+      if denom == BigInt::zero() {
+        return Err(TokenizerError::from(ParseNumberError {}));
+      }
+      let n = Number::ratio(numer, denom);
+      Ok(Token::new(TokenData::Number(n), m.span()))
+    } else {
+      // Integer or floating value
+      let digits = Digits::from_str(digits_str)?;
+      digits.validate_for_radix(radix)?;
+      if digits.fraction.is_empty() {
+        let n = Number::from(BigInt::from_digits(digits, radix)?);
+        Ok(Token::new(TokenData::Number(n), m.span()))
+      } else {
+        let n = Number::from(f64::from_digits(digits, radix)?);
+        Ok(Token::new(TokenData::Number(n), m.span()))
+      }
+    }
+  }
+
   fn read_number_literal(&self, state: &mut TokenizerState<'_>) -> Option<Result<Token, TokenizerError>> {
     static RE: Lazy<Regex> = Lazy::new(|| {
       let ratio_re = r"[0-9]+:[0-9]+";
@@ -213,6 +285,30 @@ impl<'a> ExprTokenizer<'a> {
 impl Token {
   pub fn new(data: TokenData, span: Span) -> Self {
     Self { data, span }
+  }
+}
+
+impl From<RadixFromStrError> for TokenizerError {
+  fn from(err: RadixFromStrError) -> Self {
+    TokenizerError::from(TokenizerRadixError::from(err))
+  }
+}
+
+impl From<FromDigitsError> for TokenizerError {
+  fn from(err: FromDigitsError) -> Self {
+    TokenizerError::from(TokenizerRadixError::from(err))
+  }
+}
+
+impl From<ValidateForRadixError> for TokenizerError {
+  fn from(err: ValidateForRadixError) -> Self {
+    TokenizerError::from(TokenizerRadixError::from(err))
+  }
+}
+
+impl From<DigitsFromStrError> for TokenizerError {
+  fn from(err: DigitsFromStrError) -> Self {
+    TokenizerError::from(TokenizerRadixError::from(err))
   }
 }
 
@@ -327,6 +423,77 @@ mod tests {
     let token = tokenizer.read_one_token(&mut state).expect("expected token");
     assert_eq!(token, Token::new(TokenData::Number(Number::ratio(3, 2)), span(0, 3)));
     assert_eq!(state.current_pos(), SourceOffset(3));
+  }
+
+  #[test]
+  fn test_number_binary() {
+    let table = sample_operator_table();
+    let tokenizer = ExprTokenizer::new(&table);
+
+    let mut state = TokenizerState::new("2#110");
+    let token = tokenizer.read_one_token(&mut state).expect("expected token");
+    assert_eq!(token, Token::new(TokenData::Number(Number::from(6)), span(0, 5)));
+    assert_eq!(state.current_pos(), SourceOffset(5));
+  }
+
+  #[test]
+  fn test_number_hexadecimal() {
+    let table = sample_operator_table();
+    let tokenizer = ExprTokenizer::new(&table);
+
+    let mut state = TokenizerState::new("16#Ab");
+    let token = tokenizer.read_one_token(&mut state).expect("expected token");
+    assert_eq!(token, Token::new(TokenData::Number(Number::from(171)), span(0, 5)));
+    assert_eq!(state.current_pos(), SourceOffset(5));
+  }
+
+  #[test]
+  fn test_number_binary_with_fractional_part() {
+    let table = sample_operator_table();
+    let tokenizer = ExprTokenizer::new(&table);
+
+    let mut state = TokenizerState::new("2#110.01");
+    let token = tokenizer.read_one_token(&mut state).expect("expected token");
+    assert_eq!(token, Token::new(TokenData::Number(Number::from(6.25)), span(0, 8)));
+    assert_eq!(state.current_pos(), SourceOffset(8));
+
+    let mut state = TokenizerState::new("2#110.00");
+    let token = tokenizer.read_one_token(&mut state).expect("expected token");
+    assert_eq!(token, Token::new(TokenData::Number(Number::from(6.0)), span(0, 8)));
+    assert_eq!(state.current_pos(), SourceOffset(8));
+  }
+
+  #[test]
+  fn test_number_binary_rational() {
+    let table = sample_operator_table();
+    let tokenizer = ExprTokenizer::new(&table);
+
+    let mut state = TokenizerState::new("2#110:101");
+    let token = tokenizer.read_one_token(&mut state).expect("expected token");
+    assert_eq!(token, Token::new(TokenData::Number(Number::ratio(6, 5)), span(0, 9)));
+    assert_eq!(state.current_pos(), SourceOffset(9));
+  }
+
+  #[test]
+  fn test_number_binary_digit_out_of_bounds() {
+    let table = sample_operator_table();
+    let tokenizer = ExprTokenizer::new(&table);
+
+    let mut state = TokenizerState::new("2#102");
+    let err = tokenizer.read_one_token(&mut state).unwrap_err();
+    assert!(matches!(err, TokenizerError::TokenizerRadixError(TokenizerRadixError::ValidateForRadixError(_))));
+    assert_eq!(state.current_pos(), SourceOffset(0));
+  }
+
+  #[test]
+  fn test_number_with_bad_radix() {
+    let table = sample_operator_table();
+    let tokenizer = ExprTokenizer::new(&table);
+
+    let mut state = TokenizerState::new("42#1");
+    let err = tokenizer.read_one_token(&mut state).unwrap_err();
+    assert!(matches!(err, TokenizerError::TokenizerRadixError(TokenizerRadixError::RadixFromStrError(_))));
+    assert_eq!(state.current_pos(), SourceOffset(0));
   }
 
   #[test]
