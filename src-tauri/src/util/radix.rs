@@ -57,6 +57,16 @@ pub enum FromDigitsError {
   FractionalToIntegral,
 }
 
+/// Error type for the [`FromStr`] implementation on [`Digits`].
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum DigitsFromStrError {
+  #[error("Cannot parse empty string as Digits")]
+  EmptyString,
+  #[error("Cannot parse '{0}' as a digit")]
+  BadChar(char),
+}
+
 /// An implementor of this trait is a number-like type that can be
 /// converted into its digits.
 pub trait ToDigits {
@@ -78,6 +88,9 @@ pub trait FromDigits {
   where Self: Sized;
 }
 
+/// Returns the character representing the digit in base 36 (or
+/// equivalently any lower radix, where applicable). Panics if the
+/// digit is out of bounds.
 pub fn digit_into_char(digit: u8) -> char {
   if digit < 10 {
     (b'0' + digit) as char
@@ -85,6 +98,18 @@ pub fn digit_into_char(digit: u8) -> char {
     (b'A' + digit - 10) as char
   } else {
     panic!("Invalid digit {} in radix", digit)
+  }
+}
+
+pub fn char_into_digit(ch: char) -> Option<u8> {
+  if ('0'..='9').contains(&ch) {
+    Some((ch as u8) - b'0')
+  } else if ('A'..='Z').contains(&ch) {
+    Some((ch as u8) - b'A' + 10)
+  } else if ('a'..='z').contains(&ch) {
+    Some((ch as u8) - b'a' + 10)
+  } else {
+    None
   }
 }
 
@@ -147,6 +172,39 @@ impl Display for Digits {
       }
     }
     Ok(())
+  }
+}
+
+impl FromStr for Digits {
+  type Err = DigitsFromStrError;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    if s.is_empty() {
+      return Err(DigitsFromStrError::EmptyString);
+    }
+    let mut chars = s.chars().peekable();
+    let sign = if chars.peek() == Some(&'-') {
+      chars.next().unwrap();
+      Sign::Negative
+    } else {
+      Sign::Positive
+    };
+    // Whole part
+    let mut whole = Vec::new();
+    for ch in &mut chars {
+      if ch == '.' {
+        break;
+      }
+      let digit = char_into_digit(ch).ok_or(DigitsFromStrError::BadChar(ch))?;
+      whole.push(digit);
+    }
+    // Fractional part
+    let mut fractional = Vec::new();
+    for ch in chars {
+      let digit = char_into_digit(ch).ok_or(DigitsFromStrError::BadChar(ch))?;
+      fractional.push(digit);
+    }
+    Ok(Digits::new(sign, whole, fractional))
   }
 }
 
@@ -375,6 +433,34 @@ mod tests {
   }
 
   #[test]
+  fn test_digit_into_char() {
+    assert_eq!(digit_into_char(3), '3');
+    assert_eq!(digit_into_char(9), '9');
+    assert_eq!(digit_into_char(11), 'B');
+    assert_eq!(digit_into_char(35), 'Z');
+  }
+
+  #[test]
+  #[should_panic]
+  fn test_digit_into_char_panicking() {
+    digit_into_char(36);
+  }
+
+  #[test]
+  fn test_char_into_digit() {
+    assert_eq!(char_into_digit('0'), Some(0));
+    assert_eq!(char_into_digit('3'), Some(3));
+    assert_eq!(char_into_digit('9'), Some(9));
+    assert_eq!(char_into_digit('B'), Some(11));
+    assert_eq!(char_into_digit('b'), Some(11));
+    assert_eq!(char_into_digit('Z'), Some(35));
+    assert_eq!(char_into_digit('z'), Some(35));
+    assert_eq!(char_into_digit('!'), None);
+    assert_eq!(char_into_digit('('), None);
+    assert_eq!(char_into_digit(')'), None);
+  }
+
+  #[test]
   fn test_unsigned_to_binary() {
     assert_eq!(5u64.to_string_radix(Radix::BINARY), "101");
     assert_eq!(99u64.to_string_radix(Radix::BINARY), "1100011");
@@ -502,6 +588,43 @@ mod tests {
     assert_eq!(i32::from_digits(digits.clone(), Radix::DECIMAL), Err(FromDigitsError::FractionalToIntegral));
     assert_eq!(u32::from_digits(digits.clone(), Radix::DECIMAL), Err(FromDigitsError::FractionalToIntegral));
     assert_eq!(BigInt::from_digits(digits, Radix::DECIMAL), Err(FromDigitsError::FractionalToIntegral));
+  }
+
+  #[test]
+  fn test_digits_from_str_empty() {
+    assert_eq!(Digits::from_str(""), Err(DigitsFromStrError::EmptyString));
+  }
+
+  #[test]
+  fn test_digits_from_str_basic_nonnegative_integral() {
+    assert_eq!(Digits::from_str("13"), Ok(Digits::new(Sign::Positive, vec![1, 3], Vec::new())));
+    assert_eq!(Digits::from_str("0"), Ok(Digits::new(Sign::Positive, vec![0], Vec::new())));
+    assert_eq!(Digits::from_str("991"), Ok(Digits::new(Sign::Positive, vec![9, 9, 1], Vec::new())));
+    assert_eq!(Digits::from_str("AB"), Ok(Digits::new(Sign::Positive, vec![10, 11], Vec::new())));
+    assert_eq!(Digits::from_str("zZ"), Ok(Digits::new(Sign::Positive, vec![35, 35], Vec::new())));
+  }
+
+  #[test]
+  fn test_digits_from_str_basic_negative_integral() {
+    assert_eq!(Digits::from_str("-13"), Ok(Digits::new(Sign::Negative, vec![1, 3], Vec::new())));
+    assert_eq!(Digits::from_str("-0"), Ok(Digits::new(Sign::Negative, vec![0], Vec::new())));
+    assert_eq!(Digits::from_str("-991"), Ok(Digits::new(Sign::Negative, vec![9, 9, 1], Vec::new())));
+    assert_eq!(Digits::from_str("-aAbB"), Ok(Digits::new(Sign::Negative, vec![10, 10, 11, 11], Vec::new())));
+  }
+
+  #[test]
+  fn test_digits_from_str_floating() {
+    assert_eq!(Digits::from_str("1.2"), Ok(Digits::new(Sign::Positive, vec![1], vec![2])));
+    assert_eq!(Digits::from_str("-A.b"), Ok(Digits::new(Sign::Negative, vec![10], vec![11])));
+    assert_eq!(Digits::from_str("-0.0"), Ok(Digits::new(Sign::Negative, vec![0], vec![0])));
+    assert_eq!(Digits::from_str("-34.bc"), Ok(Digits::new(Sign::Negative, vec![3, 4], vec![11, 12])));
+  }
+
+  #[test]
+  fn test_digits_from_str_invalid_digit() {
+    assert_eq!(Digits::from_str("!"), Err(DigitsFromStrError::BadChar('!')));
+    assert_eq!(Digits::from_str("345!"), Err(DigitsFromStrError::BadChar('!')));
+    assert_eq!(Digits::from_str("a.b.c"), Err(DigitsFromStrError::BadChar('.')));
   }
 
   #[test]
