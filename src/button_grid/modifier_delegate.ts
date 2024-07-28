@@ -44,6 +44,8 @@ export function delegates(delegates: readonly ModifierDelegate[]): ModifierDeleg
 export interface ButtonModifiers {
   prefixArgument: number | undefined;
   keepModifier: boolean;
+  hyperbolicModifier: boolean;
+  inverseModifier: boolean;
 }
 
 // TODO: Just use CommandOptions everywhere. ButtonModifiers is
@@ -53,6 +55,8 @@ export function modifiersToRustArgs(modifiers: ButtonModifiers): CommandOptions 
   return {
     argument: modifiers.prefixArgument ?? null,
     keepModifier: modifiers.keepModifier,
+    hyperbolicModifier: modifiers.hyperbolicModifier,
+    inverseModifier: modifiers.inverseModifier,
   };
 }
 
@@ -60,6 +64,8 @@ export function defaultModifiers(): ButtonModifiers {
   return {
     prefixArgument: undefined,
     keepModifier: false,
+    hyperbolicModifier: false,
+    inverseModifier: false,
   };
 }
 
@@ -69,5 +75,7 @@ export function appendModifiers(left: ButtonModifiers, right: ButtonModifiers): 
   return {
     prefixArgument: left.prefixArgument ?? right.prefixArgument,
     keepModifier: left.keepModifier || right.keepModifier,
+    hyperbolicModifier: left.hyperbolicModifier || right.hyperbolicModifier,
+    inverseModifier: left.inverseModifier || right.inverseModifier,
   };
 }

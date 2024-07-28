@@ -73,6 +73,8 @@ export enum Validator {
 export interface CommandOptions {
   argument: number | null,
   keepModifier: boolean,
+  hyperbolicModifier: boolean,
+  inverseModifier: boolean,
 }
 
 export interface RefreshStackPayload {
