@@ -67,6 +67,17 @@ pub enum DigitsFromStrError {
   BadChar(char),
 }
 
+/// Validation error when checking if a [`Digits`] object is valid for
+/// a particular radix. See [`Digits::validate_for_radix`].
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum ValidateForRadixError {
+  #[error("'{0}' is not valid for base {1}")]
+  BadChar(char, Radix),
+  #[error("'{0}' is not valid for base {1}")]
+  BadDigitValue(u8, Radix),
+}
+
 /// An implementor of this trait is a number-like type that can be
 /// converted into its digits.
 pub trait ToDigits {
@@ -140,6 +151,25 @@ impl Digits {
   pub fn new(sign: Sign, whole: Vec<u8>, fraction: Vec<u8>) -> Self {
     Self { sign, whole, fraction }
   }
+
+  /// Validates that all digits represented by this [`Digits`] object
+  /// are in bounds for the given radix.
+  pub fn validate_for_radix(&self, radix: Radix) -> Result<(), ValidateForRadixError> {
+    for digit in self.whole.iter().chain(self.fraction.iter()) {
+      if *digit >= radix.value {
+        if *digit >= 36 {
+          return Err(ValidateForRadixError::BadDigitValue(*digit, radix));
+        } else {
+          return Err(ValidateForRadixError::BadChar(digit_into_char(*digit), radix));
+        }
+      }
+    }
+    Ok(())
+  }
+
+  pub fn is_valid_for_radix(&self, radix: Radix) -> bool {
+    self.validate_for_radix(radix).is_ok()
+  }
 }
 
 impl Prism<String, Radix> for StringToRadix {
@@ -150,6 +180,12 @@ impl Prism<String, Radix> for StringToRadix {
 
   fn widen_type(&self, radix: Radix) -> String {
     u8::from(radix).to_string()
+  }
+}
+
+impl Display for Radix {
+  fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    self.value.fmt(f)
   }
 }
 
@@ -640,5 +676,31 @@ mod tests {
     assert_eq!(StringToRadix.narrow_type(String::from("e")), Err(String::from("e")));
     assert_eq!(StringToRadix.narrow_type(String::from("-1")), Err(String::from("-1")));
     assert_eq!(StringToRadix.narrow_type(String::from("37")), Err(String::from("37")));
+  }
+
+  #[test]
+  fn test_validate_for_radix() {
+    let digits = Digits::new(Sign::Positive, vec![3, 4, 7], vec![9]);
+    digits.validate_for_radix(Radix::DECIMAL).unwrap();
+    digits.validate_for_radix(Radix::HEXADECIMAL).unwrap();
+    assert_eq!(
+      digits.validate_for_radix(Radix::BINARY),
+      Err(ValidateForRadixError::BadChar('3', Radix::BINARY)),
+    );
+
+    let digits = Digits::new(Sign::Negative, vec![10, 13], Vec::new());
+    digits.validate_for_radix(Radix::HEXADECIMAL).unwrap();
+    digits.validate_for_radix(Radix::new(15)).unwrap();
+    digits.validate_for_radix(Radix::new(14)).unwrap();
+    assert_eq!(
+      digits.validate_for_radix(Radix::new(13)),
+      Err(ValidateForRadixError::BadChar('D', Radix::new(13))),
+    );
+
+    let digits = Digits::new(Sign::Negative, vec![99], Vec::new());
+    assert_eq!(
+      digits.validate_for_radix(Radix::new(36)),
+      Err(ValidateForRadixError::BadDigitValue(99, Radix::new(36))),
+    );
   }
 }
