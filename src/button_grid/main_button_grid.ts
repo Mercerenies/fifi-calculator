@@ -184,6 +184,8 @@ class Subgrids {
 const SUBGRID_FORWARDING_TABLE: Record<string, keyof Subgrids> = {
   "L": "transcendental",
   "B": "transcendental",
+  "S": "transcendental",
+  "C": "transcendental",
   "E": "formula",
   "G": "graphing",
   "J": "display",
