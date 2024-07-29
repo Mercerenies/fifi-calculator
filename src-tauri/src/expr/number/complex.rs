@@ -210,7 +210,17 @@ impl ComplexNumber {
       ((Self::ii() - self) / (Self::ii() + self)).ln()
   }
 
-  // TODO: The other trig functions
+  pub fn asinh(&self) -> ComplexNumber {
+    (self + &(self * self + Self::one()).powf(0.5)).ln()
+  }
+
+  pub fn acosh(&self) -> ComplexNumber {
+    (self + &(self * self - Self::one()).powf(0.5)).ln()
+  }
+
+  pub fn atanh(&self) -> ComplexNumber {
+    ((Self::one() + self) / (Self::one() - self)).ln() * Self::from_real(Number::ratio(1, 2))
+  }
 }
 
 impl StrictEq for ComplexNumber {

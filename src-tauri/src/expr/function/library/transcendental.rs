@@ -20,6 +20,8 @@ pub fn append_transcendental_functions(table: &mut FunctionTable) {
   table.insert(logarithm());
   table.insert(exponent());
   table.insert(sqrt());
+
+  // Trig and hyperbolic functions
   table.insert(sine());
   table.insert(cosine());
   table.insert(tangent());
@@ -38,6 +40,7 @@ pub fn append_transcendental_functions(table: &mut FunctionTable) {
   table.insert(arcsecant());
   table.insert(arccosecant());
   table.insert(arccotangent());
+  table.insert(arcsine_hyper());
 }
 
 pub fn natural_log() -> Function {
@@ -902,6 +905,32 @@ pub fn arccotangent() -> Function {
           Expr::call("+", vec![
             Expr::call("^", vec![arg, Expr::from(2)]),
             Expr::from(1),
+          ]),
+        ]))
+      })
+    )
+    .build()
+}
+
+pub fn arcsine_hyper() -> Function {
+  FunctionBuilder::new("asinh")
+    .add_case(
+      // Real / Complex number case
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
+        let result = arg.map(|r| r.asinh(), |z| z.asinh());
+        Ok(result.into())
+      })
+    )
+    .set_derivative(
+       builder::arity_one_deriv("asinh", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("/", vec![
+          arg_deriv,
+          Expr::call("sqrt", vec![
+            Expr::call("+", vec![
+              Expr::from(1),
+              Expr::call("^", vec![arg, Expr::from(2)]),
+            ]),
           ]),
         ]))
       })
