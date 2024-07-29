@@ -56,7 +56,12 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("log".to_string(), Box::new(BinaryFunctionCommand::named("log")));
   map.insert("log2".to_string(), Box::new(UnaryFunctionCommand::new(log2))); // Currently unused
   map.insert("*i".to_string(), Box::new(UnaryFunctionCommand::new(times_i)));
-  map.insert("e^".to_string(), Box::new(UnaryFunctionCommand::named("exp")));
+  map.insert("e^".to_string(), Box::new(dispatch_on_flags_command(FlagDispatchArgs {
+    no_flags: UnaryFunctionCommand::named("exp"),
+    hyper_flag: UnaryFunctionCommand::new(pow10),
+    inv_flag: UnaryFunctionCommand::named("ln"),
+    inv_hyper_flag: UnaryFunctionCommand::new(log10),
+  })));
   map.insert("negate".to_string(), Box::new(UnaryFunctionCommand::new(times_minus_one)));
 
   // Trigonometry
