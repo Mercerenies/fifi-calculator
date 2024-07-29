@@ -25,7 +25,7 @@ pub enum ContourPlotError {
   #[error("{0}")]
   LengthError(#[from] LengthError),
   #[error("{0}")]
-  MatrixDimsError(#[from] MatrixDimsError),
+  MatrixDimsError(#[from] MatrixDimsError<Number>),
 }
 
 impl ContourPlotDirective {

@@ -10,7 +10,7 @@ pub struct Matrix {
 }
 
 impl Matrix {
-  pub fn new(body: Vec<Vec<Expr>>) -> Result<Matrix, MatrixDimsError> {
+  pub fn new(body: Vec<Vec<Expr>>) -> Result<Matrix, MatrixDimsError<Expr>> {
     Ok(Matrix {
       data: UtilMatrix::new(body)?,
     })
@@ -73,7 +73,7 @@ impl From<UtilMatrix<Expr>> for Matrix {
 }
 
 impl TryFrom<Vec<Vec<Expr>>> for Matrix {
-  type Error = MatrixDimsError;
+  type Error = MatrixDimsError<Expr>;
 
   fn try_from(body: Vec<Vec<Expr>>) -> Result<Self, Self::Error> {
     Self::new(body)

@@ -2,9 +2,12 @@
 //! Very rudimentary matrix type which enforces consistency in the
 //! dimensions of its data.
 
+use crate::util::prism::ErrorWithPayload;
+
 use thiserror::Error;
 use serde::{Serialize, Deserialize};
 
+use std::fmt::Debug;
 use std::ops::{Index, IndexMut};
 
 /// A `Matrix<T>` is a vector of vectors of `T` in which each
@@ -23,17 +26,17 @@ pub struct MatrixIndex {
 
 #[derive(Debug, Clone, Error)]
 #[error("The dimensions of the matrix are inconsistent")]
-pub struct MatrixDimsError {
-  _priv: (),
+pub struct MatrixDimsError<T> {
+  original_data: Vec<Vec<T>>,
 }
 
 impl<T> Matrix<T> {
-  pub fn new(body: Vec<Vec<T>>) -> Result<Matrix<T>, MatrixDimsError> {
+  pub fn new(body: Vec<Vec<T>>) -> Result<Matrix<T>, MatrixDimsError<T>> {
     if body.is_empty() {
       return Ok(Matrix { body });
     }
     if body.iter().any(|row| row.len() != body[0].len()) {
-      return Err(MatrixDimsError { _priv: () });
+      return Err(MatrixDimsError { original_data: body });
     }
     Ok(Matrix { body })
   }
@@ -43,7 +46,8 @@ impl<T> Matrix<T> {
     let body = (0..height)
       .map(|y| (0..width).map(|x| generator(MatrixIndex { y, x })).collect())
       .collect();
-    Matrix::new(body).unwrap()
+    let Ok(body) = Matrix::new(body) else { unreachable!() }; // Poor man's unwrap() (T might not be Debug)
+    body
   }
 
   pub fn of_value(height: usize, width: usize, value: T) -> Self
@@ -122,7 +126,7 @@ impl<T> Default for Matrix<T> {
 }
 
 impl<T> TryFrom<Vec<Vec<T>>> for Matrix<T> {
-  type Error = MatrixDimsError;
+  type Error = MatrixDimsError<T>;
 
   fn try_from(body: Vec<Vec<T>>) -> Result<Self, Self::Error> {
     Self::new(body)
@@ -155,6 +159,12 @@ impl<T: Serialize> Serialize for Matrix<T> {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
   where S: serde::Serializer {
     self.body.serialize(serializer)
+  }
+}
+
+impl<T: Debug> ErrorWithPayload<Vec<Vec<T>>> for MatrixDimsError<T> {
+  fn recover_payload(self) -> Vec<Vec<T>> {
+    self.original_data
   }
 }
 
