@@ -35,6 +35,9 @@ pub fn append_transcendental_functions(table: &mut FunctionTable) {
   table.insert(arcsine());
   table.insert(arccosine());
   table.insert(arctangent());
+  table.insert(arcsecant());
+  table.insert(arccosecant());
+  table.insert(arccotangent());
 }
 
 pub fn natural_log() -> Function {
@@ -796,6 +799,106 @@ pub fn arctangent() -> Function {
         let arg_deriv = engine.differentiate(arg.clone())?;
         Ok(Expr::call("/", vec![
           arg_deriv,
+          Expr::call("+", vec![
+            Expr::call("^", vec![arg, Expr::from(2)]),
+            Expr::from(1),
+          ]),
+        ]))
+      })
+    )
+    .build()
+}
+
+pub fn arcsecant() -> Function {
+  FunctionBuilder::new("asec")
+    .add_case(
+      // Real / Complex number case
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, ctx| {
+        if arg.is_zero() {
+          ctx.errors.push(SimplifierError::division_by_zero("asec"));
+          Err(arg)
+        } else {
+          Ok(Expr::call("acos", vec![
+            Expr::call("/", vec![Expr::from(1), arg.into()]),
+          ]))
+        }
+      })
+    )
+    .set_derivative(
+      builder::arity_one_deriv("asec", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("/", vec![
+          arg_deriv,
+          Expr::call("*", vec![
+            Expr::call("^", vec![arg.clone(), Expr::from(2)]),
+            Expr::call("sqrt", vec![
+              Expr::call("-", vec![
+                Expr::from(1),
+                Expr::call("^", vec![arg, Expr::from(-2)]),
+              ]),
+            ]),
+          ]),
+        ]))
+      })
+    )
+    .build()
+}
+
+pub fn arccosecant() -> Function {
+  FunctionBuilder::new("acsc")
+    .add_case(
+      // Real / Complex number case
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, ctx| {
+        if arg.is_zero() {
+          ctx.errors.push(SimplifierError::division_by_zero("acsc"));
+          Err(arg)
+        } else {
+          Ok(Expr::call("asin", vec![
+            Expr::call("/", vec![Expr::from(1), arg.into()]),
+          ]))
+        }
+      })
+    )
+    .set_derivative(
+      builder::arity_one_deriv("acsc", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("/", vec![
+          Expr::call("*", vec![Expr::from(-1), arg_deriv]),
+          Expr::call("*", vec![
+            Expr::call("^", vec![arg.clone(), Expr::from(2)]),
+            Expr::call("sqrt", vec![
+              Expr::call("-", vec![
+                Expr::from(1),
+                Expr::call("^", vec![arg, Expr::from(-2)]),
+              ]),
+            ]),
+          ]),
+        ]))
+      })
+    )
+    .build()
+}
+
+pub fn arccotangent() -> Function {
+  FunctionBuilder::new("acot")
+    .add_case(
+      // Real / Complex number case
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, ctx| {
+        if arg.is_zero() {
+          ctx.errors.push(SimplifierError::division_by_zero("acot"));
+          Err(arg)
+        } else {
+          Ok(Expr::call("atan", vec![
+            Expr::call("/", vec![Expr::from(1), arg.into()]),
+          ]))
+        }
+      })
+    )
+    .set_derivative(
+      builder::arity_one_deriv("acot", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("/", vec![
+          Expr::call("*", vec![Expr::from(-1), arg_deriv]),
           Expr::call("+", vec![
             Expr::call("^", vec![arg, Expr::from(2)]),
             Expr::from(1),
