@@ -42,6 +42,7 @@ pub fn append_transcendental_functions(table: &mut FunctionTable) {
   table.insert(arccotangent());
   table.insert(arsine_hyper());
   table.insert(arcosine_hyper());
+  table.insert(artangent_hyper());
 }
 
 pub fn natural_log() -> Function {
@@ -945,7 +946,7 @@ pub fn arcosine_hyper() -> Function {
       // Real number case
       builder::arity_one().of_type(expr_to_number()).and_then(|arg, _| {
         if arg < Number::one() {
-          // Result is complex, so use complex acos
+          // Result is complex, so use complex acosh
           let arg = ComplexNumber::from_real(arg);
           Ok(Expr::from(arg.acosh()))
         } else {
@@ -972,6 +973,52 @@ pub fn arcosine_hyper() -> Function {
             Expr::call("sqrt", vec![
               Expr::call("-", vec![arg, Expr::from(1)]),
             ]),
+          ]),
+        ]))
+      })
+    )
+    .build()
+}
+
+pub fn artangent_hyper() -> Function {
+  FunctionBuilder::new("atanh")
+    .add_case(
+      // Real number case
+      builder::arity_one().of_type(expr_to_number()).and_then(|arg, ctx| {
+        if arg > Number::from(-1) && arg < Number::from(1) {
+          Ok(Expr::from(arg.atanh()))
+        } else if arg == Number::from(-1) || arg == Number::from(1) {
+          // No solution
+          ctx.errors.push(SimplifierError::division_by_zero("atanh"));
+          Err(arg)
+        } else {
+          // Result is complex, so use complex atanh
+          let arg = ComplexNumber::from_real(arg);
+          Ok(Expr::from(arg.atanh()))
+        }
+      })
+    )
+    .add_case(
+      // Complex number case
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, ctx| {
+        let arg = ComplexNumber::from(arg);
+        if arg == ComplexNumber::from_real(-1) || arg == ComplexNumber::from_real(1) {
+          // No solution
+          ctx.errors.push(SimplifierError::division_by_zero("atanh"));
+          Err(ComplexLike::Complex(arg))
+        } else {
+          Ok(Expr::from(arg.atanh()))
+        }
+      })
+    )
+    .set_derivative(
+       builder::arity_one_deriv("atanh", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("/", vec![
+          arg_deriv,
+          Expr::call("-", vec![
+            Expr::from(1),
+            Expr::call("^", vec![arg, Expr::from(2)]),
           ]),
         ]))
       })

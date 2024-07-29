@@ -93,7 +93,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
     no_flags: UnaryFunctionCommand::named("tan"),
     hyper_flag: UnaryFunctionCommand::named("tanh"),
     inv_flag: UnaryFunctionCommand::named("atan"),
-    inv_hyper_flag: UnaryFunctionCommand::named("tanh"), // TODO
+    inv_hyper_flag: UnaryFunctionCommand::named("atanh"),
   })));
 
   // Stack shuffling (no arguments)
