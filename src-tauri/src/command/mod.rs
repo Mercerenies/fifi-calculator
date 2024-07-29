@@ -71,10 +71,12 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("negate".to_string(), Box::new(UnaryFunctionCommand::new(times_minus_one)));
 
   // Trigonometry
-  map.insert("sin".to_string(), Box::new(dispatch_on_hyper_command(
-    UnaryFunctionCommand::named("sin"),
-    UnaryFunctionCommand::named("sinh"),
-  )));
+  map.insert("sin".to_string(), Box::new(dispatch_on_flags_command(FlagDispatchArgs {
+    no_flags: UnaryFunctionCommand::named("sin"),
+    hyper_flag: UnaryFunctionCommand::named("sinh"),
+    inv_flag: UnaryFunctionCommand::named("asin"),
+    inv_hyper_flag: UnaryFunctionCommand::named("sinh"), // TODO
+  })));
   map.insert("cos".to_string(), Box::new(dispatch_on_hyper_command(
     UnaryFunctionCommand::named("cos"),
     UnaryFunctionCommand::named("cosh"),

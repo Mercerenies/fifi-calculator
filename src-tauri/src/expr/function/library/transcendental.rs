@@ -31,6 +31,7 @@ pub fn append_transcendental_functions(table: &mut FunctionTable) {
   table.insert(secant_hyper());
   table.insert(cosecant_hyper());
   table.insert(cotangent_hyper());
+  table.insert(arcsine());
 }
 
 pub fn natural_log() -> Function {
@@ -622,6 +623,30 @@ pub fn cotangent_hyper() -> Function {
             Expr::from(2),
           ]),
         ]))
+      })
+    )
+    .build()
+}
+
+pub fn arcsine() -> Function {
+  FunctionBuilder::new("asin")
+    .add_case(
+      // Real number case
+      builder::arity_one().of_type(expr_to_number()).and_then(|arg, _| {
+        if (Number::from(-1)..=Number::from(1)).contains(&arg) {
+          Ok(Expr::from(arg.asin()))
+        } else {
+          // Result is complex, so use complex asin
+          let arg = ComplexNumber::from_real(arg);
+          Ok(Expr::from(arg.asin()))
+        }
+      })
+    )
+    .add_case(
+      // Complex number case
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
+        let arg = ComplexNumber::from(arg);
+        Ok(Expr::from(arg.asin()))
       })
     )
     .build()
