@@ -4,6 +4,7 @@ pub mod arguments;
 mod base;
 pub mod calculus;
 pub mod dispatch;
+pub mod flag_dispatch;
 pub mod functional;
 pub mod general;
 pub mod graphics;
@@ -19,6 +20,7 @@ pub mod vector;
 pub use base::{Command, CommandContext, CommandOutput};
 use functional::{PushConstantCommand, UnaryFunctionCommand, BinaryFunctionCommand};
 use dispatch::CommandDispatchTable;
+use flag_dispatch::dispatch_on_inverse_command;
 use crate::expr::Expr;
 use crate::expr::number::ComplexNumber;
 use crate::expr::algebra::infinity::InfiniteConstant;
@@ -41,7 +43,10 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("/".to_string(), Box::new(BinaryFunctionCommand::named("/")));
   map.insert("%".to_string(), Box::new(BinaryFunctionCommand::named("%")));
   map.insert("div".to_string(), Box::new(BinaryFunctionCommand::named("div")));
-  map.insert("^".to_string(), Box::new(BinaryFunctionCommand::named("^")));
+  map.insert("^".to_string(), Box::new(dispatch_on_inverse_command(
+    BinaryFunctionCommand::named("^"),
+    BinaryFunctionCommand::new(nroot),
+  )));
   map.insert("ln".to_string(), Box::new(UnaryFunctionCommand::named("ln")));
   map.insert("log".to_string(), Box::new(BinaryFunctionCommand::named("log")));
   map.insert("log10".to_string(), Box::new(UnaryFunctionCommand::new(log10))); // Currently unused
@@ -143,6 +148,13 @@ fn log10(expr: Expr) -> Expr {
 
 fn log2(expr: Expr) -> Expr {
   Expr::call("log", vec![expr, Expr::from(2)])
+}
+
+fn nroot(a: Expr, b: Expr) -> Expr {
+  Expr::call("^", vec![
+    a,
+    Expr::call("/", vec![Expr::from(1), b]),
+  ])
 }
 
 fn times_i(expr: Expr) -> Expr {
