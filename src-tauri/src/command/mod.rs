@@ -79,7 +79,10 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
     UnaryFunctionCommand::named("cos"),
     UnaryFunctionCommand::named("cosh"),
   )));
-  map.insert("tan".to_string(), Box::new(UnaryFunctionCommand::named("tan")));
+  map.insert("tan".to_string(), Box::new(dispatch_on_hyper_command(
+    UnaryFunctionCommand::named("tan"),
+    UnaryFunctionCommand::named("tanh"),
+  )));
 
   // Stack shuffling (no arguments)
   map.insert("pop".to_string(), Box::new(shuffle::PopCommand));

@@ -27,6 +27,10 @@ pub fn append_transcendental_functions(table: &mut FunctionTable) {
   table.insert(cotangent());
   table.insert(sine_hyper());
   table.insert(cosine_hyper());
+  table.insert(tangent_hyper());
+  table.insert(secant_hyper());
+  table.insert(cosecant_hyper());
+  table.insert(cotangent_hyper());
 }
 
 pub fn natural_log() -> Function {
@@ -486,6 +490,137 @@ pub fn cosine_hyper() -> Function {
         Ok(Expr::call("*", vec![
           arg_deriv,
           Expr::call("sinh", vec![arg]),
+        ]))
+      })
+    )
+    .build()
+}
+
+pub fn tangent_hyper() -> Function {
+  FunctionBuilder::new("tanh")
+    .add_case(
+      // Real number case
+      builder::arity_one().of_type(expr_to_number()).and_then(|arg, ctx| {
+        let s = arg.sinh();
+        let c = arg.cosh();
+        if c.is_zero() {
+          if ctx.calculation_mode.has_infinity_flag() {
+            Ok(Expr::from(InfiniteConstant::UndirInfinity))
+          } else {
+            ctx.errors.push(SimplifierError::division_by_zero("tanh"));
+            Err(arg)
+          }
+        } else {
+          Ok(Expr::from(s / c))
+        }
+      })
+    )
+    .add_case(
+      // Complex number case
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, ctx| {
+        let arg = ComplexNumber::from(arg);
+        let s = arg.sinh();
+        let c = arg.cosh();
+        if c.is_zero() {
+          if ctx.calculation_mode.has_infinity_flag() {
+            Ok(Expr::from(InfiniteConstant::UndirInfinity))
+          } else {
+            ctx.errors.push(SimplifierError::division_by_zero("tanh"));
+            // Note: If arg was real, then case 1 would have
+            // triggered, so we know arg was properly complex.
+            Err(ComplexLike::Complex(arg))
+          }
+        } else {
+          Ok(Expr::from(s / c))
+        }
+      })
+    )
+    .set_derivative(
+      builder::arity_one_deriv("tanh", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("*", vec![
+          arg_deriv,
+          Expr::call("^", vec![
+            Expr::call("sech", vec![arg]),
+            Expr::from(2),
+          ]),
+        ]))
+      })
+    )
+    .build()
+}
+
+pub fn secant_hyper() -> Function {
+  FunctionBuilder::new("sech")
+    .add_case(
+      // Complex number case (simplify to cos)
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
+        Ok(Expr::call("/", vec![
+          Expr::from(1),
+          Expr::call("cosh", vec![arg.into()]),
+        ]))
+      })
+    )
+    .set_derivative(
+      builder::arity_one_deriv("sech", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("*", vec![
+          Expr::from(-1),
+          arg_deriv,
+          Expr::call("sech", vec![arg.clone()]),
+          Expr::call("tanh", vec![arg]),
+        ]))
+      })
+    )
+    .build()
+}
+
+pub fn cosecant_hyper() -> Function {
+  FunctionBuilder::new("csch")
+    .add_case(
+      // Complex number case (simplify to sin)
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
+        Ok(Expr::call("/", vec![
+          Expr::from(1),
+          Expr::call("sinh", vec![arg.into()]),
+        ]))
+      })
+    )
+    .set_derivative(
+      builder::arity_one_deriv("csch", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("*", vec![
+          Expr::from(-1),
+          arg_deriv,
+          Expr::call("csch", vec![arg.clone()]),
+          Expr::call("coth", vec![arg]),
+        ]))
+      })
+    )
+    .build()
+}
+
+pub fn cotangent_hyper() -> Function {
+  FunctionBuilder::new("coth")
+    .add_case(
+      // Complex number case (simplify to tan)
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
+        Ok(Expr::call("/", vec![
+          Expr::from(1),
+          Expr::call("tanh", vec![arg.into()]),
+        ]))
+      })
+    )
+    .set_derivative(
+      builder::arity_one_deriv("coth", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("*", vec![
+          Expr::from(-1),
+          arg_deriv,
+          Expr::call("^", vec![
+            Expr::call("coth", vec![arg]),
+            Expr::from(2),
+          ]),
         ]))
       })
     )
