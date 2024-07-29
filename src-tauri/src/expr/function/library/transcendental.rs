@@ -714,5 +714,19 @@ pub fn arcsine() -> Function {
         Ok(Expr::from(arg.asin()))
       })
     )
+    .set_derivative(
+      builder::arity_one_deriv("coth", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("/", vec![
+          arg_deriv,
+          Expr::call("sqrt", vec![
+            Expr::call("-", vec![
+              Expr::from(1),
+              Expr::call("^", vec![arg, Expr::from(2)]),
+            ]),
+          ]),
+        ]))
+      })
+    )
     .build()
 }
