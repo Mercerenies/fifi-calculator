@@ -87,7 +87,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
     no_flags: UnaryFunctionCommand::named("cos"),
     hyper_flag: UnaryFunctionCommand::named("cosh"),
     inv_flag: UnaryFunctionCommand::named("acos"),
-    inv_hyper_flag: UnaryFunctionCommand::named("cosh"), // TODO
+    inv_hyper_flag: UnaryFunctionCommand::named("acosh"),
   })));
   map.insert("tan".to_string(), Box::new(dispatch_on_flags_command(FlagDispatchArgs {
     no_flags: UnaryFunctionCommand::named("tan"),
