@@ -43,6 +43,9 @@ pub fn append_transcendental_functions(table: &mut FunctionTable) {
   table.insert(arsine_hyper());
   table.insert(arcosine_hyper());
   table.insert(artangent_hyper());
+  table.insert(arsecant_hyper());
+  table.insert(arcosecant_hyper());
+  table.insert(arcotangent_hyper());
 }
 
 pub fn natural_log() -> Function {
@@ -1013,6 +1016,113 @@ pub fn artangent_hyper() -> Function {
     )
     .set_derivative(
        builder::arity_one_deriv("atanh", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("/", vec![
+          arg_deriv,
+          Expr::call("-", vec![
+            Expr::from(1),
+            Expr::call("^", vec![arg, Expr::from(2)]),
+          ]),
+        ]))
+      })
+    )
+    .build()
+}
+
+
+pub fn arsecant_hyper() -> Function {
+  FunctionBuilder::new("asech")
+    .add_case(
+      // Real / Complex number case
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, ctx| {
+        if arg.is_zero() {
+          ctx.errors.push(SimplifierError::division_by_zero("asech"));
+          Err(arg)
+        } else {
+          Ok(Expr::call("acosh", vec![
+            Expr::call("/", vec![Expr::from(1), arg.into()]),
+          ]))
+        }
+      })
+    )
+    .set_derivative(
+      builder::arity_one_deriv("asech", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("/", vec![
+          Expr::call("*", vec![Expr::from(-1), arg_deriv]),
+          Expr::call("*", vec![
+            Expr::call("^", vec![arg.clone(), Expr::from(2)]),
+            Expr::call("sqrt", vec![
+              Expr::call("-", vec![
+                Expr::call("^", vec![arg.clone(), Expr::from(-1)]),
+                Expr::from(1),
+              ]),
+              Expr::call("sqrt", vec![
+                Expr::call("+", vec![
+                  Expr::call("^", vec![arg, Expr::from(-1)]),
+                  Expr::from(1),
+                ]),
+              ]),
+            ]),
+          ]),
+        ]))
+      })
+    )
+    .build()
+}
+
+pub fn arcosecant_hyper() -> Function {
+  FunctionBuilder::new("acsch")
+    .add_case(
+      // Real / Complex number case
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, ctx| {
+        if arg.is_zero() {
+          ctx.errors.push(SimplifierError::division_by_zero("acsch"));
+          Err(arg)
+        } else {
+          Ok(Expr::call("asinh", vec![
+            Expr::call("/", vec![Expr::from(1), arg.into()]),
+          ]))
+        }
+      })
+    )
+    .set_derivative(
+      builder::arity_one_deriv("acsch", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("/", vec![
+          Expr::call("*", vec![Expr::from(-1), arg_deriv]),
+          Expr::call("*", vec![
+            Expr::call("^", vec![arg.clone(), Expr::from(2)]),
+            Expr::call("sqrt", vec![
+              Expr::call("+", vec![
+                Expr::from(1),
+                Expr::call("^", vec![arg, Expr::from(-2)]),
+              ]),
+            ]),
+          ]),
+        ]))
+      })
+    )
+    .build()
+}
+
+pub fn arcotangent_hyper() -> Function {
+  FunctionBuilder::new("acoth")
+    .add_case(
+      // Real / Complex number case
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, ctx| {
+        if arg.is_zero() {
+          ctx.errors.push(SimplifierError::division_by_zero("acoth"));
+          Err(arg)
+        } else {
+          Ok(Expr::call("atanh", vec![
+            Expr::call("/", vec![Expr::from(1), arg.into()]),
+          ]))
+        }
+      })
+    )
+    .set_derivative(
+      builder::arity_one_deriv("acoth", |arg, engine| {
         let arg_deriv = engine.differentiate(arg.clone())?;
         Ok(Expr::call("/", vec![
           arg_deriv,
