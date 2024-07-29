@@ -53,9 +53,14 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
     inv_flag: UnaryFunctionCommand::named("exp"),
     inv_hyper_flag: UnaryFunctionCommand::new(pow10),
   })));
-  map.insert("log".to_string(), Box::new(BinaryFunctionCommand::named("log")));
-  map.insert("log2".to_string(), Box::new(UnaryFunctionCommand::new(log2))); // Currently unused
-  map.insert("*i".to_string(), Box::new(UnaryFunctionCommand::new(times_i)));
+  map.insert("log".to_string(), Box::new(dispatch_on_inverse_command(
+    BinaryFunctionCommand::named("log"),
+    BinaryFunctionCommand::new(pow_flipped),
+  )));
+  map.insert("*i".to_string(), Box::new(dispatch_on_inverse_command(
+    UnaryFunctionCommand::new(times_i),
+    UnaryFunctionCommand::new(div_i),
+  )));
   map.insert("e^".to_string(), Box::new(dispatch_on_flags_command(FlagDispatchArgs {
     no_flags: UnaryFunctionCommand::named("exp"),
     hyper_flag: UnaryFunctionCommand::new(pow10),
@@ -159,8 +164,9 @@ fn pow10(expr: Expr) -> Expr {
   Expr::call("^", vec![Expr::from(10), expr])
 }
 
-fn log2(expr: Expr) -> Expr {
-  Expr::call("log", vec![expr, Expr::from(2)])
+fn pow_flipped(a: Expr, b: Expr) -> Expr {
+  // Note: Flipped argument order
+  Expr::call("^", vec![b, a])
 }
 
 fn nroot(a: Expr, b: Expr) -> Expr {
@@ -173,6 +179,11 @@ fn nroot(a: Expr, b: Expr) -> Expr {
 fn times_i(expr: Expr) -> Expr {
   let ii = ComplexNumber::ii();
   Expr::call("*", vec![expr, Expr::from(ii)])
+}
+
+fn div_i(expr: Expr) -> Expr {
+  let ii = ComplexNumber::ii();
+  Expr::call("/", vec![expr, Expr::from(ii)])
 }
 
 fn times_minus_one(expr: Expr) -> Expr {
