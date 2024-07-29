@@ -25,6 +25,8 @@ pub fn append_transcendental_functions(table: &mut FunctionTable) {
   table.insert(secant());
   table.insert(cosecant());
   table.insert(cotangent());
+  table.insert(sine_hyper());
+  table.insert(cosine_hyper());
 }
 
 pub fn natural_log() -> Function {
@@ -442,6 +444,48 @@ pub fn cotangent() -> Function {
             Expr::call("cot", vec![arg]),
             Expr::from(2),
           ]),
+        ]))
+      })
+    )
+    .build()
+}
+
+pub fn sine_hyper() -> Function {
+  FunctionBuilder::new("sinh")
+    .add_case(
+      // Real / Complex number case
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
+        let result = arg.map(|r| r.sinh(), |z| z.sinh());
+        Ok(result.into())
+      })
+    )
+    .set_derivative(
+      builder::arity_one_deriv("sinh", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("*", vec![
+          arg_deriv,
+          Expr::call("cosh", vec![arg]),
+        ]))
+      })
+    )
+    .build()
+}
+
+pub fn cosine_hyper() -> Function {
+  FunctionBuilder::new("cosh")
+    .add_case(
+      // Real / Complex number case
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
+        let result = arg.map(|r| r.cosh(), |z| z.cosh());
+        Ok(result.into())
+      })
+    )
+    .set_derivative(
+      builder::arity_one_deriv("cosh", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("*", vec![
+          arg_deriv,
+          Expr::call("sinh", vec![arg]),
         ]))
       })
     )

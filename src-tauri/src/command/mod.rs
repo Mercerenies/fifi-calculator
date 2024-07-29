@@ -71,8 +71,14 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("negate".to_string(), Box::new(UnaryFunctionCommand::new(times_minus_one)));
 
   // Trigonometry
-  map.insert("sin".to_string(), Box::new(UnaryFunctionCommand::named("sin")));
-  map.insert("cos".to_string(), Box::new(UnaryFunctionCommand::named("cos")));
+  map.insert("sin".to_string(), Box::new(dispatch_on_hyper_command(
+    UnaryFunctionCommand::named("sin"),
+    UnaryFunctionCommand::named("sinh"),
+  )));
+  map.insert("cos".to_string(), Box::new(dispatch_on_hyper_command(
+    UnaryFunctionCommand::named("cos"),
+    UnaryFunctionCommand::named("cosh"),
+  )));
   map.insert("tan".to_string(), Box::new(UnaryFunctionCommand::named("tan")));
 
   // Stack shuffling (no arguments)

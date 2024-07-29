@@ -177,6 +177,24 @@ impl ComplexNumber {
     self.sin() / self.cos()
   }
 
+  pub fn sinh(&self) -> ComplexNumber {
+    ComplexNumber::new(
+      self.real.sinh() * self.imag.cos(),
+      self.real.cosh() * self.imag.sin(),
+    )
+  }
+
+  pub fn cosh(&self) -> ComplexNumber {
+    ComplexNumber::new(
+      self.real.cosh() * self.imag.cos(),
+      self.real.sinh() * self.imag.sin(),
+    )
+  }
+
+  pub fn tanh(&self) -> ComplexNumber {
+    self.sinh() / self.cosh()
+  }
+
   // Complex inverse trig functions: http://scipp.ucsc.edu/~haber/archives/physics116A10/arc_10.pdf
 
   pub fn asin(&self) -> ComplexNumber {
