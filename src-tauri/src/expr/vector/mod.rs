@@ -1,4 +1,5 @@
 
+pub mod matrix;
 pub mod tensor;
 
 use super::Expr;
@@ -14,7 +15,7 @@ use std::ops::{Index, IndexMut};
 /// A `Vector` is often represented in the expression language as a
 /// call to the function called "vector", which is treated specially
 /// by many parts of the calculation engine.
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Vector {
   data: Vec<Expr>,
 }

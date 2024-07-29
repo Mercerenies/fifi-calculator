@@ -15,7 +15,7 @@ use either::Either;
 use std::ops::{Add, Sub, Mul, Div};
 
 /// A `Tensor` is an expression whose tensor rank is known at runtime.
-/// Currently, our system only supports scalars (rank 0) and vectors
+/// Currently, this system only supports scalars (rank 0) and vectors
 /// (rank 1), so a `Tensor` is either a value which is known to be a
 /// scalar quantity (such as a real or complex number) or a value
 /// which is literally a vector expression.

@@ -115,6 +115,12 @@ impl<T> Matrix<T> {
   }
 }
 
+impl<T> Default for Matrix<T> {
+  fn default() -> Self {
+    Matrix::empty()
+  }
+}
+
 impl<T> TryFrom<Vec<Vec<T>>> for Matrix<T> {
   type Error = MatrixDimsError;
 
