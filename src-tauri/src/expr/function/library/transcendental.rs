@@ -19,6 +19,7 @@ pub fn append_transcendental_functions(table: &mut FunctionTable) {
   table.insert(natural_log());
   table.insert(logarithm());
   table.insert(exponent());
+  table.insert(sqrt());
   table.insert(sine());
   table.insert(cosine());
   table.insert(tangent());
@@ -264,6 +265,70 @@ pub fn exponent() -> Function {
         Ok(Expr::call("*", vec![
           arg_deriv,
           Expr::call("exp", vec![arg]),
+        ]))
+      })
+    )
+    .build()
+}
+
+pub fn sqrt() -> Function {
+  // TODO Better results when we have polar complex numbers (see Issue #14)
+  FunctionBuilder::new("sqrt")
+    .add_case(
+      // Real number case
+      builder::arity_one().of_type(expr_to_number()).and_then(|arg, _| {
+        let power = pow_real(arg, Number::from(0.5));
+        Ok(Expr::from(power))
+      })
+    )
+    .add_case(
+      // Complex number case
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
+        let power = pow_complex(arg.into(), ComplexNumber::from_real(0.5));
+        Ok(Expr::from(power))
+      })
+    )
+    .add_case(
+      // Interval case
+      builder::arity_one().of_type(prisms::expr_to_unbounded_interval()).and_then(|arg, ctx| {
+        if arg.left < UnboundedNumber::zero() || arg.right < UnboundedNumber::zero() {
+          ctx.errors.push(SimplifierError::custom_error("sqrt", "Expected interval of positive reals"));
+          return Err(arg);
+        }
+        let arg = Interval::from(arg);
+        let value = arg.map_monotone(|x| {
+          match x {
+            UnboundedNumber::Infinite(SignedInfinity::PosInfinity) => UnboundedNumber::Infinite(SignedInfinity::PosInfinity),
+            UnboundedNumber::Infinite(SignedInfinity::NegInfinity) => unreachable!(),
+            UnboundedNumber::Finite(x) => {
+              // unwrap: Square root of a nonnegative number is always real.
+              UnboundedNumber::Finite(pow_real(x, Number::from(0.5)).unwrap_real())
+            }
+          }
+        });
+        Ok(Expr::from(value))
+      })
+    )
+    .add_case(
+      // Infinity case
+      builder::arity_one().of_type(prisms::ExprToInfinity).and_then(|arg, _| {
+        match arg {
+          InfiniteConstant::PosInfinity => Ok(Expr::from(InfiniteConstant::PosInfinity)),
+          InfiniteConstant::NegInfinity => Ok(Expr::call("*", vec![
+            ComplexNumber::ii().into(),
+            Expr::from(InfiniteConstant::PosInfinity),
+          ])),
+          InfiniteConstant::UndirInfinity => Ok(Expr::from(InfiniteConstant::UndirInfinity)),
+          InfiniteConstant::NotANumber => Ok(Expr::from(InfiniteConstant::NotANumber)),
+        }
+      })
+    )
+    .set_derivative(
+      builder::arity_one_deriv("sqrt", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("/", vec![
+          Expr::call("*", vec![Expr::from(Number::ratio(1, 2)), arg_deriv]),
+          Expr::call("sqrt", vec![arg]),
         ]))
       })
     )

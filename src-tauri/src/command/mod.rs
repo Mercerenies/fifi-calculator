@@ -68,6 +68,12 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
     inv_flag: UnaryFunctionCommand::named("ln"),
     inv_hyper_flag: UnaryFunctionCommand::new(log10),
   })));
+  map.insert("sqrt".to_string(), Box::new(dispatch_on_flags_command(FlagDispatchArgs {
+    no_flags: UnaryFunctionCommand::named("sqrt"),
+    hyper_flag: UnaryFunctionCommand::new(log2),
+    inv_flag: UnaryFunctionCommand::new(pow2),
+    inv_hyper_flag: UnaryFunctionCommand::new(pow2),
+  })));
   map.insert("negate".to_string(), Box::new(UnaryFunctionCommand::new(times_minus_one)));
 
   // Trigonometry
@@ -180,8 +186,16 @@ fn log10(expr: Expr) -> Expr {
   Expr::call("log", vec![expr, Expr::from(10)])
 }
 
+fn log2(expr: Expr) -> Expr {
+  Expr::call("log", vec![expr, Expr::from(2)])
+}
+
 fn pow10(expr: Expr) -> Expr {
   Expr::call("^", vec![Expr::from(10), expr])
+}
+
+fn pow2(expr: Expr) -> Expr {
+  Expr::call("^", vec![Expr::from(2), expr])
 }
 
 fn pow_flipped(a: Expr, b: Expr) -> Expr {
