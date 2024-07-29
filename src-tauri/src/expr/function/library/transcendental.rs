@@ -34,6 +34,7 @@ pub fn append_transcendental_functions(table: &mut FunctionTable) {
   table.insert(cotangent_hyper());
   table.insert(arcsine());
   table.insert(arccosine());
+  table.insert(arctangent());
 }
 
 pub fn natural_log() -> Function {
@@ -763,6 +764,41 @@ pub fn arccosine() -> Function {
               Expr::from(1),
               Expr::call("^", vec![arg, Expr::from(2)]),
             ]),
+          ]),
+        ]))
+      })
+    )
+    .build()
+}
+
+pub fn arctangent() -> Function {
+  FunctionBuilder::new("atan")
+    .add_case(
+      // Real number case
+      builder::arity_one().of_type(expr_to_number()).and_then(|arg, _| {
+        Ok(Expr::from(arg.atan()))
+      })
+    )
+    .add_case(
+      // Complex number case
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, ctx| {
+        let arg = ComplexNumber::from(arg);
+        if arg == ComplexNumber::new(0, 1) || arg == ComplexNumber::new(0, -1) {
+            ctx.errors.push(SimplifierError::division_by_zero("atan"));
+            Err(ComplexLike::Complex(arg))
+        } else {
+          Ok(Expr::from(arg.atan()))
+        }
+      })
+    )
+    .set_derivative(
+      builder::arity_one_deriv("atan", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("/", vec![
+          arg_deriv,
+          Expr::call("+", vec![
+            Expr::call("^", vec![arg, Expr::from(2)]),
+            Expr::from(1),
           ]),
         ]))
       })

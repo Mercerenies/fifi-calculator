@@ -89,10 +89,12 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
     inv_flag: UnaryFunctionCommand::named("acos"),
     inv_hyper_flag: UnaryFunctionCommand::named("cosh"), // TODO
   })));
-  map.insert("tan".to_string(), Box::new(dispatch_on_hyper_command(
-    UnaryFunctionCommand::named("tan"),
-    UnaryFunctionCommand::named("tanh"),
-  )));
+  map.insert("tan".to_string(), Box::new(dispatch_on_flags_command(FlagDispatchArgs {
+    no_flags: UnaryFunctionCommand::named("tan"),
+    hyper_flag: UnaryFunctionCommand::named("tanh"),
+    inv_flag: UnaryFunctionCommand::named("atan"),
+    inv_hyper_flag: UnaryFunctionCommand::named("tanh"), // TODO
+  })));
 
   // Stack shuffling (no arguments)
   map.insert("pop".to_string(), Box::new(shuffle::PopCommand));

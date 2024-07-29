@@ -205,6 +205,11 @@ impl ComplexNumber {
     - Self::ii() * (Self::ii() * (Self::one() - self * self).powf(0.5) + self).ln()
   }
 
+  pub fn atan(&self) -> ComplexNumber {
+    - Self::ii() / Self::from_real(2) *
+      ((Self::ii() - self) / (Self::ii() + self)).ln()
+  }
+
   // TODO: The other trig functions
 }
 
@@ -256,6 +261,14 @@ impl ops::Sub for ComplexNumber {
       real: self.real - other.real,
       imag: self.imag - other.imag,
     }
+  }
+}
+
+impl ops::Sub<&ComplexNumber> for ComplexNumber {
+  type Output = ComplexNumber;
+
+  fn sub(self, other: &ComplexNumber) -> ComplexNumber {
+    self - other.to_owned()
   }
 }
 
