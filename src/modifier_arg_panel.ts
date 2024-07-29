@@ -19,6 +19,7 @@ export class ModifierArgPanel {
     this.modifierArgumentsManager.modifiersChangedSignal.addListener(this.signalListener);
     for (const checkbox of this.getCheckboxes()) {
       checkbox.addEventListener("change", () => {
+        /* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */
         const checkboxArg = checkbox.dataset.modifierArg!;
         if (!(checkboxArg in this.modifierArgumentsManager.values)) {
           throw new Error("Unexpected checkbox arg: " + checkboxArg);
@@ -62,14 +63,6 @@ export class ModifierArgumentsManager {
     return this._keepModifier;
   }
 
-  get hyperbolicModifier(): boolean {
-    return this._hyperbolicModifier;
-  }
-
-  get inverseModifier(): boolean {
-    return this._inverseModifier;
-  }
-
   set keepModifier(keepModifier: boolean) {
     this._keepModifier = keepModifier;
     this.modifiersChangedSignal.emit({
@@ -78,12 +71,20 @@ export class ModifierArgumentsManager {
     });
   }
 
+  get hyperbolicModifier(): boolean {
+    return this._hyperbolicModifier;
+  }
+
   set hyperbolicModifier(hyperbolicModifier: boolean) {
     this._hyperbolicModifier = hyperbolicModifier;
     this.modifiersChangedSignal.emit({
       type: "modifiers-changed",
       newModifierValues: this.values,
     });
+  }
+
+  get inverseModifier(): boolean {
+    return this._inverseModifier;
   }
 
   set inverseModifier(inverseModifier: boolean) {
