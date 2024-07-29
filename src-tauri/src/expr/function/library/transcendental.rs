@@ -33,6 +33,7 @@ pub fn append_transcendental_functions(table: &mut FunctionTable) {
   table.insert(cosecant_hyper());
   table.insert(cotangent_hyper());
   table.insert(arcsine());
+  table.insert(arccosine());
 }
 
 pub fn natural_log() -> Function {
@@ -715,10 +716,48 @@ pub fn arcsine() -> Function {
       })
     )
     .set_derivative(
-      builder::arity_one_deriv("coth", |arg, engine| {
+      builder::arity_one_deriv("asin", |arg, engine| {
         let arg_deriv = engine.differentiate(arg.clone())?;
         Ok(Expr::call("/", vec![
           arg_deriv,
+          Expr::call("sqrt", vec![
+            Expr::call("-", vec![
+              Expr::from(1),
+              Expr::call("^", vec![arg, Expr::from(2)]),
+            ]),
+          ]),
+        ]))
+      })
+    )
+    .build()
+}
+
+pub fn arccosine() -> Function {
+  FunctionBuilder::new("acos")
+    .add_case(
+      // Real number case
+      builder::arity_one().of_type(expr_to_number()).and_then(|arg, _| {
+        if (Number::from(-1)..=Number::from(1)).contains(&arg) {
+          Ok(Expr::from(arg.acos()))
+        } else {
+          // Result is complex, so use complex acos
+          let arg = ComplexNumber::from_real(arg);
+          Ok(Expr::from(arg.acos()))
+        }
+      })
+    )
+    .add_case(
+      // Complex number case
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
+        let arg = ComplexNumber::from(arg);
+        Ok(Expr::from(arg.acos()))
+      })
+    )
+    .set_derivative(
+      builder::arity_one_deriv("acos", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("/", vec![
+          Expr::call("*", vec![Expr::from(-1), arg_deriv]),
           Expr::call("sqrt", vec![
             Expr::call("-", vec![
               Expr::from(1),

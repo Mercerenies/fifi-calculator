@@ -198,10 +198,11 @@ impl ComplexNumber {
   // Complex inverse trig functions: http://scipp.ucsc.edu/~haber/archives/physics116A10/arc_10.pdf
 
   pub fn asin(&self) -> ComplexNumber {
-    //let arg = (ComplexNumber::one() - self * self).angle() / 2.0;
-    //let abs_sqrt = (ComplexNumber::one() - self * self).abs().powf(0.5);
-    //(Self::ii() * self.clone() + Self::from_polar_inexact(abs_sqrt, arg)).ln() / Self::ii()
     Self::ii() * ((Self::one() - self * self).powf(0.5) - &Self::ii() * self).ln()
+  }
+
+  pub fn acos(&self) -> ComplexNumber {
+    - Self::ii() * (Self::ii() * (Self::one() - self * self).powf(0.5) + self).ln()
   }
 
   // TODO: The other trig functions
@@ -236,6 +237,14 @@ impl ops::Add for &ComplexNumber {
 
   fn add(self, other: &ComplexNumber) -> ComplexNumber {
     self.to_owned() + other.to_owned()
+  }
+}
+
+impl ops::Add<&ComplexNumber> for ComplexNumber {
+  type Output = ComplexNumber;
+
+  fn add(self, other: &ComplexNumber) -> ComplexNumber {
+    self + other.to_owned()
   }
 }
 
