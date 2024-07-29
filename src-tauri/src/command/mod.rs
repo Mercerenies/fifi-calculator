@@ -20,7 +20,8 @@ pub mod vector;
 pub use base::{Command, CommandContext, CommandOutput};
 use functional::{PushConstantCommand, UnaryFunctionCommand, BinaryFunctionCommand};
 use dispatch::CommandDispatchTable;
-use flag_dispatch::{FlagDispatchArgs, dispatch_on_flags_command, dispatch_on_inverse_command};
+use flag_dispatch::{FlagDispatchArgs, dispatch_on_flags_command,
+                    dispatch_on_inverse_command, dispatch_on_hyper_command};
 use crate::expr::Expr;
 use crate::expr::number::ComplexNumber;
 use crate::expr::algebra::infinity::InfiniteConstant;
@@ -104,8 +105,16 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("repeat".to_string(), Box::new(vector::RepeatCommand::new()));
   map.insert("vconcat".to_string(), Box::new(BinaryFunctionCommand::named("vconcat")));
   map.insert("iota".to_string(), Box::new(UnaryFunctionCommand::named("iota")));
-  map.insert("head".to_string(), Box::new(UnaryFunctionCommand::named("head")));
-  map.insert("cons".to_string(), Box::new(BinaryFunctionCommand::named("cons").assoc_right()));
+  map.insert("head".to_string(), Box::new(dispatch_on_flags_command(FlagDispatchArgs {
+    no_flags: UnaryFunctionCommand::named("head"),
+    hyper_flag: UnaryFunctionCommand::named("last"),
+    inv_flag: UnaryFunctionCommand::named("tail"),
+    inv_hyper_flag: UnaryFunctionCommand::named("init"),
+  })));
+  map.insert("cons".to_string(), Box::new(dispatch_on_hyper_command(
+    BinaryFunctionCommand::named("cons").assoc_right(),
+    BinaryFunctionCommand::named("snoc"),
+  )));
   map.insert("abs".to_string(), Box::new(UnaryFunctionCommand::named("abs")));
   map.insert("signum".to_string(), Box::new(UnaryFunctionCommand::named("signum")));
   map.insert("conj".to_string(), Box::new(UnaryFunctionCommand::named("conj")));
