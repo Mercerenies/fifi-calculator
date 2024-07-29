@@ -118,6 +118,10 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("neg_infinity".to_string(), Box::new(PushConstantCommand::new(InfiniteConstant::NegInfinity)));
   map.insert("undir_infinity".to_string(), Box::new(PushConstantCommand::new(InfiniteConstant::UndirInfinity)));
   map.insert("nan_infinity".to_string(), Box::new(PushConstantCommand::new(InfiniteConstant::NotANumber)));
+  map.insert("pi".to_string(), Box::new(PushConstantCommand::new(Expr::var("pi").unwrap())));
+  map.insert("gamma".to_string(), Box::new(PushConstantCommand::new(Expr::var("gamma").unwrap())));
+  map.insert("e".to_string(), Box::new(PushConstantCommand::new(Expr::var("e").unwrap())));
+  map.insert("phi".to_string(), Box::new(PushConstantCommand::new(Expr::var("phi").unwrap())));
 
   // Other nullary
   map.insert("substitute_vars".to_string(), Box::new(UnaryFunctionCommand::with_state(substitute_vars)));

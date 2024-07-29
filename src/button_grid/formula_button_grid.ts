@@ -44,6 +44,10 @@ export class FormulaButtonGrid extends ButtonGrid {
       ],
       [
         backButton(this.rootGrid),
+        new DispatchButton("π", "pi", null),
+        new DispatchButton("e", "e", null),
+        new DispatchButton("γ", "gamma", null),
+        new DispatchButton("ϕ", "phi", null),
       ],
     ];
   }
