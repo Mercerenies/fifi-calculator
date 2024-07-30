@@ -30,11 +30,11 @@ export class RightPanelManager {
       this.modifierArgManager.delegate,
     ]);
 
-    this.buttonGrid = new ButtonGridManager(
-      args.buttonGrid,
-      args.initialGrid,
+    this.buttonGrid = new ButtonGridManager({
+      domElement: args.buttonGrid,
+      initialGrid: args.initialGrid,
       modifierDelegate,
-    );
+    });
     this.prefixArgDisplay = new PrefixArgumentDisplay(
       args.prefixPanel,
       this.prefixArgStateMachine,

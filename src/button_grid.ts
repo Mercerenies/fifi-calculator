@@ -20,12 +20,12 @@ export class ButtonGridManager {
   private activeGrid: ButtonGrid;
   private modifierDelegate: ModifierDelegate;
 
-  constructor(domElement: HTMLElement, initialGrid: ButtonGrid, modifierDelegate: ModifierDelegate) {
-    this.domElement = domElement;
-    this.rootGrid = initialGrid;
-    this.activeGrid = initialGrid;
-    this.modifierDelegate = modifierDelegate;
-    this.setActiveGrid(initialGrid); // Initialize the grid
+  constructor(args: ButtonGridManagerArgs) {
+    this.domElement = args.domElement;
+    this.rootGrid = args.initialGrid;
+    this.activeGrid = args.initialGrid;
+    this.modifierDelegate = args.modifierDelegate;
+    this.setActiveGrid(args.initialGrid); // Initialize the grid
   }
 
   initListeners(): void {
@@ -90,6 +90,12 @@ export class ButtonGridManager {
       return await this.activeGrid.onUnhandledKey(input, this);
     }
   }
+}
+
+export interface ButtonGridManagerArgs {
+  domElement: HTMLElement;
+  initialGrid: ButtonGrid;
+  modifierDelegate: ModifierDelegate;
 }
 
 export abstract class ButtonGrid {
