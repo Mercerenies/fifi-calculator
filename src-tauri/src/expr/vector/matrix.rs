@@ -2,7 +2,7 @@
 use crate::util::prism::{Prism, ErrorWithPayload, Identity};
 use crate::expr::Expr;
 use crate::expr::prisms::expr_to_typed_vector;
-use crate::util::matrix::{Matrix as UtilMatrix, MatrixIndex, MatrixDimsError};
+use crate::util::matrix::{Matrix as UtilMatrix, MatrixIndex, MatrixDimsError, Column, ColumnMut};
 use super::Vector;
 
 /// A `Matrix` is a vector of vectors of expressions, where each
@@ -68,6 +68,18 @@ impl Matrix {
     self.data.row(index)
   }
 
+  pub fn row_mut(&mut self, index: usize) -> Option<&mut [Expr]> {
+    self.data.row_mut(index)
+  }
+
+  pub fn column(&self, index: usize) -> Option<Column<'_, Expr>> {
+    self.data.column(index)
+  }
+
+  pub fn column_mut(&mut self, index: usize) -> Option<ColumnMut<'_, Expr>> {
+    self.data.column_mut(index)
+  }
+
   pub fn get(&self, index: MatrixIndex) -> Option<&Expr> {
     self.data.get(index)
   }
@@ -94,6 +106,14 @@ impl Matrix {
 
   pub fn height(&self) -> usize {
     self.data.height()
+  }
+
+  pub fn as_matrix(&self) -> &UtilMatrix<Expr> {
+    &self.data
+  }
+
+  pub fn as_matrix_mut(&mut self) -> &mut UtilMatrix<Expr> {
+    &mut self.data
   }
 }
 

@@ -98,6 +98,13 @@ impl<T> Matrix<T> {
     self.body.get_mut(index).map(|row| row.as_mut_slice())
   }
 
+  pub fn remove_row(&mut self, index: usize) -> Option<Vec<T>> {
+    if index >= self.height() {
+      return None;
+    }
+    Some(self.body.remove(index))
+  }
+
   pub fn column(&self, index: usize) -> Option<Column<'_, T>> {
     if index < self.width() {
       Some(Column { matrix: self, column_index: index })
@@ -112,6 +119,17 @@ impl<T> Matrix<T> {
     } else {
       None
     }
+  }
+
+  pub fn remove_column(&mut self, index: usize) -> Option<Vec<T>> {
+    if index >= self.width() {
+      return None;
+    }
+    Some(
+      self.body.iter_mut()
+        .map(|row| row.remove(index))
+        .collect()
+    )
   }
 
   pub fn get(&self, index: MatrixIndex) -> Option<&T> {
@@ -324,6 +342,35 @@ mod tests {
       vec![1, 2, 3],
       vec![4, 5, 6],
       vec![7, 99, 9],
+    ]);
+  }
+
+  #[test]
+  fn test_remove_row() {
+    let mut matrix = Matrix::new(vec![
+      vec![1, 2, 3],
+      vec![4, 5, 6],
+      vec![7, 8, 9],
+    ]).unwrap();
+    assert_eq!(matrix.remove_row(0), Some(vec![1, 2, 3]));
+    assert_eq!(matrix.into_row_major(), vec![
+      vec![4, 5, 6],
+      vec![7, 8, 9],
+    ]);
+  }
+
+  #[test]
+  fn test_remove_column() {
+    let mut matrix = Matrix::new(vec![
+      vec![1, 2, 3],
+      vec![4, 5, 6],
+      vec![7, 8, 9],
+    ]).unwrap();
+    assert_eq!(matrix.remove_column(0), Some(vec![1, 4, 7]));
+    assert_eq!(matrix.into_row_major(), vec![
+      vec![2, 3],
+      vec![5, 6],
+      vec![8, 9],
     ]);
   }
 }
