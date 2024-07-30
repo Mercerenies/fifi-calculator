@@ -239,6 +239,14 @@ pub fn remove_nth_element_command() -> IndexedVectorCommand {
   IndexedVectorCommand::for_function("remove_nth")
 }
 
+pub fn nth_column_command() -> IndexedVectorCommand {
+  IndexedVectorCommand::for_function("nth_column")
+}
+
+pub fn remove_nth_column_command() -> IndexedVectorCommand {
+  IndexedVectorCommand::for_function("remove_nth_column")
+}
+
 impl Command for PackCommand {
   fn run_command(
     &self,

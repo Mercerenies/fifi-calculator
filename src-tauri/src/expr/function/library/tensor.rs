@@ -26,6 +26,8 @@ pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(snoc());
   table.insert(nth());
   table.insert(remove_nth());
+  table.insert(nth_column());
+  table.insert(remove_nth_column());
 }
 
 fn is_empty_vector(expr: &Expr) -> bool {
@@ -228,6 +230,61 @@ pub fn remove_nth() -> Function {
         } else {
           ctx.errors.push(SimplifierError::custom_error("nth", "Index out of bounds"));
           Err((vec, index))
+        }
+      })
+    )
+    .build()
+}
+
+pub fn nth_column() -> Function {
+  FunctionBuilder::new("nth_column")
+    .add_case(
+      builder::arity_two().of_types(prisms::ExprToMatrix, prisms::expr_to_i64()).and_then(|mat, index, ctx| {
+        let unsigned_index =
+          if index < - (mat.width() as i64) {
+            ctx.errors.push(SimplifierError::custom_error("nth_column", "Index out of bounds"));
+            return Err((mat, index));
+          } else if index < 0 {
+            mat.width() - (-index) as usize
+          } else {
+            index as usize
+          };
+        match mat.column(unsigned_index) {
+          Some(column) => {
+            let vec = Vector::from(column.to_owned());
+            Ok(Expr::from(vec))
+          }
+          None => {
+            ctx.errors.push(SimplifierError::custom_error("nth_column", "Index out of bounds"));
+            Err((mat, index))
+          }
+        }
+      })
+    )
+    .build()
+}
+
+pub fn remove_nth_column() -> Function {
+  FunctionBuilder::new("remove_nth_column")
+    .add_case(
+      builder::arity_two().of_types(prisms::ExprToMatrix, prisms::expr_to_i64()).and_then(|mut mat, index, ctx| {
+        let unsigned_index =
+          if index < - (mat.width() as i64) {
+            ctx.errors.push(SimplifierError::custom_error("remove_nth_column", "Index out of bounds"));
+            return Err((mat, index));
+          } else if index < 0 {
+            mat.width() - (-index) as usize
+          } else {
+            index as usize
+          };
+        match mat.as_matrix_mut().remove_column(unsigned_index) {
+          Some(_) => {
+            Ok(Expr::from(mat))
+          }
+          None => {
+            ctx.errors.push(SimplifierError::custom_error("remove_nth_column", "Index out of bounds"));
+            Err((mat, index))
+          }
         }
       })
     )
