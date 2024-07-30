@@ -64,6 +64,7 @@ export enum UndoDirection {
 export enum Validator {
   VARIABLE = "variable",
   RADIX = "radix",
+  USIZE = "usize",
   ALL_UNITS = "all_units",
   HAS_UNITS = "has_units",
   IS_TEMPERATURE_UNIT = "is_temperature_unit",

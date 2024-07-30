@@ -8,6 +8,7 @@ use crate::expr::var::Var;
 use crate::expr::number::Number;
 use crate::expr::units::parse_composite_unit_expr;
 use crate::expr::algebra::term::{Term, TermParser};
+use crate::expr::prisms::StringToUsize;
 use crate::units::parsing::UnitParser;
 use crate::units::{Unit, CompositeUnit};
 use crate::units::tagged::{Tagged, TemperatureTagged, try_into_basic_temperature_unit};
@@ -28,6 +29,8 @@ pub enum Validator {
   /// Validator that checks whether its input is a positive integer
   /// which corresponds to a valid display radix.
   Radix,
+  /// Validator which accepts nonnegative integers.
+  Usize,
   /// Validator that only accepts expressions which can be fully
   /// parsed as a unit expression. Delegates to
   /// [`validate_is_all_units`].
@@ -59,6 +62,7 @@ pub fn validate(validator: Validator, context: &ValidationContext, payload: Stri
   match validator {
     Validator::Variable => validate_var(payload).map(|_| ()),
     Validator::Radix => validate_radix(payload).map(|_| ()),
+    Validator::Usize => validate_usize(payload).map(|_| ()),
     Validator::AllUnits => validate_is_all_units(context, &payload).map(|_| ()),
     Validator::HasUnits => validate_has_some_units(context, &payload).map(|_| ()),
     Validator::IsTemperatureUnit => validate_is_temperature_unit(context, &payload).map(|_| ()),
@@ -76,6 +80,13 @@ pub fn validate_var(name: String) -> Result<Var, anyhow::Error> {
 pub fn validate_radix(payload: String) -> Result<Radix, anyhow::Error> {
   StringToRadix.narrow_type(payload)
     .map_err(|_| anyhow::anyhow!("Validation failed: invalid radix"))
+}
+
+pub fn validate_usize(payload: String) -> Result<usize, anyhow::Error> {
+  match StringToUsize.narrow_type(payload) {
+    Err(_) => Err(anyhow::anyhow!("Validation failed: invalid integer")),
+    Ok(value) => Ok(usize::from(value)),
+  }
 }
 
 /// Validates that the string is a valid expression which consists

@@ -2,7 +2,7 @@
 //! Commands which operate on composite data structures, such as
 //! vectors, to create or destructure them.
 
-use super::arguments::{NullaryArgumentSchema, validate_schema};
+use super::arguments::{NullaryArgumentSchema, UnaryArgumentSchema, validate_schema};
 use super::base::{Command, CommandContext, CommandOutput};
 use crate::util;
 use crate::util::prism::Prism;
@@ -78,6 +78,14 @@ pub struct RepeatCommand {
 /// across the diagonal.
 #[derive(Debug, Default)]
 pub struct DiagonalCommand {
+  _priv: (),
+}
+
+/// `IdentityMatrixCommand` constructs the identity matrix and pushes
+/// it onto the stack. Expects a single nonnegative integer argument
+/// specifying both the width and height of the resulting matrix.
+#[derive(Debug, Default)]
+pub struct IdentityMatrixCommand {
   _priv: (),
 }
 
@@ -171,6 +179,19 @@ impl RepeatCommand {
 impl DiagonalCommand {
   pub fn new() -> Self {
     Self::default()
+  }
+}
+
+impl IdentityMatrixCommand {
+  pub fn new() -> Self {
+    Self::default()
+  }
+
+  fn argument_schema() -> UnaryArgumentSchema<prisms::StringToUsize, prisms::ParsedUsize> {
+    UnaryArgumentSchema::new(
+      "nonnegative integer".to_string(),
+      prisms::StringToUsize,
+    )
   }
 }
 
@@ -330,6 +351,29 @@ impl Command for DiagonalCommand {
     let expr = Expr::from(Matrix::diagonal(elems_vector));
     let expr = context.simplify_expr(expr, calculation_mode, &mut errors);
     stack.push(expr);
+    Ok(CommandOutput::from_errors(errors))
+  }
+}
+
+impl Command for IdentityMatrixCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    context: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    let matrix_dim = validate_schema(&Self::argument_schema(), args)?;
+    let matrix_dim = usize::from(matrix_dim);
+    state.undo_stack_mut().push_cut();
+
+    let calculation_mode = state.calculation_mode().clone();
+    let mut errors = ErrorList::new();
+    let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
+
+    let elems: Vec<_> = util::repeated(Expr::one(), matrix_dim);
+    let identity_matrix = Expr::from(Matrix::diagonal(elems));
+    let identity_matrix = context.simplify_expr(identity_matrix, calculation_mode, &mut errors);
+    stack.push(identity_matrix);
     Ok(CommandOutput::from_errors(errors))
   }
 }

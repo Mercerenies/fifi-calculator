@@ -1,7 +1,9 @@
 
-import { ButtonGrid, GridCell } from "../button_grid.js";
-import { backButton, DispatchButton } from './button.js';
+import { ButtonGridManager, ButtonGrid, GridCell } from "../button_grid.js";
+import { Button, backButton, DispatchButton } from './button.js';
 import { InputBoxManager } from '../input_box.js';
+import { FreeformInputMethod } from '../input_box/freeform_input.js';
+import { TAURI, Validator } from '../tauri_api.js';
 
 export class VectorButtonGrid extends ButtonGrid {
   readonly rows: readonly (readonly GridCell[])[];
@@ -31,6 +33,7 @@ export class VectorButtonGrid extends ButtonGrid {
       ],
       [
         new DispatchButton("↘", "diag", "d"),
+        new IdentityMatrixButton(this.inputManager),
       ],
       [
         new DispatchButton("[", "incomplete[", "["),
@@ -45,4 +48,52 @@ export class VectorButtonGrid extends ButtonGrid {
       ],
     ];
   }
+}
+
+// If given a numerical argument, uses that as the sole argument.
+// Otherwise, prompts for a nonnegative integer.
+export class IdentityMatrixButton extends Button {
+  readonly commandName: string = "identity_matrix";
+  private inputManager: InputBoxManager;
+
+  constructor(inputManager: InputBoxManager) {
+    super("<math><msub><mi>I</mi><mi>n</mi></msub></math>", "i");
+    this.inputManager = inputManager;
+  }
+
+  async fire(manager: ButtonGridManager): Promise<void> {
+    // Fire-and-forget a new promise that gets user input, so we don't
+    // hold up the existing input.
+    this.readAndRun(manager);
+  }
+
+  private async readAndRun(manager: ButtonGridManager): Promise<void> {
+    try {
+      let numericalArg = manager.getModifiers().prefixArgument ?? null;
+      if (numericalArg === null) {
+        numericalArg = await readUsize(this.inputManager);
+        if (numericalArg === null) {
+          return;
+        }
+      }
+
+      // Ensure the numerical argument (if provided) is nonnegative.
+      numericalArg = Math.abs(numericalArg);
+
+      await manager.invokeMathCommand(this.commandName, [String(numericalArg)]);
+    } finally {
+      manager.resetState();
+    }
+  }
+}
+
+async function readUsize(inputManager: InputBoxManager): Promise<number | null> {
+  const value = await inputManager.show(new FreeformInputMethod("Dims:"));
+  if (!value) {
+    return null;
+  }
+  if (!await TAURI.validateValue(value, Validator.USIZE)) {
+    return null;
+  }
+  return Number(value);
 }

@@ -62,7 +62,7 @@ export class VariableSubstituteButton extends Button {
       if (!variableName) {
         return;
       }
-      const newValue = await this.inputManager.show(new FreeformInputMethod("Subst"));
+      const newValue = await this.inputManager.show(new FreeformInputMethod("Subst:"));
       if (!newValue) {
         return;
       }
