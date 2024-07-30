@@ -34,6 +34,7 @@ export class RightPanelManager {
       domElement: args.buttonGrid,
       initialGrid: args.initialGrid,
       modifierDelegate,
+      inputManager: args.uiManager.inputManager,
     });
     this.prefixArgDisplay = new PrefixArgumentDisplay(
       args.prefixPanel,

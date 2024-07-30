@@ -5,6 +5,7 @@
 import { KeyEventInput, KeyResponse } from './keyboard.js';
 import { ModifierDelegate, ButtonModifiers, modifiersToRustArgs } from './button_grid/modifier_delegate.js';
 import { TAURI } from './tauri_api.js';
+import { InputBoxManager } from './input_box.js';
 
 // NOTE: This should be kept up to date with the .button-grid class in
 // styles.css. If that value gets updated, update this as well!
@@ -20,11 +21,14 @@ export class ButtonGridManager {
   private activeGrid: ButtonGrid;
   private modifierDelegate: ModifierDelegate;
 
+  readonly inputManager: InputBoxManager;
+
   constructor(args: ButtonGridManagerArgs) {
     this.domElement = args.domElement;
     this.rootGrid = args.initialGrid;
     this.activeGrid = args.initialGrid;
     this.modifierDelegate = args.modifierDelegate;
+    this.inputManager = args.inputManager;
     this.setActiveGrid(args.initialGrid); // Initialize the grid
   }
 
@@ -96,6 +100,7 @@ export interface ButtonGridManagerArgs {
   domElement: HTMLElement;
   initialGrid: ButtonGrid;
   modifierDelegate: ModifierDelegate;
+  inputManager: InputBoxManager;
 }
 
 export abstract class ButtonGrid {
