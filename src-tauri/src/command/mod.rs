@@ -172,7 +172,10 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
 
   // Vector commands
   map.insert("identity_matrix".to_string(), Box::new(vector::IdentityMatrixCommand::new()));
-  map.insert("nth".to_string(), Box::new(vector::NthElemCommand::new()));
+  map.insert("nth".to_string(), Box::new(dispatch_on_hyper_command(
+    vector::nth_element_command(),
+    vector::remove_nth_element_command(),
+  )));
 
   // Commands which accept a single string.
   map.insert("push_number".to_string(), Box::new(input::push_number_command()));

@@ -89,15 +89,15 @@ pub struct IdentityMatrixCommand {
   _priv: (),
 }
 
-/// `NthElemCommand` expects a single nonnegative integer argument.
-/// Pops a vector off the stack and pushes the Nth element of the
-/// vector, where N is the argument. The index is 0-based, and
-/// negative indices count from the back of the vector.
+/// An `IndexedVectorCommand` expects a single integer argument. It
+/// pops one element off the stack, which should generally be a
+/// vector, and pushes a call to `self.function_name` with two
+/// arguments: the popped element and the integer argument.
 ///
 /// Respects the "keep" modifier.
-#[derive(Debug, Default)]
-pub struct NthElemCommand {
-  _priv: (),
+#[derive(Debug)]
+pub struct IndexedVectorCommand {
+  function_name: String,
 }
 
 /// `VectorFromIncompleteObjectCommand` pops stack elements until it finds
@@ -206,9 +206,9 @@ impl IdentityMatrixCommand {
   }
 }
 
-impl NthElemCommand {
-  pub fn new() -> Self {
-    Self::default()
+impl IndexedVectorCommand {
+  pub fn for_function(name: impl Into<String>) -> Self {
+    Self { function_name: name.into() }
   }
 
   fn argument_schema() -> UnaryArgumentSchema<prisms::StringToI64, prisms::ParsedI64> {
@@ -229,6 +229,14 @@ impl ComplexFromIncompleteObjectCommand {
   pub fn new() -> Self {
     Self::default()
   }
+}
+
+pub fn nth_element_command() -> IndexedVectorCommand {
+  IndexedVectorCommand::for_function("nth")
+}
+
+pub fn remove_nth_element_command() -> IndexedVectorCommand {
+  IndexedVectorCommand::for_function("remove_nth")
 }
 
 impl Command for PackCommand {
@@ -402,7 +410,7 @@ impl Command for IdentityMatrixCommand {
   }
 }
 
-impl Command for NthElemCommand {
+impl Command for IndexedVectorCommand {
   fn run_command(
     &self,
     state: &mut ApplicationState,
@@ -418,7 +426,7 @@ impl Command for NthElemCommand {
     let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
 
     let vec = stack.pop()?;
-    let expr = Expr::call("nth", vec![vec, Expr::from(index)]);
+    let expr = Expr::call(&self.function_name, vec![vec, Expr::from(index)]);
     let expr = context.simplify_expr(expr, calculation_mode, &mut errors);
     stack.push(expr);
     Ok(CommandOutput::from_errors(errors))
