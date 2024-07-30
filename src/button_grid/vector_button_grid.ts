@@ -9,12 +9,10 @@ export class VectorButtonGrid extends ButtonGrid {
   readonly rows: readonly (readonly GridCell[])[];
 
   private rootGrid: ButtonGrid;
-  private inputManager: InputBoxManager;
 
-  constructor(rootGrid: ButtonGrid, inputManager: InputBoxManager) {
+  constructor(rootGrid: ButtonGrid) {
     super();
     this.rootGrid = rootGrid;
-    this.inputManager = inputManager;
     this.rows = this.initRows();
   }
 
@@ -30,11 +28,11 @@ export class VectorButtonGrid extends ButtonGrid {
         new DispatchButton("++", "vconcat", "|"),
         new DispatchButton("::", "cons", "k"),
         new DispatchButton("1<sup>st</sup>", "head", "h"),
-        new GetNthButton(this.inputManager),
+        new GetNthButton(),
       ],
       [
         new DispatchButton("↘", "diag", "d"),
-        new IdentityMatrixButton(this.inputManager),
+        new IdentityMatrixButton(),
       ],
       [
         new DispatchButton("[", "incomplete[", "["),
@@ -55,11 +53,9 @@ export class VectorButtonGrid extends ButtonGrid {
 // Otherwise, prompts for a nonnegative integer.
 export class IdentityMatrixButton extends Button {
   readonly commandName: string = "identity_matrix";
-  private inputManager: InputBoxManager;
 
-  constructor(inputManager: InputBoxManager) {
+  constructor() {
     super("<math><msub><mi>I</mi><mi>n</mi></msub></math>", "i");
-    this.inputManager = inputManager;
   }
 
   async fire(manager: ButtonGridManager): Promise<void> {
@@ -72,7 +68,7 @@ export class IdentityMatrixButton extends Button {
     try {
       let numericalArg = manager.getModifiers().prefixArgument ?? null;
       if (numericalArg === null) {
-        numericalArg = await readUsize(this.inputManager);
+        numericalArg = await readUsize(manager.inputManager);
         if (numericalArg === null) {
           return;
         }
@@ -92,11 +88,9 @@ export class IdentityMatrixButton extends Button {
 // Otherwise, prompts for a nonnegative integer.
 export class GetNthButton extends Button {
   readonly commandName: string = "nth";
-  private inputManager: InputBoxManager;
 
-  constructor(inputManager: InputBoxManager) {
+  constructor() {
     super("n<sup>th</sup>", "r");
-    this.inputManager = inputManager;
   }
 
   async fire(manager: ButtonGridManager): Promise<void> {
@@ -109,7 +103,7 @@ export class GetNthButton extends Button {
     try {
       let numericalArg = manager.getModifiers().prefixArgument ?? null;
       if (numericalArg === null) {
-        numericalArg = await readI64(this.inputManager);
+        numericalArg = await readI64(manager.inputManager);
         if (numericalArg === null) {
           return;
         }

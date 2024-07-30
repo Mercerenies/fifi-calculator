@@ -3,30 +3,27 @@ import { ButtonGridManager, ButtonGrid, GridCell } from "../button_grid.js";
 import { backButton, Button } from './button.js';
 import { variableNameInput } from '../input_box/algebraic_input.js';
 import { FreeformInputMethod } from '../input_box/freeform_input.js';
-import { InputBoxManager } from '../input_box.js';
 import { TAURI } from '../tauri_api.js';
 
 export class AlgebraButtonGrid extends ButtonGrid {
   readonly rows: readonly (readonly GridCell[])[];
 
   private rootGrid: ButtonGrid;
-  private inputManager: InputBoxManager;
 
-  constructor(rootGrid: ButtonGrid, inputManager: InputBoxManager) {
+  constructor(rootGrid: ButtonGrid) {
     super();
     this.rootGrid = rootGrid;
-    this.inputManager = inputManager;
     this.rows = this.initRows();
   }
 
   private initRows(): GridCell[][] {
     return [
       [
-        new VariableSubstituteButton(this.inputManager),
+        new VariableSubstituteButton(),
       ],
       [
-        new FindRootButton(this.inputManager),
-        new DerivativeButton(this.inputManager),
+        new FindRootButton(),
+        new DerivativeButton(),
       ],
       [],
       [],
@@ -39,11 +36,8 @@ export class AlgebraButtonGrid extends ButtonGrid {
 }
 
 export class VariableSubstituteButton extends Button {
-  private inputManager: InputBoxManager;
-
-  constructor(inputManager: InputBoxManager) {
+  constructor() {
     super("/.", "b");
-    this.inputManager = inputManager;
   }
 
   async fire(manager: ButtonGridManager): Promise<void> {
@@ -58,11 +52,11 @@ export class VariableSubstituteButton extends Button {
       if (!isValid) {
         return;
       }
-      const variableName = await variableNameInput(this.inputManager);
+      const variableName = await variableNameInput(manager.inputManager);
       if (!variableName) {
         return;
       }
-      const newValue = await this.inputManager.show(new FreeformInputMethod("Subst:"));
+      const newValue = await manager.inputManager.show(new FreeformInputMethod("Subst:"));
       if (!newValue) {
         return;
       }
@@ -76,11 +70,9 @@ export class VariableSubstituteButton extends Button {
 // TODO: Common superclass for buttons which expect one variable as
 // input and call a command with it.
 export class FindRootButton extends Button {
-  private inputManager: InputBoxManager;
 
-  constructor(inputManager: InputBoxManager) {
+  constructor() {
     super("=0", "R");
-    this.inputManager = inputManager;
   }
 
   async fire(manager: ButtonGridManager): Promise<void> {
@@ -95,7 +87,7 @@ export class FindRootButton extends Button {
       if (!isValid) {
         return;
       }
-      const variableName = await variableNameInput(this.inputManager);
+      const variableName = await variableNameInput(manager.inputManager);
       if (!variableName) {
         return;
       }
@@ -107,11 +99,9 @@ export class FindRootButton extends Button {
 }
 
 export class DerivativeButton extends Button {
-  private inputManager: InputBoxManager;
 
-  constructor(inputManager: InputBoxManager) {
+  constructor() {
     super("<span class='mathy-text'>dx</span>", "d");
-    this.inputManager = inputManager;
   }
 
   async fire(manager: ButtonGridManager): Promise<void> {
@@ -126,7 +116,7 @@ export class DerivativeButton extends Button {
       if (!isValid) {
         return;
       }
-      const variableName = await variableNameInput(this.inputManager);
+      const variableName = await variableNameInput(manager.inputManager);
       if (!variableName) {
         return;
       }

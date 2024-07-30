@@ -18,20 +18,18 @@ export class UnitsButtonGrid extends ButtonGrid {
   readonly rows: readonly (readonly GridCell[])[];
 
   private rootGrid: ButtonGrid;
-  private inputManager: InputBoxManager;
 
-  constructor(rootGrid: ButtonGrid, inputManager: InputBoxManager) {
+  constructor(rootGrid: ButtonGrid) {
     super();
     this.rootGrid = rootGrid;
-    this.inputManager = inputManager;
     this.rows = this.initRows();
   }
 
   private initRows(): GridCell[][] {
     return [
       [
-        new UnitConversionButton(this.inputManager),
-        new TemperatureConversionButton(this.inputManager),
+        new UnitConversionButton(),
+        new TemperatureConversionButton(),
         new DispatchButton("<span class='mathy-text'>m=</span>", "simplify_units", "s"),
       ],
       [
@@ -49,11 +47,8 @@ export class UnitsButtonGrid extends ButtonGrid {
 }
 
 export class UnitConversionButton extends Button {
-  private inputManager: InputBoxManager;
-
-  constructor(inputManager: InputBoxManager) {
+  constructor() {
     super(rulerSvg(), "c");
-    this.inputManager = inputManager;
   }
 
   async fire(manager: ButtonGridManager): Promise<void> {
@@ -70,17 +65,17 @@ export class UnitConversionButton extends Button {
       }
 
       if (await TAURI.queryStack({ stackIndex: 0, queryType: StackQueryType.HAS_UNITS })) {
-        const destUnits = await unitInput(this.inputManager, "New units:");
+        const destUnits = await unitInput(manager.inputManager, "New units:");
         if (!destUnits) {
           return;
         }
         await manager.invokeMathCommand('convert_units_with_context', [destUnits]);
       } else {
-        const sourceUnits = await unitInput(this.inputManager, "Old units:");
+        const sourceUnits = await unitInput(manager.inputManager, "Old units:");
         if (!sourceUnits) {
           return;
         }
-        const destUnits = await unitInput(this.inputManager, "New units:");
+        const destUnits = await unitInput(manager.inputManager, "New units:");
         if (!destUnits) {
           return;
         }
@@ -93,11 +88,8 @@ export class UnitConversionButton extends Button {
 }
 
 export class TemperatureConversionButton extends Button {
-  private inputManager: InputBoxManager;
-
-  constructor(inputManager: InputBoxManager) {
+  constructor() {
     super(thermometerSvg(), "t");
-    this.inputManager = inputManager;
   }
 
   async fire(manager: ButtonGridManager): Promise<void> {
@@ -114,7 +106,7 @@ export class TemperatureConversionButton extends Button {
       }
 
       if (await TAURI.queryStack({ stackIndex: 0, queryType: StackQueryType.HAS_BASIC_TEMPERATURE_UNITS })) {
-        const destUnits = await temperatureUnitInput(this.inputManager, "New temperature:");
+        const destUnits = await temperatureUnitInput(manager.inputManager, "New temperature:");
         if (!destUnits) {
           return;
         }
@@ -125,11 +117,11 @@ export class TemperatureConversionButton extends Button {
         await TAURI.showError("Expected basic temperature expression");
         return;
       } else {
-        const sourceUnits = await temperatureUnitInput(this.inputManager, "Old temperature:");
+        const sourceUnits = await temperatureUnitInput(manager.inputManager, "Old temperature:");
         if (!sourceUnits) {
           return;
         }
-        const destUnits = await temperatureUnitInput(this.inputManager, "New temperature:");
+        const destUnits = await temperatureUnitInput(manager.inputManager, "New temperature:");
         if (!destUnits) {
           return;
         }

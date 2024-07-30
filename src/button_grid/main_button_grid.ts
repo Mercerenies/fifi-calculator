@@ -13,7 +13,6 @@ import { UnitsButtonGrid } from "./units_button_grid.js";
 import { DispatchButton, GotoButton } from './button.js';
 import { NumericalInputButton, AlgebraicInputButton,
          StringInputButton, AlgebraicEditButton } from './button/input.js';
-import { InputBoxManager } from '../input_box.js';
 import { numericalInputToStack } from '../input_box/numerical_input.js';
 import { KeyEventInput, KeyResponse } from '../keyboard.js';
 import { svg } from '../util.js';
@@ -49,16 +48,14 @@ export class MainButtonGrid extends ButtonGrid {
 
   readonly rows: readonly (readonly GridCell[])[];
 
-  private inputManager: InputBoxManager;
   private onEscapeDismissable: Hideable;
 
   private subgrids: Subgrids;
 
-  constructor(inputManager: InputBoxManager, onEscapeDismissable: Hideable) {
+  constructor(onEscapeDismissable: Hideable) {
     super();
-    this.inputManager = inputManager;
     this.onEscapeDismissable = onEscapeDismissable;
-    this.subgrids = new Subgrids(this, inputManager);
+    this.subgrids = new Subgrids(this);
     this.rows = this.initRows();
   }
 
@@ -66,10 +63,10 @@ export class MainButtonGrid extends ButtonGrid {
     return [
       [
         new DispatchButton("+", "+", "+"),
-        new NumericalInputButton(this.inputManager),
-        new AlgebraicInputButton(this.inputManager),
-        new StringInputButton(this.inputManager),
-        new AlgebraicEditButton(this.inputManager),
+        new NumericalInputButton(),
+        new AlgebraicInputButton(),
+        new StringInputButton(),
+        new AlgebraicEditButton(),
       ],
       [
         new DispatchButton("-", "-", "-"),
@@ -120,26 +117,13 @@ export class MainButtonGrid extends ButtonGrid {
     if (MainButtonGrid.NUMERICAL_INPUT_START_KEYS.has(key)) {
       // Start numerical input
       input.event.preventDefault();
-      numericalInputToStack(this.inputManager, this.translateInitialInput(key)); // Fire-and-forget promise
+      numericalInputToStack(manager.inputManager, this.translateInitialInput(key)); // Fire-and-forget promise
       return KeyResponse.BLOCK;
     } else if (key === "Escape") {
       this.onEscapeDismissable.hide();
       return KeyResponse.BLOCK;
     } else {
       return KeyResponse.PASS;
-    }
-  }
-
-  // Returns null if not handled, or a KeyResponse if handled.
-  private async tryDelegateToTranscendentalGrid(manager: ButtonGridManager, key: string): Promise<KeyResponse | null> {
-    const transcendentalTable = this.subgrids.transcendental.getKeyMappingTable();
-    /* eslint-disable-next-line @typescript-eslint/no-dynamic-delete */
-    delete transcendentalTable["Escape"]; // Don't forward "Escape", which just doubles back to this grid.
-    if (key in transcendentalTable) {
-      await transcendentalTable[key].fire(manager);
-      return KeyResponse.BLOCK;
-    } else {
-      return null;
     }
   }
 
@@ -167,17 +151,17 @@ class Subgrids {
   readonly units: UnitsButtonGrid;
   readonly modes: ModesButtonGrid;
 
-  constructor(mainGrid: MainButtonGrid, inputManager: InputBoxManager) {
-    this.algebra = new AlgebraButtonGrid(mainGrid, inputManager);
-    this.formula = new FormulaButtonGrid(mainGrid, inputManager);
-    this.storage = new StorageButtonGrid(mainGrid, inputManager);
-    this.vector = new VectorButtonGrid(mainGrid, inputManager);
-    this.transcendental = new TranscendentalButtonGrid(mainGrid, inputManager);
-    this.graphing = new GraphingButtonGrid(mainGrid, inputManager);
-    this.display = new DisplayButtonGrid(mainGrid, inputManager);
-    this.strings = new StringButtonGrid(mainGrid, inputManager);
-    this.units = new UnitsButtonGrid(mainGrid, inputManager);
-    this.modes = new ModesButtonGrid(mainGrid, inputManager);
+  constructor(mainGrid: MainButtonGrid) {
+    this.algebra = new AlgebraButtonGrid(mainGrid);
+    this.formula = new FormulaButtonGrid(mainGrid);
+    this.storage = new StorageButtonGrid(mainGrid);
+    this.vector = new VectorButtonGrid(mainGrid);
+    this.transcendental = new TranscendentalButtonGrid(mainGrid);
+    this.graphing = new GraphingButtonGrid(mainGrid);
+    this.display = new DisplayButtonGrid(mainGrid);
+    this.strings = new StringButtonGrid(mainGrid);
+    this.units = new UnitsButtonGrid(mainGrid);
+    this.modes = new ModesButtonGrid(mainGrid);
   }
 }
 

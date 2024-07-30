@@ -31,7 +31,7 @@ export class UiManager {
       buttonGrid: Page.getButtonGridContainer(),
       prefixPanel: Page.getPrefixArgPanel(),
       modifierArgPanel: Page.getModifierArgPanel(),
-      initialGrid: new MainButtonGrid(this.inputManager, this.notificationManager),
+      initialGrid: new MainButtonGrid(this.notificationManager),
       undoButton: Page.getUndoButton(),
       redoButton: Page.getRedoButton(),
       radiobuttonsDiv: Page.getTouchModesDiv(),

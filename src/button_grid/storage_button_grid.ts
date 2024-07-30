@@ -3,30 +3,27 @@ import { ButtonGridManager, ButtonGrid, GridCell } from "../button_grid.js";
 import { ButtonModifiers } from './modifier_delegate.js';
 import { backButton, Button } from './button.js';
 import { variableNameInput } from '../input_box/algebraic_input.js';
-import { InputBoxManager } from '../input_box.js';
 import { TAURI } from '../tauri_api.js';
 
 export class StorageButtonGrid extends ButtonGrid {
   readonly rows: readonly (readonly GridCell[])[];
 
   private rootGrid: ButtonGrid;
-  private inputManager: InputBoxManager;
 
-  constructor(rootGrid: ButtonGrid, inputManager: InputBoxManager) {
+  constructor(rootGrid: ButtonGrid) {
     super();
     this.rootGrid = rootGrid;
-    this.inputManager = inputManager;
     this.rows = this.initRows();
   }
 
   private initRows(): GridCell[][] {
     return [
       [
-        new VariableStoreButton(":=", "t", this.inputManager, false),
-        new VariableStoreButton(":=<sup>K</sup>", "s", this.inputManager, true),
+        new VariableStoreButton(":=", "t", false),
+        new VariableStoreButton(":=<sup>K</sup>", "s", true),
       ],
       [
-        new VariableUnbindButton(this.inputManager),
+        new VariableUnbindButton(),
       ],
       [],
       [],
@@ -39,12 +36,10 @@ export class StorageButtonGrid extends ButtonGrid {
 }
 
 export class VariableStoreButton extends Button {
-  private inputManager: InputBoxManager;
   private overrideKeepModifier: boolean;
 
-  constructor(label: string | HTMLElement, key: string | null, inputManager: InputBoxManager, overrideKeepModifier: boolean = false) {
+  constructor(label: string | HTMLElement, key: string | null, overrideKeepModifier: boolean = false) {
     super(label, key);
-    this.inputManager = inputManager;
     this.overrideKeepModifier = overrideKeepModifier;
   }
 
@@ -60,7 +55,7 @@ export class VariableStoreButton extends Button {
       if (!isValid) {
         return;
       }
-      const variableName = await variableNameInput(this.inputManager);
+      const variableName = await variableNameInput(manager.inputManager);
       if (!variableName) {
         return;
       }
@@ -80,11 +75,9 @@ export class VariableStoreButton extends Button {
 }
 
 export class VariableUnbindButton extends Button {
-  private inputManager: InputBoxManager;
 
-  constructor(inputManager: InputBoxManager) {
+  constructor() {
     super("<math><mo lspace='0' rspace='0'>↚</mo></math>", "u");
-    this.inputManager = inputManager;
   }
 
   async fire(manager: ButtonGridManager): Promise<void> {
@@ -95,7 +88,7 @@ export class VariableUnbindButton extends Button {
 
   private async readAndStore(manager: ButtonGridManager): Promise<void> {
     try {
-      const variableName = await variableNameInput(this.inputManager);
+      const variableName = await variableNameInput(manager.inputManager);
       if (!variableName) {
         return;
       }

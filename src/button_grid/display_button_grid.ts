@@ -14,12 +14,10 @@ export class DisplayButtonGrid extends ButtonGrid {
   readonly rows: readonly (readonly GridCell[])[];
 
   private rootGrid: ButtonGrid;
-  private inputManager: InputBoxManager;
 
-  constructor(rootGrid: ButtonGrid, inputManager: InputBoxManager) {
+  constructor(rootGrid: ButtonGrid) {
     super();
     this.rootGrid = rootGrid;
-    this.inputManager = inputManager;
     this.rows = this.initRows();
   }
 
@@ -31,7 +29,7 @@ export class DisplayButtonGrid extends ButtonGrid {
         new SetDisplayRadixButton("0x", "6", 16),
         new SetDisplayRadixButton("0b", "2", 2),
         new SetDisplayRadixButton("0o", "8", 8),
-        new SetDisplayRadixToInputButton(this.inputManager),
+        new SetDisplayRadixToInputButton(),
       ],
       [],
       [],
@@ -67,11 +65,9 @@ export class SetDisplayRadixButton extends Button {
 // Button to set the display radix to a value given by user input.
 export class SetDisplayRadixToInputButton extends Button {
   readonly commandName: string = "set_display_radix";
-  private inputManager: InputBoxManager;
 
-  constructor(inputManager: InputBoxManager) {
+  constructor() {
     super("r", "r");
-    this.inputManager = inputManager;
   }
 
   async fire(manager: ButtonGridManager): Promise<void> {
@@ -80,7 +76,7 @@ export class SetDisplayRadixToInputButton extends Button {
 
   private async getInputAndSet(manager: ButtonGridManager): Promise<void> {
     try {
-      const userInput = await getRadixUserInput(this.inputManager);
+      const userInput = await getRadixUserInput(manager.inputManager);
       if (userInput !== undefined) {
         await manager.invokeMathCommand(this.commandName, [userInput]);
       }
