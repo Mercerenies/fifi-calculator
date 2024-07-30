@@ -18,6 +18,8 @@ pub struct Matrix<T> {
   body: Vec<Vec<T>>,
 }
 
+/// An index into a matrix. Matrix indices are 0-based, like all Rust
+/// data structures.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MatrixIndex {
   pub y: usize,
@@ -41,6 +43,9 @@ impl<T> Matrix<T> {
     Ok(Matrix { body })
   }
 
+  /// Calls `generator` for each index in a new `height * width`
+  /// matrix to produce elements for that matrix. The generator will
+  /// be called in row-major order.
   pub fn from_generator<F>(height: usize, width: usize, mut generator: F) -> Self
   where F: FnMut(MatrixIndex) -> T {
     let body = (0..height)

@@ -1,6 +1,7 @@
 
 use crate::expr::Expr;
 use crate::util::matrix::{Matrix as UtilMatrix, MatrixIndex, MatrixDimsError};
+use super::Vector;
 
 /// A `Matrix` is a vector of vectors of expressions, where each
 /// subvector has the same length.
@@ -19,6 +20,24 @@ impl Matrix {
   pub fn from_generator<F>(height: usize, width: usize, generator: F) -> Self
   where F: FnMut(MatrixIndex) -> Expr {
     Matrix::from(UtilMatrix::from_generator(height, width, generator))
+  }
+
+  pub fn diagonal(elements: Vec<Expr>) -> Self {
+    // This algorithm takes advantage of the fact that
+    // `from_generator` calls its function in row-major order, so we
+    // know we're generating the diagonals of the matrix in order.
+    // Thus, we can just pull from the iterator each time we need a
+    // value.
+    let len = elements.len();
+    let mut iter = elements.into_iter();
+    Self::from_generator(len, len, move |index| {
+      if index.x == index.y {
+        // unwrap: We know we have `len` elements in the iterator.
+        iter.next().unwrap()
+      } else {
+        Expr::zero()
+      }
+    })
   }
 
   pub fn of_value(height: usize, width: usize, value: Expr) -> Self {
@@ -77,5 +96,15 @@ impl TryFrom<Vec<Vec<Expr>>> for Matrix {
 
   fn try_from(body: Vec<Vec<Expr>>) -> Result<Self, Self::Error> {
     Self::new(body)
+  }
+}
+
+impl From<Matrix> for Expr {
+  fn from(matrix: Matrix) -> Expr {
+    let outer_vector: Vector = matrix.into_row_major()
+      .into_iter()
+      .map(|row| Expr::from(Vector::from(row)))
+      .collect();
+    Expr::from(outer_vector)
   }
 }

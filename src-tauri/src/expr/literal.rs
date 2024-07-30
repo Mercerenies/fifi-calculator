@@ -122,6 +122,14 @@ impl From<RawInterval<UnboundedNumber>> for Literal {
   }
 }
 
+impl<T: Into<Literal>> From<Vec<T>> for Literal {
+  fn from(v: Vec<T>) -> Self {
+    Literal {
+      data: LiteralImpl::Vector(v.into_iter().map(|x| x.into()).collect()),
+    }
+  }
+}
+
 impl From<Literal> for Expr {
   fn from(lit: Literal) -> Self {
     match lit.data {

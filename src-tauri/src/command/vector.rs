@@ -4,6 +4,7 @@
 
 use super::arguments::{NullaryArgumentSchema, validate_schema};
 use super::base::{Command, CommandContext, CommandOutput};
+use crate::util;
 use crate::util::prism::Prism;
 use crate::errorlist::ErrorList;
 use crate::expr::Expr;
@@ -11,6 +12,7 @@ use crate::expr::prisms;
 use crate::expr::atom::Atom;
 use crate::expr::number::{Number, ComplexNumber};
 use crate::expr::vector::Vector;
+use crate::expr::vector::matrix::Matrix;
 use crate::expr::simplifier::error::DomainError;
 use crate::expr::incomplete::{IncompleteObject, ObjectType, pop_until_delimiter};
 use crate::state::ApplicationState;
@@ -60,6 +62,22 @@ pub struct UnpackCommand {
 /// supplied.
 #[derive(Debug, Default)]
 pub struct RepeatCommand {
+  _priv: (),
+}
+
+/// `DiagonalCommand` constructs a diagonal matrix, using the top
+/// stack element as its diagonal elements. An optional numerical
+/// argument specifies the width and height of the matrix.
+///
+/// If the top stack element is a vector, then its length must match
+/// the numerical argument (if given), and its elements will be used
+/// as the diagonal elements.
+///
+/// If the top stack element is NOT a vector, then the numerical
+/// argument is required, and the top stack element will be repeated
+/// across the diagonal.
+#[derive(Debug, Default)]
+pub struct DiagonalCommand {
   _priv: (),
 }
 
@@ -145,6 +163,12 @@ impl UnpackCommand {
 }
 
 impl RepeatCommand {
+  pub fn new() -> Self {
+    Self::default()
+  }
+}
+
+impl DiagonalCommand {
   pub fn new() -> Self {
     Self::default()
   }
@@ -262,6 +286,50 @@ impl Command for RepeatCommand {
     let expr = context.simplify_expr(expr, calculation_mode, &mut errors);
     stack.push(expr);
 
+    Ok(CommandOutput::from_errors(errors))
+  }
+}
+
+impl Command for DiagonalCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    context: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    validate_schema(&NullaryArgumentSchema::new(), args)?;
+    state.undo_stack_mut().push_cut();
+
+    let calculation_mode = state.calculation_mode().clone();
+    let arg = context.opts.argument;
+    let mut errors = ErrorList::new();
+    let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
+
+    let elem = stack.pop()?;
+    let elems_vector = match prisms::ExprToVector.narrow_type(elem) {
+      Err(scalar) => {
+        // Scalar was provided; argument is not optional.
+        let Some(arg) = arg else {
+          if !context.opts.keep_modifier {
+            stack.push(scalar);
+          }
+          anyhow::bail!("Missing numerical argument for diagonal matrix");
+        };
+        util::repeated(scalar, arg.max(0) as usize)
+      }
+      Ok(vector) => {
+        if arg.is_some() && Some(vector.len()  as i64) != arg {
+          if !context.opts.keep_modifier {
+            stack.push(vector.into());
+          }
+          anyhow::bail!("Vector length mismatch");
+        }
+        Vec::from(vector)
+      }
+    };
+    let expr = Expr::from(Matrix::diagonal(elems_vector));
+    let expr = context.simplify_expr(expr, calculation_mode, &mut errors);
+    stack.push(expr);
     Ok(CommandOutput::from_errors(errors))
   }
 }

@@ -128,6 +128,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("pack".to_string(), Box::new(vector::PackCommand::new()));
   map.insert("unpack".to_string(), Box::new(vector::UnpackCommand::new()));
   map.insert("repeat".to_string(), Box::new(vector::RepeatCommand::new()));
+  map.insert("diag".to_string(), Box::new(vector::DiagonalCommand::new()));
   map.insert("vconcat".to_string(), Box::new(BinaryFunctionCommand::named("vconcat")));
   map.insert("iota".to_string(), Box::new(UnaryFunctionCommand::named("iota")));
   map.insert("head".to_string(), Box::new(dispatch_on_flags_command(FlagDispatchArgs {
