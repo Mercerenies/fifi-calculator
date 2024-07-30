@@ -27,6 +27,7 @@ export class VectorButtonGrid extends ButtonGrid {
         new DispatchButton("::", "cons", "k"),
         new DispatchButton("1<sup>st</sup>", "head", "h"),
         new SignedNumberedButton("y<sup>th</sup>", "nth", "r", "Index:"),
+        new SignedNumberedButton("x<sup>th</sup>", "nth_column", "c", "Index:"),
       ],
       [
         new DispatchButton("↘", "diag", "d"),
