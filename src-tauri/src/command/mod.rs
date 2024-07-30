@@ -129,7 +129,6 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("unpack".to_string(), Box::new(vector::UnpackCommand::new()));
   map.insert("repeat".to_string(), Box::new(vector::RepeatCommand::new()));
   map.insert("diag".to_string(), Box::new(vector::DiagonalCommand::new()));
-  map.insert("identity_matrix".to_string(), Box::new(vector::IdentityMatrixCommand::new()));
   map.insert("vconcat".to_string(), Box::new(BinaryFunctionCommand::named("vconcat")));
   map.insert("iota".to_string(), Box::new(UnaryFunctionCommand::named("iota")));
   map.insert("head".to_string(), Box::new(dispatch_on_flags_command(FlagDispatchArgs {
@@ -170,6 +169,10 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("convert_units_with_context".to_string(), Box::new(units::ContextualConvertUnitsCommand::new()));
   map.insert("convert_temp".to_string(), Box::new(units::ConvertTemperatureCommand::new()));
   map.insert("convert_temp_with_context".to_string(), Box::new(units::ContextualConvertTemperatureCommand::new()));
+
+  // Vector commands
+  map.insert("identity_matrix".to_string(), Box::new(vector::IdentityMatrixCommand::new()));
+  map.insert("nth".to_string(), Box::new(vector::NthElemCommand::new()));
 
   // Commands which accept a single string.
   map.insert("push_number".to_string(), Box::new(input::push_number_command()));

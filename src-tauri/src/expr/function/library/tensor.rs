@@ -24,6 +24,7 @@ pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(init());
   table.insert(cons());
   table.insert(snoc());
+  table.insert(nth());
 }
 
 fn is_empty_vector(expr: &Expr) -> bool {
@@ -176,6 +177,32 @@ pub fn snoc() -> Function {
       builder::arity_two().of_types(prisms::ExprToVector, Identity).and_then(|mut vec, new_value, _| {
         vec.as_mut_vec().push(new_value);
         Ok(vec.into())
+      })
+    )
+    .build()
+}
+
+pub fn nth() -> Function {
+  FunctionBuilder::new("nth")
+    .add_case(
+      builder::arity_two().of_types(prisms::ExprToVector, prisms::expr_to_i64()).and_then(|mut vec, index, ctx| {
+        let unsigned_index =
+          if index < - (vec.len() as i64) {
+            ctx.errors.push(SimplifierError::custom_error("nth", "Index out of bounds"));
+            return Err((vec, index));
+          } else if index < 0 {
+            vec.len() - (-index) as usize
+          } else {
+            index as usize
+          };
+        if vec.get(unsigned_index).is_some() {
+          // We're about to drop the vector, so we can safely remove
+          // things from it.
+          Ok(vec.as_mut_vec().swap_remove(unsigned_index))
+        } else {
+          ctx.errors.push(SimplifierError::custom_error("nth", "Index out of bounds"));
+          Err((vec, index))
+        }
       })
     )
     .build()

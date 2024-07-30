@@ -81,12 +81,25 @@ pub struct PositiveNumber {
 #[derive(Debug, Clone)]
 pub struct StringToUsize;
 
+/// Prism which reads a string as an arbitrary integer.
+#[derive(Debug, Clone)]
+pub struct StringToI64;
+
 /// Equivalent to `usize` but also keeps track of the string used to
 /// construct it. This ensures that the [`StringToUsize`] prism is
 /// lawful and can recover the original string on `widen_type`.
 #[derive(Debug, Clone)]
 pub struct ParsedUsize {
   value: usize,
+  input: String,
+}
+
+/// Equivalent to `i64` but also keeps track of the string used to
+/// construct it. This ensures that the [`StringToI64`] prism is
+/// lawful and can recover the original string on `widen_type`.
+#[derive(Debug, Clone)]
+pub struct ParsedI64 {
+  value: i64,
   input: String,
 }
 
@@ -269,6 +282,12 @@ impl From<ParsedUsize> for usize {
   }
 }
 
+impl From<ParsedI64> for i64 {
+  fn from(arg: ParsedI64) -> Self {
+    arg.value
+  }
+}
+
 impl From<PositiveNumber> for Number {
   fn from(arg: PositiveNumber) -> Self {
     arg.data
@@ -371,6 +390,19 @@ impl Prism<String, ParsedUsize> for StringToUsize {
     }
   }
   fn widen_type(&self, input: ParsedUsize) -> String {
+    input.input
+  }
+}
+
+impl Prism<String, ParsedI64> for StringToI64 {
+  fn narrow_type(&self, input: String) -> Result<ParsedI64, String> {
+    if let Ok(value) = input.parse() {
+      Ok(ParsedI64 { value, input })
+    } else {
+      Err(input)
+    }
+  }
+  fn widen_type(&self, input: ParsedI64) -> String {
     input.input
   }
 }

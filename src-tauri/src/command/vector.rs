@@ -89,6 +89,17 @@ pub struct IdentityMatrixCommand {
   _priv: (),
 }
 
+/// `NthElemCommand` expects a single nonnegative integer argument.
+/// Pops a vector off the stack and pushes the Nth element of the
+/// vector, where N is the argument. The index is 0-based, and
+/// negative indices count from the back of the vector.
+///
+/// Respects the "keep" modifier.
+#[derive(Debug, Default)]
+pub struct NthElemCommand {
+  _priv: (),
+}
+
 /// `VectorFromIncompleteObjectCommand` pops stack elements until it finds
 /// the incomplete object [`ObjectType::LeftBracket`]. Then it pushes
 /// a vector containing every value popped up to that point.
@@ -191,6 +202,19 @@ impl IdentityMatrixCommand {
     UnaryArgumentSchema::new(
       "nonnegative integer".to_string(),
       prisms::StringToUsize,
+    )
+  }
+}
+
+impl NthElemCommand {
+  pub fn new() -> Self {
+    Self::default()
+  }
+
+  fn argument_schema() -> UnaryArgumentSchema<prisms::StringToI64, prisms::ParsedI64> {
+    UnaryArgumentSchema::new(
+      "integer".to_string(),
+      prisms::StringToI64,
     )
   }
 }
@@ -374,6 +398,29 @@ impl Command for IdentityMatrixCommand {
     let identity_matrix = Expr::from(Matrix::diagonal(elems));
     let identity_matrix = context.simplify_expr(identity_matrix, calculation_mode, &mut errors);
     stack.push(identity_matrix);
+    Ok(CommandOutput::from_errors(errors))
+  }
+}
+
+impl Command for NthElemCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    context: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    let index = validate_schema(&Self::argument_schema(), args)?;
+    let index = i64::from(index);
+    state.undo_stack_mut().push_cut();
+
+    let calculation_mode = state.calculation_mode().clone();
+    let mut errors = ErrorList::new();
+    let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
+
+    let vec = stack.pop()?;
+    let expr = Expr::call("nth", vec![vec, Expr::from(index)]);
+    let expr = context.simplify_expr(expr, calculation_mode, &mut errors);
+    stack.push(expr);
     Ok(CommandOutput::from_errors(errors))
   }
 }
