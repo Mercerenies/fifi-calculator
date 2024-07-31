@@ -3,6 +3,8 @@
 // want module-level restrictions, which are far stricter.
 #![allow(clippy::manual_non_exhaustive)]
 
+#![warn(clippy::derive_partial_eq_without_eq)]
+
 pub mod command;
 pub mod errorlist;
 pub mod expr;

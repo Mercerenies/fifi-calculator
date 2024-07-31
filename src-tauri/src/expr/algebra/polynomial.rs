@@ -8,7 +8,7 @@ use std::fmt::{self, Formatter, Display};
 use std::ops::{Add, Sub, AddAssign, SubAssign, Neg, Mul};
 
 /// A polynomial is a sum of several signed terms.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Polynomial {
   terms: Vec<SignedTerm>,
 }

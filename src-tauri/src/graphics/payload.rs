@@ -23,7 +23,7 @@ use std::io::Cursor;
 ///
 /// Currently, the only graphics directive is the 2D graphics
 /// directive, simply called `graphics`.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GraphicsPayload {
   arguments: Vec<Expr>,
   graphics_type: GraphicsType,

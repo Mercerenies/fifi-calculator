@@ -54,7 +54,7 @@ pub struct TryFromNumberToBigIntError {
   _priv: (),
 }
 
-#[derive(Error, Debug, Clone, PartialEq)]
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct ParseNumberError {}
 

@@ -23,13 +23,13 @@ pub struct ExprTokenizer<'a> {
   operator_regex: Regex,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token {
   pub data: TokenData,
   pub span: Span,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TokenData {
   Number(Number),
   String(String),
@@ -43,7 +43,7 @@ pub enum TokenData {
   RightBracket,
 }
 
-#[derive(Debug, Clone, Error, PartialEq)]
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum TokenizerError {
   /// Unexpected EOF during tokenization. This error variant should
@@ -65,7 +65,7 @@ pub enum TokenizerError {
   InvalidEscapeError(#[from] InvalidEscapeError),
 }
 
-#[derive(Debug, Clone, Error, PartialEq)]
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum TokenizerRadixError {
   #[error("{0}")]

@@ -7,7 +7,7 @@ use std::fmt::{self, Formatter, Display};
 use std::ops::{Mul, Div, Neg};
 
 /// A `SignedTerm` is a [`Term`] together with a [`Sign`].
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SignedTerm {
   pub sign: Sign,
   pub term: Term,

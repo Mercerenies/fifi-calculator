@@ -46,7 +46,7 @@ pub enum GenReason {
 /// type is mainly used as the target for a prism, since
 /// `XDataSetExpr` stores enough information to recover the original
 /// expression while `XDataSet` does not.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct XDataSetExpr {
   data: Either<Either<Vec<Number>, RawInterval<Number>>, Number>,
 }
@@ -66,7 +66,7 @@ pub struct ExprToXDataSet {
   _priv: (),
 }
 
-#[derive(Debug, Clone, PartialEq, Error)]
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 #[error("Data set length mismatch (expected {expected}, got {actual})")]
 pub struct LengthError {
   expected: usize,

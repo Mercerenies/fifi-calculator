@@ -16,7 +16,7 @@ use std::str::FromStr;
 
 /// A formula is defined as an application of a [`FormulaOp`] to two
 /// expression arguments.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Formula {
   pub left: Expr,
   pub op: FormulaOp,
@@ -27,7 +27,7 @@ pub struct Formula {
 /// [`FormulaOp::Eq`]. This type is provided as the target for a
 /// prism, since many calculator operations require an equation
 /// specifically.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Equation {
   pub left: Expr,
   pub right: Expr,
