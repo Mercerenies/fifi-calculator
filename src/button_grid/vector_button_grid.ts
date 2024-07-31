@@ -37,6 +37,7 @@ export class VectorButtonGrid extends ButtonGrid {
       [
         new DispatchButton("[", "incomplete[", "["),
         new DispatchButton("]", "incomplete]", "]"),
+        new DispatchButton("len", "length", "l"),
       ],
       [
         new DispatchButton("(", "incomplete(", "("),

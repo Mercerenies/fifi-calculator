@@ -184,6 +184,10 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
     vector::subvector_command(),
     vector::remove_subvector_command(),
   )));
+  map.insert("length".to_string(), Box::new(dispatch_on_hyper_command(
+    UnaryFunctionCommand::named("length"),
+    UnaryFunctionCommand::named("shape"),
+  )));
 
   // Commands which accept a single string.
   map.insert("push_number".to_string(), Box::new(input::push_number_command()));

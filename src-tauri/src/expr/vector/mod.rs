@@ -3,7 +3,9 @@ pub mod borrowed;
 pub mod matrix;
 pub mod tensor;
 
+use borrowed::BorrowedVector;
 use super::Expr;
+use crate::util::uniq_element;
 use crate::util::prism::Prism;
 
 use thiserror::Error;
@@ -40,6 +42,25 @@ pub struct ParseVectorError {
 pub struct LengthError {
   expected: usize,
   actual: usize,
+}
+
+pub fn vector_shape(expr: &Expr) -> Vec<usize> {
+  let mut acc = Vec::new();
+  vector_shape_impl([expr].into_iter(), &mut acc);
+  acc
+}
+
+fn vector_shape_impl<'a, 'b>(exprs: impl Iterator<Item=&'a Expr>, acc: &'b mut Vec<usize>) {
+  let Ok(vecs) = exprs.map(BorrowedVector::parse).collect::<Result<Vec<_>, _>>() else {
+    // No more nested vectors, so stop recursing.
+    return;
+  };
+  let Some(length) = uniq_element(vecs.iter().map(BorrowedVector::len)) else {
+    // Inconsistent lengths, so don't treat it as a higher tensor.
+    return;
+  };
+  acc.push(length);
+  vector_shape_impl(vecs.into_iter().flatten(), acc);
 }
 
 impl Vector {
@@ -287,5 +308,37 @@ mod tests {
     let vec2 = Vector::from(vec![Expr::from(10), Expr::from(20)]);
     let err = vec1.zip_with(vec2, |a, b| Expr::call("add", vec![a, b])).unwrap_err();
     assert_eq!(err, LengthError { expected: 3, actual: 2 });
+  }
+
+  #[test]
+  fn test_vector_shape_of_scalar() {
+    let expr = Expr::from(9);
+    assert_eq!(vector_shape(&expr), Vec::<usize>::new());
+  }
+
+  #[test]
+  fn test_vector_shape_of_simple_vector() {
+    let expr = Expr::call("vector", vec![Expr::from(10), Expr::from(20), Expr::from(30)]);
+    assert_eq!(vector_shape(&expr), vec![3]);
+  }
+
+  #[test]
+  fn test_vector_shape_of_matrix() {
+    let expr = Expr::call("vector", vec![
+      Expr::call("vector", vec![Expr::from(1), Expr::from(2)]),
+      Expr::call("vector", vec![Expr::from(3), Expr::from(4)]),
+      Expr::call("vector", vec![Expr::from(5), Expr::from(6)]),
+    ]);
+    assert_eq!(vector_shape(&expr), vec![3, 2]);
+  }
+
+  #[test]
+  fn test_vector_shape_of_jagged_vector_of_vectors() {
+    let expr = Expr::call("vector", vec![
+      Expr::call("vector", vec![Expr::from(1), Expr::from(2)]),
+      Expr::call("vector", vec![Expr::from(3), Expr::from(4), Expr::from(5)]),
+      Expr::call("vector", vec![Expr::from(6), Expr::from(7)]),
+    ]);
+    assert_eq!(vector_shape(&expr), vec![3]);
   }
 }

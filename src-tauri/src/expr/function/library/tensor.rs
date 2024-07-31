@@ -5,13 +5,15 @@ use crate::expr::Expr;
 use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder};
-use crate::expr::vector::Vector;
+use crate::expr::vector::{Vector, vector_shape};
 use crate::expr::vector::tensor::Tensor;
 use crate::expr::prisms;
 use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::algebra::infinity::InfiniteConstant;
 use crate::util::{repeated, clamp};
 use crate::util::prism::Identity;
+
+use num::BigInt;
 
 use std::cmp::Ordering;
 
@@ -31,6 +33,8 @@ pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(remove_nth_column());
   table.insert(subvector());
   table.insert(remove_subvector());
+  table.insert(vec_length());
+  table.insert(vec_shape());
 }
 
 fn is_empty_vector(expr: &Expr) -> bool {
@@ -350,4 +354,27 @@ fn extract_subvector(vector: &mut Vec<Expr>, mut start: i64, mut end: i64) -> Ve
   let start = clamp(start, 0, vector.len() as i64) as usize;
   let end = clamp(end, 0, vector.len() as i64) as usize;
   vector.drain(start..end).collect()
+}
+
+pub fn vec_length() -> Function {
+  FunctionBuilder::new("length")
+    .add_case(
+      builder::arity_one().of_type(prisms::ExprToVector).and_then(|vec, _| {
+        let length = vec.len();
+        Ok(Expr::from(BigInt::from(length)))
+      })
+    )
+    .build()
+}
+
+pub fn vec_shape() -> Function {
+  FunctionBuilder::new("shape")
+    .add_case(
+      builder::arity_one().of_type(Identity).and_then(|value, _| {
+        let shape = vector_shape(&value);
+        let shape_as_vec: Vector = shape.into_iter().map(|x| Expr::from(BigInt::from(x))).collect();
+        Ok(shape_as_vec.into())
+      })
+    )
+    .build()
 }
