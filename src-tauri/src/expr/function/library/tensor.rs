@@ -397,7 +397,6 @@ pub fn arrange_vector() -> Function {
   FunctionBuilder::new("arrange")
     .add_case(
       builder::arity_two().of_types(prisms::ExprToVector, prisms::expr_to_usize()).and_then(|vector, chunk_size, _| {
-        let chunk_size = usize::from(chunk_size);
         let vector = vector.flatten_all_nested();
         if chunk_size == 0 {
           return Ok(Expr::from(vector));
