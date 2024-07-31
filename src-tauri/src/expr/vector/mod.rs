@@ -1,4 +1,5 @@
 
+pub mod borrowed;
 pub mod matrix;
 pub mod tensor;
 
@@ -12,9 +13,9 @@ use std::ops::{Index, IndexMut};
 /// A `Vector` is simply a `Vec<Expr>` but with added functionality
 /// for mathematical operations typical of vectors.
 ///
-/// A `Vector` is often represented in the expression language as a
-/// call to the function called "vector", which is treated specially
-/// by many parts of the calculation engine.
+/// A `Vector` is represented in the expression language as a call to
+/// the function called "vector", which is treated specially by many
+/// parts of the calculation engine.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Vector {
   data: Vec<Expr>,
