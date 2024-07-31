@@ -323,7 +323,7 @@ pub fn remove_subvector() -> Function {
       builder::arity_three().of_types(prisms::ExprToVector, prisms::expr_to_i64(), prisms::expr_to_i64())
         .and_then(|mut vec, start, end, _| {
           let _subvector = extract_subvector(vec.as_mut_vec(), start, end);
-          Ok(Expr::from(Vector::from(vec)))
+          Ok(Expr::from(vec))
         })
     )
     .add_case(
@@ -334,7 +334,7 @@ pub fn remove_subvector() -> Function {
             return Err((vec, start, end_inf));
           }
           let _subvector = extract_subvector(vec.as_mut_vec(), start, i64::MAX);
-          Ok(Expr::from(Vector::from(vec)))
+          Ok(Expr::from(vec))
         })
     )
     .build()

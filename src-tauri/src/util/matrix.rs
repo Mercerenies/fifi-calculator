@@ -188,6 +188,10 @@ impl<'a, T> Column<'a, T> {
     self.matrix.height()
   }
 
+  pub fn is_empty(&self) -> bool {
+    self.len() == 0
+  }
+
   pub fn iter(&self) -> impl Iterator<Item = &T> + '_ {
     self.matrix.body.iter().map(|row| &row[self.column_index])
   }
@@ -209,6 +213,10 @@ impl<'a, T> ColumnMut<'a, T> {
 
   pub fn len(&self) -> usize {
     self.matrix.height()
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.len() == 0
   }
 
   pub fn iter(&self) -> impl Iterator<Item = &T> + '_ {
