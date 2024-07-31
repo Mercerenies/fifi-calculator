@@ -8,6 +8,7 @@ use crate::expr::function::builder::{self, FunctionBuilder};
 use crate::expr::vector::{Vector, vector_shape};
 use crate::expr::vector::tensor::Tensor;
 use crate::expr::prisms;
+use crate::expr::ordering::cmp_expr;
 use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::algebra::infinity::InfiniteConstant;
 use crate::util::{repeated, clamp};
@@ -38,6 +39,8 @@ pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(vec_shape());
   table.insert(find_in_vector());
   table.insert(arrange_vector());
+  table.insert(sort_vector());
+  table.insert(sort_vector_reversed());
 }
 
 fn is_empty_vector(expr: &Expr) -> bool {
@@ -407,6 +410,28 @@ pub fn arrange_vector() -> Function {
           .map(|chunk| Expr::from(chunk.into_iter().collect::<Vector>()))
           .collect::<Vector>();
         Ok(Expr::from(chunked_vector))
+      })
+    )
+    .build()
+}
+
+pub fn sort_vector() -> Function {
+  FunctionBuilder::new("sort")
+    .add_case(
+      builder::arity_one().of_type(prisms::ExprToVector).and_then(|mut vec, _| {
+        vec.as_mut_slice().sort_by(cmp_expr);
+        Ok(Expr::from(vec))
+      })
+    )
+    .build()
+}
+
+pub fn sort_vector_reversed() -> Function {
+  FunctionBuilder::new("rsort")
+    .add_case(
+      builder::arity_one().of_type(prisms::ExprToVector).and_then(|mut vec, _| {
+        vec.as_mut_slice().sort_by(|a, b| cmp_expr(b, a));
+        Ok(Expr::from(vec))
       })
     )
     .build()

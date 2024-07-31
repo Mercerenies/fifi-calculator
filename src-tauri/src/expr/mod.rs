@@ -8,6 +8,7 @@ pub mod incomplete;
 pub mod interval;
 pub mod literal;
 pub mod number;
+pub mod ordering;
 pub mod prisms;
 pub mod simplifier;
 pub mod tokenizer;
