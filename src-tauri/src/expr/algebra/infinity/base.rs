@@ -2,8 +2,11 @@
 use crate::expr::Expr;
 use super::{INFINITY_NAME, UNDIRECTED_INFINITY_NAME, NAN_NAME};
 
+use thiserror::Error;
+
 use std::fmt::{self, Display, Formatter};
 use std::ops::{Add, Sub, Mul, MulAssign, Div, Neg};
+use std::str::FromStr;
 
 /// A limit value on the bounds of the usual real line (or complex
 /// plane).
@@ -23,6 +26,12 @@ pub enum InfiniteConstant {
   /// [`InfiniteConstant`] correctly implements both `PartialEq` and
   /// `Eq`.
   NotANumber,
+}
+
+#[derive(Debug, Clone, Error)]
+#[error("Parse error on InfiniteConstant")]
+pub struct InfiniteConstantFromStrError {
+  _priv: (),
 }
 
 impl InfiniteConstant {
@@ -66,6 +75,20 @@ impl Display for InfiniteConstant {
       InfiniteConstant::NegInfinity => write!(f, "-inf"),
       InfiniteConstant::UndirInfinity => write!(f, "uinf"),
       InfiniteConstant::NotANumber => write!(f, "nan"),
+    }
+  }
+}
+
+impl FromStr for InfiniteConstant {
+  type Err = InfiniteConstantFromStrError;
+
+  fn from_str(s: &str) -> Result<InfiniteConstant, InfiniteConstantFromStrError> {
+    match s {
+      "inf" => Ok(InfiniteConstant::PosInfinity),
+      "-inf" => Ok(InfiniteConstant::NegInfinity),
+      "uinf" => Ok(InfiniteConstant::UndirInfinity),
+      "nan" => Ok(InfiniteConstant::NotANumber),
+      _ => Err(InfiniteConstantFromStrError { _priv: () }),
     }
   }
 }
