@@ -98,6 +98,7 @@ pub struct IdentityMatrixCommand {
 #[derive(Debug)]
 pub struct IndexedVectorCommand {
   function_name: String,
+  accepts_negative_numbers: bool,
 }
 
 /// `SubvectorCommand` pops three elements from the stack and pushes a
@@ -216,7 +217,15 @@ impl IdentityMatrixCommand {
 
 impl IndexedVectorCommand {
   pub fn for_function(name: impl Into<String>) -> Self {
-    Self { function_name: name.into() }
+    Self {
+      function_name: name.into(),
+      accepts_negative_numbers: true,
+    }
+  }
+
+  pub fn nonnegative_args_only(mut self) -> Self {
+    self.accepts_negative_numbers = false;
+    self
   }
 
   fn argument_schema() -> UnaryArgumentSchema<prisms::StringToI64, prisms::ParsedI64> {
@@ -259,6 +268,10 @@ pub fn nth_column_command() -> IndexedVectorCommand {
 
 pub fn remove_nth_column_command() -> IndexedVectorCommand {
   IndexedVectorCommand::for_function("remove_nth_column")
+}
+
+pub fn arrange_vector_command() -> IndexedVectorCommand {
+  IndexedVectorCommand::for_function("arrange").nonnegative_args_only()
 }
 
 pub fn subvector_command() -> SubvectorCommand {
@@ -450,6 +463,10 @@ impl Command for IndexedVectorCommand {
     let index = validate_schema(&Self::argument_schema(), args)?;
     let index = i64::from(index);
     state.undo_stack_mut().push_cut();
+
+    if !self.accepts_negative_numbers && index < 0 {
+      anyhow::bail!("IndexedVectorCommand: negative argument not supported, got {index}");
+    }
 
     let calculation_mode = state.calculation_mode().clone();
     let mut errors = ErrorList::new();

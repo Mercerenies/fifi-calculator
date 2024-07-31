@@ -189,6 +189,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
     UnaryFunctionCommand::named("shape"),
   )));
   map.insert("find".to_string(), Box::new(BinaryFunctionCommand::named("find")));
+  map.insert("arrange".to_string(), Box::new(vector::arrange_vector_command()));
 
   // Commands which accept a single string.
   map.insert("push_number".to_string(), Box::new(input::push_number_command()));

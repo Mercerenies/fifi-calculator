@@ -133,6 +133,19 @@ impl Vector {
     self.data.iter_mut()
   }
 
+  pub fn flatten_all_nested(self) -> Self {
+    fn flatten_expr(expr: Expr) -> Vec<Expr> {
+      match ExprToVector.narrow_type(expr) {
+        Err(expr) => vec![expr],
+        Ok(vec) => vec.flatten_all_nested().into(),
+      }
+    }
+
+    self.into_iter()
+      .flat_map(flatten_expr)
+      .collect()
+  }
+
   pub fn get(&self, i: usize) -> Option<&Expr> {
     self.data.get(i)
   }
@@ -340,5 +353,46 @@ mod tests {
       Expr::call("vector", vec![Expr::from(6), Expr::from(7)]),
     ]);
     assert_eq!(vector_shape(&expr), vec![3]);
+  }
+
+  #[test]
+  fn test_flatten_all_nested() {
+    let expr = Expr::call("vector", vec![
+      Expr::call("vector", vec![Expr::from(1), Expr::from(2)]),
+      Expr::call("vector", vec![Expr::from(3), Expr::from(4), Expr::from(5)]),
+      Expr::call("vector", vec![Expr::from(6), Expr::from(7)]),
+    ]);
+    let vector = Vector::parse(expr).unwrap();
+    assert_eq!(vector.flatten_all_nested(), Vector::from(vec![
+      Expr::from(1), Expr::from(2), Expr::from(3),
+      Expr::from(4), Expr::from(5), Expr::from(6),
+      Expr::from(7),
+    ]));
+  }
+
+  #[test]
+  fn test_flatten_all_nested_empty() {
+    let vector = Vector::empty();
+    assert_eq!(vector.flatten_all_nested(), Vector::empty());
+  }
+
+  #[test]
+  fn test_flatten_all_nested_of_different_depths() {
+    let expr = Expr::call("vector", vec![
+      Expr::call("vector", vec![Expr::from(1), Expr::from(2)]),
+      Expr::call("vector", vec![
+        Expr::from(3),
+        Expr::call("vector", vec![Expr::from(4)]),
+        Expr::from(5),
+      ]),
+      Expr::from(6),
+      Expr::from(7),
+    ]);
+    let vector = Vector::parse(expr).unwrap();
+    assert_eq!(vector.flatten_all_nested(), Vector::from(vec![
+      Expr::from(1), Expr::from(2), Expr::from(3),
+      Expr::from(4), Expr::from(5), Expr::from(6),
+      Expr::from(7),
+    ]));
   }
 }

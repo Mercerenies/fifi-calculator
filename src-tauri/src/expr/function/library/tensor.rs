@@ -14,6 +14,7 @@ use crate::util::{repeated, clamp};
 use crate::util::prism::Identity;
 
 use num::BigInt;
+use itertools::Itertools;
 
 use std::cmp::Ordering;
 
@@ -36,6 +37,7 @@ pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(vec_length());
   table.insert(vec_shape());
   table.insert(find_in_vector());
+  table.insert(arrange_vector());
 }
 
 fn is_empty_vector(expr: &Expr) -> bool {
@@ -386,6 +388,26 @@ pub fn find_in_vector() -> Function {
       builder::arity_two().of_types(prisms::ExprToVector, Identity).and_then(|haystack, needle, _| {
         let index = haystack.iter().position(|x| *x == needle).map_or(-1, |i| i as i64);
         Ok(Expr::from(index))
+      })
+    )
+    .build()
+}
+
+pub fn arrange_vector() -> Function {
+  FunctionBuilder::new("arrange")
+    .add_case(
+      builder::arity_two().of_types(prisms::ExprToVector, prisms::expr_to_usize()).and_then(|vector, chunk_size, _| {
+        let chunk_size = usize::from(chunk_size);
+        let vector = vector.flatten_all_nested();
+        if chunk_size == 0 {
+          return Ok(Expr::from(vector));
+        }
+        let chunked_vector = vector.into_iter()
+          .chunks(chunk_size)
+          .into_iter()
+          .map(|chunk| Expr::from(chunk.into_iter().collect::<Vector>()))
+          .collect::<Vector>();
+        Ok(Expr::from(chunked_vector))
       })
     )
     .build()
