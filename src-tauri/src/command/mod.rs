@@ -180,6 +180,10 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
     vector::nth_column_command(),
     vector::remove_nth_column_command(),
   )));
+  map.insert("subvector".to_string(), Box::new(dispatch_on_hyper_command(
+    vector::subvector_command(),
+    vector::remove_subvector_command(),
+  )));
 
   // Commands which accept a single string.
   map.insert("push_number".to_string(), Box::new(input::push_number_command()));

@@ -100,6 +100,14 @@ pub struct IndexedVectorCommand {
   function_name: String,
 }
 
+/// `SubvectorCommand` pops three elements from the stack and pushes a
+/// call to the given function. The vector shall be the bottommost of
+/// the three elements popped.
+#[derive(Debug)]
+pub struct SubvectorCommand {
+  function_name: String,
+}
+
 /// `VectorFromIncompleteObjectCommand` pops stack elements until it finds
 /// the incomplete object [`ObjectType::LeftBracket`]. Then it pushes
 /// a vector containing every value popped up to that point.
@@ -219,6 +227,12 @@ impl IndexedVectorCommand {
   }
 }
 
+impl SubvectorCommand {
+  pub fn for_function(name: impl Into<String>) -> Self {
+    Self { function_name: name.into() }
+  }
+}
+
 impl VectorFromIncompleteObjectCommand {
   pub fn new() -> Self {
     Self::default()
@@ -245,6 +259,14 @@ pub fn nth_column_command() -> IndexedVectorCommand {
 
 pub fn remove_nth_column_command() -> IndexedVectorCommand {
   IndexedVectorCommand::for_function("remove_nth_column")
+}
+
+pub fn subvector_command() -> SubvectorCommand {
+  SubvectorCommand::for_function("subvector")
+}
+
+pub fn remove_subvector_command() -> SubvectorCommand {
+  SubvectorCommand::for_function("remove_subvector")
 }
 
 impl Command for PackCommand {
@@ -435,6 +457,28 @@ impl Command for IndexedVectorCommand {
 
     let vec = stack.pop()?;
     let expr = Expr::call(&self.function_name, vec![vec, Expr::from(index)]);
+    let expr = context.simplify_expr(expr, calculation_mode, &mut errors);
+    stack.push(expr);
+    Ok(CommandOutput::from_errors(errors))
+  }
+}
+
+impl Command for SubvectorCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    context: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    validate_schema(&NullaryArgumentSchema::new(), args)?;
+    state.undo_stack_mut().push_cut();
+
+    let calculation_mode = state.calculation_mode().clone();
+    let mut errors = ErrorList::new();
+    let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
+
+    let [vec, start, end] = stack.pop_several(3)?.try_into().unwrap();
+    let expr = Expr::call(&self.function_name, vec![vec, start, end]);
     let expr = context.simplify_expr(expr, calculation_mode, &mut errors);
     stack.push(expr);
     Ok(CommandOutput::from_errors(errors))

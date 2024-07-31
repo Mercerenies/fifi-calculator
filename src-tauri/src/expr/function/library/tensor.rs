@@ -9,7 +9,8 @@ use crate::expr::vector::Vector;
 use crate::expr::vector::tensor::Tensor;
 use crate::expr::prisms;
 use crate::expr::simplifier::error::SimplifierError;
-use crate::util::repeated;
+use crate::expr::algebra::infinity::InfiniteConstant;
+use crate::util::{repeated, clamp};
 use crate::util::prism::Identity;
 
 use std::cmp::Ordering;
@@ -28,6 +29,8 @@ pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(remove_nth());
   table.insert(nth_column());
   table.insert(remove_nth_column());
+  table.insert(subvector());
+  table.insert(remove_subvector());
 }
 
 fn is_empty_vector(expr: &Expr) -> bool {
@@ -289,4 +292,62 @@ pub fn remove_nth_column() -> Function {
       })
     )
     .build()
+}
+
+pub fn subvector() -> Function {
+  FunctionBuilder::new("subvector")
+    .add_case(
+      builder::arity_three().of_types(prisms::ExprToVector, prisms::expr_to_i64(), prisms::expr_to_i64())
+        .and_then(|mut vec, start, end, _| {
+          let subvector = extract_subvector(vec.as_mut_vec(), start, end);
+          Ok(Expr::from(Vector::from(subvector)))
+        })
+    )
+    .add_case(
+      builder::arity_three().of_types(prisms::ExprToVector, prisms::expr_to_i64(), prisms::ExprToInfinity)
+        .and_then(|mut vec, start, end_inf, ctx| {
+          if end_inf != InfiniteConstant::PosInfinity {
+            ctx.errors.push(SimplifierError::custom_error("subvector", "Expected positive infinity"));
+            return Err((vec, start, end_inf));
+          }
+          let subvector = extract_subvector(vec.as_mut_vec(), start, i64::MAX);
+          Ok(Expr::from(Vector::from(subvector)))
+        })
+    )
+    .build()
+}
+
+pub fn remove_subvector() -> Function {
+  FunctionBuilder::new("remove_subvector")
+    .add_case(
+      builder::arity_three().of_types(prisms::ExprToVector, prisms::expr_to_i64(), prisms::expr_to_i64())
+        .and_then(|mut vec, start, end, _| {
+          let _subvector = extract_subvector(vec.as_mut_vec(), start, end);
+          Ok(Expr::from(Vector::from(vec)))
+        })
+    )
+    .add_case(
+      builder::arity_three().of_types(prisms::ExprToVector, prisms::expr_to_i64(), prisms::ExprToInfinity)
+        .and_then(|mut vec, start, end_inf, ctx| {
+          if end_inf != InfiniteConstant::PosInfinity {
+            ctx.errors.push(SimplifierError::custom_error("subvector", "Expected positive infinity"));
+            return Err((vec, start, end_inf));
+          }
+          let _subvector = extract_subvector(vec.as_mut_vec(), start, i64::MAX);
+          Ok(Expr::from(Vector::from(vec)))
+        })
+    )
+    .build()
+}
+
+fn extract_subvector(vector: &mut Vec<Expr>, mut start: i64, mut end: i64) -> Vec<Expr> {
+  if start < 0 {
+    start += vector.len() as i64;
+  }
+  if end < 0 {
+    end += vector.len() as i64;
+  }
+  let start = clamp(start, 0, vector.len() as i64) as usize;
+  let end = clamp(end, 0, vector.len() as i64) as usize;
+  vector.drain(start..end).collect()
 }
