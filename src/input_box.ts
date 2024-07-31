@@ -36,7 +36,14 @@ export class InputBoxManager {
       this.inputMethod = inputMethod;
       this.inputSession = new ConcreteSession(this, resolve, reject);
       this.inputBox.style.visibility = 'visible';
-      this.inputTextBox.type = inputMethod.inputType;
+      switch (inputMethod.inputType) {
+      case 'number':
+        this.inputTextBox.inputMode = 'numeric';
+        break;
+      case 'text':
+        this.inputTextBox.inputMode = 'text';
+        break;
+      }
       this.inputLabel.innerHTML = inputMethod.labelHtml;
       this.setTextBoxValue(initialInput);
       window.setTimeout(() => this.inputTextBox.focus(), 1);
