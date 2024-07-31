@@ -35,6 +35,7 @@ pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(remove_subvector());
   table.insert(vec_length());
   table.insert(vec_shape());
+  table.insert(find_in_vector());
 }
 
 fn is_empty_vector(expr: &Expr) -> bool {
@@ -374,6 +375,17 @@ pub fn vec_shape() -> Function {
         let shape = vector_shape(&value);
         let shape_as_vec: Vector = shape.into_iter().map(|x| Expr::from(BigInt::from(x))).collect();
         Ok(shape_as_vec.into())
+      })
+    )
+    .build()
+}
+
+pub fn find_in_vector() -> Function {
+  FunctionBuilder::new("find")
+    .add_case(
+      builder::arity_two().of_types(prisms::ExprToVector, Identity).and_then(|haystack, needle, _| {
+        let index = haystack.iter().position(|x| *x == needle).map_or(-1, |i| i as i64);
+        Ok(Expr::from(index))
       })
     )
     .build()

@@ -2,6 +2,11 @@
 import { ButtonGrid, GridCell } from "../button_grid.js";
 import { backButton, DispatchButton } from './button.js';
 import { SignedNumberedButton, UnsignedNumberedButton } from './button/numbered.js';
+import { svg } from '../util.js';
+
+function magnifyingLensSvg(): HTMLElement {
+  return svg('assets/magnifying.svg', {alt: "search"});
+}
 
 export class VectorButtonGrid extends ButtonGrid {
   readonly rows: readonly (readonly GridCell[])[];
@@ -38,6 +43,7 @@ export class VectorButtonGrid extends ButtonGrid {
         new DispatchButton("[", "incomplete[", "["),
         new DispatchButton("]", "incomplete]", "]"),
         new DispatchButton("len", "length", "l"),
+        new DispatchButton(magnifyingLensSvg(), "find", "f"),
       ],
       [
         new DispatchButton("(", "incomplete(", "("),
