@@ -251,6 +251,27 @@ where F: FnMut(&T) -> bool {
   vec.truncate(i);
 }
 
+/// Compares two iterables lexicographically, according to the given
+/// ordering function.
+///
+/// This function is a re-implementation of the same function on
+/// `Iterator`, which is only available in Rust nightly.
+pub fn cmp_iter_by<I1, I2, F>(iter1: I1, iter2: I2, mut cmp: F) -> Ordering
+where I1: IntoIterator,
+      I2: IntoIterator,
+      F: FnMut(&I1::Item, &I2::Item) -> Ordering {
+  let mut iter1 = iter1.into_iter();
+  let mut iter2 = iter2.into_iter();
+  loop {
+    let Some(a) = iter1.next() else { return if iter2.next().is_none() { Ordering::Equal } else { Ordering::Less } };
+    let Some(b) = iter2.next() else { return Ordering::Greater };
+    let ord = cmp(&a, &b);
+    if ord != Ordering::Equal {
+      return ord;
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -430,5 +451,39 @@ mod tests {
     let mut vec = Vec::<i64>::new();
     remove_suffix(&mut vec, |_| panic!("Should not be called"));
     assert_eq!(vec, Vec::<i64>::new());
+  }
+
+  #[test]
+  fn test_cmp_iter_by_equal() {
+    let a = vec![1, 2, 3];
+    let b = vec![4, 5, 6];
+    assert_eq!(cmp_iter_by(&a, &b, |_, _| Ordering::Equal), Ordering::Equal);
+  }
+
+  #[test]
+  fn test_cmp_iter_by_equal_with_one_longer_vec() {
+    let a = vec![1, 2, 3, 10];
+    let b = vec![4, 5, 6];
+    assert_eq!(cmp_iter_by(&a, &b, |_, _| Ordering::Equal), Ordering::Greater);
+
+    let a = vec![1, 2, 3];
+    let b = vec![4, 5, 6, 10];
+    assert_eq!(cmp_iter_by(&a, &b, |_, _| Ordering::Equal), Ordering::Less);
+  }
+
+  #[test]
+  fn test_cmp_iter_by_empty() {
+    let a: Vec<i64> = vec![];
+    let b: Vec<i64> = vec![10, 20];
+    assert_eq!(cmp_iter_by(&a, &b, |_, _| unreachable!()), Ordering::Less);
+    assert_eq!(cmp_iter_by(&b, &a, |_, _| unreachable!()), Ordering::Greater);
+  }
+
+  #[test]
+  fn test_cmp_iter_by() {
+    let a: Vec<i64> = vec![1, 2, 3, 4];
+    let b: Vec<i64> = vec![1, -2, 3, -5];
+    assert_eq!(cmp_iter_by(&a, &b, |x, y| x.abs().cmp(&y.abs())), Ordering::Less);
+    assert_eq!(cmp_iter_by(&b, &a, |x, y| x.abs().cmp(&y.abs())), Ordering::Greater);
   }
 }
