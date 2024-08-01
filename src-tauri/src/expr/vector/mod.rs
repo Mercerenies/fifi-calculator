@@ -212,6 +212,19 @@ impl Vector {
     let addends = self.into_iter().map(|x| pow(abs(x), k, 1)).collect();
     pow(Expr::call("+", addends), 1, k)
   }
+
+/*
+  /// Produces and expression to compute the infinity-norm of the
+  /// vector.
+  pub fn infinity_norm(self) -> Expr {
+    fn abs(x: Expr) -> Expr {
+      Expr::call("abs", vec![x])
+    }
+
+    let args = self.into_iter().map(abs).collect();
+    Expr::call("
+  }
+*/
 }
 
 impl Prism<Expr, Vector> for ExprToVector {

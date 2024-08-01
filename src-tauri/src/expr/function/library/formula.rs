@@ -6,6 +6,7 @@ use crate::expr::Expr;
 use crate::expr::function::Function;
 use crate::expr::function::builder::{self, FunctionBuilder};
 use crate::expr::function::table::FunctionTable;
+use crate::expr::algebra::infinity::UnboundedNumber;
 use crate::expr::prisms;
 
 pub fn append_formula_functions(table: &mut FunctionTable) {
@@ -153,16 +154,21 @@ pub fn greater_than_or_equal() -> Function {
 
 pub fn min_function() -> Function {
   FunctionBuilder::new("min")
+    .permit_flattening()
     .add_case(
       // Unbounded real number comparison
-      builder::arity_two().both_of_type(prisms::expr_to_unbounded_number()).and_then(|left, right, _| {
-        Ok(Expr::from(left.min(right)))
+      builder::any_arity().of_type(prisms::expr_to_unbounded_number()).and_then(|args, _| {
+        let result = args.into_iter().fold(UnboundedNumber::POS_INFINITY, UnboundedNumber::min);
+        Ok(Expr::from(result))
       })
     )
     .add_case(
       // String comparison
-      builder::arity_two().both_of_type(prisms::expr_to_string()).and_then(|left, right, _| {
-        Ok(Expr::from(left.min(right)))
+      builder::any_arity().of_type(prisms::expr_to_string()).and_then(|args, _| {
+        // unwrap: The first case would've triggered on an empty
+        // vector. So we can assume the vector is non-empty.
+        let result = args.into_iter().reduce(String::min).unwrap();
+        Ok(Expr::from(result))
       })
     )
     .build()
@@ -170,16 +176,21 @@ pub fn min_function() -> Function {
 
 pub fn max_function() -> Function {
   FunctionBuilder::new("max")
+    .permit_flattening()
     .add_case(
       // Unbounded real number comparison
-      builder::arity_two().both_of_type(prisms::expr_to_unbounded_number()).and_then(|left, right, _| {
-        Ok(Expr::from(left.max(right)))
+      builder::any_arity().of_type(prisms::expr_to_unbounded_number()).and_then(|args, _| {
+        let result = args.into_iter().fold(UnboundedNumber::NEG_INFINITY, UnboundedNumber::max);
+        Ok(Expr::from(result))
       })
     )
     .add_case(
       // String comparison
-      builder::arity_two().both_of_type(prisms::expr_to_string()).and_then(|left, right, _| {
-        Ok(Expr::from(left.max(right)))
+      builder::any_arity().of_type(prisms::expr_to_string()).and_then(|args, _| {
+        // unwrap: The first case would've triggered on an empty
+        // vector. So we can assume the vector is non-empty.
+        let result = args.into_iter().reduce(String::max).unwrap();
+        Ok(Expr::from(result))
       })
     )
     .build()
