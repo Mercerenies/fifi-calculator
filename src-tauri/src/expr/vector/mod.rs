@@ -6,6 +6,7 @@ pub mod tensor;
 use matrix::Matrix;
 use borrowed::BorrowedVector;
 use super::Expr;
+use super::number::Number;
 use crate::util::uniq_element;
 use crate::util::prism::Prism;
 
@@ -189,6 +190,27 @@ impl Vector {
 
   pub fn is_empty(&self) -> bool {
     self.data.is_empty()
+  }
+
+  /// Produces an expression which computes the k-norm of the vector.
+  pub fn norm(self, k: usize) -> Expr {
+    fn abs(x: Expr) -> Expr {
+      Expr::call("abs", vec![x])
+    }
+    fn pow(x: Expr, numer: usize, denom: usize) -> Expr {
+      if numer == 1 && denom == 1 {
+        x
+      } else {
+        Expr::call("^", vec![
+          x,
+          Expr::from(Number::ratio(numer, denom)),
+        ])
+      }
+    }
+
+    assert!(k > 0, "k-norm must be positive");
+    let addends = self.into_iter().map(|x| pow(abs(x), k, 1)).collect();
+    pow(Expr::call("+", addends), 1, k)
   }
 }
 
@@ -410,6 +432,32 @@ mod tests {
       Expr::from(1), Expr::from(2), Expr::from(3),
       Expr::from(4), Expr::from(5), Expr::from(6),
       Expr::from(7),
+    ]));
+  }
+
+  #[test]
+  fn test_norm() {
+    let vector = Vector::from(vec![Expr::var("x").unwrap(), Expr::var("y").unwrap(), Expr::var("z").unwrap()]);
+    assert_eq!(vector.clone().norm(1), Expr::call("+", vec![
+      Expr::call("abs", vec![Expr::var("x").unwrap()]),
+      Expr::call("abs", vec![Expr::var("y").unwrap()]),
+      Expr::call("abs", vec![Expr::var("z").unwrap()]),
+    ]));
+    assert_eq!(vector.clone().norm(2), Expr::call("^", vec![
+      Expr::call("+", vec![
+        Expr::call("^", vec![Expr::call("abs", vec![Expr::var("x").unwrap()]), Expr::from(2)]),
+        Expr::call("^", vec![Expr::call("abs", vec![Expr::var("y").unwrap()]), Expr::from(2)]),
+        Expr::call("^", vec![Expr::call("abs", vec![Expr::var("z").unwrap()]), Expr::from(2)]),
+      ]),
+      Expr::from(Number::ratio(1, 2)),
+    ]));
+    assert_eq!(vector.norm(3), Expr::call("^", vec![
+      Expr::call("+", vec![
+        Expr::call("^", vec![Expr::call("abs", vec![Expr::var("x").unwrap()]), Expr::from(3)]),
+        Expr::call("^", vec![Expr::call("abs", vec![Expr::var("y").unwrap()]), Expr::from(3)]),
+        Expr::call("^", vec![Expr::call("abs", vec![Expr::var("z").unwrap()]), Expr::from(3)]),
+      ]),
+      Expr::from(Number::ratio(1, 3)),
     ]));
   }
 }
