@@ -1,5 +1,5 @@
 
-use crate::util::prism::{Prism, ErrorWithPayload, Identity};
+use crate::util::prism::{Prism, PrismExt, ErrorWithPayload, Identity};
 use crate::expr::Expr;
 use crate::expr::prisms::expr_to_typed_vector;
 use crate::util::matrix::{Matrix as UtilMatrix, MatrixIndex, MatrixDimsError, Column, ColumnMut};
@@ -14,13 +14,16 @@ pub struct Matrix {
 
 /// Prism which attempts to parse an expression as a matrix.
 /// Specifically, this prism accepts vectors of vectors where each
-/// subvector has the same length.
+/// subvector has the same length and the elements of the subvectors
+/// satisfy the inner prism.
 ///
 /// NOTE: This prism is NOT mutually exclusive with
 /// [`ExprToTensor`](super::tensor::ExprToTensor) or [`ExprToVector`]
 /// and should not be used in a disjunction with either of those.
 #[derive(Debug, Clone)]
-pub struct ExprToMatrix;
+pub struct ExprToTypedMatrix<P> {
+  element_prism: P,
+}
 
 impl Matrix {
   pub fn new(body: Vec<Vec<Expr>>) -> Result<Matrix, MatrixDimsError<Expr>> {
@@ -119,11 +122,19 @@ impl Matrix {
   pub fn as_matrix_mut(&mut self) -> &mut UtilMatrix<Expr> {
     &mut self.data
   }
+
+  pub fn into_matrix(self) -> UtilMatrix<Expr> {
+    self.data
+  }
 }
 
-impl ExprToMatrix {
-  fn inner_prism() -> impl Prism<Expr, Vec<Vec<Expr>>> {
-    expr_to_typed_vector(expr_to_typed_vector(Identity))
+pub fn expr_to_matrix() -> impl Prism<Expr, Matrix> + Clone {
+  ExprToTypedMatrix::new(Identity).rmap(Matrix::from, Matrix::into_matrix)
+}
+
+impl<P> ExprToTypedMatrix<P> {
+  fn new(element_prism: P) -> Self {
+    ExprToTypedMatrix { element_prism }
   }
 }
 
@@ -151,17 +162,20 @@ impl From<Matrix> for Expr {
   }
 }
 
-impl Prism<Expr, Matrix> for ExprToMatrix {
-  fn narrow_type(&self, expr: Expr) -> Result<Matrix, Expr> {
-    let inner_prism = Self::inner_prism();
+impl<P, T> Prism<Expr, UtilMatrix<T>> for ExprToTypedMatrix<P>
+where P: Prism<Expr, T> + Clone {
+  fn narrow_type(&self, expr: Expr) -> Result<UtilMatrix<T>, Expr> {
+    let inner_prism = expr_to_typed_vector(expr_to_typed_vector(self.element_prism.clone()));
     let vec_of_vecs = inner_prism.narrow_type(expr)?;
-    Matrix::new(vec_of_vecs).map_err(|err| {
+    UtilMatrix::new(vec_of_vecs).map_err(|err| {
       inner_prism.widen_type(err.recover_payload())
     })
   }
 
-  fn widen_type(&self, matrix: Matrix) -> Expr {
-    matrix.into()
+  fn widen_type(&self, matrix: UtilMatrix<T>) -> Expr {
+    let inner_prism = expr_to_typed_vector(expr_to_typed_vector(self.element_prism.clone()));
+    let vec_of_vecs = matrix.into_row_major();
+    inner_prism.widen_type(vec_of_vecs)
   }
 }
 
@@ -172,21 +186,21 @@ mod tests {
   #[test]
   fn test_prism_widen_type() {
     let matrix = Matrix::from_generator(2, 2, |index| Expr::from((index.x * 10 + index.y) as i64));
-    let expr = ExprToMatrix.widen_type(matrix);
+    let expr = expr_to_matrix().widen_type(matrix);
     assert_eq!(expr, Expr::call("vector", vec![
       Expr::call("vector", vec![Expr::from(0), Expr::from(10)]),
       Expr::call("vector", vec![Expr::from(1), Expr::from(11)]),
     ]));
 
     let matrix = Matrix::from_generator(2, 1, |index| Expr::from((index.x * 10 + index.y) as i64));
-    let expr = ExprToMatrix.widen_type(matrix);
+    let expr = expr_to_matrix().widen_type(matrix);
     assert_eq!(expr, Expr::call("vector", vec![
       Expr::call("vector", vec![Expr::from(0)]),
       Expr::call("vector", vec![Expr::from(1)]),
     ]));
 
     let matrix = Matrix::from_generator(1, 2, |index| Expr::from((index.x * 10 + index.y) as i64));
-    let expr = ExprToMatrix.widen_type(matrix);
+    let expr = expr_to_matrix().widen_type(matrix);
     assert_eq!(expr, Expr::call("vector", vec![
       Expr::call("vector", vec![Expr::from(0), Expr::from(10)]),
     ]));
@@ -195,13 +209,13 @@ mod tests {
   #[test]
   fn test_prism_widen_type_corner_cases() {
     let matrix = Matrix::from_generator(0, 0, |_| unreachable!());
-    assert_eq!(ExprToMatrix.widen_type(matrix), Expr::call("vector", vec![]));
+    assert_eq!(expr_to_matrix().widen_type(matrix), Expr::call("vector", vec![]));
 
     let matrix = Matrix::from_generator(0, 99, |_| unreachable!());
-    assert_eq!(ExprToMatrix.widen_type(matrix), Expr::call("vector", vec![]));
+    assert_eq!(expr_to_matrix().widen_type(matrix), Expr::call("vector", vec![]));
 
     let matrix = Matrix::from_generator(2, 0, |_| unreachable!());
-    assert_eq!(ExprToMatrix.widen_type(matrix), Expr::call("vector", vec![
+    assert_eq!(expr_to_matrix().widen_type(matrix), Expr::call("vector", vec![
       Expr::call("vector", vec![]),
       Expr::call("vector", vec![]),
     ]));
@@ -213,7 +227,7 @@ mod tests {
       Expr::call("vector", vec![Expr::from(0), Expr::from(10)]),
       Expr::call("vector", vec![Expr::from(1), Expr::from(11)]),
     ]);
-    let matrix = ExprToMatrix.narrow_type(expr).unwrap();
+    let matrix = expr_to_matrix().narrow_type(expr).unwrap();
     assert_eq!(matrix, Matrix::from_generator(2, 2, |index| Expr::from((index.x * 10 + index.y) as i64)));
   }
 
@@ -223,25 +237,25 @@ mod tests {
       Expr::call("vector", vec![Expr::from(0), Expr::from(10), Expr::from(20)]),
       Expr::call("vector", vec![Expr::from(1), Expr::from(11), Expr::from(21)]),
     ]);
-    let matrix = ExprToMatrix.narrow_type(expr).unwrap();
+    let matrix = expr_to_matrix().narrow_type(expr).unwrap();
     assert_eq!(matrix, Matrix::from_generator(2, 3, |index| Expr::from((index.x * 10 + index.y) as i64)));
   }
 
   #[test]
   fn test_prism_narrow_type_corner_cases() {
     let expr = Expr::call("vector", vec![]);
-    assert_eq!(ExprToMatrix.narrow_type(expr).unwrap(), Matrix::default());
+    assert_eq!(expr_to_matrix().narrow_type(expr).unwrap(), Matrix::default());
 
     let expr = Expr::call("vector", vec![Expr::call("vector", vec![])]);
-    assert_eq!(ExprToMatrix.narrow_type(expr).unwrap(), Matrix::from_generator(1, 0, |_| unreachable!()));
+    assert_eq!(expr_to_matrix().narrow_type(expr).unwrap(), Matrix::from_generator(1, 0, |_| unreachable!()));
   }
 
   #[test]
   fn test_prism_narrow_type_failure() {
-    ExprToMatrix.narrow_type(Expr::from(0)).unwrap_err();
-    ExprToMatrix.narrow_type(Expr::call("*", vec![])).unwrap_err();
-    ExprToMatrix.narrow_type(Expr::call("vector", vec![Expr::from(0)])).unwrap_err();
-    ExprToMatrix.narrow_type(Expr::call("vector", vec![
+    expr_to_matrix().narrow_type(Expr::from(0)).unwrap_err();
+    expr_to_matrix().narrow_type(Expr::call("*", vec![])).unwrap_err();
+    expr_to_matrix().narrow_type(Expr::call("vector", vec![Expr::from(0)])).unwrap_err();
+    expr_to_matrix().narrow_type(Expr::call("vector", vec![
       Expr::call("vector", vec![Expr::from(0), Expr::from(10), Expr::from(20)]),
       Expr::call("vector", vec![Expr::from(9)]),
     ])).unwrap_err();

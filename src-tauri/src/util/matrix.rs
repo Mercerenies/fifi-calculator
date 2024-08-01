@@ -314,7 +314,7 @@ impl<T: Serialize> Serialize for Matrix<T> {
   }
 }
 
-impl<T: Debug> ErrorWithPayload<Vec<Vec<T>>> for MatrixDimsError<T> {
+impl<T> ErrorWithPayload<Vec<Vec<T>>> for MatrixDimsError<T> {
   fn recover_payload(self) -> Vec<Vec<T>> {
     self.original_data
   }

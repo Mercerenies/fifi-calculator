@@ -260,7 +260,7 @@ pub fn remove_nth() -> Function {
 pub fn nth_column() -> Function {
   FunctionBuilder::new("nth_column")
     .add_case(
-      builder::arity_two().of_types(prisms::ExprToMatrix, prisms::expr_to_i64()).and_then(|mat, index, ctx| {
+      builder::arity_two().of_types(prisms::expr_to_matrix(), prisms::expr_to_i64()).and_then(|mat, index, ctx| {
         let unsigned_index =
           if index < - (mat.width() as i64) {
             ctx.errors.push(SimplifierError::custom_error("nth_column", "Index out of bounds"));
@@ -288,7 +288,7 @@ pub fn nth_column() -> Function {
 pub fn remove_nth_column() -> Function {
   FunctionBuilder::new("remove_nth_column")
     .add_case(
-      builder::arity_two().of_types(prisms::ExprToMatrix, prisms::expr_to_i64()).and_then(|mut mat, index, ctx| {
+      builder::arity_two().of_types(prisms::expr_to_matrix(), prisms::expr_to_i64()).and_then(|mut mat, index, ctx| {
         let unsigned_index =
           if index < - (mat.width() as i64) {
             ctx.errors.push(SimplifierError::custom_error("remove_nth_column", "Index out of bounds"));
@@ -477,7 +477,7 @@ pub fn transpose() -> Function {
   FunctionBuilder::new("transpose")
     .add_case(
       // Matrix transpose
-      builder::arity_one().of_type(prisms::ExprToMatrix).and_then(|mat, _| {
+      builder::arity_one().of_type(prisms::expr_to_matrix()).and_then(|mat, _| {
         Ok(Expr::from(mat.transpose()))
       })
     )
