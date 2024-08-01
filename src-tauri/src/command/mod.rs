@@ -194,6 +194,10 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
     UnaryFunctionCommand::named("sort"),
     UnaryFunctionCommand::named("rsort"),
   )));
+  map.insert("grade".to_string(), Box::new(dispatch_on_inverse_command(
+    UnaryFunctionCommand::named("grade"),
+    UnaryFunctionCommand::named("rgrade"),
+  )));
 
   // Commands which accept a single string.
   map.insert("push_number".to_string(), Box::new(input::push_number_command()));

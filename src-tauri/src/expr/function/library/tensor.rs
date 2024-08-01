@@ -41,6 +41,8 @@ pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(arrange_vector());
   table.insert(sort_vector());
   table.insert(sort_vector_reversed());
+  table.insert(grade_vector());
+  table.insert(grade_vector_reversed());
 }
 
 fn is_empty_vector(expr: &Expr) -> bool {
@@ -432,6 +434,34 @@ pub fn sort_vector_reversed() -> Function {
       builder::arity_one().of_type(prisms::ExprToVector).and_then(|mut vec, _| {
         vec.as_mut_slice().sort_by(|a, b| cmp_expr(b, a));
         Ok(Expr::from(vec))
+      })
+    )
+    .build()
+}
+
+pub fn grade_vector() -> Function {
+  FunctionBuilder::new("grade")
+    .add_case(
+      builder::arity_one().of_type(prisms::ExprToVector).and_then(|vec, _| {
+        let mut indices = (0..vec.len()).collect::<Vec<_>>();
+        indices.sort_by(|a, b| cmp_expr(&vec[*a], &vec[*b]));
+        Ok(Expr::from(
+          indices.into_iter().map(|x| Expr::from(x as i64)).collect::<Vector>(),
+        ))
+      })
+    )
+    .build()
+}
+
+pub fn grade_vector_reversed() -> Function {
+  FunctionBuilder::new("rgrade")
+    .add_case(
+      builder::arity_one().of_type(prisms::ExprToVector).and_then(|vec, _| {
+        let mut indices = (0..vec.len()).collect::<Vec<_>>();
+        indices.sort_by(|a, b| cmp_expr(&vec[*b], &vec[*a]));
+        Ok(Expr::from(
+          indices.into_iter().map(|x| Expr::from(x as i64)).collect::<Vector>(),
+        ))
       })
     )
     .build()
