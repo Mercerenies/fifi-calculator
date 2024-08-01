@@ -34,6 +34,7 @@ pub fn append_arithmetic_functions(table: &mut FunctionTable) {
   table.insert(modulo());
   table.insert(floor_division());
   table.insert(arithmetic_negate());
+  table.insert(reciprocal());
   table.insert(abs());
   table.insert(signum());
 }
@@ -733,6 +734,51 @@ pub fn arithmetic_negate() -> Function {
     .set_derivative(
       builder::arity_one_deriv("negate", |arg, engine| {
         Ok(Expr::call("negate", vec![engine.differentiate(arg)?]))
+      })
+    )
+    .build()
+}
+
+pub fn reciprocal() -> Function {
+  FunctionBuilder::new("recip")
+    .add_case(
+      // Real / Complex number negation
+      builder::arity_one().of_type(ExprToComplex).and_then(|arg, ctx| {
+        if arg.is_zero() {
+          return division_by_zero(ctx, "recip", arg);
+        }
+        Ok(Expr::from(arg.map(|r| r.recip(), |c| c.recip())))
+      })
+    )
+    .add_case(
+      // Vector reciprocal (trap case; you probably intended a matrix)
+      builder::arity_one().of_type(prisms::ExprToVector).and_then(|arg, ctx| {
+        ctx.errors.push(SimplifierError::custom_error("recip", "Expected matrix"));
+        Err(arg)
+      })
+    )
+    .add_case(
+      // Reciprocal of an interval
+      builder::arity_one().of_type(prisms::expr_to_unbounded_interval()).and_then(|arg, _| {
+        Ok(Expr::call("/", vec![Expr::from(1), Expr::from(arg)]))
+      })
+    )
+    .add_case(
+      // Reciprocal of infinity
+      builder::arity_one().of_type(prisms::ExprToInfinity).and_then(|arg, _| {
+        match arg {
+          InfiniteConstant::PosInfinity | InfiniteConstant::NegInfinity => Ok(Expr::zero()),
+          other_inf => Ok(other_inf.into())
+        }
+      })
+    )
+    .set_derivative(
+      builder::arity_one_deriv("recip", |arg, engine| {
+        let arg_deriv = engine.differentiate(arg.clone())?;
+        Ok(Expr::call("/", vec![
+          Expr::call("*", vec![Expr::from(-1), arg_deriv]),
+          Expr::call("^", vec![arg, Expr::from(2)]),
+        ]))
       })
     )
     .build()

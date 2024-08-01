@@ -75,6 +75,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
     inv_hyper_flag: UnaryFunctionCommand::new(pow2),
   })));
   map.insert("negate".to_string(), Box::new(UnaryFunctionCommand::new(times_minus_one)));
+  map.insert("recip".to_string(), Box::new(UnaryFunctionCommand::named("recip")));
   map.insert("min".to_string(), Box::new(BinaryFunctionCommand::named("min")));
   map.insert("max".to_string(), Box::new(BinaryFunctionCommand::named("max")));
 
