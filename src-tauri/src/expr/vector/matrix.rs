@@ -52,6 +52,10 @@ impl Matrix {
     })
   }
 
+  pub fn transpose(self) -> Self {
+    Self { data: self.data.transpose() }
+  }
+
   pub fn of_value(height: usize, width: usize, value: Expr) -> Self {
     Matrix::from(UtilMatrix::of_value(height, width, value))
   }

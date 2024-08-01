@@ -43,6 +43,7 @@ pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(sort_vector_reversed());
   table.insert(grade_vector());
   table.insert(grade_vector_reversed());
+  table.insert(transpose());
 }
 
 fn is_empty_vector(expr: &Expr) -> bool {
@@ -462,6 +463,23 @@ pub fn grade_vector_reversed() -> Function {
         Ok(Expr::from(
           indices.into_iter().map(|x| Expr::from(x as i64)).collect::<Vector>(),
         ))
+      })
+    )
+    .build()
+}
+
+pub fn transpose() -> Function {
+  FunctionBuilder::new("transpose")
+    .add_case(
+      // Matrix transpose
+      builder::arity_one().of_type(prisms::ExprToMatrix).and_then(|mat, _| {
+        Ok(Expr::from(mat.transpose()))
+      })
+    )
+    .add_case(
+      // Vector transpose (convert row vector to column vector)
+      builder::arity_one().of_type(prisms::ExprToVector).and_then(|vec, _| {
+        Ok(Expr::from(vec.into_column_vector()))
       })
     )
     .build()

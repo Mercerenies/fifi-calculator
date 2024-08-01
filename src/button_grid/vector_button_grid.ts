@@ -38,6 +38,7 @@ export class VectorButtonGrid extends ButtonGrid {
       [
         new DispatchButton("↘", "diag", "d"),
         new UnsignedNumberedButton("<math><msub><mi>I</mi><mi>n</mi></msub></math>", "identity_matrix", "i", "Dims:"),
+        new DispatchButton("<math><msup><mi>A</mi><mi>T</mi></msup></math>", "transpose", "t"),
       ],
       [
         new DispatchButton("[", "incomplete[", "["),

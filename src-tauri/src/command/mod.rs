@@ -198,6 +198,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
     UnaryFunctionCommand::named("grade"),
     UnaryFunctionCommand::named("rgrade"),
   )));
+  map.insert("transpose".to_string(), Box::new(UnaryFunctionCommand::named("transpose")));
 
   // Commands which accept a single string.
   map.insert("push_number".to_string(), Box::new(input::push_number_command()));

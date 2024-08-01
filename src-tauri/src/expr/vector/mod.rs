@@ -3,6 +3,7 @@ pub mod borrowed;
 pub mod matrix;
 pub mod tensor;
 
+use matrix::Matrix;
 use borrowed::BorrowedVector;
 use super::Expr;
 use crate::util::uniq_element;
@@ -144,6 +145,15 @@ impl Vector {
     self.into_iter()
       .flat_map(flatten_expr)
       .collect()
+  }
+
+  pub fn into_row_vector(self) -> Matrix {
+    Matrix::new(vec![Vec::from(self)]).unwrap()
+  }
+
+  pub fn into_column_vector(self) -> Matrix {
+    let elems = self.into_iter().map(|x| vec![x]).collect();
+    Matrix::new(elems).unwrap()
   }
 
   pub fn get(&self, i: usize) -> Option<&Expr> {

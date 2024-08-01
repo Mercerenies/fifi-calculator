@@ -2,12 +2,13 @@
 //! Very rudimentary matrix type which enforces consistency in the
 //! dimensions of its data.
 
+use crate::util::transpose;
 use crate::util::prism::ErrorWithPayload;
 
 use thiserror::Error;
 use serde::{Serialize, Deserialize};
 
-use std::fmt::Debug;
+use std::fmt::{self, Debug};
 use std::ops::{Index, IndexMut};
 use std::borrow::ToOwned;
 
@@ -43,7 +44,7 @@ pub struct MatrixIndex {
   pub x: usize,
 }
 
-#[derive(Debug, Clone, Error)]
+#[derive(Clone, Error)]
 #[error("The dimensions of the matrix are inconsistent")]
 pub struct MatrixDimsError<T> {
   original_data: Vec<Vec<T>>,
@@ -68,8 +69,7 @@ impl<T> Matrix<T> {
     let body = (0..height)
       .map(|y| (0..width).map(|x| generator(MatrixIndex { y, x })).collect())
       .collect();
-    let Ok(body) = Matrix::new(body) else { unreachable!() }; // Poor man's unwrap() (T might not be Debug)
-    body
+    Matrix::new(body).unwrap()
   }
 
   pub fn of_value(height: usize, width: usize, value: T) -> Self
@@ -177,6 +177,10 @@ impl<T> Matrix<T> {
         .collect(),
     }
   }
+
+  pub fn transpose(self) -> Self {
+    Self::new(transpose(self.body)).unwrap()
+  }
 }
 
 impl<'a, T> Column<'a, T> {
@@ -230,6 +234,18 @@ impl<'a, T> ColumnMut<'a, T> {
   pub fn to_owned(&self) -> Vec<T::Owned>
   where T: ToOwned {
     self.iter().map(T::to_owned).collect()
+  }
+}
+
+impl MatrixIndex {
+  pub fn flipped(self) -> MatrixIndex {
+    MatrixIndex { x: self.y, y: self.x }
+  }
+}
+
+impl<T> Debug for MatrixDimsError<T> {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "MatrixDimsError {{ ... }}")
   }
 }
 

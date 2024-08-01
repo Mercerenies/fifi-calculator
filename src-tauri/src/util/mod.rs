@@ -272,6 +272,20 @@ where I1: IntoIterator,
   }
 }
 
+pub fn transpose<T>(elems: Vec<Vec<T>>) -> Vec<Vec<T>> {
+  let mut elems: Vec<_> = elems.into_iter().map(|v| v.into_iter()).collect();
+  let mut result = Vec::with_capacity(elems.len());
+  loop {
+    let next_elems: Vec<_> = elems.iter_mut().filter_map(|v| v.next()).collect();
+    if next_elems.is_empty() {
+      break;
+    } else {
+      result.push(next_elems);
+    }
+  }
+  result
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -485,5 +499,52 @@ mod tests {
     let b: Vec<i64> = vec![1, -2, 3, -5];
     assert_eq!(cmp_iter_by(&a, &b, |x, y| x.abs().cmp(&y.abs())), Ordering::Less);
     assert_eq!(cmp_iter_by(&b, &a, |x, y| x.abs().cmp(&y.abs())), Ordering::Greater);
+  }
+
+  #[test]
+  fn test_transpose_on_square_matrix() {
+    let vec = vec![
+      vec![0, 1, 2, 3],
+      vec![4, 5, 6, 7],
+      vec![8, 9, 10, 11],
+      vec![12, 13, 14, 15],
+    ];
+    assert_eq!(transpose(vec), vec![
+      vec![0, 4, 8, 12],
+      vec![1, 5, 9, 13],
+      vec![2, 6, 10, 14],
+      vec![3, 7, 11, 15],
+    ]);
+  }
+
+  #[test]
+  fn test_transpose_on_rectangular_matrix() {
+    let vec = vec![
+      vec![0, 1, 2, 3],
+      vec![4, 5, 6, 7],
+    ];
+    assert_eq!(transpose(vec), vec![
+      vec![0, 4],
+      vec![1, 5],
+      vec![2, 6],
+      vec![3, 7],
+    ]);
+  }
+
+  #[test]
+  fn test_transpose_on_jagged_array() {
+    let vec = vec![
+      vec![0, 1, 2, 3],
+      vec![4, 5, 6, 7, 8],
+      vec![9, 10],
+      vec![11, 12, 13],
+    ];
+    assert_eq!(transpose(vec), vec![
+      vec![0, 4, 9, 11],
+      vec![1, 5, 10, 12],
+      vec![2, 6, 13],
+      vec![3, 7],
+      vec![8],
+    ]);
   }
 }
