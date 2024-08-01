@@ -142,31 +142,31 @@ export class MainButtonGrid extends ButtonGrid {
 
 class Subgrids {
   readonly algebra: AlgebraButtonGrid;
-  readonly formula: FormulaButtonGrid;
-  readonly storage: StorageButtonGrid;
-  readonly vector: VectorButtonGrid;
-  readonly matrix: MatrixButtonGrid;
-  readonly transcendental: TranscendentalButtonGrid;
-  readonly graphing: GraphingButtonGrid;
   readonly display: DisplayButtonGrid;
-  readonly strings: StringButtonGrid;
-  readonly units: UnitsButtonGrid;
-  readonly modes: ModesButtonGrid;
+  readonly formula: FormulaButtonGrid;
+  readonly graphing: GraphingButtonGrid;
   readonly input: InputButtonGrid;
+  readonly matrix: MatrixButtonGrid;
+  readonly modes: ModesButtonGrid;
+  readonly storage: StorageButtonGrid;
+  readonly strings: StringButtonGrid;
+  readonly transcendental: TranscendentalButtonGrid;
+  readonly units: UnitsButtonGrid;
+  readonly vector: VectorButtonGrid;
 
   constructor(mainGrid: MainButtonGrid) {
     this.algebra = new AlgebraButtonGrid(mainGrid);
-    this.formula = new FormulaButtonGrid(mainGrid);
-    this.storage = new StorageButtonGrid(mainGrid);
-    this.vector = new VectorButtonGrid(mainGrid);
-    this.matrix = new MatrixButtonGrid(mainGrid);
-    this.transcendental = new TranscendentalButtonGrid(mainGrid);
-    this.graphing = new GraphingButtonGrid(mainGrid);
     this.display = new DisplayButtonGrid(mainGrid);
-    this.strings = new StringButtonGrid(mainGrid);
-    this.units = new UnitsButtonGrid(mainGrid);
-    this.modes = new ModesButtonGrid(mainGrid);
+    this.formula = new FormulaButtonGrid(mainGrid);
+    this.graphing = new GraphingButtonGrid(mainGrid);
     this.input = new InputButtonGrid(mainGrid);
+    this.matrix = new MatrixButtonGrid(mainGrid);
+    this.modes = new ModesButtonGrid(mainGrid);
+    this.storage = new StorageButtonGrid(mainGrid);
+    this.strings = new StringButtonGrid(mainGrid);
+    this.transcendental = new TranscendentalButtonGrid(mainGrid);
+    this.units = new UnitsButtonGrid(mainGrid);
+    this.vector = new VectorButtonGrid(mainGrid);
   }
 }
 
