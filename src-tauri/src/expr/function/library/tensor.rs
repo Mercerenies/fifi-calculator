@@ -12,12 +12,13 @@ use crate::expr::ordering::cmp_expr;
 use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::algebra::infinity::InfiniteConstant;
 use crate::util::{repeated, clamp};
-use crate::util::prism::Identity;
+use crate::util::prism::{Prism, Identity, OnVec};
 
 use num::BigInt;
 use itertools::Itertools;
 
 use std::cmp::Ordering;
+use std::iter;
 
 pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(vconcat());
@@ -45,6 +46,7 @@ pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(grade_vector_reversed());
   table.insert(transpose());
   table.insert(reverse());
+  table.insert(vector_mask());
 }
 
 fn is_empty_vector(expr: &Expr) -> bool {
@@ -496,4 +498,34 @@ pub fn reverse() -> Function {
       })
     )
     .build()
+}
+
+pub fn vector_mask() -> Function {
+  FunctionBuilder::new("vmask")
+    .add_case(
+      builder::arity_two().of_types(prisms::ExprToVector, prisms::ExprToVector).and_then(|mask, elems, ctx| {
+        if mask.len() != elems.len() {
+          ctx.errors.push(SimplifierError::custom_error("vmask", "Mask and vector must be of same length"));
+          return Err((mask, elems))
+        }
+        let mask = match vector_mask_prism().narrow_type(Vec::from(mask)) {
+          Ok(mask_as_usizes) => mask_as_usizes,
+          Err(mask) => {
+            ctx.errors.push(SimplifierError::custom_error("vmask", "Expected vector of nonnegative integers for mask"));
+            return Err((Vector::from(mask), elems));
+          }
+        };
+        let mut resulting_elems = Vector::with_capacity(elems.len());
+        for (mask_value, elem) in mask.into_iter().zip(elems) {
+          let repeated_elem = iter::repeat(elem).take(mask_value);
+          resulting_elems.as_mut_vec().extend(repeated_elem);
+        }
+        Ok(resulting_elems.into())
+      })
+    )
+    .build()
+}
+
+fn vector_mask_prism() -> impl Prism<Vec<Expr>, Vec<usize>> {
+  OnVec::new(prisms::expr_to_usize())
 }

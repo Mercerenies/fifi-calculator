@@ -72,6 +72,13 @@ impl Vector {
     Self { data: vec![] }
   }
 
+  /// A new, empty vector with the given capacity.
+  pub fn with_capacity(capacity: usize) -> Self {
+    Self {
+      data: Vec::with_capacity(capacity),
+    }
+  }
+
   pub fn append(mut self, mut other: Self) -> Self {
     self.data.append(&mut other.data);
     self

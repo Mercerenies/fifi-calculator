@@ -200,6 +200,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   )));
   map.insert("transpose".to_string(), Box::new(UnaryFunctionCommand::named("transpose")));
   map.insert("reverse".to_string(), Box::new(UnaryFunctionCommand::named("reverse")));
+  map.insert("vmask".to_string(), Box::new(BinaryFunctionCommand::named("vmask")));
 
   // Commands which accept a single string.
   map.insert("push_number".to_string(), Box::new(input::push_number_command()));
