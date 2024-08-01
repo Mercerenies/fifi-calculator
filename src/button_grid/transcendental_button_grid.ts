@@ -27,10 +27,12 @@ export class TranscendentalButtonGrid extends ButtonGrid {
         new DispatchButton("<math><mover><mi>z</mi><mo>-</mo></mover></math>", "conj", "J"),
         new DispatchButton("sgn", "signum", "s"),
         new DispatchButton("arg", "arg", "G"),
-      ],
-      [
         new DispatchButton("re", "re", "r"),
         new DispatchButton("im", "im", "i"),
+      ],
+      [
+        new DispatchButton("<small><math><mrow><mo>⌊</mo><mi>·</mi><mo>⌋</mo></mrow></math></small>", "min", "n"),
+        new DispatchButton("<small><math><mrow><mo>⌈</mo><mi>·</mi><mo>⌉</mo></mrow></math></small>", "max", "x"),
       ],
       [
         new DispatchButton("sin", "sin", "S"),

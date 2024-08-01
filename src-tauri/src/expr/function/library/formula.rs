@@ -15,6 +15,8 @@ pub fn append_formula_functions(table: &mut FunctionTable) {
   table.insert(greater_than());
   table.insert(less_than_or_equal());
   table.insert(greater_than_or_equal());
+  table.insert(min_function());
+  table.insert(max_function());
 }
 
 pub fn equal_to() -> Function {
@@ -145,6 +147,40 @@ pub fn greater_than_or_equal() -> Function {
         let args = engine.differentiate_each(args)?;
         Ok(Expr::call(">=", args))
       }
+    )
+    .build()
+}
+
+pub fn min_function() -> Function {
+  FunctionBuilder::new("min")
+    .add_case(
+      // Unbounded real number comparison
+      builder::arity_two().both_of_type(prisms::expr_to_unbounded_number()).and_then(|left, right, _| {
+        Ok(Expr::from(left.min(right)))
+      })
+    )
+    .add_case(
+      // String comparison
+      builder::arity_two().both_of_type(prisms::expr_to_string()).and_then(|left, right, _| {
+        Ok(Expr::from(left.min(right)))
+      })
+    )
+    .build()
+}
+
+pub fn max_function() -> Function {
+  FunctionBuilder::new("max")
+    .add_case(
+      // Unbounded real number comparison
+      builder::arity_two().both_of_type(prisms::expr_to_unbounded_number()).and_then(|left, right, _| {
+        Ok(Expr::from(left.max(right)))
+      })
+    )
+    .add_case(
+      // String comparison
+      builder::arity_two().both_of_type(prisms::expr_to_string()).and_then(|left, right, _| {
+        Ok(Expr::from(left.max(right)))
+      })
     )
     .build()
 }

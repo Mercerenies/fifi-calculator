@@ -75,6 +75,8 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
     inv_hyper_flag: UnaryFunctionCommand::new(pow2),
   })));
   map.insert("negate".to_string(), Box::new(UnaryFunctionCommand::new(times_minus_one)));
+  map.insert("min".to_string(), Box::new(BinaryFunctionCommand::named("min")));
+  map.insert("max".to_string(), Box::new(BinaryFunctionCommand::named("max")));
 
   // Trigonometry
   map.insert("sin".to_string(), Box::new(dispatch_on_flags_command(FlagDispatchArgs {
