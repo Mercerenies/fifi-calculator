@@ -10,9 +10,9 @@ import { StringButtonGrid } from "./string_button_grid.js";
 import { DisplayButtonGrid } from "./display_button_grid.js";
 import { ModesButtonGrid } from "./modes_button_grid.js";
 import { UnitsButtonGrid } from "./units_button_grid.js";
+import { InputButtonGrid } from "./input_button_grid.js";
 import { DispatchButton, GotoButton } from './button.js';
-import { NumericalInputButton, AlgebraicInputButton,
-         StringInputButton, AlgebraicEditButton } from './button/input.js';
+import { NumericalInputButton, AlgebraicInputButton } from './button/input.js';
 import { numericalInputToStack } from '../input_box/numerical_input.js';
 import { KeyEventInput, KeyResponse } from '../keyboard.js';
 import { svg } from '../util.js';
@@ -65,13 +65,14 @@ export class MainButtonGrid extends ButtonGrid {
         new DispatchButton("+", "+", "+"),
         new NumericalInputButton(),
         new AlgebraicInputButton(),
-        new StringInputButton(),
-        new AlgebraicEditButton(),
+        new GotoButton("&quot;", null, this.subgrids.input),
       ],
       [
         new DispatchButton("-", "-", "-"),
         new DispatchButton("<math><mo fence='true'>|</mo><mo>·</mo><mo fence='true'>|</mo></math>", "abs", "A"),
         new GotoButton("mo", "m", this.subgrids.modes),
+        new GotoButton("out", "d", this.subgrids.display),
+        new GotoButton(graphSvg(), "g", this.subgrids.graphing),
       ],
       [
         new DispatchButton("<math><mo>&times;</mo></math>", "*", "*"),
@@ -92,14 +93,12 @@ export class MainButtonGrid extends ButtonGrid {
         new DispatchButton(swapSvg(), "swap", "Tab"),
         new DispatchButton(dupSvg(), "dup", "Enter"),
         new GotoButton("<math><mi>ξ</mi></math>", "f", this.subgrids.transcendental),
-        new GotoButton("out", "d", this.subgrids.display),
       ],
       [
         new GotoButton("<math><mi>x</mi></math>", "a", this.subgrids.algebra),
         new GotoButton(":=", "s", this.subgrids.storage),
         new GotoButton("[]", "v", this.subgrids.vector),
         new GotoButton("≤", null, this.subgrids.formula),
-        new GotoButton(graphSvg(), "g", this.subgrids.graphing),
       ],
     ];
   }
@@ -150,6 +149,7 @@ class Subgrids {
   readonly strings: StringButtonGrid;
   readonly units: UnitsButtonGrid;
   readonly modes: ModesButtonGrid;
+  readonly input: InputButtonGrid;
 
   constructor(mainGrid: MainButtonGrid) {
     this.algebra = new AlgebraButtonGrid(mainGrid);
@@ -162,6 +162,7 @@ class Subgrids {
     this.strings = new StringButtonGrid(mainGrid);
     this.units = new UnitsButtonGrid(mainGrid);
     this.modes = new ModesButtonGrid(mainGrid);
+    this.input = new InputButtonGrid(mainGrid);
   }
 }
 
@@ -177,9 +178,11 @@ const SUBGRID_FORWARDING_TABLE: Record<string, keyof Subgrids> = {
   "J": "display",
   "M-u": "strings",
   "M-l": "strings",
-  "[": "vector",
-  "]": "vector",
-  "(": "vector",
-  ")": "vector",
+  "[": "input",
+  "]": "input",
+  "(": "input",
+  ")": "input",
+  "\"": "input",
+  "`": "input",
   "|": "vector",
 };
