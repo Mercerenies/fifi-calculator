@@ -11,6 +11,7 @@ use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder};
 use crate::expr::prisms::{self, ExprToComplex};
 use crate::expr::number::ComplexNumber;
+use crate::expr::vector::Vector;
 use crate::expr::algebra::infinity::InfiniteConstant;
 
 use std::f64::consts::PI;
@@ -31,6 +32,13 @@ pub fn conjugate() -> Function {
       })
     )
     .add_case(
+      // Pointwise conjugate of a vector
+      builder::arity_one().of_type(prisms::ExprToVector).and_then(|vec, _| {
+        let vec: Vector = vec.into_iter().map(|e| Expr::call("conj", vec![e])).collect();
+        Ok(Expr::from(vec))
+      })
+    )
+    .add_case(
       // Conjugate of infinity constant
       builder::arity_one().of_type(prisms::ExprToInfinity).and_then(|arg, _| {
         Ok(Expr::from(arg))
@@ -46,6 +54,13 @@ pub fn arg() -> Function {
       builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
         let angle = ComplexNumber::from(arg).angle();
         Ok(Expr::from(angle.0))
+      })
+    )
+    .add_case(
+      // Pointwise argument of a vector
+      builder::arity_one().of_type(prisms::ExprToVector).and_then(|vec, _| {
+        let vec: Vector = vec.into_iter().map(|e| Expr::call("arg", vec![e])).collect();
+        Ok(Expr::from(vec))
       })
     )
     .add_case(
@@ -72,6 +87,13 @@ pub fn re() -> Function {
       })
     )
     .add_case(
+      // Pointwise real-part of a vector
+      builder::arity_one().of_type(prisms::ExprToVector).and_then(|vec, _| {
+        let vec: Vector = vec.into_iter().map(|e| Expr::call("re", vec![e])).collect();
+        Ok(Expr::from(vec))
+      })
+    )
+    .add_case(
       // Real part of infinity constant
       builder::arity_one().of_type(prisms::ExprToInfinity).and_then(|arg, _| {
         if arg == InfiniteConstant::NotANumber || arg == InfiniteConstant::UndirInfinity {
@@ -91,6 +113,13 @@ pub fn im() -> Function {
       builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
         let arg = ComplexNumber::from(arg);
         Ok(arg.into_parts().1.into())
+      })
+    )
+    .add_case(
+      // Pointwise imag-part of a vector
+      builder::arity_one().of_type(prisms::ExprToVector).and_then(|vec, _| {
+        let vec: Vector = vec.into_iter().map(|e| Expr::call("im", vec![e])).collect();
+        Ok(Expr::from(vec))
       })
     )
     .add_case(
