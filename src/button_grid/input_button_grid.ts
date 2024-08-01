@@ -1,7 +1,6 @@
 
 import { ButtonGrid, GridCell } from "../button_grid.js";
 import { backButton, DispatchButton } from './button.js';
-import { SignedNumberedButton, UnsignedNumberedButton } from './button/numbered.js';
 import { StringInputButton, AlgebraicEditButton } from './button/input.js';
 
 export class InputButtonGrid extends ButtonGrid {
