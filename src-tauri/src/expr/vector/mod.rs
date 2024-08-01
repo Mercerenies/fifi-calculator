@@ -209,11 +209,13 @@ impl Vector {
     }
 
     assert!(k > 0, "k-norm must be positive");
+    if self.is_empty() {
+      return Expr::zero();
+    }
     let addends = self.into_iter().map(|x| pow(abs(x), k, 1)).collect();
     pow(Expr::call("+", addends), 1, k)
   }
 
-/*
   /// Produces and expression to compute the infinity-norm of the
   /// vector.
   pub fn infinity_norm(self) -> Expr {
@@ -221,10 +223,12 @@ impl Vector {
       Expr::call("abs", vec![x])
     }
 
+    if self.is_empty() {
+      return Expr::zero();
+    }
     let args = self.into_iter().map(abs).collect();
-    Expr::call("
+    Expr::call("max", args)
   }
-*/
 }
 
 impl Prism<Expr, Vector> for ExprToVector {
@@ -472,5 +476,29 @@ mod tests {
       ]),
       Expr::from(Number::ratio(1, 3)),
     ]));
+  }
+
+  #[test]
+  fn test_infinity_norm() {
+    let vector = Vector::from(vec![Expr::var("x").unwrap(), Expr::var("y").unwrap(), Expr::var("z").unwrap()]);
+    assert_eq!(vector.clone().infinity_norm(), Expr::call("max", vec![
+      Expr::call("abs", vec![Expr::var("x").unwrap()]),
+      Expr::call("abs", vec![Expr::var("y").unwrap()]),
+      Expr::call("abs", vec![Expr::var("z").unwrap()]),
+    ]));
+  }
+
+  #[test]
+  fn test_norm_of_empty() {
+    assert_eq!(Vector::default().norm(1), Expr::from(0));
+    assert_eq!(Vector::default().norm(2), Expr::from(0));
+    assert_eq!(Vector::default().norm(3), Expr::from(0));
+    assert_eq!(Vector::default().infinity_norm(), Expr::from(0));
+  }
+
+  #[test]
+  #[should_panic]
+  fn test_norm_zero_panics() {
+    Vector::default().norm(0);
   }
 }

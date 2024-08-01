@@ -10,6 +10,7 @@ use crate::errorlist::ErrorList;
 use crate::expr::Expr;
 use crate::expr::prisms;
 use crate::expr::atom::Atom;
+use crate::expr::algebra::infinity::InfiniteConstant;
 use crate::expr::number::{Number, ComplexNumber};
 use crate::expr::vector::Vector;
 use crate::expr::vector::matrix::Matrix;
@@ -107,6 +108,18 @@ pub struct IndexedVectorCommand {
 #[derive(Debug)]
 pub struct SubvectorCommand {
   function_name: String,
+}
+
+/// `NormCommand` pops a single value off the stack and pushes
+/// `norm(vec, k)`, where `vec` is the stack value and `k` is the
+/// numerical argument. The numerical argument defaults to 1 if not
+/// supplied. If the numerical argument is zero, then it is treated as
+/// the special constant `inf` (for positive infinity) instead.
+///
+/// Respects the "keep" modifier.
+#[derive(Debug)]
+pub struct NormCommand {
+  _priv: (),
 }
 
 /// `VectorFromIncompleteObjectCommand` pops stack elements until it finds
@@ -239,6 +252,12 @@ impl IndexedVectorCommand {
 impl SubvectorCommand {
   pub fn for_function(name: impl Into<String>) -> Self {
     Self { function_name: name.into() }
+  }
+}
+
+impl NormCommand {
+  pub fn new() -> Self {
+    Self { _priv: () }
   }
 }
 
@@ -496,6 +515,30 @@ impl Command for SubvectorCommand {
 
     let [vec, start, end] = stack.pop_several(3)?.try_into().unwrap();
     let expr = Expr::call(&self.function_name, vec![vec, start, end]);
+    let expr = context.simplify_expr(expr, calculation_mode, &mut errors);
+    stack.push(expr);
+    Ok(CommandOutput::from_errors(errors))
+  }
+}
+
+impl Command for NormCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    context: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    validate_schema(&NullaryArgumentSchema::new(), args)?;
+    state.undo_stack_mut().push_cut();
+
+    let calculation_mode = state.calculation_mode().clone();
+    let mut errors = ErrorList::new();
+    let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
+    let k = context.opts.argument.unwrap_or(1).abs();
+    let k_expr = if k == 0 { Expr::from(InfiniteConstant::PosInfinity) } else { Expr::from(k) };
+
+    let vec = stack.pop()?;
+    let expr = Expr::call("norm", vec![vec, k_expr]);
     let expr = context.simplify_expr(expr, calculation_mode, &mut errors);
     stack.push(expr);
     Ok(CommandOutput::from_errors(errors))

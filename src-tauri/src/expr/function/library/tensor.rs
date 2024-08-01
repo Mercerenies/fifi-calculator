@@ -47,6 +47,7 @@ pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(transpose());
   table.insert(reverse());
   table.insert(vector_mask());
+  table.insert(vector_norm());
 }
 
 fn is_empty_vector(expr: &Expr) -> bool {
@@ -528,4 +529,29 @@ pub fn vector_mask() -> Function {
 
 fn vector_mask_prism() -> impl Prism<Vec<Expr>, Vec<usize>> {
   OnVec::new(prisms::expr_to_usize())
+}
+
+fn vector_norm() -> Function {
+  FunctionBuilder::new("norm")
+    .add_case(
+      // Finite norm
+      builder::arity_two().of_types(prisms::ExprToVector, prisms::expr_to_usize()).and_then(|vec, k, ctx| {
+        if k == 0 {
+          ctx.errors.push(SimplifierError::custom_error("norm", "Expected positive norm argument"));
+          return Err((vec, k));
+        }
+        Ok(vec.norm(k).into())
+      })
+    )
+    .add_case(
+      // Infinity norm
+      builder::arity_two().of_types(prisms::ExprToVector, prisms::ExprToInfinity).and_then(|vec, k, ctx| {
+        if k != InfiniteConstant::PosInfinity {
+          ctx.errors.push(SimplifierError::custom_error("norm", "Expected positive infinity"));
+          return Err((vec, k));
+        }
+        Ok(vec.infinity_norm().into())
+      })
+    )
+    .build()
 }
