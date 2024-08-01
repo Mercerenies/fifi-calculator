@@ -44,6 +44,7 @@ pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(grade_vector());
   table.insert(grade_vector_reversed());
   table.insert(transpose());
+  table.insert(reverse());
 }
 
 fn is_empty_vector(expr: &Expr) -> bool {
@@ -480,6 +481,18 @@ pub fn transpose() -> Function {
       // Vector transpose (convert row vector to column vector)
       builder::arity_one().of_type(prisms::ExprToVector).and_then(|vec, _| {
         Ok(Expr::from(vec.into_column_vector()))
+      })
+    )
+    .build()
+}
+
+pub fn reverse() -> Function {
+  FunctionBuilder::new("reverse")
+    .add_case(
+      // Vector reverse
+      builder::arity_one().of_type(prisms::ExprToVector).and_then(|mut vec, _| {
+        vec.as_mut_vec().reverse();
+        Ok(Expr::from(vec))
       })
     )
     .build()
