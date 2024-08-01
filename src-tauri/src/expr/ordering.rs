@@ -88,7 +88,7 @@ impl<'a> PartialOrd for OrderedExprSlice<'a> {
 
 impl<'a> Ord for OrderedExprSlice<'a> {
   fn cmp(&self, other: &Self) -> Ordering {
-    cmp_iter_by(self.elems, other.elems, |a, b| cmp_expr(*a, *b))
+    cmp_iter_by(self.elems, other.elems, |a, b| cmp_expr(a, b))
   }
 }
 
