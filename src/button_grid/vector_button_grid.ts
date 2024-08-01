@@ -31,10 +31,11 @@ export class VectorButtonGrid extends ButtonGrid {
       [
         new DispatchButton("++", "vconcat", "|"),
         new DispatchButton("::", "cons", "k"),
-      ],
-      [
         new DispatchButton("ɹ", "reverse", "v"),
         new DispatchButton("⌿", "vmask", "m"),
+      ],
+      [
+        new DispatchButton("<math><mo>&times;</mo></math>", "cross", "C"),
       ],
       [
         new DispatchButton("len", "length", "l"),

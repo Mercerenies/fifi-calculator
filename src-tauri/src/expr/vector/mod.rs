@@ -13,6 +13,7 @@ use crate::util::prism::Prism;
 use thiserror::Error;
 
 use std::ops::{Index, IndexMut};
+use std::convert::TryFrom;
 
 /// A `Vector` is simply a `Vec<Expr>` but with added functionality
 /// for mathematical operations typical of vectors.
@@ -260,6 +261,14 @@ impl FromIterator<Expr> for Vector {
 impl From<Vec<Expr>> for Vector {
   fn from(data: Vec<Expr>) -> Self {
     Self { data }
+  }
+}
+
+impl<const C: usize> TryFrom<Vector> for [Expr; C] {
+  type Error = <Vec<Expr> as TryInto<[Expr; C]>>::Error;
+
+  fn try_from(v: Vector) -> Result<Self, Self::Error> {
+    v.data.try_into()
   }
 }
 

@@ -48,6 +48,7 @@ pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(reverse());
   table.insert(vector_mask());
   table.insert(vector_norm());
+  table.insert(cross_product());
 }
 
 fn is_empty_vector(expr: &Expr) -> bool {
@@ -531,7 +532,7 @@ fn vector_mask_prism() -> impl Prism<Vec<Expr>, Vec<usize>> {
   OnVec::new(prisms::expr_to_usize())
 }
 
-fn vector_norm() -> Function {
+pub fn vector_norm() -> Function {
   FunctionBuilder::new("norm")
     .add_case(
       // Finite norm
@@ -551,6 +552,33 @@ fn vector_norm() -> Function {
           return Err((vec, k));
         }
         Ok(vec.infinity_norm())
+      })
+    )
+    .build()
+}
+
+pub fn cross_product() -> Function {
+  FunctionBuilder::new("cross")
+    .add_case(
+      builder::arity_two().both_of_type(prisms::ExprToVector).and_then(|a, b, ctx| {
+        fn times(x: Expr, y: Expr) -> Expr {
+          Expr::call("*", vec![x, y])
+        }
+        fn minus(x: Expr, y: Expr) -> Expr {
+          Expr::call("-", vec![x, y])
+        }
+
+        if a.len() != 3 || b.len() != 3 {
+          ctx.errors.push(SimplifierError::custom_error("cross", "Cross product expects 3D vectors"));
+          return Err((a, b));
+        }
+        // unwrap: Just checked lengths
+        let [ax, ay, az] = a.try_into().unwrap();
+        let [bx, by, bz] = b.try_into().unwrap();
+        let x = minus(times(ay.clone(), bz.clone()), times(az.clone(), by.clone()));
+        let y = minus(times(az, bx.clone()), times(ax.clone(), bz));
+        let z = minus(times(ax, by), times(ay, bx));
+        Ok(Vector::from(vec![x, y, z]).into())
       })
     )
     .build()
