@@ -198,7 +198,10 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
     UnaryFunctionCommand::named("grade"),
     UnaryFunctionCommand::named("rgrade"),
   )));
-  map.insert("transpose".to_string(), Box::new(UnaryFunctionCommand::named("transpose")));
+  map.insert("transpose".to_string(), Box::new(dispatch_on_hyper_command(
+    UnaryFunctionCommand::named("transpose"),
+    UnaryFunctionCommand::new(conj_transpose),
+  )));
   map.insert("reverse".to_string(), Box::new(UnaryFunctionCommand::named("reverse")));
   map.insert("vmask".to_string(), Box::new(BinaryFunctionCommand::named("vmask")));
 
@@ -263,6 +266,10 @@ fn div_i(expr: Expr) -> Expr {
 
 fn times_minus_one(expr: Expr) -> Expr {
   Expr::call("*", vec![expr, Expr::from(-1)])
+}
+
+fn conj_transpose(expr: Expr) -> Expr {
+  Expr::call("conj", vec![Expr::call("transpose", vec![expr])])
 }
 
 fn substitute_vars(expr: Expr, state: &ApplicationState) -> Expr {
