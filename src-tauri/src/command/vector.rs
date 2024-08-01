@@ -117,7 +117,7 @@ pub struct SubvectorCommand {
 /// the special constant `inf` (for positive infinity) instead.
 ///
 /// Respects the "keep" modifier.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct NormCommand {
   _priv: (),
 }

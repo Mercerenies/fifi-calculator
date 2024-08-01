@@ -540,7 +540,7 @@ fn vector_norm() -> Function {
           ctx.errors.push(SimplifierError::custom_error("norm", "Expected positive norm argument"));
           return Err((vec, k));
         }
-        Ok(vec.norm(k).into())
+        Ok(vec.norm(k))
       })
     )
     .add_case(
@@ -550,7 +550,7 @@ fn vector_norm() -> Function {
           ctx.errors.push(SimplifierError::custom_error("norm", "Expected positive infinity"));
           return Err((vec, k));
         }
-        Ok(vec.infinity_norm().into())
+        Ok(vec.infinity_norm())
       })
     )
     .build()
