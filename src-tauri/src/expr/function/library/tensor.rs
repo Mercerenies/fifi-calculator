@@ -662,7 +662,8 @@ pub fn matrix_multiplication() -> Function {
 
           let column_vector = UtilMatrix::new(vec.into_iter().map(|x| vec![x]).collect()).unwrap();
           let product = mat.try_mul(&column_vector).unwrap();
-          let product = Matrix::from(product.map(Expr::from));
+          // Convert back to a vector
+          let product: Vector = product.into_row_major().into_iter().flatten().map(Expr::from).collect();
           Ok(product.into())
         })
     )
@@ -679,7 +680,8 @@ pub fn matrix_multiplication() -> Function {
 
           let row_vector = UtilMatrix::new(vec![vec]).unwrap();
           let product = row_vector.try_mul(&mat).unwrap();
-          let product = Matrix::from(product.map(Expr::from));
+          // Convert back to a vector
+          let product: Vector = product.into_row_major().into_iter().flatten().map(Expr::from).collect();
           Ok(product.into())
         })
     )
