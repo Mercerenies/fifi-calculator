@@ -2,6 +2,10 @@
 //! Very rudimentary matrix type which enforces consistency in the
 //! dimensions of its data.
 
+mod column;
+
+pub use column::{Column, ColumnMut};
+
 use crate::util::transpose;
 use crate::util::prism::ErrorWithPayload;
 
@@ -10,7 +14,6 @@ use serde::{Serialize, Deserialize};
 
 use std::fmt::{self, Debug};
 use std::ops::{Index, IndexMut};
-use std::borrow::ToOwned;
 
 /// A `Matrix<T>` is a vector of vectors of `T` in which each
 /// constituent vector has the same length.
@@ -18,22 +21,6 @@ use std::borrow::ToOwned;
 #[serde(try_from = "Vec<Vec<T>>")]
 pub struct Matrix<T> {
   body: Vec<Vec<T>>,
-}
-
-/// A (borrowed) column of a [`Matrix`]. It can be assumed that a
-/// [`Column`] is always in-bounds.
-#[derive(Debug, Clone)]
-pub struct Column<'a, T> {
-  matrix: &'a Matrix<T>,
-  column_index: usize,
-}
-
-/// A column of a [`Matrix`], borrowed mutably. It can be assumed that
-/// a [`ColumnMut`] is always in-bounds.
-#[derive(Debug)]
-pub struct ColumnMut<'a, T> {
-  matrix: &'a mut Matrix<T>,
-  column_index: usize,
 }
 
 /// An index into a matrix. Matrix indices are 0-based, like all Rust
@@ -183,60 +170,6 @@ impl<T> Matrix<T> {
   }
 }
 
-impl<'a, T> Column<'a, T> {
-  pub fn get(&self, index: usize) -> Option<&T> {
-    self.matrix.get(MatrixIndex { y: index, x: self.column_index })
-  }
-
-  pub fn len(&self) -> usize {
-    self.matrix.height()
-  }
-
-  pub fn is_empty(&self) -> bool {
-    self.len() == 0
-  }
-
-  pub fn iter(&self) -> impl Iterator<Item = &T> + '_ {
-    self.matrix.body.iter().map(|row| &row[self.column_index])
-  }
-
-  pub fn to_owned(&self) -> Vec<T::Owned>
-  where T: ToOwned {
-    self.iter().map(T::to_owned).collect()
-  }
-}
-
-impl<'a, T> ColumnMut<'a, T> {
-  pub fn get(&self, index: usize) -> Option<&T> {
-    self.matrix.get(MatrixIndex { y: index, x: self.column_index })
-  }
-
-  pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
-    self.matrix.get_mut(MatrixIndex { y: index, x: self.column_index })
-  }
-
-  pub fn len(&self) -> usize {
-    self.matrix.height()
-  }
-
-  pub fn is_empty(&self) -> bool {
-    self.len() == 0
-  }
-
-  pub fn iter(&self) -> impl Iterator<Item = &T> + '_ {
-    self.matrix.body.iter().map(|row| &row[self.column_index])
-  }
-
-  pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> + '_ {
-    self.matrix.body.iter_mut().map(|row| &mut row[self.column_index])
-  }
-
-  pub fn to_owned(&self) -> Vec<T::Owned>
-  where T: ToOwned {
-    self.iter().map(T::to_owned).collect()
-  }
-}
-
 impl MatrixIndex {
   pub fn flipped(self) -> MatrixIndex {
     MatrixIndex { x: self.y, y: self.x }
@@ -282,28 +215,6 @@ impl<T> Index<MatrixIndex> for Matrix<T> {
 impl<T> IndexMut<MatrixIndex> for Matrix<T> {
   fn index_mut(&mut self, index: MatrixIndex) -> &mut Self::Output {
     &mut self.body[index.y][index.x]
-  }
-}
-
-impl<'a, T> Index<usize> for Column<'a, T> {
-  type Output = T;
-
-  fn index(&self, index: usize) -> &Self::Output {
-    &self.matrix[MatrixIndex { y: index, x: self.column_index }]
-  }
-}
-
-impl<'a, T> Index<usize> for ColumnMut<'a, T> {
-  type Output = T;
-
-  fn index(&self, index: usize) -> &Self::Output {
-    &self.matrix[MatrixIndex { y: index, x: self.column_index }]
-  }
-}
-
-impl<'a, T> IndexMut<usize> for ColumnMut<'a, T> {
-  fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-    &mut self.matrix[MatrixIndex { y: index, x: self.column_index }]
   }
 }
 
