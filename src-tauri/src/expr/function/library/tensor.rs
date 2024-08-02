@@ -51,6 +51,7 @@ pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(vector_norm());
   table.insert(cross_product());
   table.insert(determinant());
+  table.insert(trace());
 }
 
 fn is_empty_vector(expr: &Expr) -> bool {
@@ -595,6 +596,20 @@ pub fn determinant() -> Function {
           return Err(mat);
         }
         Ok(mat.map(ComplexNumber::from).determinant().into())
+      })
+    )
+    .build()
+}
+
+pub fn trace() -> Function {
+  FunctionBuilder::new("trace")
+    .add_case(
+      builder::arity_one().of_type(prisms::ExprToTypedMatrix::new(prisms::ExprToComplex)).and_then(|mat, ctx| {
+        if mat.width() != mat.height() {
+          ctx.errors.push(SimplifierError::custom_error("det", "Expected square matrix"));
+          return Err(mat);
+        }
+        Ok(mat.map(ComplexNumber::from).trace().into())
       })
     )
     .build()

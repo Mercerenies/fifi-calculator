@@ -18,7 +18,7 @@ use serde::{Serialize, Deserialize};
 use num::{Zero, One};
 
 use std::fmt::{self, Debug};
-use std::ops::{Index, IndexMut};
+use std::ops::{Add, Index, IndexMut};
 
 /// A `Matrix<T>` is a vector of vectors of `T` in which each
 /// constituent vector has the same length.
@@ -208,6 +208,11 @@ impl<T> Matrix<T> {
   pub fn diag(&self) -> impl Iterator<Item=&T> + '_ {
     let diagonal_count = self.width().min(self.height());
     (0..diagonal_count).map(|index| &self[MatrixIndex { x: index, y: index }])
+  }
+
+  pub fn trace<'a>(&'a self) -> T
+  where T: Zero + Add<&'a T, Output = T> {
+    self.diag().fold(T::zero(), |acc, item| acc + item)
   }
 }
 
