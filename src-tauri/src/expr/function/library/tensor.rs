@@ -1,7 +1,8 @@
 
-//! Functions which operate on vectors.
+//! Functions which operate on vectors and/or matrices.
 
 use crate::expr::Expr;
+use crate::expr::number::ComplexNumber;
 use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder};
@@ -49,6 +50,7 @@ pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(vector_mask());
   table.insert(vector_norm());
   table.insert(cross_product());
+  table.insert(determinant());
 }
 
 fn is_empty_vector(expr: &Expr) -> bool {
@@ -579,6 +581,20 @@ pub fn cross_product() -> Function {
         let y = minus(times(az, bx.clone()), times(ax.clone(), bz));
         let z = minus(times(ax, by), times(ay, bx));
         Ok(Vector::from(vec![x, y, z]).into())
+      })
+    )
+    .build()
+}
+
+pub fn determinant() -> Function {
+  FunctionBuilder::new("det")
+    .add_case(
+      builder::arity_one().of_type(prisms::ExprToTypedMatrix::new(prisms::ExprToComplex)).and_then(|mat, ctx| {
+        if mat.width() != mat.height() {
+          ctx.errors.push(SimplifierError::custom_error("det", "Expected square matrix"));
+          return Err(mat);
+        }
+        Ok(mat.map(ComplexNumber::from).determinant().into())
       })
     )
     .build()

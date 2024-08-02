@@ -173,7 +173,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("convert_temp".to_string(), Box::new(units::ConvertTemperatureCommand::new()));
   map.insert("convert_temp_with_context".to_string(), Box::new(units::ContextualConvertTemperatureCommand::new()));
 
-  // Vector commands
+  // Vector / Matrix commands
   map.insert("identity_matrix".to_string(), Box::new(vector::IdentityMatrixCommand::new()));
   map.insert("nth".to_string(), Box::new(dispatch_on_hyper_command(
     vector::nth_element_command(),
@@ -209,6 +209,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("vmask".to_string(), Box::new(BinaryFunctionCommand::named("vmask")));
   map.insert("norm".to_string(), Box::new(vector::NormCommand::new()));
   map.insert("cross".to_string(), Box::new(BinaryFunctionCommand::named("cross")));
+  map.insert("det".to_string(), Box::new(UnaryFunctionCommand::named("det")));
 
   // Commands which accept a single string.
   map.insert("push_number".to_string(), Box::new(input::push_number_command()));
