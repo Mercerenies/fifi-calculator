@@ -8,15 +8,18 @@ use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder};
 use crate::expr::vector::{Vector, vector_shape};
 use crate::expr::vector::tensor::Tensor;
+use crate::expr::vector::matrix::Matrix;
 use crate::expr::prisms;
 use crate::expr::ordering::cmp_expr;
 use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::algebra::infinity::InfiniteConstant;
 use crate::util::{repeated, clamp};
+use crate::util::matrix::{Matrix as UtilMatrix};
 use crate::util::prism::{Prism, Identity, OnVec};
 
 use num::BigInt;
 use itertools::Itertools;
+use try_traits::ops::TryMul;
 
 use std::cmp::Ordering;
 use std::iter;
@@ -52,6 +55,7 @@ pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(cross_product());
   table.insert(determinant());
   table.insert(trace());
+  table.insert(matrix_multiplication());
 }
 
 fn is_empty_vector(expr: &Expr) -> bool {
@@ -611,6 +615,73 @@ pub fn trace() -> Function {
         }
         Ok(mat.map(ComplexNumber::from).trace().into())
       })
+    )
+    .build()
+}
+
+pub fn matrix_multiplication() -> Function {
+  FunctionBuilder::new("@")
+    .add_case(
+      // Vector times scalar
+      builder::arity_two().of_types(prisms::ExprToVector, prisms::ExprToComplex).and_then(|v, z, _| {
+        let product = Tensor::vector(v) * Tensor::from(z);
+        Ok(product.into())
+      })
+    )
+    .add_case(
+      // Scalar times vector
+      builder::arity_two().of_types(prisms::ExprToVector, prisms::ExprToComplex).and_then(|z, v, _| {
+        let product = Tensor::vector(z) * Tensor::from(v);
+        Ok(product.into())
+      })
+    )
+    .add_case(
+      // Matrix times matrix
+      builder::arity_two().both_of_type(prisms::ExprToTypedMatrix::new(prisms::ExprToComplex)).and_then(|a, b, ctx| {
+        if a.width() != b.height() {
+          ctx.errors.push(SimplifierError::custom_error("@", "Incompatible matrix dimensions"));
+          return Err((a, b));
+        }
+        let a = a.map(ComplexNumber::from);
+        let b = b.map(ComplexNumber::from);
+        let product = a.try_mul(&b).unwrap();
+        let product = Matrix::from(product.map(Expr::from));
+        Ok(product.into())
+      })
+    )
+    .add_case(
+      // Matrix times vector
+      builder::arity_two().of_types(prisms::ExprToTypedMatrix::new(prisms::ExprToComplex), prisms::expr_to_typed_vector(prisms::ExprToComplex))
+        .and_then(|mat, vec, ctx| {
+          if vec.len() != mat.width() {
+            ctx.errors.push(SimplifierError::custom_error("@", "Incompatible matrix dimensions"));
+            return Err((mat, vec));
+          }
+          let vec: Vec<_> = vec.into_iter().map(ComplexNumber::from).collect();
+          let mat = mat.map(ComplexNumber::from);
+
+          let column_vector = UtilMatrix::new(vec.into_iter().map(|x| vec![x]).collect()).unwrap();
+          let product = mat.try_mul(&column_vector).unwrap();
+          let product = Matrix::from(product.map(Expr::from));
+          Ok(product.into())
+        })
+    )
+    .add_case(
+      // Vector times matrix
+      builder::arity_two().of_types(prisms::expr_to_typed_vector(prisms::ExprToComplex), prisms::ExprToTypedMatrix::new(prisms::ExprToComplex))
+        .and_then(|vec, mat, ctx| {
+          if vec.len() != mat.height() {
+            ctx.errors.push(SimplifierError::custom_error("@", "Incompatible matrix dimensions"));
+            return Err((vec, mat));
+          }
+          let vec: Vec<_> = vec.into_iter().map(ComplexNumber::from).collect();
+          let mat = mat.map(ComplexNumber::from);
+
+          let row_vector = UtilMatrix::new(vec![vec]).unwrap();
+          let product = row_vector.try_mul(&mat).unwrap();
+          let product = Matrix::from(product.map(Expr::from));
+          Ok(product.into())
+        })
     )
     .build()
 }

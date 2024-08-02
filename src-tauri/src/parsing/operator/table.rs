@@ -71,6 +71,7 @@ impl OperatorTable {
       Operator::new("^..^", Fixity::new().with_infix("^..^", Associativity::NONE, Precedence::new(196))),
       Operator::new("^", Fixity::new().with_infix("^", Associativity::RIGHT, Precedence::new(200))),
       multiplication_operator(),
+      Operator::new("@", Fixity::new().with_infix("@", Associativity::LEFT, Precedence::new(195))), // Matrix mul
       Operator::new("/", Fixity::new().with_infix("/", Associativity::LEFT, Precedence::new(190))),
       Operator::new("%", Fixity::new().with_infix("%", Associativity::NONE, Precedence::new(190))),
       Operator::new("+", Fixity::new()

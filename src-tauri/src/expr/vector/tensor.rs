@@ -271,6 +271,15 @@ impl From<Tensor> for Expr {
   }
 }
 
+impl From<ComplexLike> for Tensor {
+  fn from(b: ComplexLike) -> Tensor {
+    match b {
+      ComplexLike::Real(n) => Tensor::real_scalar(n),
+      ComplexLike::Complex(c) => Tensor::complex_scalar(c),
+    }
+  }
+}
+
 impl Prism<Expr, Tensor> for ExprToTensor {
   fn narrow_type(&self, expr: Expr) -> Result<Tensor, Expr> {
     let prism = ExprToComplex.or(ExprToVector);

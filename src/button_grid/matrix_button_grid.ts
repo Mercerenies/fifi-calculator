@@ -31,7 +31,9 @@ export class MatrixButtonGrid extends ButtonGrid {
         new DispatchButton("det", "det", "D"),
         new DispatchButton("tr", "trace", "T"),
       ],
-      [],
+      [
+        new DispatchButton("<math><mo>&times;</mo></math>", "@", "@"),
+      ],
       [],
       [
         backButton(this.rootGrid),
