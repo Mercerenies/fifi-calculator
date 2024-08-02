@@ -16,6 +16,7 @@ use row_reduction::ReducibleMatrix;
 use thiserror::Error;
 use serde::{Serialize, Deserialize};
 use num::{Zero, One};
+use try_traits::ops::TryMul;
 
 use std::fmt::{self, Debug};
 use std::ops::{Add, Index, IndexMut};
@@ -48,6 +49,12 @@ pub struct SingularMatrixError {
   _priv: (),
 }
 
+#[derive(Clone, Debug, Error)]
+#[error("Dimension mismatch in matrix multiplication")]
+pub struct IncompatibleMultiplicationError {
+  _priv: (),
+}
+
 impl<T> Matrix<T> {
   pub fn new(body: Vec<Vec<T>>) -> Result<Matrix<T>, MatrixDimsError<T>> {
     if body.is_empty() {
@@ -59,13 +66,6 @@ impl<T> Matrix<T> {
     Ok(Matrix { body })
   }
 
-  pub fn identity(size: usize) -> Self
-  where T: Zero + One {
-    Self::from_generator(size, size, |index| {
-      if index.x == index.y { T::one() } else { T::zero() }
-    })
-  }
-
   /// Calls `generator` for each index in a new `height * width`
   /// matrix to produce elements for that matrix. The generator will
   /// be called in row-major order.
@@ -75,6 +75,13 @@ impl<T> Matrix<T> {
       .map(|y| (0..width).map(|x| generator(MatrixIndex { y, x })).collect())
       .collect();
     Matrix::new(body).unwrap()
+  }
+
+  pub fn identity(size: usize) -> Self
+  where T: Zero + One {
+    Self::from_generator(size, size, |index| {
+      if index.x == index.y { T::one() } else { T::zero() }
+    })
   }
 
   pub fn of_value(height: usize, width: usize, value: T) -> Self
@@ -274,6 +281,23 @@ impl<T> Debug for MatrixDimsError<T> {
   }
 }
 
+impl<T: MatrixElement> TryMul<&Matrix<T>> for &Matrix<T> {
+  type Output = Matrix<T>;
+  type Error = IncompatibleMultiplicationError;
+
+  fn try_mul(self, other: &Matrix<T>) -> Result<Matrix<T>, IncompatibleMultiplicationError> {
+    if self.width() != other.height() {
+      return Err(IncompatibleMultiplicationError { _priv: () });
+    }
+    let middle_dimension = self.width();
+    Ok(Matrix::from_generator(self.height(), other.width(), |index| {
+      (0..middle_dimension)
+        .map(|i| self[ MatrixIndex { x: i, y: index.y } ].clone() * &other[ MatrixIndex { x: index.x, y: i } ] )
+        .fold(T::zero(), |acc, item| acc + item)
+    }))
+  }
+}
+
 impl<T> Default for Matrix<T> {
   fn default() -> Self {
     Matrix::empty()
@@ -452,5 +476,56 @@ mod tests {
       vec![7.0, 8.0, 9.0],
     ]).unwrap();
     matrix.inverse_matrix().unwrap_err();
+  }
+
+  #[test]
+  fn test_matrix_multiplication() {
+    let a = Matrix::new(vec![
+      vec![1, 2, 3],
+      vec![4, 5, 6],
+      vec![7, 8, 9],
+    ]).unwrap();
+    let b = Matrix::new(vec![
+      vec![1, 0, 2],
+      vec![0, 3, 1],
+      vec![2, 1, 0],
+    ]).unwrap();
+    assert_eq!(a.try_mul(&b).unwrap(), Matrix::new(vec![
+      vec![7, 9, 4],
+      vec![16, 21, 13],
+      vec![25, 33, 22],
+    ]).unwrap());
+  }
+
+  #[test]
+  fn test_matrix_multiplication_non_square() {
+    let a = Matrix::new(vec![
+      vec![1, 2],
+      vec![4, 5],
+      vec![7, 8],
+    ]).unwrap();
+    let b = Matrix::new(vec![
+      vec![0, 3, 1],
+      vec![2, 1, 0],
+    ]).unwrap();
+    assert_eq!(a.try_mul(&b).unwrap(), Matrix::new(vec![
+      vec![4, 5, 1],
+      vec![10, 17, 4],
+      vec![16, 29, 7],
+    ]).unwrap());
+  }
+
+  #[test]
+  fn test_matrix_multiplication_with_bad_dims() {
+    let a = Matrix::new(vec![
+      vec![1, 2, 3],
+      vec![4, 5, 6],
+      vec![7, 8, 9],
+    ]).unwrap();
+    let b = Matrix::new(vec![
+      vec![0, 3, 1],
+      vec![2, 1, 0],
+    ]).unwrap();
+    a.try_mul(&b).unwrap_err();
   }
 }
