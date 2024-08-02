@@ -56,7 +56,7 @@ impl<'a, T: MatrixElement> ReducibleMatrix<'a, T> {
     let (row, addend_row) = double_borrow_mut(&mut self.matrix.body, row_index, addend_index);
 
     for (elem, addend) in row.iter_mut().zip(addend_row) {
-      *elem = multiplier.clone() * &*addend + &elem;
+      *elem = multiplier.clone() * &*addend + elem;
     }
   }
 }
