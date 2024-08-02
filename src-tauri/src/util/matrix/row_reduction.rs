@@ -3,6 +3,8 @@ use super::{Matrix, MatrixIndex};
 use super::base::{MatrixElement, MatrixFieldElement};
 use crate::util::double_borrow_mut;
 
+use std::ops::{Index, IndexMut};
+
 /// A mutable reference to a [`Matrix`], on which elementary row
 /// operations can be applied.
 pub struct ReducibleMatrix<'a, T> {
@@ -103,6 +105,20 @@ impl<T> AsRef<Matrix<T>> for ReducibleMatrix<'_, T> {
 impl<T> AsMut<Matrix<T>> for ReducibleMatrix<'_, T> {
   fn as_mut(&mut self) -> &mut Matrix<T> {
     self.matrix
+  }
+}
+
+impl<T> Index<MatrixIndex> for ReducibleMatrix<'_, T> {
+  type Output = T;
+
+  fn index(&self, index: MatrixIndex) -> &Self::Output {
+    &self.matrix[index]
+  }
+}
+
+impl<T> IndexMut<MatrixIndex> for ReducibleMatrix<'_, T> {
+  fn index_mut(&mut self, index: MatrixIndex) -> &mut Self::Output {
+    &mut self.matrix[index]
   }
 }
 

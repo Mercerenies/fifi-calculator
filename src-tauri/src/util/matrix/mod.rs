@@ -15,6 +15,7 @@ use row_reduction::ReducibleMatrix;
 
 use thiserror::Error;
 use serde::{Serialize, Deserialize};
+use num::{Zero, One};
 
 use std::fmt::{self, Debug};
 use std::ops::{Index, IndexMut};
@@ -41,6 +42,12 @@ pub struct MatrixDimsError<T> {
   original_data: Vec<Vec<T>>,
 }
 
+#[derive(Clone, Debug, Error)]
+#[error("Matrix is singular")]
+pub struct SingularMatrixError {
+  _priv: (),
+}
+
 impl<T> Matrix<T> {
   pub fn new(body: Vec<Vec<T>>) -> Result<Matrix<T>, MatrixDimsError<T>> {
     if body.is_empty() {
@@ -50,6 +57,13 @@ impl<T> Matrix<T> {
       return Err(MatrixDimsError { original_data: body });
     }
     Ok(Matrix { body })
+  }
+
+  pub fn identity(size: usize) -> Self
+  where T: Zero + One {
+    Self::from_generator(size, size, |index| {
+      if index.x == index.y { T::one() } else { T::zero() }
+    })
   }
 
   /// Calls `generator` for each index in a new `height * width`
@@ -158,6 +172,24 @@ impl<T> Matrix<T> {
     self.body.len()
   }
 
+  /// Vertically concatenate two matrices. Panics if the matrices have
+  /// different widths.
+  pub fn vcat(mut self, other: Self) -> Self {
+    assert!(self.width() == other.width(), "Cannot concatenate matrices with different widths");
+    self.body.extend(other.body);
+    self
+  }
+
+  /// Horizontally concatenate two matrices. Panics if the matrices
+  /// have different heights.
+  pub fn hcat(mut self, other: Self) -> Self {
+    assert!(self.height() == other.height(), "Cannot concatenate matrices with different heights");
+    for (self_row, other_row) in self.body.iter_mut().zip(other.body) {
+      self_row.extend(other_row);
+    }
+    self
+  }
+
   pub fn map<F, U>(self, mut f: F) -> Matrix<U>
   where F: FnMut(T) -> U {
     Matrix {
@@ -188,6 +220,40 @@ impl<T: MatrixFieldElement> Matrix<T> {
     red_matrix.reduce_to_row_form();
     let diag_product = red_matrix.as_ref().diag().fold(T::one(), |acc, item| acc * item);
     diag_product / red_matrix.determinant_multiplier()
+  }
+
+  /// The inverse of a square matrix. Panics if `self` is not a square
+  /// matrix. Returns an error object if `self` is a singular matrix.
+  pub fn inverse_matrix(self) -> Result<Matrix<T>, SingularMatrixError> {
+    assert!(self.width() == self.height(), "Can only calculate the inverse of square matrices");
+    let size = self.width();
+
+    let mut full_matrix = self.hcat(Self::identity(size));
+    let mut red_matrix = ReducibleMatrix::new(&mut full_matrix);
+    red_matrix.reduce_to_row_form();
+
+    // Validate that the pivots are all non-zero. If any pivot is
+    // zero, then the matrix is singular.
+    for i in 0..red_matrix.height() {
+      if red_matrix[MatrixIndex { x: i, y: i }].is_zero() {
+        return Err(SingularMatrixError { _priv: () });
+      }
+    }
+
+    // Now back-substitute to make the left-hand side resemble the
+    // identity matrix.
+    for i in 0..red_matrix.height() {
+      let recip = T::one() / &red_matrix[MatrixIndex { x: i, y: i }];
+      red_matrix.multiply(i, recip);
+      for j in 0..i {
+        red_matrix.add_to_row(j, - red_matrix[MatrixIndex { x: i, y: j }].clone(), i);
+      }
+    }
+
+    let final_vec_of_vecs = red_matrix.as_mut().body.iter_mut()
+      .map(|row| row.drain(size..).collect::<Vec<_>>())
+      .collect::<Vec<_>>();
+    Ok(Matrix::new(final_vec_of_vecs).unwrap())
   }
 }
 
@@ -359,5 +425,27 @@ mod tests {
       vec![7.0, 8.0, 9.0],
     ]).unwrap();
     assert_eq!(matrix.determinant(), 0.0);
+  }
+
+  #[test]
+  fn test_inverse_matrix() {
+    let matrix = Matrix::new(vec![
+      vec![1.0, 2.0],
+      vec![2.0, 2.0],
+    ]).unwrap();
+    assert_eq!(matrix.inverse_matrix().unwrap(), Matrix::new(vec![
+      vec![-1.0, 1.0],
+      vec![1.0, -0.5],
+    ]).unwrap());
+  }
+
+  #[test]
+  fn test_inverse_matrix_of_singular_matrix() {
+    let matrix = Matrix::new(vec![
+      vec![1.0, 2.0, 3.0],
+      vec![4.0, 5.0, 6.0],
+      vec![7.0, 8.0, 9.0],
+    ]).unwrap();
+    matrix.inverse_matrix().unwrap_err();
   }
 }
