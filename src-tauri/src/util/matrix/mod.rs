@@ -2,8 +2,10 @@
 //! Very rudimentary matrix type which enforces consistency in the
 //! dimensions of its data.
 
+mod base;
 mod column;
 
+pub use base::{MatrixElement, MatrixFieldElement};
 pub use column::{Column, ColumnMut};
 
 use crate::util::transpose;

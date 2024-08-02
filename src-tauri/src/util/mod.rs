@@ -24,12 +24,34 @@ pub enum Sign {
   Positive,
 }
 
+pub trait Recip {
+  type Output;
+
+  fn recip(self) -> Self::Output;
+}
+
 impl Sign {
   pub fn other(self) -> Self {
     match self {
       Self::Negative => Self::Positive,
       Self::Positive => Self::Negative,
     }
+  }
+}
+
+impl Recip for f32 {
+  type Output = f32;
+
+  fn recip(self) -> Self::Output {
+    self.recip()
+  }
+}
+
+impl Recip for f64 {
+  type Output = f64;
+
+  fn recip(self) -> Self::Output {
+    self.recip()
   }
 }
 
