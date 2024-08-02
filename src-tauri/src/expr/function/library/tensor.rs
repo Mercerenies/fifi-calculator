@@ -56,6 +56,7 @@ pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(determinant());
   table.insert(trace());
   table.insert(matrix_multiplication());
+  table.insert(kronecker_multiplication());
 }
 
 fn is_empty_vector(expr: &Expr) -> bool {
@@ -684,6 +685,44 @@ pub fn matrix_multiplication() -> Function {
           let product: Vector = product.into_row_major().into_iter().flatten().map(Expr::from).collect();
           Ok(product.into())
         })
+    )
+    .build()
+}
+
+fn kronecker_multiplication() -> Function {
+  FunctionBuilder::new("kron")
+    .add_case(
+      // Matrix times matrix
+      builder::arity_two().of_types(prisms::expr_to_matrix(), prisms::expr_to_matrix()).and_then(|left, right, _| {
+        let left = left.into_matrix();
+        let right = right.into_matrix();
+        let product = left.kronecker_mul(&right, |a, b| {
+          Expr::call("*", vec![a.clone(), b.clone()])
+        });
+        Ok(Matrix::from(product).into())
+      })
+    )
+    .add_case(
+      // Row vector times matrix
+      builder::arity_two().of_types(prisms::ExprToVector, prisms::expr_to_matrix()).and_then(|left, right, _| {
+        let left = left.into_row_vector().into_matrix();
+        let right = right.into_matrix();
+        let product = left.kronecker_mul(&right, |a, b| {
+          Expr::call("*", vec![a.clone(), b.clone()])
+        });
+        Ok(Matrix::from(product).into())
+      })
+    )
+    .add_case(
+      // Matrix times row vector
+      builder::arity_two().of_types(prisms::expr_to_matrix(), prisms::ExprToVector).and_then(|left, right, _| {
+        let left = left.into_matrix();
+        let right = right.into_row_vector().into_matrix();
+        let product = left.kronecker_mul(&right, |a, b| {
+          Expr::call("*", vec![a.clone(), b.clone()])
+        });
+        Ok(Matrix::from(product).into())
+      })
     )
     .build()
 }

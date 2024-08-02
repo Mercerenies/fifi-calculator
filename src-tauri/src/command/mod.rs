@@ -212,6 +212,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("det".to_string(), Box::new(UnaryFunctionCommand::named("det")));
   map.insert("trace".to_string(), Box::new(UnaryFunctionCommand::named("trace")));
   map.insert("@".to_string(), Box::new(BinaryFunctionCommand::named("@")));
+  map.insert("kron".to_string(), Box::new(BinaryFunctionCommand::named("kron")));
 
   // Commands which accept a single string.
   map.insert("push_number".to_string(), Box::new(input::push_number_command()));

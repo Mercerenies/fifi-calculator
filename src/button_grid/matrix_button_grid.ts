@@ -33,6 +33,7 @@ export class MatrixButtonGrid extends ButtonGrid {
       ],
       [
         new DispatchButton("<math><mo>&times;</mo></math>", "@", "@"),
+        new DispatchButton("<math><mo>&otimes;</mo></math>", "kron", "K"),
       ],
       [],
       [

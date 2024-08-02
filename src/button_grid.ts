@@ -83,11 +83,13 @@ export class ButtonGridManager {
   }
 
   async onKeyDown(input: KeyEventInput): Promise<KeyResponse> {
-    const responseFromDelegate = await this.modifierDelegate.onKeyDown(input);
-    if (responseFromDelegate == KeyResponse.BLOCK) {
-      // Delegate handled the event, so don't propagate to the
-      // buttons.
-      return KeyResponse.BLOCK;
+    if (this.isRootGrid()) {
+      const responseFromDelegate = await this.modifierDelegate.onKeyDown(input);
+      if (responseFromDelegate == KeyResponse.BLOCK) {
+        // Delegate handled the event, so don't propagate to the
+        // buttons.
+        return KeyResponse.BLOCK;
+      }
     }
     const button = this.activeGrid.getKeyMappingTable()[input.toEmacsSyntax()];
     if (button !== undefined) {
