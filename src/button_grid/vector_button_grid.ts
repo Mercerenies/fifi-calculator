@@ -1,6 +1,6 @@
 
 import { ButtonGrid, GridCell } from "../button_grid.js";
-import { backButton, DispatchButton } from './button.js';
+import { backButton, DispatchButton, GotoButton } from './button.js';
 import { UnsignedNumberedButton } from './button/numbered.js';
 import { svg } from '../util.js';
 
@@ -8,18 +8,22 @@ function magnifyingLensSvg(): HTMLElement {
   return svg('assets/magnifying.svg', {alt: "search"});
 }
 
+function barGraphSvg(): HTMLElement {
+  return svg('assets/bar_graph.svg', {alt: "statistics"});
+}
+
 export class VectorButtonGrid extends ButtonGrid {
   readonly rows: readonly (readonly GridCell[])[];
 
   private rootGrid: ButtonGrid;
 
-  constructor(rootGrid: ButtonGrid) {
+  constructor(rootGrid: ButtonGrid, subgrids: VectorButtonGridSubgrids) {
     super();
     this.rootGrid = rootGrid;
-    this.rows = this.initRows();
+    this.rows = this.initRows(subgrids);
   }
 
-  private initRows(): GridCell[][] {
+  private initRows(subgrids: VectorButtonGridSubgrids): GridCell[][] {
     return [
       [
         new DispatchButton("p", "pack", "p"),
@@ -49,7 +53,12 @@ export class VectorButtonGrid extends ButtonGrid {
       ],
       [
         backButton(this.rootGrid),
+        new GotoButton(barGraphSvg(), "M-U", subgrids.vectorStats),
       ],
     ];
   }
+}
+
+export interface VectorButtonGridSubgrids {
+  vectorStats: ButtonGrid,
 }

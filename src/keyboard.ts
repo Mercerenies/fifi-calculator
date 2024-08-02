@@ -45,9 +45,6 @@ export class KeyInput {
   // mainly an Emacs compatibility thing, and in most cases it won't
   // change the input.
   private normalizeSelf() {
-    if ((this.modifiers != Modifier.NONE) && (this.key in LETTERS)) {
-      this._key = this.key.toLowerCase();
-    }
     switch (this.toEmacsSyntax()) {
     case "C-i":
       this._key = "Tab";

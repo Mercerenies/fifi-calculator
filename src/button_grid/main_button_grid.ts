@@ -3,6 +3,7 @@ import { ButtonGridManager, ButtonGrid, GridCell } from "../button_grid.js";
 import { AlgebraButtonGrid } from "./algebra_button_grid.js";
 import { StorageButtonGrid } from "./storage_button_grid.js";
 import { VectorButtonGrid } from "./vector_button_grid.js";
+import { VectorStatsButtonGrid } from "./vector_stats_button_grid.js";
 import { MatrixButtonGrid } from "./matrix_button_grid.js";
 import { FormulaButtonGrid } from "./formula_button_grid.js";
 import { TranscendentalButtonGrid } from "./transcendental_button_grid.js";
@@ -153,8 +154,13 @@ class Subgrids {
   readonly transcendental: TranscendentalButtonGrid;
   readonly units: UnitsButtonGrid;
   readonly vector: VectorButtonGrid;
+  readonly vectorStats: VectorStatsButtonGrid;
 
   constructor(mainGrid: MainButtonGrid) {
+    // Secondary button grids
+    this.vectorStats = new VectorStatsButtonGrid(mainGrid);
+
+    // Primary button grids
     this.algebra = new AlgebraButtonGrid(mainGrid);
     this.display = new DisplayButtonGrid(mainGrid);
     this.formula = new FormulaButtonGrid(mainGrid);
@@ -166,7 +172,7 @@ class Subgrids {
     this.strings = new StringButtonGrid(mainGrid);
     this.transcendental = new TranscendentalButtonGrid(mainGrid);
     this.units = new UnitsButtonGrid(mainGrid);
-    this.vector = new VectorButtonGrid(mainGrid);
+    this.vector = new VectorButtonGrid(mainGrid, this);
   }
 }
 
@@ -189,6 +195,7 @@ const SUBGRID_FORWARDING_TABLE: Record<string, keyof Subgrids> = {
   "\"": "input",
   "`": "input",
   "|": "vector",
+  "M-U": "vector",
   "&": "matrix",
   "@": "matrix",
 };
