@@ -4,6 +4,7 @@
 
 mod base;
 mod column;
+pub mod row_reduction;
 
 pub use base::{MatrixElement, MatrixFieldElement};
 pub use column::{Column, ColumnMut};
