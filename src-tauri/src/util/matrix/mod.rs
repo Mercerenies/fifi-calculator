@@ -11,6 +11,7 @@ pub use column::{Column, ColumnMut};
 
 use crate::util::transpose;
 use crate::util::prism::ErrorWithPayload;
+use row_reduction::ReducibleMatrix;
 
 use thiserror::Error;
 use serde::{Serialize, Deserialize};
@@ -171,6 +172,23 @@ impl<T> Matrix<T> {
   pub fn transpose(self) -> Self {
     Self::new(transpose(self.body)).unwrap()
   }
+
+  pub fn diag(&self) -> impl Iterator<Item=&T> + '_ {
+    let diagonal_count = self.width().min(self.height());
+    (0..diagonal_count).map(|index| &self[MatrixIndex { x: index, y: index }])
+  }
+}
+
+impl<T: MatrixFieldElement> Matrix<T> {
+  /// The determinant of `self`. Panics if `self` is not a square
+  /// matrix.
+  pub fn determinant(mut self) -> T {
+    assert!(self.width() == self.height(), "Can only calculate the determinant of square matrices");
+    let mut red_matrix = ReducibleMatrix::new(&mut self);
+    red_matrix.reduce_to_row_form();
+    let diag_product = red_matrix.as_ref().diag().fold(T::one(), |acc, item| acc * item);
+    diag_product / red_matrix.determinant_multiplier()
+  }
 }
 
 impl MatrixIndex {
@@ -310,5 +328,36 @@ mod tests {
       vec![5, 6],
       vec![8, 9],
     ]);
+  }
+
+  #[test]
+  #[should_panic]
+  fn test_determinant_non_square() {
+    let matrix = Matrix::new(vec![
+      vec![1.0, 2.0],
+      vec![3.0, 4.0],
+      vec![5.0, 6.0],
+    ]).unwrap();
+    matrix.determinant();
+  }
+
+  #[test]
+  fn test_determinant() {
+    let matrix = Matrix::new(vec![
+      vec![1.0, 2.0, 3.0],
+      vec![4.0, 5.0, 6.0],
+      vec![7.0, -8.0, 9.0],
+    ]).unwrap();
+    assert_eq!(matrix.determinant(), -96.0);
+  }
+
+  #[test]
+  fn test_determinant_zero() {
+    let matrix = Matrix::new(vec![
+      vec![1.0, 2.0, 3.0],
+      vec![4.0, 5.0, 6.0],
+      vec![7.0, 8.0, 9.0],
+    ]).unwrap();
+    assert_eq!(matrix.determinant(), 0.0);
   }
 }
