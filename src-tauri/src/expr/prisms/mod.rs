@@ -22,7 +22,7 @@ use either::Either;
 // Re-export some useful expression-adjacent prisms.
 pub use super::var::StringToVar;
 pub use super::vector::ExprToVector;
-pub use super::vector::matrix::expr_to_matrix;
+pub use super::vector::matrix::{ExprToTypedMatrix, expr_to_matrix};
 pub use super::vector::tensor::ExprToTensor;
 pub use super::number::prisms::{NumberToUsize, NumberToI64};
 pub use super::algebra::infinity::{ExprToInfinity, UnboundedNumber,

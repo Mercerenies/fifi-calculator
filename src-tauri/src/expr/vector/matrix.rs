@@ -133,7 +133,7 @@ pub fn expr_to_matrix() -> impl Prism<Expr, Matrix> + Clone {
 }
 
 impl<P> ExprToTypedMatrix<P> {
-  fn new(element_prism: P) -> Self {
+  pub fn new(element_prism: P) -> Self {
     ExprToTypedMatrix { element_prism }
   }
 }

@@ -309,6 +309,14 @@ impl ops::Mul for &ComplexNumber {
   }
 }
 
+impl ops::Mul<&ComplexNumber> for ComplexNumber {
+  type Output = ComplexNumber;
+
+  fn mul(self, other: &ComplexNumber) -> ComplexNumber {
+    self * other.to_owned()
+  }
+}
+
 // Needed to call powi_by_repeated_square. We'll implement the other
 // ops::*Assign traits on an as-needed basis.
 impl ops::MulAssign for ComplexNumber {
@@ -335,6 +343,14 @@ impl ops::Div for &ComplexNumber {
 
   fn div(self, other: &ComplexNumber) -> ComplexNumber {
     self.to_owned() / other.to_owned()
+  }
+}
+
+impl ops::Div<&ComplexNumber> for ComplexNumber {
+  type Output = ComplexNumber;
+
+  fn div(self, other: &ComplexNumber) -> ComplexNumber {
+    self / other.to_owned()
   }
 }
 

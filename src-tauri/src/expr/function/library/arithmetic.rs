@@ -7,6 +7,7 @@ use crate::expr::function::{Function, FunctionContext};
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
 use crate::expr::vector::Vector;
+use crate::expr::vector::matrix::Matrix;
 use crate::expr::vector::tensor::Tensor;
 use crate::expr::prisms::{self, expr_to_number, ExprToComplex};
 use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex, pow_complex_to_real};
@@ -748,6 +749,24 @@ pub fn reciprocal() -> Function {
           return division_by_zero(ctx, "recip", arg);
         }
         Ok(Expr::from(arg.map(|r| r.recip(), |c| c.recip())))
+      })
+    )
+    .add_case(
+      // Inverse of a matrix
+      builder::arity_one().of_type(prisms::ExprToTypedMatrix::new(ExprToComplex)).and_then(|mat, ctx| {
+        if mat.width() != mat.height() {
+          ctx.errors.push(SimplifierError::custom_error("recip", "Expected square matrix"));
+          return Err(mat);
+        }
+        let original_mat = mat.clone();
+        let mat = mat.map(ComplexNumber::from);
+        match mat.inverse_matrix() {
+          Ok(mat) => Ok(Expr::from(Matrix::from(mat.map(Expr::from)))),
+          Err(err) => {
+            ctx.errors.push(SimplifierError::new("recip", err));
+            Err(original_mat)
+          }
+        }
       })
     )
     .add_case(
