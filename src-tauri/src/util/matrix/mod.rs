@@ -221,6 +221,15 @@ impl<T> Matrix<T> {
   where T: Zero + Add<&'a T, Output = T> {
     self.diag().fold(T::zero(), |acc, item| acc + item)
   }
+
+  pub fn kronecker_mul<S, U, F>(&self, other: &Matrix<S>, mut f: F) -> Matrix<U>
+  where F: FnMut(&T, &S) -> U {
+    Matrix::from_generator(self.height() * other.height(), self.width() * other.width(), move |index| {
+      let self_index = MatrixIndex { y: index.y / other.height(), x: index.x / other.width() };
+      let other_index = MatrixIndex { y: index.y % other.height(), x: index.x % other.width() };
+      f(&self[self_index], &other[other_index])
+    })
+  }
 }
 
 impl<T: MatrixFieldElement> Matrix<T> {
@@ -527,5 +536,27 @@ mod tests {
       vec![2, 1, 0],
     ]).unwrap();
     a.try_mul(&b).unwrap_err();
+  }
+
+  #[test]
+  fn test_kronecker_mul() {
+    let a = Matrix::new(vec![
+      vec![1, 2, 3],
+      vec![4, 5, 6],
+      vec![7, 8, 9],
+    ]).unwrap();
+    let b = Matrix::new(vec![
+      vec![10, 11, 12],
+      vec![13, 14, 15],
+    ]).unwrap();
+    let prod = a.kronecker_mul(&b, |&a, &b| (a, b));
+    assert_eq!(prod, Matrix::new(vec![
+      vec![(1, 10), (1, 11), (1, 12), (2, 10), (2, 11), (2, 12), (3, 10), (3, 11), (3, 12)],
+      vec![(1, 13), (1, 14), (1, 15), (2, 13), (2, 14), (2, 15), (3, 13), (3, 14), (3, 15)],
+      vec![(4, 10), (4, 11), (4, 12), (5, 10), (5, 11), (5, 12), (6, 10), (6, 11), (6, 12)],
+      vec![(4, 13), (4, 14), (4, 15), (5, 13), (5, 14), (5, 15), (6, 13), (6, 14), (6, 15)],
+      vec![(7, 10), (7, 11), (7, 12), (8, 10), (8, 11), (8, 12), (9, 10), (9, 11), (9, 12)],
+      vec![(7, 13), (7, 14), (7, 15), (8, 13), (8, 14), (8, 15), (9, 13), (9, 14), (9, 15)],
+    ]).unwrap());
   }
 }
