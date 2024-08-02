@@ -45,7 +45,10 @@ export class UiManager {
         this.inputManager,
         () => document.activeElement === Page.getInputTextBox(),
       ),
-      this.rightPanelManager.undoManager,
+      KeyDispatcher.filtered(
+        this.rightPanelManager.undoManager,
+        () => this.rightPanelManager.buttonGrid.isRootGrid(),
+      ),
       this.rightPanelManager.buttonGrid,
     ]);
     this.keyEventListener = (event) => this.dispatchOnKey(event);

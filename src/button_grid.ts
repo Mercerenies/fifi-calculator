@@ -36,6 +36,10 @@ export class ButtonGridManager {
     // No listeners to initialize for right now.
   }
 
+  isRootGrid(): boolean {
+    return this.activeGrid === this.rootGrid;
+  }
+
   resetState(): void {
     this.setActiveGrid(this.rootGrid);
     this.resetModifiers();
