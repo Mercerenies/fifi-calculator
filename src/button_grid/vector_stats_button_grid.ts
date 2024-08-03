@@ -1,12 +1,6 @@
 
 import { ButtonGrid, GridCell } from "../button_grid.js";
 import { backButton, DispatchButton } from './button.js';
-import { UnsignedNumberedButton } from './button/numbered.js';
-import { svg } from '../util.js';
-
-function magnifyingLensSvg(): HTMLElement {
-  return svg('assets/magnifying.svg', {alt: "search"});
-}
 
 export class VectorStatsButtonGrid extends ButtonGrid {
   readonly rows: readonly (readonly GridCell[])[];
