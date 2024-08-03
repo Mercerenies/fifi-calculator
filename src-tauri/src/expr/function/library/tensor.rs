@@ -61,6 +61,7 @@ pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(median());
   table.insert(geometric_mean());
   table.insert(arithmetic_geometric_mean());
+  table.insert(harmonic_mean());
 }
 
 fn is_empty_vector(expr: &Expr) -> bool {
@@ -831,4 +832,24 @@ fn agmean(values: Vec<Number>) -> Number {
     (a, g) = (amean(&a, &g), gmean(&a, &g));
   }
   a
+}
+
+pub fn harmonic_mean() -> Function {
+  FunctionBuilder::new("hmean")
+    .add_case(
+      // Harmonic Mean of a vector
+      builder::arity_one().of_type(prisms::ExprToVector).and_then(|vec, ctx| {
+        if vec.is_empty() {
+          ctx.errors.push(SimplifierError::custom_error("hmean", "Arithmetic-geometric mean of empty vector"));
+          return Err(vec);
+        }
+        let len = BigInt::from(vec.len());
+        let sum = vec.into_iter()
+          .map(|a| Expr::call("/", vec![Expr::from(1), a]))
+          .reduce(|a, b| Expr::call("+", vec![a, b]))
+          .unwrap();
+        Ok(Expr::call("/", vec![Expr::from(len), sum]))
+      })
+    )
+    .build()
 }
