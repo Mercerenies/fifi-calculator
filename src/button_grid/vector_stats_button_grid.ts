@@ -20,6 +20,7 @@ export class VectorStatsButtonGrid extends ButtonGrid {
         new DispatchButton("H", "hmean", "H"),
         new DispatchButton("rms", "rms", "R"),
         new DispatchButton("std", "stddev", "S"),
+        new DispatchButton("cov", "covariance", "C"),
       ],
       [],
       [],

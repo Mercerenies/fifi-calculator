@@ -20,6 +20,8 @@ pub fn append_statistics_functions(table: &mut FunctionTable) {
   table.insert(pop_std_dev());
   table.insert(sample_variance());
   table.insert(pop_variance());
+  table.insert(sample_covariance());
+  table.insert(pop_covariance());
 }
 
 pub fn arithmetic_mean() -> Function {
@@ -212,7 +214,7 @@ pub fn pop_std_dev() -> Function {
 pub fn sample_variance() -> Function {
   FunctionBuilder::new("variance")
     .add_case(
-      // Sample standard deviation of a vector
+      // Sample variance of a vector
       builder::arity_one().of_type(prisms::expr_to_typed_vector(prisms::ExprToComplex)).and_then(|vec, ctx| {
         if vec.len() < 2 {
           ctx.errors.push(SimplifierError::custom_error("variance", "Variance requires at least two elements"));
@@ -233,7 +235,7 @@ pub fn sample_variance() -> Function {
 pub fn pop_variance() -> Function {
   FunctionBuilder::new("pvariance")
     .add_case(
-      // Population standard deviation of a vector
+      // Population variance of a vector
       builder::arity_one().of_type(prisms::expr_to_typed_vector(prisms::ExprToComplex)).and_then(|vec, ctx| {
         if vec.is_empty() {
           ctx.errors.push(SimplifierError::custom_error("pvariance", "Population variance of empty vector"));
@@ -249,4 +251,59 @@ pub fn pop_variance() -> Function {
       })
     )
     .build()
+}
+
+pub fn sample_covariance() -> Function {
+  FunctionBuilder::new("covariance")
+    .add_case(
+      // Sample covariance of two vectors
+      builder::arity_two().both_of_type(prisms::expr_to_typed_vector(prisms::ExprToComplex)).and_then(|x, y, ctx| {
+        if x.len() != y.len() {
+          ctx.errors.push(SimplifierError::custom_error("covariance", "Covariance requires the same number of elements in both vectors"));
+          return Err((x, y));
+        }
+        if x.len() < 2 {
+          ctx.errors.push(SimplifierError::custom_error("covariance", "Covariance requires at least two elements in each vector"));
+          return Err((x, y));
+        }
+        let len = x.len() as i64;
+        let x: Vec<_> = x.into_iter().map(ComplexNumber::from).collect();
+        let y: Vec<_> = y.into_iter().map(ComplexNumber::from).collect();
+        Ok(Expr::from(covar_sum_of_differences(x, y) / (len - 1)))
+      })
+    )
+    .build()
+}
+
+pub fn pop_covariance() -> Function {
+  FunctionBuilder::new("pcovariance")
+    .add_case(
+      // Population covariance of two vectors
+      builder::arity_two().both_of_type(prisms::expr_to_typed_vector(prisms::ExprToComplex)).and_then(|x, y, ctx| {
+        if x.len() != y.len() {
+          ctx.errors.push(SimplifierError::custom_error("pcovariance", "Pop covar requires the same number of elements in both vectors"));
+          return Err((x, y));
+        }
+        if x.is_empty() {
+          ctx.errors.push(SimplifierError::custom_error("pcovariance", "Pop covar got empty vector"));
+          return Err((x, y));
+        }
+        let len = x.len() as i64;
+        let x: Vec<_> = x.into_iter().map(ComplexNumber::from).collect();
+        let y: Vec<_> = y.into_iter().map(ComplexNumber::from).collect();
+        Ok(Expr::from(covar_sum_of_differences(x, y) / len))
+      })
+    )
+    .build()
+}
+
+fn covar_sum_of_differences(x: Vec<ComplexNumber>, y: Vec<ComplexNumber>) -> ComplexNumber {
+  assert!(x.len() == y.len(), "Precondition failed: covar_sum_of_differences got vectors of different lengths");
+  let len = x.len() as i64;
+  let x_mean = x.iter().fold(ComplexNumber::zero(), |a, b| a + b) / ComplexNumber::from_real(len);
+  let y_mean = y.iter().fold(ComplexNumber::zero(), |a, b| a + b) / ComplexNumber::from_real(len);
+  x.into_iter()
+    .zip(y)
+    .map(|(x_term, y_term)| (x_term - &x_mean) * (y_term - &y_mean).conj())
+    .sum()
 }

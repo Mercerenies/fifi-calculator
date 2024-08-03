@@ -5,8 +5,10 @@
 use crate::errorlist::ErrorList;
 use crate::expr::Expr;
 use crate::expr::vector::Vector;
+use crate::expr::prisms::expr_to_matrix;
 use crate::stack::base::{StackLike, RandomAccessStackLike};
 use crate::stack::keepable::KeepableStack;
+use crate::util::prism::Prism;
 use crate::state::ApplicationState;
 use super::base::{Command, CommandContext, CommandOutput};
 use super::arguments::{NullaryArgumentSchema, validate_schema};
@@ -33,6 +35,19 @@ use std::cmp::Ordering;
 /// will be duplicated in-place before modification.
 pub struct DatasetDrivenCommand {
   function: Box<dyn Fn(Expr) -> Expr + Send + Sync>,
+}
+
+/// A covariance command between two vectors. By default, this command
+/// pops two values off the stack and calls its function on those
+/// arguments. However, if given a numerical argument, this function
+/// instead pops one value off the stack, which must be a matrix of
+/// width 2. The two columns of the matrix are used as the arguments
+/// to the function. Note that the value of the numerical argument is
+/// irrelevant; only its presence or absence is considered.
+///
+/// Respects the keep modifier.
+pub struct CovarianceCommand {
+  function_name: String,
 }
 
 impl DatasetDrivenCommand {
@@ -96,6 +111,20 @@ impl DatasetDrivenCommand {
   }
 }
 
+impl CovarianceCommand {
+  pub fn named(function_name: impl Into<String>) -> Self {
+    Self { function_name: function_name.into() }
+  }
+}
+
+pub fn sample_covar_command() -> CovarianceCommand {
+  CovarianceCommand::named("covariance")
+}
+
+pub fn pop_covar_command() -> CovarianceCommand {
+  CovarianceCommand::named("pcovariance")
+}
+
 impl Command for DatasetDrivenCommand {
   fn run_command(
     &self,
@@ -120,6 +149,54 @@ impl Command for DatasetDrivenCommand {
         self.group_and_apply_to_top(state, state.main_stack().len(), ctx)
       }
     }
+  }
+}
+
+impl Command for CovarianceCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    ctx: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    validate_schema(&NullaryArgumentSchema::new(), args)?;
+    state.undo_stack_mut().push_cut();
+    let calculation_mode = state.calculation_mode().clone();
+    let mut errors = ErrorList::new();
+    let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
+
+    let expr = if ctx.opts.argument.is_some() {
+      // Numerical argument present; pop one value and assert it's an
+      // Nx2 matrix.
+      let m = stack.pop()?;
+      let m = match expr_to_matrix().narrow_type(m) {
+        Ok(m) => m,
+        Err(original_m) => {
+          if !ctx.opts.keep_modifier {
+            stack.push(original_m);
+          }
+          anyhow::bail!("Expected matrix");
+        }
+      };
+      if m.width() != 2 {
+        if !ctx.opts.keep_modifier {
+          stack.push(expr_to_matrix().widen_type(m));
+        }
+        anyhow::bail!("Expected matrix of width 2");
+      }
+      let [a, b] = m.into_matrix().into_column_major().try_into().unwrap();
+      let a = Vector::from(a);
+      let b = Vector::from(b);
+      Expr::call(&self.function_name, vec![a.into(), b.into()])
+    } else {
+      // No numerical argument, pop two values.
+      let [a, b] = stack.pop_several(2)?.try_into().unwrap();
+      Expr::call(&self.function_name, vec![a, b])
+    };
+    let expr = ctx.simplify_expr(expr, calculation_mode, &mut errors);
+    stack.push(expr);
+
+    Ok(CommandOutput::from_errors(errors))
   }
 }
 

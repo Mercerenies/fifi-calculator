@@ -214,6 +214,12 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
     inv_flag: DatasetDrivenCommand::named("pstddev"),
     inv_hyper_flag: DatasetDrivenCommand::named("pvariance"),
   })));
+  map.insert("covariance".to_string(), Box::new(dispatch_on_flags_command(FlagDispatchArgs {
+    no_flags: statistics::sample_covar_command(),
+    hyper_flag: statistics::sample_covar_command(), // TODO
+    inv_flag: statistics::pop_covar_command(),
+    inv_hyper_flag: statistics::sample_covar_command(), // TODO
+  })));
 
   // Matrix commands
   map.insert("identity_matrix".to_string(), Box::new(vector::IdentityMatrixCommand::new()));

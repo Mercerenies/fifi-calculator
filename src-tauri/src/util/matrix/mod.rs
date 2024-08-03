@@ -102,6 +102,10 @@ impl<T> Matrix<T> {
     self.body
   }
 
+  pub fn into_column_major(self) -> Vec<Vec<T>> {
+    transpose(self.body)
+  }
+
   pub fn row(&self, index: usize) -> Option<&[T]> {
     self.body.get(index).map(|row| row.as_slice())
   }
@@ -158,6 +162,10 @@ impl<T> Matrix<T> {
 
   pub fn rows(&self) -> impl Iterator<Item = &[T]> + '_ {
     self.body.iter().map(|row| row.as_slice())
+  }
+
+  pub fn into_rows(self) -> impl Iterator<Item = Vec<T>> {
+    self.body.into_iter()
   }
 
   pub fn items(&self) -> impl Iterator<Item = &T> + '_ {

@@ -102,8 +102,8 @@ impl Expr {
   }
 
   /// Convenience constructor for [Expr::Call].
-  pub fn call(name: &str, args: Vec<Expr>) -> Expr {
-    Expr::Call(name.to_string(), args)
+  pub fn call(name: impl Into<String>, args: Vec<Expr>) -> Expr {
+    Expr::Call(name.into(), args)
   }
 
   pub fn mutate<F>(&mut self, f: F)

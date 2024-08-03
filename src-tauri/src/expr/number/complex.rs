@@ -8,7 +8,7 @@ use approx::{AbsDiffEq, RelativeEq};
 use serde::{Serialize, Deserialize};
 
 use std::fmt::{self, Formatter, Display};
-use std::ops;
+use std::{ops, iter};
 use std::cmp::Ordering;
 
 /// A complex number has a real part and an imaginary part.
@@ -354,6 +354,14 @@ impl ops::Div<&ComplexNumber> for ComplexNumber {
   }
 }
 
+impl ops::Div<i64> for ComplexNumber {
+  type Output = ComplexNumber;
+
+  fn div(self, other: i64) -> ComplexNumber {
+    self / ComplexNumber::from_real(other)
+  }
+}
+
 impl ops::Neg for ComplexNumber {
   type Output = ComplexNumber;
 
@@ -367,6 +375,12 @@ impl ops::Neg for &ComplexNumber {
 
   fn neg(self) -> ComplexNumber {
     (*self).clone().neg()
+  }
+}
+
+impl iter::Sum for ComplexNumber {
+  fn sum<I: Iterator<Item = ComplexNumber>>(iter: I) -> Self {
+    iter.fold(ComplexNumber::zero(), |a, b| a + b)
   }
 }
 
