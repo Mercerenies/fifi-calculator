@@ -57,6 +57,7 @@ pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(trace());
   table.insert(matrix_multiplication());
   table.insert(kronecker_multiplication());
+  table.insert(arithmetic_mean());
 }
 
 fn is_empty_vector(expr: &Expr) -> bool {
@@ -689,7 +690,7 @@ pub fn matrix_multiplication() -> Function {
     .build()
 }
 
-fn kronecker_multiplication() -> Function {
+pub fn kronecker_multiplication() -> Function {
   FunctionBuilder::new("kron")
     .add_case(
       // Matrix times matrix
@@ -722,6 +723,24 @@ fn kronecker_multiplication() -> Function {
           Expr::call("*", vec![a.clone(), b.clone()])
         });
         Ok(Matrix::from(product).into())
+      })
+    )
+    .build()
+}
+
+pub fn arithmetic_mean() -> Function {
+  FunctionBuilder::new("mean")
+    .add_case(
+      // Mean of a vector
+      builder::arity_one().of_type(prisms::ExprToVector).and_then(|vec, ctx| {
+        if vec.is_empty() {
+          ctx.errors.push(SimplifierError::custom_error("mean", "Mean of empty vector"));
+          Err(vec)
+        } else {
+          let len = BigInt::from(vec.len());
+          let sum = vec.into_iter().reduce(|a, b| Expr::call("+", vec![a, b])).unwrap();
+          Ok(Expr::call("/", vec![sum, Expr::from(len)]))
+        }
       })
     )
     .build()

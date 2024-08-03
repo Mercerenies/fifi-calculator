@@ -21,7 +21,9 @@ export class VectorStatsButtonGrid extends ButtonGrid {
 
   private initRows(): GridCell[][] {
     return [
-      [],
+      [
+        new DispatchButton("<math><mover><mrow><mi>x</mi></mrow><mo>-</mo></mover></math>", "mean", "M"),
+      ],
       [],
       [],
       [],

@@ -20,6 +20,7 @@ pub mod vector;
 
 pub use base::{Command, CommandContext, CommandOutput};
 use functional::{PushConstantCommand, UnaryFunctionCommand, BinaryFunctionCommand};
+use statistics::DatasetDrivenCommand;
 use dispatch::CommandDispatchTable;
 use flag_dispatch::{FlagDispatchArgs, dispatch_on_flags_command,
                     dispatch_on_inverse_command, dispatch_on_hyper_command};
@@ -174,16 +175,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("convert_temp".to_string(), Box::new(units::ConvertTemperatureCommand::new()));
   map.insert("convert_temp_with_context".to_string(), Box::new(units::ContextualConvertTemperatureCommand::new()));
 
-  // Vector / Matrix commands
-  map.insert("identity_matrix".to_string(), Box::new(vector::IdentityMatrixCommand::new()));
-  map.insert("nth".to_string(), Box::new(dispatch_on_hyper_command(
-    vector::nth_element_command(),
-    vector::remove_nth_element_command(),
-  )));
-  map.insert("nth_column".to_string(), Box::new(dispatch_on_hyper_command(
-    vector::nth_column_command(),
-    vector::remove_nth_column_command(),
-  )));
+  // Vector commands
   map.insert("subvector".to_string(), Box::new(dispatch_on_hyper_command(
     vector::subvector_command(),
     vector::remove_subvector_command(),
@@ -202,14 +194,28 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
     UnaryFunctionCommand::named("grade"),
     UnaryFunctionCommand::named("rgrade"),
   )));
-  map.insert("transpose".to_string(), Box::new(dispatch_on_hyper_command(
-    UnaryFunctionCommand::named("transpose"),
-    UnaryFunctionCommand::new(conj_transpose),
-  )));
   map.insert("reverse".to_string(), Box::new(UnaryFunctionCommand::named("reverse")));
   map.insert("vmask".to_string(), Box::new(BinaryFunctionCommand::named("vmask")));
   map.insert("norm".to_string(), Box::new(vector::NormCommand::new()));
   map.insert("cross".to_string(), Box::new(BinaryFunctionCommand::named("cross")));
+
+  // Vector statistics commands
+  map.insert("mean".to_string(), Box::new(DatasetDrivenCommand::named("mean")));
+
+  // Matrix commands
+  map.insert("identity_matrix".to_string(), Box::new(vector::IdentityMatrixCommand::new()));
+  map.insert("nth".to_string(), Box::new(dispatch_on_hyper_command(
+    vector::nth_element_command(),
+    vector::remove_nth_element_command(),
+  )));
+  map.insert("nth_column".to_string(), Box::new(dispatch_on_hyper_command(
+    vector::nth_column_command(),
+    vector::remove_nth_column_command(),
+  )));
+  map.insert("transpose".to_string(), Box::new(dispatch_on_hyper_command(
+    UnaryFunctionCommand::named("transpose"),
+    UnaryFunctionCommand::new(conj_transpose),
+  )));
   map.insert("det".to_string(), Box::new(UnaryFunctionCommand::named("det")));
   map.insert("trace".to_string(), Box::new(UnaryFunctionCommand::named("trace")));
   map.insert("@".to_string(), Box::new(BinaryFunctionCommand::named("@")));
