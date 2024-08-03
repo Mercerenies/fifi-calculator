@@ -53,7 +53,7 @@ export class VectorButtonGrid extends ButtonGrid {
       ],
       [
         backButton(this.rootGrid),
-        new GotoButton(barGraphSvg(), "M-U", subgrids.vectorStats),
+        new GotoButton(barGraphSvg(), "V", subgrids.vectorStats),
       ],
     ];
   }

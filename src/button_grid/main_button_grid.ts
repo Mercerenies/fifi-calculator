@@ -100,7 +100,7 @@ export class MainButtonGrid extends ButtonGrid {
         new GotoButton("<math><mi>x</mi></math>", "a", this.subgrids.algebra),
         new GotoButton(":=", "s", this.subgrids.storage),
         new GotoButton("[v]", "v", this.subgrids.vector),
-        new GotoButton("[m]", "V", this.subgrids.matrix),
+        new GotoButton("[m]", "M", this.subgrids.matrix),
         new GotoButton("≤", null, this.subgrids.formula),
       ],
     ];
@@ -195,7 +195,7 @@ const SUBGRID_FORWARDING_TABLE: Record<string, keyof Subgrids> = {
   "\"": "input",
   "`": "input",
   "|": "vector",
-  "M-U": "vector",
+  "V": "vector",
   "&": "matrix",
   "@": "matrix",
 };
