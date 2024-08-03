@@ -19,6 +19,7 @@ export class VectorStatsButtonGrid extends ButtonGrid {
         new DispatchButton("<math><mover><mrow><mi>x</mi></mrow><mo>-</mo></mover></math>", "mean", "M"),
         new DispatchButton("H", "hmean", "H"),
         new DispatchButton("rms", "rms", "R"),
+        new DispatchButton("std", "stddev", "S"),
       ],
       [],
       [],

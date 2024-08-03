@@ -208,6 +208,12 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   })));
   map.insert("hmean".to_string(), Box::new(DatasetDrivenCommand::named("hmean")));
   map.insert("rms".to_string(), Box::new(DatasetDrivenCommand::named("rms")));
+  map.insert("stddev".to_string(), Box::new(dispatch_on_flags_command(FlagDispatchArgs {
+    no_flags: DatasetDrivenCommand::named("stddev"),
+    hyper_flag: DatasetDrivenCommand::named("variance"),
+    inv_flag: DatasetDrivenCommand::named("pstddev"),
+    inv_hyper_flag: DatasetDrivenCommand::named("pvariance"),
+  })));
 
   // Matrix commands
   map.insert("identity_matrix".to_string(), Box::new(vector::IdentityMatrixCommand::new()));

@@ -1,6 +1,6 @@
 
 use crate::expr::Expr;
-use crate::expr::number::{Number, pow_real};
+use crate::expr::number::{Number, ComplexNumber, pow_real};
 use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder};
@@ -16,6 +16,10 @@ pub fn append_statistics_functions(table: &mut FunctionTable) {
   table.insert(arithmetic_geometric_mean());
   table.insert(harmonic_mean());
   table.insert(root_mean_square());
+  table.insert(sample_std_dev());
+  table.insert(pop_std_dev());
+  table.insert(sample_variance());
+  table.insert(pop_variance());
 }
 
 pub fn arithmetic_mean() -> Function {
@@ -158,6 +162,90 @@ pub fn root_mean_square() -> Function {
           Expr::call("/", vec![sum, Expr::from(len)]),
           Expr::from(Number::ratio(1, 2)),
         ]))
+      })
+    )
+    .build()
+}
+
+pub fn sample_std_dev() -> Function {
+  FunctionBuilder::new("stddev")
+    .add_case(
+      // Sample standard deviation of a vector
+      builder::arity_one().of_type(prisms::expr_to_typed_vector(prisms::ExprToComplex)).and_then(|vec, ctx| {
+        if vec.len() < 2 {
+          ctx.errors.push(SimplifierError::custom_error("stddev", "Sample standard deviation requires at least two elements"));
+          return Err(vec);
+        }
+        let len = vec.len() as i64;
+        let vec: Vec<_> = vec.into_iter().map(ComplexNumber::from).collect();
+        let mean = vec.iter().fold(ComplexNumber::zero(), |a, b| a + b) / ComplexNumber::from_real(len);
+        let sum_of_differences: Number = vec.into_iter()
+          .map(|x| (x - &mean).abs_sqr())
+          .sum();
+        Ok(Expr::from((sum_of_differences / (len - 1)).powf(0.5)))
+      })
+    )
+    .build()
+}
+
+pub fn pop_std_dev() -> Function {
+  FunctionBuilder::new("pstddev")
+    .add_case(
+      // Population standard deviation of a vector
+      builder::arity_one().of_type(prisms::expr_to_typed_vector(prisms::ExprToComplex)).and_then(|vec, ctx| {
+        if vec.is_empty() {
+          ctx.errors.push(SimplifierError::custom_error("pstddev", "Population standard deviation on empty vector"));
+          return Err(vec);
+        }
+        let len = vec.len() as i64;
+        let vec: Vec<_> = vec.into_iter().map(ComplexNumber::from).collect();
+        let mean = vec.iter().fold(ComplexNumber::zero(), |a, b| a + b) / ComplexNumber::from_real(len);
+        let sum_of_differences: Number = vec.into_iter()
+          .map(|x| (x - &mean).abs_sqr())
+          .sum();
+        Ok(Expr::from((sum_of_differences / len).powf(0.5)))
+      })
+    )
+    .build()
+}
+
+pub fn sample_variance() -> Function {
+  FunctionBuilder::new("variance")
+    .add_case(
+      // Sample standard deviation of a vector
+      builder::arity_one().of_type(prisms::expr_to_typed_vector(prisms::ExprToComplex)).and_then(|vec, ctx| {
+        if vec.len() < 2 {
+          ctx.errors.push(SimplifierError::custom_error("variance", "Variance requires at least two elements"));
+          return Err(vec);
+        }
+        let len = vec.len() as i64;
+        let vec: Vec<_> = vec.into_iter().map(ComplexNumber::from).collect();
+        let mean = vec.iter().fold(ComplexNumber::zero(), |a, b| a + b) / ComplexNumber::from_real(len);
+        let sum_of_differences: Number = vec.into_iter()
+          .map(|x| (x - &mean).abs_sqr())
+          .sum();
+        Ok(Expr::from(sum_of_differences / (len - 1)))
+      })
+    )
+    .build()
+}
+
+pub fn pop_variance() -> Function {
+  FunctionBuilder::new("pvariance")
+    .add_case(
+      // Population standard deviation of a vector
+      builder::arity_one().of_type(prisms::expr_to_typed_vector(prisms::ExprToComplex)).and_then(|vec, ctx| {
+        if vec.is_empty() {
+          ctx.errors.push(SimplifierError::custom_error("pvariance", "Population variance of empty vector"));
+          return Err(vec);
+        }
+        let len = vec.len() as i64;
+        let vec: Vec<_> = vec.into_iter().map(ComplexNumber::from).collect();
+        let mean = vec.iter().fold(ComplexNumber::zero(), |a, b| a + b) / ComplexNumber::from_real(len);
+        let sum_of_differences: Number = vec.into_iter()
+          .map(|x| (x - &mean).abs_sqr())
+          .sum();
+        Ok(Expr::from(sum_of_differences / len))
       })
     )
     .build()

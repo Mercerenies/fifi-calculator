@@ -18,7 +18,7 @@ use serde::{Serialize, Deserialize};
 
 use std::fmt::{self, Write, Display, Formatter};
 use std::str::FromStr;
-use std::ops;
+use std::{ops, iter};
 use std::cmp::Ordering;
 use std::convert::TryFrom;
 
@@ -600,6 +600,12 @@ impl ops::Add<Number> for &Number {
   }
 }
 
+impl iter::Sum for Number {
+  fn sum<I: Iterator<Item=Number>>(iter: I) -> Number {
+    iter.fold(Number::zero(), |a, b| a + b)
+  }
+}
+
 impl ops::Sub for Number {
   type Output = Number;
 
@@ -694,6 +700,14 @@ impl ops::Div for &Number {
 
   fn div(self, other: &Number) -> Number {
     (*self).clone() / (*other).clone()
+  }
+}
+
+impl ops::Div<i64> for Number {
+  type Output = Number;
+
+  fn div(self, other: i64) -> Number {
+    self / Number::from(other)
   }
 }
 
