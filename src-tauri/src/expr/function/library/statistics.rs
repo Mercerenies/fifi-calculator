@@ -15,6 +15,7 @@ pub fn append_statistics_functions(table: &mut FunctionTable) {
   table.insert(geometric_mean());
   table.insert(arithmetic_geometric_mean());
   table.insert(harmonic_mean());
+  table.insert(root_mean_square());
 }
 
 pub fn arithmetic_mean() -> Function {
@@ -134,6 +135,29 @@ pub fn harmonic_mean() -> Function {
           .reduce(|a, b| Expr::call("+", vec![a, b]))
           .unwrap();
         Ok(Expr::call("/", vec![Expr::from(len), sum]))
+      })
+    )
+    .build()
+}
+
+pub fn root_mean_square() -> Function {
+  FunctionBuilder::new("rms")
+    .add_case(
+      // Mean of a vector
+      builder::arity_one().of_type(prisms::ExprToVector).and_then(|vec, ctx| {
+        if vec.is_empty() {
+          ctx.errors.push(SimplifierError::custom_error("rms", "RMS of empty vector"));
+          return Err(vec);
+        }
+        let len = BigInt::from(vec.len());
+        let sum = vec.into_iter()
+          .map(|x| Expr::call("^", vec![x, Expr::from(2)]))
+          .reduce(|a, b| Expr::call("+", vec![a, b]))
+          .unwrap();
+        Ok(Expr::call("^", vec![
+          Expr::call("/", vec![sum, Expr::from(len)]),
+          Expr::from(Number::ratio(1, 2)),
+        ]))
       })
     )
     .build()

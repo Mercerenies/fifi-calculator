@@ -207,6 +207,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
     inv_hyper_flag: DatasetDrivenCommand::named("agmean"),
   })));
   map.insert("hmean".to_string(), Box::new(DatasetDrivenCommand::named("hmean")));
+  map.insert("rms".to_string(), Box::new(DatasetDrivenCommand::named("rms")));
 
   // Matrix commands
   map.insert("identity_matrix".to_string(), Box::new(vector::IdentityMatrixCommand::new()));
