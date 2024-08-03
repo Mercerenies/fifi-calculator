@@ -2,7 +2,7 @@
 //! Functions which operate on vectors and/or matrices.
 
 use crate::expr::Expr;
-use crate::expr::number::ComplexNumber;
+use crate::expr::number::{Number, ComplexNumber};
 use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder};
@@ -58,6 +58,7 @@ pub fn append_tensor_functions(table: &mut FunctionTable) {
   table.insert(matrix_multiplication());
   table.insert(kronecker_multiplication());
   table.insert(arithmetic_mean());
+  table.insert(median());
 }
 
 fn is_empty_vector(expr: &Expr) -> bool {
@@ -740,6 +741,31 @@ pub fn arithmetic_mean() -> Function {
           let len = BigInt::from(vec.len());
           let sum = vec.into_iter().reduce(|a, b| Expr::call("+", vec![a, b])).unwrap();
           Ok(Expr::call("/", vec![sum, Expr::from(len)]))
+        }
+      })
+    )
+    .build()
+}
+
+
+pub fn median() -> Function {
+  FunctionBuilder::new("median")
+    .add_case(
+      // Median of a vector
+      builder::arity_one().of_type(prisms::expr_to_typed_vector(prisms::expr_to_number())).and_then(|mut vec, ctx| {
+        if vec.is_empty() {
+          ctx.errors.push(SimplifierError::custom_error("median", "Median of empty vector"));
+          Err(vec)
+        } else {
+          vec.sort();
+          let len = vec.len();
+          if len % 2 == 0 {
+            let b = vec.swap_remove(len / 2);
+            let a = vec.swap_remove(len / 2 - 1);
+            Ok(Expr::from((a + b) / Number::from(2)))
+          } else {
+            Ok(Expr::from(vec.swap_remove(len / 2)))
+          }
         }
       })
     )
