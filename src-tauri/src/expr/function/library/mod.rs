@@ -13,6 +13,7 @@ mod complex;
 mod datatypes;
 mod formula;
 mod graphics;
+mod statistics;
 mod string;
 mod symbolic;
 mod transcendental;
@@ -27,6 +28,7 @@ pub fn build_function_table() -> FunctionTable {
   datatypes::append_datatype_functions(&mut table);
   formula::append_formula_functions(&mut table);
   graphics::append_graphics_functions(&mut table);
+  statistics::append_statistics_functions(&mut table);
   string::append_string_functions(&mut table);
   symbolic::append_symbolic_functions(&mut table);
   transcendental::append_transcendental_functions(&mut table);
