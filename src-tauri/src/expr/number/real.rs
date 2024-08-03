@@ -584,6 +584,22 @@ impl ops::Add for &Number {
   }
 }
 
+impl ops::Add<&Number> for Number {
+  type Output = Number;
+
+  fn add(self, other: &Number) -> Number {
+    self + (*other).clone()
+  }
+}
+
+impl ops::Add<Number> for &Number {
+  type Output = Number;
+
+  fn add(self, other: Number) -> Number {
+    (*self).clone() + other
+  }
+}
+
 impl ops::Sub for Number {
   type Output = Number;
 
@@ -604,6 +620,22 @@ impl ops::Sub for &Number {
   }
 }
 
+impl ops::Sub<Number> for &Number {
+  type Output = Number;
+
+  fn sub(self, other: Number) -> Number {
+    (*self).clone() - other
+  }
+}
+
+impl ops::Sub<&Number> for Number {
+  type Output = Number;
+
+  fn sub(self, other: &Number) -> Number {
+    self - (*other).clone()
+  }
+}
+
 impl ops::Mul for Number {
   type Output = Number;
 
@@ -621,6 +653,22 @@ impl ops::Mul for &Number {
 
   fn mul(self, other: &Number) -> Number {
     (*self).clone() * (*other).clone()
+  }
+}
+
+impl ops::Mul<&Number> for Number {
+  type Output = Number;
+
+  fn mul(self, other: &Number) -> Number {
+    self * (*other).clone()
+  }
+}
+
+impl ops::Mul<Number> for &Number {
+  type Output = Number;
+
+  fn mul(self, other: Number) -> Number {
+    (*self).clone() * other
   }
 }
 

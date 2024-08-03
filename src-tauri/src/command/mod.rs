@@ -200,10 +200,12 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("cross".to_string(), Box::new(BinaryFunctionCommand::named("cross")));
 
   // Vector statistics commands
-  map.insert("mean".to_string(), Box::new(dispatch_on_hyper_command(
-    DatasetDrivenCommand::named("mean"),
-    DatasetDrivenCommand::named("median"),
-  )));
+  map.insert("mean".to_string(), Box::new(dispatch_on_flags_command(FlagDispatchArgs {
+    no_flags: DatasetDrivenCommand::named("mean"),
+    hyper_flag: DatasetDrivenCommand::named("median"),
+    inv_flag: DatasetDrivenCommand::named("gmean"),
+    inv_hyper_flag: DatasetDrivenCommand::named("agmean"),
+  })));
 
   // Matrix commands
   map.insert("identity_matrix".to_string(), Box::new(vector::IdentityMatrixCommand::new()));
