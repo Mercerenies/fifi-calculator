@@ -90,7 +90,7 @@ impl ConvertUnitsCommand {
 
   fn argument_schema<'p, 'm>(
     state: &'m ApplicationState,
-    context: &CommandContext<'_, 'p>,
+    context: &CommandContext<'_, 'p, '_>,
   ) -> BinaryArgumentSchema<ConcreteUnitPrism<'p, 'm>, ParsedCompositeUnit<Number>, ConcreteUnitPrism<'p, 'm>, ParsedCompositeUnit<Number>> {
     let term_parser = state.term_parser();
     BinaryArgumentSchema::new(
@@ -109,7 +109,7 @@ impl ContextualConvertUnitsCommand {
 
   fn argument_schema<'p, 'm>(
     state: &'m ApplicationState,
-    context: &CommandContext<'_, 'p>,
+    context: &CommandContext<'_, 'p, '_>,
   ) -> UnaryArgumentSchema<ConcreteUnitPrism<'p, 'm>, ParsedCompositeUnit<Number>> {
     UnaryArgumentSchema::new(
       "valid unit expression".to_owned(),
@@ -125,7 +125,7 @@ impl ConvertTemperatureCommand {
 
   fn argument_schema<'p, 'm>(
     state: &'m ApplicationState,
-    context: &CommandContext<'_, 'p>,
+    context: &CommandContext<'_, 'p, '_>,
   ) -> BinaryArgumentSchema<ConcreteUnitPrism<'p, 'm>, ParsedCompositeUnit<Number>, ConcreteUnitPrism<'p, 'm>, ParsedCompositeUnit<Number>> {
     let term_parser = state.term_parser();
     BinaryArgumentSchema::new(
@@ -144,7 +144,7 @@ impl ContextualConvertTemperatureCommand {
 
   fn argument_schema<'p, 'm>(
     state: &'m ApplicationState,
-    context: &CommandContext<'_, 'p>,
+    context: &CommandContext<'_, 'p, '_>,
   ) -> UnaryArgumentSchema<ConcreteUnitPrism<'p, 'm>, ParsedCompositeUnit<Number>> {
     UnaryArgumentSchema::new(
       "valid unit expression".to_owned(),
