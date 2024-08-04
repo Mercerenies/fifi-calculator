@@ -216,9 +216,9 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   })));
   map.insert("covariance".to_string(), Box::new(dispatch_on_flags_command(FlagDispatchArgs {
     no_flags: statistics::sample_covar_command(),
-    hyper_flag: statistics::sample_covar_command(), // TODO
+    hyper_flag: statistics::correlation_command(),
     inv_flag: statistics::pop_covar_command(),
-    inv_hyper_flag: statistics::sample_covar_command(), // TODO
+    inv_hyper_flag: statistics::correlation_command(), // Note: We may make this one do something different later
   })));
 
   // Matrix commands

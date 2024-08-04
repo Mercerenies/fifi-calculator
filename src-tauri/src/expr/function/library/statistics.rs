@@ -22,6 +22,7 @@ pub fn append_statistics_functions(table: &mut FunctionTable) {
   table.insert(pop_variance());
   table.insert(sample_covariance());
   table.insert(pop_covariance());
+  table.insert(correlation());
 }
 
 pub fn arithmetic_mean() -> Function {
@@ -297,6 +298,30 @@ pub fn pop_covariance() -> Function {
     .build()
 }
 
+pub fn correlation() -> Function {
+  FunctionBuilder::new("corr")
+    .add_case(
+      // Correlation of two vectors
+      builder::arity_two().both_of_type(prisms::expr_to_typed_vector(prisms::ExprToComplex)).and_then(|x, y, ctx| {
+        if x.len() != y.len() {
+          ctx.errors.push(SimplifierError::custom_error("corr", "Correlation requires the same number of elements in both vectors"));
+          return Err((x, y));
+        }
+        if x.is_empty() {
+          ctx.errors.push(SimplifierError::custom_error("corr", "Correlation got empty vector"));
+          return Err((x, y));
+        }
+        let x: Vec<_> = x.into_iter().map(ComplexNumber::from).collect();
+        let y: Vec<_> = y.into_iter().map(ComplexNumber::from).collect();
+        let numer = covar_sum_of_differences(x.clone(), y.clone());
+        let denom_x = ComplexNumber::from(pow_real(sum_of_sqr_differences(x), Number::from(0.5)));
+        let denom_y = ComplexNumber::from(pow_real(sum_of_sqr_differences(y), Number::from(0.5)));
+        Ok(Expr::from(numer / (denom_x * denom_y)))
+      })
+    )
+    .build()
+}
+
 fn covar_sum_of_differences(x: Vec<ComplexNumber>, y: Vec<ComplexNumber>) -> ComplexNumber {
   assert!(x.len() == y.len(), "Precondition failed: covar_sum_of_differences got vectors of different lengths");
   let len = x.len() as i64;
@@ -305,5 +330,13 @@ fn covar_sum_of_differences(x: Vec<ComplexNumber>, y: Vec<ComplexNumber>) -> Com
   x.into_iter()
     .zip(y)
     .map(|(x_term, y_term)| (x_term - &x_mean) * (y_term - &y_mean).conj())
+    .sum()
+}
+
+fn sum_of_sqr_differences(x: Vec<ComplexNumber>) -> Number {
+  let len = x.len() as i64;
+  let x_mean = x.iter().fold(ComplexNumber::zero(), |a, b| a + b) / ComplexNumber::from_real(len);
+  x.into_iter()
+    .map(|x_term| (x_term - &x_mean).abs_sqr())
     .sum()
 }

@@ -125,6 +125,10 @@ pub fn pop_covar_command() -> CovarianceCommand {
   CovarianceCommand::named("pcovariance")
 }
 
+pub fn correlation_command() -> CovarianceCommand {
+  CovarianceCommand::named("corr")
+}
+
 impl Command for DatasetDrivenCommand {
   fn run_command(
     &self,
