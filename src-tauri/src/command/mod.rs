@@ -14,6 +14,7 @@ pub mod nullary;
 pub mod options;
 pub mod shuffle;
 pub mod statistics;
+pub mod subcommand;
 pub mod units;
 pub mod variables;
 pub mod vector;
