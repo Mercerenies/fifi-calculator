@@ -8,7 +8,6 @@ use thiserror::Error;
 use std::fmt::{self, Formatter, Display};
 use std::collections::HashMap;
 
-#[derive(Default)]
 pub struct CommandDispatchTable {
   map: HashMap<String, Box<dyn Command + Send + Sync>>,
 }
@@ -19,10 +18,6 @@ pub struct NoSuchCommandError {
 }
 
 impl CommandDispatchTable {
-  pub fn new() -> Self {
-    Self::default()
-  }
-
   pub fn from_hash_map(map: HashMap<String, Box<dyn Command + Send + Sync>>) -> CommandDispatchTable {
     CommandDispatchTable { map }
   }
