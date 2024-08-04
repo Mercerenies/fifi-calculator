@@ -10,6 +10,9 @@ use crate::units::parsing::{UnitParser, NullaryUnitParser};
 use crate::mode::calculation::CalculationMode;
 use super::options::CommandOptions;
 use super::subcommand::Subcommand;
+use super::dispatch::CommandDispatchTable;
+
+use once_cell::sync::Lazy;
 
 pub trait Command {
   /// Runs the command. If a fatal error prevents the command from
@@ -54,10 +57,11 @@ pub trait Command {
   fn as_subcommand(&self, opts: &CommandOptions) -> Option<Subcommand>;
 }
 
-pub struct CommandContext<'a, 'b> {
+pub struct CommandContext<'a, 'b, 'c> {
   pub opts: CommandOptions,
   pub simplifier: Box<dyn Simplifier + 'a>,
   pub units_parser: &'b dyn UnitParser<Number>,
+  pub dispatch_table: &'c CommandDispatchTable,
 }
 
 /// The result of performing a command, including any non-fatal errors
@@ -68,7 +72,7 @@ pub struct CommandOutput {
   force_scroll_down: bool,
 }
 
-impl<'a, 'b> CommandContext<'a, 'b> {
+impl<'a, 'b, 'c> CommandContext<'a, 'b, 'c> {
   pub fn simplify_expr(
     &self,
     expr: Expr,
@@ -127,12 +131,15 @@ impl CommandOutput {
 /// and a simplifier that does nothing. Note carefully that this does
 /// *not* provide a sensible simplifier and instead simply uses a
 /// nullary one that returns its argument unmodified.
-impl Default for CommandContext<'static, 'static> {
+impl Default for CommandContext<'static, 'static, 'static> {
   fn default() -> Self {
+    static EMPTY_DISPATCH_TABLE: Lazy<CommandDispatchTable> = Lazy::new(|| CommandDispatchTable::default());
+
     CommandContext {
       opts: CommandOptions::default(),
       simplifier: Box::new(IdentitySimplifier),
       units_parser: &NullaryUnitParser,
+      dispatch_table: &EMPTY_DISPATCH_TABLE,
     }
   }
 }
