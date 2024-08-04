@@ -4,6 +4,8 @@
 
 use super::arguments::{NullaryArgumentSchema, UnaryArgumentSchema, validate_schema};
 use super::base::{Command, CommandContext, CommandOutput};
+use super::options::CommandOptions;
+use super::subcommand::Subcommand;
 use crate::util;
 use crate::util::prism::Prism;
 use crate::errorlist::ErrorList;
@@ -259,6 +261,11 @@ impl NormCommand {
   pub fn new() -> Self {
     Self { _priv: () }
   }
+
+  fn wrap_expr(expr: Expr, k: i64) -> Expr {
+    let k_expr = if k == 0 { Expr::from(InfiniteConstant::PosInfinity) } else { Expr::from(k) };
+    Expr::call("norm", vec![expr, k_expr])
+  }
 }
 
 impl VectorFromIncompleteObjectCommand {
@@ -342,6 +349,10 @@ impl Command for PackCommand {
 
     Ok(CommandOutput::from_errors(errors))
   }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
+  }
 }
 
 impl Command for UnpackCommand {
@@ -378,6 +389,10 @@ impl Command for UnpackCommand {
     }
     Ok(CommandOutput::from_errors(errors))
   }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
+  }
 }
 
 impl Command for RepeatCommand {
@@ -402,6 +417,10 @@ impl Command for RepeatCommand {
     stack.push(expr);
 
     Ok(CommandOutput::from_errors(errors))
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
   }
 }
 
@@ -447,6 +466,10 @@ impl Command for DiagonalCommand {
     stack.push(expr);
     Ok(CommandOutput::from_errors(errors))
   }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
+  }
 }
 
 impl Command for IdentityMatrixCommand {
@@ -469,6 +492,10 @@ impl Command for IdentityMatrixCommand {
     let identity_matrix = context.simplify_expr(identity_matrix, calculation_mode, &mut errors);
     stack.push(identity_matrix);
     Ok(CommandOutput::from_errors(errors))
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
   }
 }
 
@@ -497,6 +524,10 @@ impl Command for IndexedVectorCommand {
     stack.push(expr);
     Ok(CommandOutput::from_errors(errors))
   }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
+  }
 }
 
 impl Command for SubvectorCommand {
@@ -519,6 +550,10 @@ impl Command for SubvectorCommand {
     stack.push(expr);
     Ok(CommandOutput::from_errors(errors))
   }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    Some(Subcommand::named(3, &self.function_name))
+  }
 }
 
 impl Command for NormCommand {
@@ -535,13 +570,20 @@ impl Command for NormCommand {
     let mut errors = ErrorList::new();
     let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
     let k = context.opts.argument.unwrap_or(1).abs();
-    let k_expr = if k == 0 { Expr::from(InfiniteConstant::PosInfinity) } else { Expr::from(k) };
 
     let vec = stack.pop()?;
-    let expr = Expr::call("norm", vec![vec, k_expr]);
+    let expr = Self::wrap_expr(vec, k);
     let expr = context.simplify_expr(expr, calculation_mode, &mut errors);
     stack.push(expr);
     Ok(CommandOutput::from_errors(errors))
+  }
+
+  fn as_subcommand(&self, opts: &CommandOptions) -> Option<Subcommand> {
+    let k = opts.argument.unwrap_or(1);
+    Some(Subcommand::new(1, move |exprs| {
+      let [expr] = exprs.try_into().unwrap();
+      Self::wrap_expr(expr, k)
+    }))
   }
 }
 
@@ -560,6 +602,10 @@ impl Command for VectorFromIncompleteObjectCommand {
     let vector = Vector::from(elems);
     stack.push(vector.into());
     Ok(CommandOutput::success())
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
   }
 }
 
@@ -605,6 +651,10 @@ impl Command for ComplexFromIncompleteObjectCommand {
         anyhow::bail!("Expected 1 or 2 elements, got {len}");
       }
     }
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
   }
 }
 

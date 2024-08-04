@@ -3,6 +3,8 @@
 
 use super::arguments::{NullaryArgumentSchema, validate_schema};
 use super::base::{Command, CommandContext, CommandOutput};
+use super::options::CommandOptions;
+use super::subcommand::Subcommand;
 use crate::errorlist::ErrorList;
 use crate::expr::Expr;
 use crate::expr::vector::ExprToVector;
@@ -162,6 +164,10 @@ impl Command for PlotCommand {
 
     Ok(CommandOutput::from_errors(errors))
   }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
+  }
 }
 
 impl Command for ContourPlotCommand {
@@ -215,6 +221,10 @@ impl Command for ContourPlotCommand {
     }
 
     Ok(CommandOutput::from_errors(errors))
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
   }
 }
 

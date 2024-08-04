@@ -6,6 +6,7 @@
 //! [`CommandOptions`]) are passed on unmodified to the subcommand.
 
 use super::options::CommandOptions;
+use super::subcommand::Subcommand;
 use super::base::{Command, CommandContext, CommandOutput};
 use crate::state::ApplicationState;
 
@@ -53,6 +54,11 @@ impl Command for FlagDispatchCommand {
   ) -> anyhow::Result<CommandOutput> {
     let command = self.get_dispatch_command(&ctx.opts);
     command.run_command(state, args, ctx)
+  }
+
+  fn as_subcommand(&self, opts: &CommandOptions) -> Option<Subcommand> {
+    let command = self.get_dispatch_command(opts);
+    command.as_subcommand(opts)
   }
 }
 

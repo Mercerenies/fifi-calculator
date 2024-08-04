@@ -3,6 +3,8 @@
 
 use super::base::{Command, CommandContext, CommandOutput};
 use super::arguments::{NullaryArgumentSchema, BinaryArgumentSchema, validate_schema};
+use super::options::CommandOptions;
+use super::subcommand::Subcommand;
 use crate::state::ApplicationState;
 use crate::stack::keepable::KeepableStack;
 use crate::stack::base::{StackLike, RandomAccessStackLike};
@@ -110,6 +112,10 @@ impl Command for PopCommand {
     }
     Ok(CommandOutput::success())
   }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
+  }
 }
 
 impl Command for SwapCommand {
@@ -146,6 +152,10 @@ impl Command for SwapCommand {
       }
     }
     Ok(CommandOutput::success())
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
   }
 }
 
@@ -185,6 +195,10 @@ impl Command for DupCommand {
     }
     Ok(CommandOutput::success())
   }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
+  }
 }
 
 impl Command for MoveStackElemCommand {
@@ -219,6 +233,10 @@ impl Command for MoveStackElemCommand {
       CommandOutput::success()
         .set_force_scroll_down(false)
     )
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
   }
 }
 impl Command for ReplaceStackElemCommand {
@@ -256,6 +274,10 @@ impl Command for ReplaceStackElemCommand {
       output = output.set_force_scroll_down(false);
     }
     Ok(output)
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
   }
 }
 

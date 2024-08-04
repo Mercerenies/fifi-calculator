@@ -3,6 +3,8 @@
 
 use super::arguments::{UnaryArgumentSchema, BinaryArgumentSchema, validate_schema};
 use super::base::{Command, CommandContext, CommandOutput};
+use super::options::CommandOptions;
+use super::subcommand::Subcommand;
 use super::functional::UnaryFunctionCommand;
 use crate::errorlist::ErrorList;
 use crate::state::ApplicationState;
@@ -252,6 +254,10 @@ impl Command for ConvertUnitsCommand {
     stack.push(ctx.simplify_expr(expr, calculation_mode, &mut errors));
     Ok(CommandOutput::from_errors(errors))
   }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
+  }
 }
 
 impl Command for ContextualConvertUnitsCommand {
@@ -286,6 +292,10 @@ impl Command for ContextualConvertUnitsCommand {
     stack.push(ctx.simplify_expr(expr, calculation_mode, &mut errors));
     Ok(CommandOutput::from_errors(errors))
   }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
+  }
 }
 
 impl Command for ConvertTemperatureCommand {
@@ -315,6 +325,10 @@ impl Command for ConvertTemperatureCommand {
     let mut errors = ErrorList::new();
     stack.push(ctx.simplify_expr(expr, calculation_mode, &mut errors));
     Ok(CommandOutput::from_errors(errors))
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
   }
 }
 
@@ -355,6 +369,10 @@ impl Command for ContextualConvertTemperatureCommand {
     let mut errors = ErrorList::new();
     stack.push(ctx.simplify_expr(expr, calculation_mode, &mut errors));
     Ok(CommandOutput::from_errors(errors))
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
   }
 }
 

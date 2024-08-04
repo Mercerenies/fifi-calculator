@@ -9,6 +9,7 @@ use crate::errorlist::ErrorList;
 use crate::units::parsing::{UnitParser, NullaryUnitParser};
 use crate::mode::calculation::CalculationMode;
 use super::options::CommandOptions;
+use super::subcommand::Subcommand;
 
 pub trait Command {
   /// Runs the command. If a fatal error prevents the command from
@@ -22,6 +23,35 @@ pub trait Command {
     args: Vec<String>,
     ctx: &CommandContext,
   ) -> anyhow::Result<CommandOutput>;
+
+  /// Converts the command into a [`Subcommand`], if possible.
+  ///
+  /// Many commands can be run as subcommands of another command,
+  /// usually one that operates over a collection, such as a fold or a
+  /// map operation. For such commands, this method produces the
+  /// subcommand that performs the same basic functionality as the
+  /// current command. On commands for which this notion doesn't make
+  /// sense, this method should return `None`, which will produce a
+  /// user-facing error if the user tries to use the command as a
+  /// subcommand.
+  ///
+  /// Subcommands should, generally speaking, respect the hyperbolic
+  /// and inverse modifiers of the options field. That is, if a
+  /// command does something different when invoked with the
+  /// hyperbolic modifier, then the produced subcommand should be
+  /// different if given the hyperbolic modifier (and, respectively,
+  /// the inverse modifier).
+  ///
+  /// Variants based on the numerical prefix argument are left to the
+  /// discretion of the command. Some commands use the presence or
+  /// absence of the numerical argument as a flag, similar to the
+  /// hyperbolic or inverse modifiers. In that case, the subcommand
+  /// should also be dispatched based on the same flag. For commands
+  /// which use the numerical argument as a sort of arity or
+  /// indication of the number of arguments to pop off the stack, the
+  /// corresponding subcommand will generally ignore the numerical
+  /// argument.
+  fn as_subcommand(&self, opts: &CommandOptions) -> Option<Subcommand>;
 }
 
 pub struct CommandContext<'a, 'b> {

@@ -12,33 +12,24 @@ use crate::mode::calculation::CalculationMode;
 ///
 /// A subcommand consists of a function to apply and a specified
 /// arity.
-pub struct Subcommand {
-  function: Box<SubcommandFunction>,
+pub struct Subcommand<'a> {
+  function: Box<SubcommandFunction<'a>>,
   arity: usize,
 }
 
-type SubcommandFunction =
-  dyn Fn(Vec<Expr>) -> Expr;
+type SubcommandFunction<'a> =
+  dyn Fn(Vec<Expr>) -> Expr + 'a;
 
-impl Subcommand {
+impl<'a> Subcommand<'a> {
   /// Constructs a new subcommand from the function and specified
   /// arity. The function may assume that its argument vector has the
   /// requested arity.
-  pub fn new<F>(function: F, arity: usize) -> Self
-  where F: Fn(Vec<Expr>) -> Expr + 'static {
+  pub fn new<F>(arity: usize, function: F) -> Self
+  where F: Fn(Vec<Expr>) -> Expr + 'a {
     Self {
       function: Box::new(function),
       arity,
     }
-  }
-
-  /// Constructs a new subcommand whose behavior is to call a given
-  /// function in the expression-language with the arguments.
-  pub fn named(function_name: impl Into<String>, arity: usize) -> Self {
-    let function_name = function_name.into();
-    Self::new(move |args| {
-      Expr::call(function_name.clone(), args)
-    }, arity)
   }
 
   pub fn arity(&self) -> usize {
@@ -82,6 +73,17 @@ impl Subcommand {
   }
 }
 
+impl Subcommand<'static> {
+  /// Constructs a new subcommand whose behavior is to call a given
+  /// function in the expression-language with the arguments.
+  pub fn named(arity: usize, function_name: impl Into<String>) -> Self {
+    let function_name = function_name.into();
+    Self::new(arity, move |args| {
+      Expr::call(function_name.clone(), args)
+    })
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -105,7 +107,7 @@ mod tests {
 
   #[test]
   fn test_named_subcommand() {
-    let subcommand = Subcommand::named("test", 2);
+    let subcommand = Subcommand::named(2, "test");
 
     let (expr, errors) = try_call(&subcommand, vec![Expr::from(1), Expr::from(2)]).unwrap();
     assert!(errors.is_empty());

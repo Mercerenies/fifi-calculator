@@ -7,6 +7,8 @@
 
 use super::base::{Command, CommandOutput, CommandContext};
 use super::general::GeneralCommand;
+use super::options::CommandOptions;
+use super::subcommand::Subcommand;
 use super::arguments::{ArgumentSchema, NullaryArgumentSchema, UnaryArgumentSchema};
 use crate::undo::UndoableChange;
 use crate::state::{ApplicationState, UndoableState};
@@ -90,6 +92,10 @@ impl Command for SetDisplayRadixCommand {
     state.undo_stack_mut()
       .push_change(SetDisplayRadixChange { old_value: old_radix, new_value: new_radix });
     Ok(CommandOutput::success())
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
   }
 }
 

@@ -1,5 +1,7 @@
 
 use super::base::{Command, CommandContext, CommandOutput};
+use super::options::CommandOptions;
+use super::subcommand::Subcommand;
 use crate::state::ApplicationState;
 
 /// General-purpose [Command] implementation that simply runs a given
@@ -26,6 +28,10 @@ where F: Fn(&mut ApplicationState, Vec<String>, &CommandContext) -> anyhow::Resu
     context: &CommandContext,
   ) -> anyhow::Result<CommandOutput> {
     (self.body)(state, args, context)
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
   }
 }
 

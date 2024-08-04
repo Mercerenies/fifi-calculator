@@ -12,6 +12,8 @@ use crate::util::prism::Prism;
 use crate::state::ApplicationState;
 use super::base::{Command, CommandContext, CommandOutput};
 use super::arguments::{NullaryArgumentSchema, validate_schema};
+use super::options::CommandOptions;
+use super::subcommand::Subcommand;
 
 use std::cmp::Ordering;
 
@@ -154,6 +156,13 @@ impl Command for DatasetDrivenCommand {
       }
     }
   }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    Some(Subcommand::new(1, |exprs| {
+      let [expr] = exprs.try_into().expect("Expected one argument");
+      self.wrap_expr(expr)
+    }))
+  }
 }
 
 impl Command for CovarianceCommand {
@@ -201,6 +210,10 @@ impl Command for CovarianceCommand {
     stack.push(expr);
 
     Ok(CommandOutput::from_errors(errors))
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    Some(Subcommand::named(2, &self.function_name))
   }
 }
 

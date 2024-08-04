@@ -4,6 +4,8 @@
 
 use super::base::{Command, CommandContext, CommandOutput};
 use super::arguments::{UnaryArgumentSchema, validate_schema};
+use super::options::CommandOptions;
+use super::subcommand::Subcommand;
 use crate::util::prism::Identity;
 use crate::expr::Expr;
 use crate::expr::number::Number;
@@ -50,6 +52,10 @@ where F: Fn(String, &dyn LanguageMode) -> anyhow::Result<Expr> {
     let expr = context.simplify_expr(expr, calculation_mode, &mut errors);
     state.main_stack_mut().push(expr);
     Ok(CommandOutput::from_errors(errors))
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
   }
 }
 

@@ -3,6 +3,8 @@
 //! arguments from the existing stack.
 
 use super::base::{Command, CommandContext, CommandOutput};
+use super::options::CommandOptions;
+use super::subcommand::Subcommand;
 use super::arguments::{NullaryArgumentSchema, validate_schema};
 use crate::state::ApplicationState;
 use crate::expr::Expr;
@@ -38,11 +40,19 @@ pub struct PushConstantCommand {
 /// argument of -2 applies the function to the element just below the
 /// top of the stack.
 pub struct UnaryFunctionCommand {
-  function: Box<UnaryFunction>,
+  function: UnaryFunctionImpl,
+}
+
+enum UnaryFunctionImpl {
+  Full(Box<UnaryFunction>),
+  Basic(Box<BasicUnaryFunction>),
 }
 
 type UnaryFunction =
   dyn Fn(Expr, &ApplicationState, &CommandContext, &mut ErrorList<SimplifierError>) -> Expr + Send + Sync;
+
+type BasicUnaryFunction =
+  dyn Fn(Expr) -> Expr + Send + Sync;
 
 /// A command that applies an arbitrary function to the top two
 /// elements of the stack, with the second-from-the-top element of the
@@ -73,27 +83,37 @@ impl PushConstantCommand {
 impl UnaryFunctionCommand {
   pub fn new<F>(function: F) -> UnaryFunctionCommand
   where F: Fn(Expr) -> Expr + Send + Sync + 'static {
-    UnaryFunctionCommand { function: Box::new(move |arg, _, _, _| function(arg)) }
+    UnaryFunctionCommand {
+      function: UnaryFunctionImpl::Basic(Box::new(move |arg| function(arg))),
+    }
   }
 
   pub fn with_state<F>(function: F) -> UnaryFunctionCommand
   where F: Fn(Expr, &ApplicationState) -> Expr + Send + Sync + 'static {
-    UnaryFunctionCommand { function: Box::new(move |arg, state, _, _| function(arg, state)) }
+    UnaryFunctionCommand {
+      function: UnaryFunctionImpl::Full(Box::new(move |arg, state, _, _| function(arg, state))),
+    }
   }
 
   pub fn with_context<F>(function: F) -> UnaryFunctionCommand
   where F: Fn(Expr, &CommandContext) -> Expr + Send + Sync + 'static {
-    UnaryFunctionCommand { function: Box::new(move |arg, _, ctx, _| function(arg, ctx)) }
+    UnaryFunctionCommand {
+      function: UnaryFunctionImpl::Full(Box::new(move |arg, _, ctx, _| function(arg, ctx))),
+    }
   }
 
   pub fn with_context_and_errors<F>(function: F) -> UnaryFunctionCommand
   where F: Fn(Expr, &CommandContext, &mut ErrorList<SimplifierError>) -> Expr + Send + Sync + 'static {
-    UnaryFunctionCommand { function: Box::new(move |arg, _, ctx, err| function(arg, ctx, err)) }
+    UnaryFunctionCommand {
+      function: UnaryFunctionImpl::Full(Box::new(move |arg, _, ctx, err| function(arg, ctx, err))),
+    }
   }
 
   pub fn with_all<F>(function: F) -> UnaryFunctionCommand
   where F: Fn(Expr, &ApplicationState, &CommandContext, &mut ErrorList<SimplifierError>) -> Expr + Send + Sync + 'static {
-    UnaryFunctionCommand { function: Box::new(function) }
+    UnaryFunctionCommand {
+      function: UnaryFunctionImpl::Full(Box::new(function)),
+    }
   }
 
   pub fn named(function_name: impl Into<String>) -> UnaryFunctionCommand {
@@ -110,7 +130,10 @@ impl UnaryFunctionCommand {
     ctx: &CommandContext,
     errors: &mut ErrorList<SimplifierError>,
   ) -> Expr {
-    (self.function)(arg, state, ctx, errors)
+    match &self.function {
+      UnaryFunctionImpl::Full(f) => f(arg, state, ctx, errors),
+      UnaryFunctionImpl::Basic(f) => f(arg),
+    }
   }
 
   fn apply_to_top(
@@ -231,6 +254,10 @@ impl Command for PushConstantCommand {
     }
     Ok(CommandOutput::from_errors(errors))
   }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
+  }
 }
 
 impl Command for UnaryFunctionCommand {
@@ -256,6 +283,21 @@ impl Command for UnaryFunctionCommand {
         // Apply to all elements.
         let stack_len = state.main_stack_mut().len();
         self.apply_to_top(state, stack_len, ctx)
+      }
+    }
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    match &self.function {
+      UnaryFunctionImpl::Full(_) => {
+        // Too complex for a subcommand, so don't allow it.
+        None
+      }
+      UnaryFunctionImpl::Basic(f) => {
+        Some(Subcommand::new(1, |exprs| {
+          let [a] = exprs.try_into().unwrap();
+          f(a)
+        }))
       }
     }
   }
@@ -306,6 +348,13 @@ impl Command for BinaryFunctionCommand {
       }
     }
     Ok(CommandOutput::from_errors(errors))
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    Some(Subcommand::new(2, |exprs| {
+      let [a, b] = exprs.try_into().unwrap();
+      self.wrap_exprs(a, b)
+    }))
   }
 }
 
