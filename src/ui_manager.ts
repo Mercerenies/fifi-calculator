@@ -38,6 +38,7 @@ export class UiManager {
       valueStackDiv: Page.getValueStack(),
       uiManager: this,
       onEscapeDismissable: this.notificationManager,
+      buttonGridLabel: Page.getButtonGridTopLabel(),
     });
     this.osType = osType;
 

@@ -27,6 +27,8 @@ export class SubcommandButtonManager implements AbstractButtonManager {
   private parent: AbstractButtonManager;
   private callback: (subcommand: SubcommandId) => Promise<void>;
 
+  readonly labelHTML: string = "Entering subcommand...";
+
   constructor(parent: AbstractButtonManager, callback: (subcommand: SubcommandId) => Promise<void>) {
     this.parent = parent;
     this.callback = callback;

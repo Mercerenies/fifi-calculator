@@ -22,9 +22,11 @@ export class ButtonGridManager implements AbstractButtonManager {
   private activeGrid: ButtonGrid;
   private modifierDelegate: ModifierDelegate;
   private onEscapeDismissable: Hideable;
+  private buttonGridLabel: HTMLElement;
   private managerFacade: ManagerFacade;
 
   readonly inputManager: InputBoxManager;
+  readonly labelHTML: string = "&nbsp;";
 
   constructor(args: ButtonGridManagerArgs) {
     this.domElement = args.domElement;
@@ -33,6 +35,7 @@ export class ButtonGridManager implements AbstractButtonManager {
     this.modifierDelegate = args.modifierDelegate;
     this.inputManager = args.inputManager;
     this.onEscapeDismissable = args.onEscapeDismissable;
+    this.buttonGridLabel = args.buttonGridLabel;
     this.managerFacade = new ManagerFacade(this);
     this.setActiveGrid(args.initialGrid); // Initialize the grid
   }
@@ -52,6 +55,7 @@ export class ButtonGridManager implements AbstractButtonManager {
 
   setCurrentManager(manager: AbstractButtonManager): void {
     this.managerFacade.setCurrentManager(manager);
+    this.buttonGridLabel.innerHTML = manager.labelHTML;
   }
 
   resetModifiers(): void {
@@ -135,6 +139,10 @@ class ManagerFacade implements AbstractButtonManager {
     return this.currentManager.inputManager;
   }
 
+  get labelHTML(): string {
+    return this.currentManager.labelHTML;
+  }
+
   getModifiers(): ButtonModifiers {
     return this.currentManager.getModifiers();
   }
@@ -178,10 +186,12 @@ export interface ButtonGridManagerArgs {
   modifierDelegate: ModifierDelegate;
   inputManager: InputBoxManager;
   onEscapeDismissable: Hideable;
+  buttonGridLabel: HTMLElement;
 }
 
 export interface AbstractButtonManager {
   readonly inputManager: InputBoxManager;
+  readonly labelHTML: string;
 
   getModifiers(): ButtonModifiers;
   setActiveGrid(grid: ButtonGrid): void;

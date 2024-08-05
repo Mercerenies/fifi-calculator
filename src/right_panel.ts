@@ -36,6 +36,7 @@ export class RightPanelManager {
       modifierDelegate,
       inputManager: args.uiManager.inputManager,
       onEscapeDismissable: args.onEscapeDismissable,
+      buttonGridLabel: args.buttonGridLabel,
     });
     this.prefixArgDisplay = new PrefixArgumentDisplay(
       args.prefixPanel,
@@ -68,5 +69,6 @@ export interface RightPanelArguments {
   valueStackDiv: HTMLElement,
   uiManager: UiManager,
   onEscapeDismissable: Hideable,
+  buttonGridLabel: HTMLElement,
   displayBoxId?: string,
 }

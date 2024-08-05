@@ -10,6 +10,7 @@ export const ElementIds = {
   NOTIFICATION_BOX_CLOSE_BUTTON: 'notification-box-close-button',
   NOTIFICATION_BOX_TEXT: 'notification-box-text',
   BUTTON_GRID_CONTAINER: 'button-grid-container',
+  BUTTON_GRID_TOP_LABEL: 'button-grid-top-label',
   PREFIX_ARG_PANEL: 'prefix-arg-panel',
   MODIFIER_ARG_PANEL: 'modifier-arg-panel',
   MODIFIER_ARG_KEEP_ARG_CHECKBOX: 'modifier-arg-keep-arg',
@@ -58,6 +59,10 @@ export function getNotificationBoxText(): HTMLElement {
 
 export function getButtonGridContainer(): HTMLElement {
   return getElement(ElementIds.BUTTON_GRID_CONTAINER);
+}
+
+export function getButtonGridTopLabel(): HTMLElement {
+  return getElement(ElementIds.BUTTON_GRID_TOP_LABEL);
 }
 
 export function getPrefixArgPanel(): HTMLElement {
