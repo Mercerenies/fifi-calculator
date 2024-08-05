@@ -72,6 +72,11 @@ export enum Validator {
   HAS_TEMPERATURE_UNIT = "has_temperature_unit",
 }
 
+export interface SubcommandId {
+  name: string,
+  options: CommandOptions,
+}
+
 export interface CommandOptions {
   argument: number | null,
   keepModifier: boolean,
@@ -109,4 +114,11 @@ export enum StackQueryType {
 
 export function defaultCommandOptions(): CommandOptions {
   return modifiersToRustArgs(defaultModifiers());
+}
+
+// Returns a string argument representing the SubcommandId object, in
+// a format Rust understands.
+export function subcommand(name: string, options: CommandOptions): string {
+  const subcommand: SubcommandId = { name, options };
+  return JSON.stringify(subcommand);
 }
