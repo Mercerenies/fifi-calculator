@@ -84,7 +84,7 @@ impl UnaryFunctionCommand {
   pub fn new<F>(function: F) -> UnaryFunctionCommand
   where F: Fn(Expr) -> Expr + Send + Sync + 'static {
     UnaryFunctionCommand {
-      function: UnaryFunctionImpl::Basic(Box::new(move |arg| function(arg))),
+      function: UnaryFunctionImpl::Basic(Box::new(function)),
     }
   }
 

@@ -133,7 +133,7 @@ impl CommandOutput {
 /// nullary one that returns its argument unmodified.
 impl Default for CommandContext<'static, 'static, 'static> {
   fn default() -> Self {
-    static EMPTY_DISPATCH_TABLE: Lazy<CommandDispatchTable> = Lazy::new(|| CommandDispatchTable::default());
+    static EMPTY_DISPATCH_TABLE: Lazy<CommandDispatchTable> = Lazy::new(CommandDispatchTable::default);
 
     CommandContext {
       opts: CommandOptions::default(),
