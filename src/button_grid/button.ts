@@ -1,5 +1,5 @@
 
-import { ButtonGridManager, ButtonGrid, GridCell } from "../button_grid.js";
+import { AbstractButtonManager, ButtonGrid, GridCell } from "../button_grid.js";
 import { svg } from '../util.js';
 
 export abstract class Button implements GridCell {
@@ -11,7 +11,7 @@ export abstract class Button implements GridCell {
     this.keyboardShortcut = keyboardShortcut;
   }
 
-  getHTML(manager: ButtonGridManager): HTMLElement {
+  getHTML(manager: AbstractButtonManager): HTMLElement {
     const button = document.createElement("button");
     if (typeof this.label === "string") {
       button.innerHTML = this.label;
@@ -22,7 +22,7 @@ export abstract class Button implements GridCell {
     return button;
   }
 
-  abstract fire(manager: ButtonGridManager): Promise<void>;
+  abstract fire(manager: AbstractButtonManager): Promise<void>;
 }
 
 export class DispatchButton extends Button {
@@ -33,7 +33,7 @@ export class DispatchButton extends Button {
     this.commandName = commandName;
   }
 
-  async fire(manager: ButtonGridManager): Promise<void> {
+  async fire(manager: AbstractButtonManager): Promise<void> {
     manager.invokeMathCommand(this.commandName);
     manager.resetState();
   }
@@ -51,7 +51,7 @@ export class GotoButton extends Button {
     }
   }
 
-  async fire(manager: ButtonGridManager): Promise<void> {
+  async fire(manager: AbstractButtonManager): Promise<void> {
     const grid = this.gridFactory();
     manager.setActiveGrid(grid);
   }

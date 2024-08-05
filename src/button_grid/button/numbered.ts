@@ -1,5 +1,5 @@
 
-import { ButtonGridManager } from "../../button_grid.js";
+import { AbstractButtonManager } from "../../button_grid.js";
 import { InputBoxManager } from '../../input_box.js';
 import { FreeformInputMethod } from '../../input_box/freeform_input.js';
 import { Button } from '../button.js';
@@ -16,7 +16,7 @@ export abstract class NumberedButton extends Button {
     this.commandName = commandName;
   }
 
-  async fire(manager: ButtonGridManager) {
+  async fire(manager: AbstractButtonManager) {
     try {
       let numericalArg = manager.getModifiers().prefixArgument ?? null;
       if (numericalArg === null) {

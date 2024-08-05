@@ -1,5 +1,5 @@
 
-import { ButtonGridManager, ButtonGrid, GridCell } from "../button_grid.js";
+import { AbstractButtonManager, ButtonGrid, GridCell } from "../button_grid.js";
 import { backButton, Button, DispatchButton } from './button.js';
 import { InputBoxManager } from '../input_box.js';
 import { FreeformInputMethod } from '../input_box/freeform_input.js';
@@ -51,13 +51,13 @@ export class UnitConversionButton extends Button {
     super(rulerSvg(), "c");
   }
 
-  async fire(manager: ButtonGridManager): Promise<void> {
+  async fire(manager: AbstractButtonManager): Promise<void> {
     // Fire-and-forget a new promise that gets user input, so we don't
     // hold up the existing input.
     this.readAndSubstitute(manager);
   }
 
-  private async readAndSubstitute(manager: ButtonGridManager): Promise<void> {
+  private async readAndSubstitute(manager: AbstractButtonManager): Promise<void> {
     try {
       const isValid = await TAURI.validateStackSize(1);
       if (!isValid) {
@@ -92,13 +92,13 @@ export class TemperatureConversionButton extends Button {
     super(thermometerSvg(), "t");
   }
 
-  async fire(manager: ButtonGridManager): Promise<void> {
+  async fire(manager: AbstractButtonManager): Promise<void> {
     // Fire-and-forget a new promise that gets user input, so we don't
     // hold up the existing input.
     this.readAndSubstitute(manager);
   }
 
-  private async readAndSubstitute(manager: ButtonGridManager): Promise<void> {
+  private async readAndSubstitute(manager: AbstractButtonManager): Promise<void> {
     try {
       const isValid = await TAURI.validateStackSize(1);
       if (!isValid) {

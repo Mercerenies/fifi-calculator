@@ -15,7 +15,7 @@ const GRID_CELLS_PER_ROW = 5;
 // nodes we generate.
 const GRID_ROWS = 6;
 
-export class ButtonGridManager {
+export class ButtonGridManager implements AbstractButtonManager {
   private domElement: HTMLElement;
   private rootGrid: ButtonGrid;
   private activeGrid: ButtonGrid;
@@ -109,6 +109,19 @@ export interface ButtonGridManagerArgs {
   inputManager: InputBoxManager;
 }
 
+export interface AbstractButtonManager {
+  readonly inputManager: InputBoxManager;
+
+  getModifiers(): ButtonModifiers;
+  setActiveGrid(grid: ButtonGrid): void;
+  resetState(): void;
+  invokeMathCommand(
+    commandName: string,
+    args?: string[],
+    modifiersOverrides?: Partial<ButtonModifiers>,
+  ): Promise<void>;
+}
+
 export abstract class ButtonGrid {
   // This field is lazy-initialized on the first call to
   // getKeyMappingTable() and stored after that fact.
@@ -167,8 +180,8 @@ export abstract class ButtonGrid {
 export interface GridCell {
   readonly keyboardShortcut: string | null;
 
-  getHTML(manager: ButtonGridManager): HTMLElement;
-  fire(manager: ButtonGridManager): Promise<void>;
+  getHTML(manager: AbstractButtonManager): HTMLElement;
+  fire(manager: AbstractButtonManager): Promise<void>;
 }
 
 // Empty grid cell.
