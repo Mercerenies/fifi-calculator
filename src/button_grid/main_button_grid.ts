@@ -19,10 +19,6 @@ import { numericalInputToStack } from '../input_box/numerical_input.js';
 import { KeyEventInput, KeyResponse } from '../keyboard.js';
 import { svg } from '../util.js';
 
-export interface Hideable {
-  hide(): void;
-}
-
 function discardSvg(): HTMLElement {
   return svg('assets/discard.svg', {alt: "pop"});
 }
@@ -50,13 +46,10 @@ export class MainButtonGrid extends ButtonGrid {
 
   readonly rows: readonly (readonly GridCell[])[];
 
-  private onEscapeDismissable: Hideable;
-
   private subgrids: Subgrids;
 
-  constructor(onEscapeDismissable: Hideable) {
+  constructor() {
     super();
-    this.onEscapeDismissable = onEscapeDismissable;
     this.subgrids = new Subgrids(this);
     this.rows = this.initRows();
   }
@@ -122,7 +115,7 @@ export class MainButtonGrid extends ButtonGrid {
       numericalInputToStack(manager.inputManager, this.translateInitialInput(key)); // Fire-and-forget promise
       return KeyResponse.BLOCK;
     } else if (key === "Escape") {
-      this.onEscapeDismissable.hide();
+      await manager.onEscape();
       return KeyResponse.BLOCK;
     } else {
       return KeyResponse.PASS;

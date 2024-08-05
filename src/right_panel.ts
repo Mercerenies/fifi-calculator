@@ -1,7 +1,7 @@
 
 // Right panel of the screen.
 
-import { ButtonGridManager, ButtonGrid } from "./button_grid.js";
+import { ButtonGridManager, ButtonGrid, Hideable } from "./button_grid.js";
 import { delegates } from './button_grid/modifier_delegate.js';
 import { PrefixArgStateMachine } from "./prefix_argument.js";
 import { PrefixArgumentDelegate } from "./prefix_argument/prefix_delegate.js";
@@ -35,6 +35,7 @@ export class RightPanelManager {
       initialGrid: args.initialGrid,
       modifierDelegate,
       inputManager: args.uiManager.inputManager,
+      onEscapeDismissable: args.onEscapeDismissable,
     });
     this.prefixArgDisplay = new PrefixArgumentDisplay(
       args.prefixPanel,
@@ -63,8 +64,9 @@ export interface RightPanelArguments {
   initialGrid: ButtonGrid,
   undoButton: HTMLButtonElement,
   redoButton: HTMLButtonElement,
-  radiobuttonsDiv: HTMLElement;
-  valueStackDiv: HTMLElement;
+  radiobuttonsDiv: HTMLElement,
+  valueStackDiv: HTMLElement,
   uiManager: UiManager,
+  onEscapeDismissable: Hideable,
   displayBoxId?: string,
 }

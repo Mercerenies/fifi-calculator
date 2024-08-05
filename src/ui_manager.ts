@@ -31,12 +31,13 @@ export class UiManager {
       buttonGrid: Page.getButtonGridContainer(),
       prefixPanel: Page.getPrefixArgPanel(),
       modifierArgPanel: Page.getModifierArgPanel(),
-      initialGrid: new MainButtonGrid(this.notificationManager),
+      initialGrid: new MainButtonGrid(),
       undoButton: Page.getUndoButton(),
       redoButton: Page.getRedoButton(),
       radiobuttonsDiv: Page.getTouchModesDiv(),
       valueStackDiv: Page.getValueStack(),
       uiManager: this,
+      onEscapeDismissable: this.notificationManager,
     });
     this.osType = osType;
 

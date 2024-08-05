@@ -21,6 +21,7 @@ export class ButtonGridManager implements AbstractButtonManager {
   private rootGrid: ButtonGrid;
   private activeGrid: ButtonGrid;
   private modifierDelegate: ModifierDelegate;
+  private onEscapeDismissable: Hideable;
 
   readonly inputManager: InputBoxManager;
 
@@ -30,6 +31,7 @@ export class ButtonGridManager implements AbstractButtonManager {
     this.activeGrid = args.initialGrid;
     this.modifierDelegate = args.modifierDelegate;
     this.inputManager = args.inputManager;
+    this.onEscapeDismissable = args.onEscapeDismissable;
     this.setActiveGrid(args.initialGrid); // Initialize the grid
   }
 
@@ -105,6 +107,14 @@ export class ButtonGridManager implements AbstractButtonManager {
   async onClick(cell: GridCell): Promise<void> {
     cell.fire(this);
   }
+
+  async onEscape(): Promise<void> {
+    this.onEscapeDismissable.hide();
+  }
+}
+
+export interface Hideable {
+  hide(): void;
 }
 
 export interface ButtonGridManagerArgs {
@@ -112,6 +122,7 @@ export interface ButtonGridManagerArgs {
   initialGrid: ButtonGrid;
   modifierDelegate: ModifierDelegate;
   inputManager: InputBoxManager;
+  onEscapeDismissable: Hideable;
 }
 
 export interface AbstractButtonManager {
@@ -127,6 +138,7 @@ export interface AbstractButtonManager {
   ): Promise<void>;
 
   onClick(cell: GridCell): Promise<void>;
+  onEscape(): Promise<void>;
 }
 
 export abstract class ButtonGrid {
