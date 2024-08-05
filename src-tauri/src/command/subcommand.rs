@@ -85,7 +85,7 @@ impl Subcommand<'static> {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod test_utils {
   use super::*;
   use crate::expr::function::table::FunctionTable;
   use crate::expr::simplifier::default_simplifier;
@@ -93,7 +93,7 @@ mod tests {
 
   use once_cell::sync::Lazy;
 
-  fn try_call(
+  pub fn try_call(
     subcommand: &Subcommand,
     args: Vec<Expr>,
   ) -> Result<(Expr, ErrorList<SimplifierError>), ArityError> {
@@ -104,6 +104,12 @@ mod tests {
     let expr = subcommand.try_call(args, simplifier.as_ref(), calculation_mode, &mut errors)?;
     Ok((expr, errors))
   }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use super::test_utils::try_call;
 
   #[test]
   fn test_named_subcommand() {

@@ -663,6 +663,7 @@ mod tests {
   use super::*;
   use crate::stack::{Stack, StackError};
   use crate::command::test_utils::act_on_stack;
+  use crate::command::subcommand::test_utils::{try_call as try_call_subcommand};
   use crate::command::options::CommandOptions;
   use crate::expr::number::ComplexNumber;
 
@@ -969,4 +970,46 @@ mod tests {
     let err = err.downcast::<StackError>().unwrap();
     assert_eq!(err, StackError::NotEnoughElements { expected: 1, actual: 0 });
   }
+
+  #[test]
+  fn test_subvector_command_as_subcommand() {
+    let command = SubvectorCommand::for_function("test_func");
+    let subcommand = command.as_subcommand(&CommandOptions::default()).unwrap();
+    assert_eq!(subcommand.arity(), 3);
+
+    let (expr, errors) = try_call_subcommand(
+      &subcommand,
+      vec![Expr::from(0), Expr::from(10), Expr::from(20)],
+    ).unwrap();
+    assert!(errors.is_empty());
+    assert_eq!(expr, Expr::call("test_func", vec![Expr::from(0), Expr::from(10), Expr::from(20)]));
+  }
+
+  #[test]
+  fn test_norm_command_as_subcommand() {
+    let command = NormCommand::new();
+
+    let subcommand = command.as_subcommand(&CommandOptions::default()).unwrap();
+    assert_eq!(subcommand.arity(), 1);
+    let (expr, errors) = try_call_subcommand(&subcommand, vec![Expr::from("some_vec")]).unwrap();
+    assert!(errors.is_empty());
+    assert_eq!(expr, Expr::call("norm", vec![Expr::from("some_vec"), Expr::from(1)]));
+
+    let subcommand = command.as_subcommand(&CommandOptions::numerical(3)).unwrap();
+    assert_eq!(subcommand.arity(), 1);
+    let (expr, errors) = try_call_subcommand(&subcommand, vec![Expr::from("some_vec")]).unwrap();
+    assert!(errors.is_empty());
+    assert_eq!(expr, Expr::call("norm", vec![Expr::from("some_vec"), Expr::from(3)]));
+  }
+
+  #[test]
+  fn test_norm_command_infinity_norm_as_subcommand() {
+    let command = NormCommand::new();
+
+    let subcommand = command.as_subcommand(&CommandOptions::numerical(0)).unwrap();
+    assert_eq!(subcommand.arity(), 1);
+    let (expr, errors) = try_call_subcommand(&subcommand, vec![Expr::from("some_vec")]).unwrap();
+    assert!(errors.is_empty());
+    assert_eq!(expr, Expr::call("norm", vec![Expr::from("some_vec"), Expr::from(InfiniteConstant::PosInfinity)]));
+}
 }

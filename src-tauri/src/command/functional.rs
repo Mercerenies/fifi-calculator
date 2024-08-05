@@ -363,8 +363,10 @@ mod tests {
   use super::*;
   use crate::command::test_utils::act_on_stack;
   use crate::command::options::CommandOptions;
+  use crate::command::subcommand::test_utils::{try_call as try_call_subcommand};
   use crate::stack::test_utils::stack_of;
   use crate::stack::{Stack, StackError};
+  use crate::expr::simplifier::error::ArityError;
 
   fn push_constant_zero() -> PushConstantCommand {
     PushConstantCommand::new(Expr::zero())
@@ -438,6 +440,12 @@ mod tests {
     let output_stack = act_on_stack(&push_constant_zero(), opts, input_stack).unwrap();
     // Does not change the stack
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 40]));
+  }
+
+  #[test]
+  fn test_push_constant_command_should_have_no_subcommand() {
+    let command = push_constant_zero();
+    assert!(command.as_subcommand(&CommandOptions::default()).is_none());
   }
 
   #[test]
@@ -736,6 +744,33 @@ mod tests {
         Expr::from(20),
       ]),
     );
+  }
+
+  #[test]
+  fn test_unary_function_command_subcommand() {
+    let command = unary_function();
+    let subcommand = command.as_subcommand(&CommandOptions::default()).unwrap();
+    let (expr, errors) = try_call_subcommand(&subcommand, vec![Expr::from(0)]).unwrap();
+    assert!(errors.is_empty());
+    assert_eq!(expr, Expr::call("test_func", vec![Expr::from(0)]));
+
+    let err = try_call_subcommand(&subcommand, vec![Expr::from(0), Expr::from(10)]).unwrap_err();
+    assert_eq!(err, ArityError { expected: 1, actual: 2 });
+  }
+
+  #[test]
+  fn test_complicated_unary_function_commands_have_no_subcommand() {
+    let command = UnaryFunctionCommand::with_state(|_, _| panic!("Should not be called"));
+    assert!(command.as_subcommand(&CommandOptions::default()).is_none());
+
+    let command = UnaryFunctionCommand::with_context(|_, _| panic!("Should not be called"));
+    assert!(command.as_subcommand(&CommandOptions::default()).is_none());
+
+    let command = UnaryFunctionCommand::with_context_and_errors(|_, _, _| panic!("Should not be called"));
+    assert!(command.as_subcommand(&CommandOptions::default()).is_none());
+
+    let command = UnaryFunctionCommand::with_all(|_, _, _, _| panic!("Should not be called"));
+    assert!(command.as_subcommand(&CommandOptions::default()).is_none());
   }
 
   #[test]
@@ -1379,5 +1414,17 @@ mod tests {
       error,
       StackError::NotEnoughElements { expected: 5, actual: 0 },
     )
+  }
+
+  #[test]
+  fn test_binary_function_command_subcommand() {
+    let command = binary_function();
+    let subcommand = command.as_subcommand(&CommandOptions::default()).unwrap();
+    let (expr, errors) = try_call_subcommand(&subcommand, vec![Expr::from(0), Expr::from(10)]).unwrap();
+    assert!(errors.is_empty());
+    assert_eq!(expr, Expr::call("test_func", vec![Expr::from(0), Expr::from(10)]));
+
+    let err = try_call_subcommand(&subcommand, vec![Expr::from(0)]).unwrap_err();
+    assert_eq!(err, ArityError { expected: 2, actual: 1 });
   }
 }

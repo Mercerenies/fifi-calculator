@@ -105,6 +105,30 @@ mod tests {
   use crate::command::functional::PushConstantCommand;
   use crate::expr::Expr;
 
+  /// Sample command used for testing. `run_command` panics but
+  /// `as_subcommand` returns a generic subcommand of the given arity.
+  /// There's nothing particularly special about the `arity` field. We
+  /// just need some way to distinguish between multiple commands, and
+  /// that field is very easy to use as a marker.
+  struct SubcommandedCommand {
+    arity: usize,
+  }
+
+  impl Command for SubcommandedCommand {
+    fn run_command(
+      &self,
+      _state: &mut ApplicationState,
+      _args: Vec<String>,
+      _ctx: &CommandContext,
+    ) -> anyhow::Result<CommandOutput> {
+      panic!("Should not be called");
+    }
+
+    fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+      Some(Subcommand::named(self.arity, "test_func"))
+    }
+  }
+
   #[test]
   fn test_dispatch_on_flags_command() {
     let command = dispatch_on_flags_command(FlagDispatchArgs {
@@ -180,5 +204,67 @@ mod tests {
     let opts = CommandOptions::default().with_hyperbolic_modifier().with_inverse_modifier();
     let output_stack = act_on_stack(&command, opts, input_stack).unwrap();
     assert_eq!(output_stack, stack_of(vec!["inv"]));
+  }
+
+  #[test]
+  fn test_dispatch_on_flags_command_subcommand() {
+    let command = dispatch_on_flags_command(FlagDispatchArgs {
+      no_flags: SubcommandedCommand { arity: 1 },
+      hyper_flag: SubcommandedCommand { arity: 2 },
+      inv_flag: SubcommandedCommand { arity: 3 },
+      inv_hyper_flag: SubcommandedCommand { arity: 4 },
+    });
+
+    let opts = CommandOptions::default();
+    assert_eq!(command.as_subcommand(&opts).unwrap().arity(), 1);
+
+    let opts = CommandOptions::default().with_hyperbolic_modifier();
+    assert_eq!(command.as_subcommand(&opts).unwrap().arity(), 2);
+
+    let opts = CommandOptions::default().with_inverse_modifier();
+    assert_eq!(command.as_subcommand(&opts).unwrap().arity(), 3);
+
+    let opts = CommandOptions::default().with_hyperbolic_modifier().with_inverse_modifier();
+    assert_eq!(command.as_subcommand(&opts).unwrap().arity(), 4);
+  }
+
+  #[test]
+  fn test_dispatch_on_hyper_command_subcommand() {
+    let command = dispatch_on_hyper_command(
+      SubcommandedCommand { arity: 1 },
+      SubcommandedCommand { arity: 2 },
+    );
+
+    let opts = CommandOptions::default();
+    assert_eq!(command.as_subcommand(&opts).unwrap().arity(), 1);
+
+    let opts = CommandOptions::default().with_hyperbolic_modifier();
+    assert_eq!(command.as_subcommand(&opts).unwrap().arity(), 2);
+
+    let opts = CommandOptions::default().with_inverse_modifier();
+    assert_eq!(command.as_subcommand(&opts).unwrap().arity(), 1);
+
+    let opts = CommandOptions::default().with_hyperbolic_modifier().with_inverse_modifier();
+    assert_eq!(command.as_subcommand(&opts).unwrap().arity(), 2);
+  }
+
+  #[test]
+  fn test_dispatch_on_inv_command_subcommand() {
+    let command = dispatch_on_inverse_command(
+      SubcommandedCommand { arity: 1 },
+      SubcommandedCommand { arity: 2 },
+    );
+
+    let opts = CommandOptions::default();
+    assert_eq!(command.as_subcommand(&opts).unwrap().arity(), 1);
+
+    let opts = CommandOptions::default().with_hyperbolic_modifier();
+    assert_eq!(command.as_subcommand(&opts).unwrap().arity(), 1);
+
+    let opts = CommandOptions::default().with_inverse_modifier();
+    assert_eq!(command.as_subcommand(&opts).unwrap().arity(), 2);
+
+    let opts = CommandOptions::default().with_hyperbolic_modifier().with_inverse_modifier();
+    assert_eq!(command.as_subcommand(&opts).unwrap().arity(), 2);
   }
 }

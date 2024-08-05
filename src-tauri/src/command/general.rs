@@ -40,11 +40,19 @@ mod tests {
   use super::*;
 
   #[test]
-  fn command_delegates_to_inner() {
+  fn test_command_delegates_to_inner() {
     let command = GeneralCommand::new(|_, _, _| {
       Ok(CommandOutput::from_errors(vec!["A", "B"]))
     });
     let result = command.run_command(&mut ApplicationState::new(), vec![], &mut CommandContext::default()).unwrap();
     assert_eq!(result.errors(), &["A", "B"]);
+  }
+
+  #[test]
+  fn test_command_has_no_subcommand() {
+    let command = GeneralCommand::new(|_, _, _| {
+      panic!("Should not be called!");
+    });
+    assert!(command.as_subcommand(&CommandOptions::default()).is_none());
   }
 }
