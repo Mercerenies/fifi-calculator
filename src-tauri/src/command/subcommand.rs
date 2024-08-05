@@ -1,9 +1,15 @@
 
+use super::options::CommandOptions;
 use crate::errorlist::ErrorList;
 use crate::expr::Expr;
 use crate::expr::simplifier::{Simplifier, SimplifierContext};
 use crate::expr::simplifier::error::{SimplifierError, ArityError};
 use crate::mode::calculation::CalculationMode;
+use crate::util::prism::Prism;
+
+use serde::{Serialize, Deserialize};
+
+use std::convert::AsRef;
 
 /// A subcommand is a simplified command which merely takes arguments
 /// and applies some function. This is usually applied in the context
@@ -19,6 +25,28 @@ pub struct Subcommand<'a> {
 
 type SubcommandFunction<'a> =
   dyn Fn(Vec<Expr>) -> Expr + 'a;
+
+/// A subcommand is identified by the command name and the options
+/// passed to the command.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SubcommandId {
+  pub name: String,
+  pub options: CommandOptions,
+}
+
+/// [`SubcommandId`] can be passed as an argument to commands. This
+/// struct contains a `SubcommandId` as well as the string parsed to
+/// get it. Specifically, this struct is used as a prism target for
+/// [`StringToSubcommandId`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParsedSubcommandId {
+  subcommand_id: SubcommandId,
+  parsed_string: String,
+}
+
+/// Prism which parses a JSON string as a [`SubcommandId`].
+#[derive(Debug, Clone)]
+pub struct StringToSubcommandId;
 
 impl<'a> Subcommand<'a> {
   /// Constructs a new subcommand from the function and specified
@@ -84,6 +112,25 @@ impl Subcommand<'static> {
   }
 }
 
+impl AsRef<SubcommandId> for ParsedSubcommandId {
+  fn as_ref(&self) -> &SubcommandId {
+    &self.subcommand_id
+  }
+}
+
+impl Prism<String, ParsedSubcommandId> for StringToSubcommandId {
+  fn narrow_type(&self, input: String) -> Result<ParsedSubcommandId, String> {
+    match serde_json::from_str::<SubcommandId>(&input) {
+      Ok(subcommand_id) => Ok(ParsedSubcommandId { subcommand_id, parsed_string: input }),
+      Err(_) => Err(input),
+    }
+  }
+
+  fn widen_type(&self, subcommand: ParsedSubcommandId) -> String {
+    subcommand.parsed_string
+  }
+}
+
 #[cfg(test)]
 pub(crate) mod test_utils {
   use super::*;
@@ -124,5 +171,13 @@ mod tests {
 
     let err = try_call(&subcommand, vec![Expr::from(1)]).unwrap_err();
     assert_eq!(err, ArityError { expected: 2, actual: 1 });
+  }
+
+  #[test]
+  fn test_roundtrip_string_to_subcommand_id_prism() {
+    let subcommand_id = SubcommandId { name: String::from("xyz"), options: CommandOptions::default() };
+    let json = serde_json::to_string(&subcommand_id).unwrap();
+    let final_subcommand_id = StringToSubcommandId.narrow_type(json.clone()).unwrap();
+    assert_eq!(final_subcommand_id.as_ref(), &subcommand_id);
   }
 }
