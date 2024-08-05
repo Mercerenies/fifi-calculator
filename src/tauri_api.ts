@@ -121,6 +121,7 @@ export function defaultCommandOptions(): CommandOptions {
 export function subcommand(name: string, options: CommandOptions): string;
 export function subcommand(subcommandId: SubcommandId): string;
 export function subcommand(nameOrId: string | SubcommandId, options?: CommandOptions): string {
+  /* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */
   const subcommand: SubcommandId = (typeof nameOrId === 'string' ? { name: nameOrId, options: options! } : nameOrId);
   return JSON.stringify(subcommand);
 }

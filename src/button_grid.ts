@@ -4,6 +4,7 @@
 
 import { KeyEventInput, KeyResponse } from './keyboard.js';
 import { ModifierDelegate, ButtonModifiers, modifiersToRustArgs } from './button_grid/modifier_delegate.js';
+import { SubcommandBehavior } from './button_grid/subcommand.js';
 import { TAURI } from './tauri_api.js';
 import { InputBoxManager } from './input_box.js';
 
@@ -189,6 +190,7 @@ export interface GridCell {
 
   getHTML(manager: AbstractButtonManager): HTMLElement;
   fire(manager: AbstractButtonManager): Promise<void>;
+  asSubcommand(manager: AbstractButtonManager): SubcommandBehavior;
 }
 
 // Empty grid cell.
@@ -202,5 +204,10 @@ export class Spacer implements GridCell {
   fire(): Promise<void> {
     // No action.
     return Promise.resolve();
+  }
+
+  asSubcommand(): SubcommandBehavior {
+    // No action.
+    return "pass";
   }
 }

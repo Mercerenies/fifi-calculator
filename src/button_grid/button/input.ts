@@ -1,5 +1,6 @@
 
 import { AbstractButtonManager } from "../../button_grid.js";
+import { SubcommandBehavior } from '../subcommand.js';
 import { modifiersToRustArgs } from "../modifier_delegate.js";
 import { Button } from '../button.js';
 import { numericalInputToStack } from '../../input_box/numerical_input.js';
@@ -17,6 +18,11 @@ export abstract class InputButton extends Button {
   async fire(manager: AbstractButtonManager): Promise<void> {
     await this.runInputFlow(manager);
     manager.resetState();
+  }
+
+  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+  asSubcommand(manager: AbstractButtonManager): SubcommandBehavior {
+    return "invalid";
   }
 }
 

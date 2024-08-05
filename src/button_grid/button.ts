@@ -1,5 +1,7 @@
 
 import { AbstractButtonManager, ButtonGrid, GridCell } from "../button_grid.js";
+import { modifiersToRustArgs } from './modifier_delegate.js';
+import { SubcommandBehavior, IsSubcommand } from './subcommand.js';
 import { svg } from '../util.js';
 
 export abstract class Button implements GridCell {
@@ -23,6 +25,8 @@ export abstract class Button implements GridCell {
   }
 
   abstract fire(manager: AbstractButtonManager): Promise<void>;
+
+  abstract asSubcommand(manager: AbstractButtonManager): SubcommandBehavior;
 }
 
 export class DispatchButton extends Button {
@@ -36,6 +40,13 @@ export class DispatchButton extends Button {
   async fire(manager: AbstractButtonManager): Promise<void> {
     manager.invokeMathCommand(this.commandName);
     manager.resetState();
+  }
+
+  asSubcommand(manager: AbstractButtonManager): SubcommandBehavior {
+    return new IsSubcommand({
+      name: this.commandName,
+      options: modifiersToRustArgs(manager.getModifiers()),
+    });
   }
 }
 
@@ -54,6 +65,10 @@ export class GotoButton extends Button {
   async fire(manager: AbstractButtonManager): Promise<void> {
     const grid = this.gridFactory();
     manager.setActiveGrid(grid);
+  }
+
+  asSubcommand(): SubcommandBehavior {
+    return "pass";
   }
 }
 

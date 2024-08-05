@@ -1,5 +1,6 @@
 
 import { AbstractButtonManager, ButtonGrid, GridCell } from "../button_grid.js";
+import { SubcommandBehavior } from './subcommand.js';
 import { backButton, Button, DispatchButton } from './button.js';
 import { InputBoxManager } from '../input_box.js';
 import { FreeformInputMethod } from '../input_box/freeform_input.js';
@@ -60,6 +61,10 @@ export class SetDisplayRadixButton extends Button {
     await manager.invokeMathCommand(this.commandName, [String(this.targetRadix)]);
     manager.resetState();
   }
+
+  asSubcommand(): SubcommandBehavior {
+    return "invalid";
+  }
 }
 
 // Button to set the display radix to a value given by user input.
@@ -72,6 +77,10 @@ export class SetDisplayRadixToInputButton extends Button {
 
   async fire(manager: AbstractButtonManager): Promise<void> {
     this.getInputAndSet(manager); // Fire-and-forget
+  }
+
+  asSubcommand(): SubcommandBehavior {
+    return "invalid";
   }
 
   private async getInputAndSet(manager: AbstractButtonManager): Promise<void> {

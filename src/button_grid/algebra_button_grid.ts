@@ -1,5 +1,6 @@
 
 import { AbstractButtonManager, ButtonGrid, GridCell } from "../button_grid.js";
+import { SubcommandBehavior } from './subcommand.js';
 import { backButton, Button } from './button.js';
 import { variableNameInput } from '../input_box/algebraic_input.js';
 import { FreeformInputMethod } from '../input_box/freeform_input.js';
@@ -65,6 +66,10 @@ export class VariableSubstituteButton extends Button {
       manager.resetState();
     }
   }
+
+  asSubcommand(): SubcommandBehavior {
+    return "invalid";
+  }
 }
 
 // TODO: Common superclass for buttons which expect one variable as
@@ -96,6 +101,10 @@ export class FindRootButton extends Button {
       manager.resetState();
     }
   }
+
+  asSubcommand(): SubcommandBehavior {
+    return "invalid";
+  }
 }
 
 export class DerivativeButton extends Button {
@@ -124,5 +133,9 @@ export class DerivativeButton extends Button {
     } finally {
       manager.resetState();
     }
+  }
+
+  asSubcommand(): SubcommandBehavior {
+    return "invalid";
   }
 }

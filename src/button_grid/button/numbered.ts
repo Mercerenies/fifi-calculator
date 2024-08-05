@@ -1,5 +1,6 @@
 
 import { AbstractButtonManager } from "../../button_grid.js";
+import { SubcommandBehavior } from '../subcommand.js';
 import { InputBoxManager } from '../../input_box.js';
 import { FreeformInputMethod } from '../../input_box/freeform_input.js';
 import { Button } from '../button.js';
@@ -30,6 +31,11 @@ export abstract class NumberedButton extends Button {
     } finally {
       manager.resetState();
     }
+  }
+
+  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+  asSubcommand(manager: AbstractButtonManager): SubcommandBehavior {
+    return "invalid";
   }
 
   abstract normalizeNumber(n: number): number;

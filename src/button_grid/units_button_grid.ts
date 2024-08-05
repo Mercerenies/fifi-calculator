@@ -1,5 +1,6 @@
 
 import { AbstractButtonManager, ButtonGrid, GridCell } from "../button_grid.js";
+import { SubcommandBehavior } from './subcommand.js';
 import { backButton, Button, DispatchButton } from './button.js';
 import { InputBoxManager } from '../input_box.js';
 import { FreeformInputMethod } from '../input_box/freeform_input.js';
@@ -57,6 +58,10 @@ export class UnitConversionButton extends Button {
     this.readAndSubstitute(manager);
   }
 
+  asSubcommand(): SubcommandBehavior {
+    return "invalid";
+  }
+
   private async readAndSubstitute(manager: AbstractButtonManager): Promise<void> {
     try {
       const isValid = await TAURI.validateStackSize(1);
@@ -96,6 +101,10 @@ export class TemperatureConversionButton extends Button {
     // Fire-and-forget a new promise that gets user input, so we don't
     // hold up the existing input.
     this.readAndSubstitute(manager);
+  }
+
+  asSubcommand(): SubcommandBehavior {
+    return "invalid";
   }
 
   private async readAndSubstitute(manager: AbstractButtonManager): Promise<void> {
