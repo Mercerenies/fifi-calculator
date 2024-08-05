@@ -5,7 +5,6 @@ use super::base::Command;
 
 use thiserror::Error;
 
-use std::fmt::{self, Formatter, Display};
 use std::collections::HashMap;
 
 #[derive(Default)]
@@ -13,7 +12,8 @@ pub struct CommandDispatchTable {
   map: HashMap<String, Box<dyn Command + Send + Sync>>,
 }
 
-#[derive(Debug, Error, Clone)]
+#[derive(Debug, Error, Clone, PartialEq, Eq)]
+#[error("No such command {command}")]
 pub struct NoSuchCommandError {
   command: String,
 }
@@ -32,11 +32,5 @@ impl CommandDispatchTable {
       Some(cmd) => Ok(cmd.as_ref()),
       None => Err(NoSuchCommandError { command: name.to_owned() }),
     }
-  }
-}
-
-impl Display for NoSuchCommandError {
-  fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-    write!(f, "No such command {}", self.command)
   }
 }

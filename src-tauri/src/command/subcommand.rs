@@ -1,5 +1,6 @@
 
 use super::options::CommandOptions;
+use super::dispatch::{CommandDispatchTable, NoSuchCommandError};
 use crate::errorlist::ErrorList;
 use crate::expr::Expr;
 use crate::expr::simplifier::{Simplifier, SimplifierContext};
@@ -7,6 +8,7 @@ use crate::expr::simplifier::error::SimplifierError;
 use crate::mode::calculation::CalculationMode;
 use crate::util::prism::Prism;
 
+use thiserror::Error;
 use serde::{Serialize, Deserialize};
 
 use std::convert::AsRef;
@@ -23,11 +25,21 @@ pub struct Subcommand<'a> {
   arity: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
+#[error("Expected {expected} argument(s) but got {actual}.")]
 pub struct SubcommandArityError {
   pub expected: usize,
   pub actual: usize,
   pub args: Vec<Expr>,
+}
+
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum GetSubcommandError {
+  #[error("{0}")]
+  NoSuchCommandError(#[from] NoSuchCommandError),
+  #[error("Command {0} cannot be used as a subcommand")]
+  InvalidSubcommandError(String),
 }
 
 type SubcommandFunction<'a> =
@@ -123,6 +135,17 @@ impl Subcommand<'static> {
   }
 }
 
+impl SubcommandId {
+  pub fn get_subcommand<'a>(
+    &self,
+    dispatch_table: &'a CommandDispatchTable,
+  ) -> Result<Subcommand<'a>, GetSubcommandError> {
+    let command = dispatch_table.get(&self.name)?;
+    command.as_subcommand(&self.options)
+      .ok_or_else(|| GetSubcommandError::InvalidSubcommandError(self.name.clone()))
+  }
+}
+
 impl AsRef<SubcommandId> for ParsedSubcommandId {
   fn as_ref(&self) -> &SubcommandId {
     &self.subcommand_id
@@ -168,6 +191,11 @@ pub(crate) mod test_utils {
 mod tests {
   use super::*;
   use super::test_utils::try_call;
+  use crate::command::base::Command;
+  use crate::command::nullary::NullaryCommand;
+  use crate::command::functional::UnaryFunctionCommand;
+
+  use std::collections::HashMap;
 
   #[test]
   fn test_named_subcommand() {
@@ -190,5 +218,50 @@ mod tests {
     let json = serde_json::to_string(&subcommand_id).unwrap();
     let final_subcommand_id = StringToSubcommandId.narrow_type(json.clone()).unwrap();
     assert_eq!(final_subcommand_id.as_ref(), &subcommand_id);
+  }
+
+  #[test]
+  fn test_get_subcommand_on_nonexistent_command() {
+    let dispatch_table = CommandDispatchTable::new();
+    let subcommand_id = SubcommandId {
+      name: String::from("nonexistent"),
+      options: CommandOptions::default(),
+    };
+    let Err(err) = subcommand_id.get_subcommand(&dispatch_table) else {
+      panic!("Expected error");
+    };
+    assert!(matches!(err, GetSubcommandError::NoSuchCommandError(_)));
+  }
+
+  #[test]
+  fn test_get_subcommand_on_nop_command() {
+    let dispatch_table = {
+      let mut map: HashMap<String, Box<dyn Command + Send + Sync>> = HashMap::new();
+      map.insert(String::from("nop"), Box::new(NullaryCommand));
+      CommandDispatchTable::from_hash_map(map)
+    };
+    let subcommand_id = SubcommandId {
+      name: String::from("nop"),
+      options: CommandOptions::default(),
+    };
+    let Err(err) = subcommand_id.get_subcommand(&dispatch_table) else {
+      panic!("Expected error");
+    };
+    assert_eq!(err, GetSubcommandError::InvalidSubcommandError(String::from("nop")));
+  }
+
+  #[test]
+  fn test_get_subcommand_on_valid_command() {
+    let dispatch_table = {
+      let mut map: HashMap<String, Box<dyn Command + Send + Sync>> = HashMap::new();
+      map.insert(String::from("test_func"), Box::new(UnaryFunctionCommand::named("test_func")));
+      CommandDispatchTable::from_hash_map(map)
+    };
+    let subcommand_id = SubcommandId {
+      name: String::from("test_func"),
+      options: CommandOptions::default(),
+    };
+    let subcommand = subcommand_id.get_subcommand(&dispatch_table).unwrap();
+    assert_eq!(subcommand.arity(), 1);
   }
 }
