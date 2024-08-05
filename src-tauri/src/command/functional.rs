@@ -363,10 +363,10 @@ mod tests {
   use super::*;
   use crate::command::test_utils::act_on_stack;
   use crate::command::options::CommandOptions;
+  use crate::command::subcommand::SubcommandArityError;
   use crate::command::subcommand::test_utils::{try_call as try_call_subcommand};
   use crate::stack::test_utils::stack_of;
   use crate::stack::{Stack, StackError};
-  use crate::expr::simplifier::error::ArityError;
 
   fn push_constant_zero() -> PushConstantCommand {
     PushConstantCommand::new(Expr::zero())
@@ -755,7 +755,7 @@ mod tests {
     assert_eq!(expr, Expr::call("test_func", vec![Expr::from(0)]));
 
     let err = try_call_subcommand(&subcommand, vec![Expr::from(0), Expr::from(10)]).unwrap_err();
-    assert_eq!(err, ArityError { expected: 1, actual: 2 });
+    assert!(matches!(err, SubcommandArityError { expected: 1, actual: 2, args: _ }));
   }
 
   #[test]
@@ -1425,6 +1425,6 @@ mod tests {
     assert_eq!(expr, Expr::call("test_func", vec![Expr::from(0), Expr::from(10)]));
 
     let err = try_call_subcommand(&subcommand, vec![Expr::from(0)]).unwrap_err();
-    assert_eq!(err, ArityError { expected: 2, actual: 1 });
+    assert!(matches!(err, SubcommandArityError { expected: 2, actual: 1, args: _ }));
   }
 }

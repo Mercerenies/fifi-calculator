@@ -3,7 +3,7 @@ use super::options::CommandOptions;
 use crate::errorlist::ErrorList;
 use crate::expr::Expr;
 use crate::expr::simplifier::{Simplifier, SimplifierContext};
-use crate::expr::simplifier::error::{SimplifierError, ArityError};
+use crate::expr::simplifier::error::SimplifierError;
 use crate::mode::calculation::CalculationMode;
 use crate::util::prism::Prism;
 
@@ -21,6 +21,13 @@ use std::convert::AsRef;
 pub struct Subcommand<'a> {
   function: Box<SubcommandFunction<'a>>,
   arity: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct SubcommandArityError {
+  pub expected: usize,
+  pub actual: usize,
+  pub args: Vec<Expr>,
 }
 
 type SubcommandFunction<'a> =
@@ -73,9 +80,13 @@ impl<'a> Subcommand<'a> {
     simplifier: &dyn Simplifier,
     calculation_mode: CalculationMode,
     errors: &mut ErrorList<SimplifierError>,
-  ) -> Result<Expr, ArityError> {
+  ) -> Result<Expr, SubcommandArityError> {
     if args.len() != self.arity {
-      return Err(ArityError { expected: self.arity, actual: args.len() });
+      return Err(SubcommandArityError {
+        expected: self.arity,
+        actual: args.len(),
+        args,
+      });
     }
 
     let mut simplifier_context = SimplifierContext {
@@ -143,7 +154,7 @@ pub(crate) mod test_utils {
   pub fn try_call(
     subcommand: &Subcommand,
     args: Vec<Expr>,
-  ) -> Result<(Expr, ErrorList<SimplifierError>), ArityError> {
+  ) -> Result<(Expr, ErrorList<SimplifierError>), SubcommandArityError> {
     static FUNCTION_TABLE: Lazy<FunctionTable> = Lazy::new(build_function_table);
     let simplifier = default_simplifier(&FUNCTION_TABLE);
     let calculation_mode = CalculationMode::default();
@@ -167,10 +178,10 @@ mod tests {
     assert_eq!(expr, Expr::call("test", vec![Expr::from(1), Expr::from(2)]));
 
     let err = try_call(&subcommand, vec![Expr::from(1), Expr::from(2), Expr::from(3)]).unwrap_err();
-    assert_eq!(err, ArityError { expected: 2, actual: 3 });
+    assert!(matches!(err, SubcommandArityError { expected: 2, actual: 3, args: _ }));
 
     let err = try_call(&subcommand, vec![Expr::from(1)]).unwrap_err();
-    assert_eq!(err, ArityError { expected: 2, actual: 1 });
+    assert!(matches!(err, SubcommandArityError { expected: 2, actual: 1, args: _ }));
   }
 
   #[test]
