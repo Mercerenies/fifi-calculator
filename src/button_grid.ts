@@ -22,6 +22,7 @@ export class ButtonGridManager implements AbstractButtonManager {
   private activeGrid: ButtonGrid;
   private modifierDelegate: ModifierDelegate;
   private onEscapeDismissable: Hideable;
+  private managerFacade: ManagerFacade;
 
   readonly inputManager: InputBoxManager;
 
@@ -32,6 +33,7 @@ export class ButtonGridManager implements AbstractButtonManager {
     this.modifierDelegate = args.modifierDelegate;
     this.inputManager = args.inputManager;
     this.onEscapeDismissable = args.onEscapeDismissable;
+    this.managerFacade = new ManagerFacade(this);
     this.setActiveGrid(args.initialGrid); // Initialize the grid
   }
 
@@ -46,6 +48,7 @@ export class ButtonGridManager implements AbstractButtonManager {
   resetState(): void {
     this.setActiveGrid(this.rootGrid);
     this.resetModifiers();
+    this.managerFacade.setCurrentManager(this);
   }
 
   resetModifiers(): void {
@@ -79,7 +82,7 @@ export class ButtonGridManager implements AbstractButtonManager {
       const row = this.activeGrid.rows[y] ?? [];
       for (let x = 0; x < GRID_CELLS_PER_ROW; x++) {
         const gridCell = row[x] ?? new Spacer();
-        gridDiv.appendChild(gridCell.getHTML(this));
+        gridDiv.appendChild(gridCell.getHTML(this.managerFacade));
       }
     }
     this.domElement.appendChild(gridDiv);
@@ -100,7 +103,7 @@ export class ButtonGridManager implements AbstractButtonManager {
       await this.onClick(button);
       return KeyResponse.BLOCK;
     } else {
-      return await this.activeGrid.onUnhandledKey(input, this);
+      return await this.activeGrid.onUnhandledKey(input, this.managerFacade);
     }
   }
 
@@ -110,6 +113,55 @@ export class ButtonGridManager implements AbstractButtonManager {
 
   async onEscape(): Promise<void> {
     this.onEscapeDismissable.hide();
+  }
+}
+
+// Private helper which delegates to a settable AbstractButtonManager.
+// We have this extra layer of indirection so we can set up all of the
+// HTML for the button grids one time (with one object as the closure)
+// and have this object dispatch to the appropriate place for a
+// command or subcommand, based on the state of the system.
+class ManagerFacade implements AbstractButtonManager {
+  private currentManager: AbstractButtonManager;
+
+  constructor(manager: ButtonGridManager) {
+    this.currentManager = manager;
+  }
+
+  get inputManager(): InputBoxManager {
+    return this.currentManager.inputManager;
+  }
+
+  getModifiers(): ButtonModifiers {
+    return this.currentManager.getModifiers();
+  }
+
+  setActiveGrid(grid: ButtonGrid): void {
+    this.currentManager.setActiveGrid(grid);
+  }
+
+  resetState(): void {
+    this.currentManager.resetState();
+  }
+
+  invokeMathCommand(
+    commandName: string,
+    args?: string[],
+    modifiersOverrides?: Partial<ButtonModifiers>,
+  ): Promise<void> {
+    return this.currentManager.invokeMathCommand(commandName, args, modifiersOverrides);
+  }
+
+  onClick(cell: GridCell): Promise<void> {
+    return this.currentManager.onClick(cell);
+  }
+
+  onEscape(): Promise<void> {
+    return this.currentManager.onEscape();
+  }
+
+  setCurrentManager(manager: AbstractButtonManager): void {
+    this.currentManager = manager;
   }
 }
 
