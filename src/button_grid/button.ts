@@ -18,7 +18,7 @@ export abstract class Button implements GridCell {
     } else {
       button.appendChild(this.label);
     }
-    button.addEventListener("click", () => this.fire(manager));
+    button.addEventListener("click", () => manager.onClick(this));
     return button;
   }
 

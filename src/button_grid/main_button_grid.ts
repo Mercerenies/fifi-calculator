@@ -1,5 +1,5 @@
 
-import { ButtonGridManager, ButtonGrid, GridCell } from "../button_grid.js";
+import { AbstractButtonManager, ButtonGrid, GridCell } from "../button_grid.js";
 import { AlgebraButtonGrid } from "./algebra_button_grid.js";
 import { StorageButtonGrid } from "./storage_button_grid.js";
 import { VectorButtonGrid } from "./vector_button_grid.js";
@@ -106,13 +106,13 @@ export class MainButtonGrid extends ButtonGrid {
     ];
   }
 
-  async onUnhandledKey(input: KeyEventInput, manager: ButtonGridManager): Promise<KeyResponse> {
+  async onUnhandledKey(input: KeyEventInput, manager: AbstractButtonManager): Promise<KeyResponse> {
     const key = input.toEmacsSyntax();
 
     const forwardingRule = SUBGRID_FORWARDING_TABLE[key];
     if (forwardingRule !== undefined) {
       const table = this.subgrids[forwardingRule].getKeyMappingTable();
-      await table[key].fire(manager);
+      await manager.onClick(table[key]);
       return KeyResponse.BLOCK;
     }
 

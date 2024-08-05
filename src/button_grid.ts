@@ -94,11 +94,15 @@ export class ButtonGridManager implements AbstractButtonManager {
     const button = this.activeGrid.getKeyMappingTable()[input.toEmacsSyntax()];
     if (button !== undefined) {
       input.event.preventDefault();
-      await button.fire(this);
+      await this.onClick(button);
       return KeyResponse.BLOCK;
     } else {
       return await this.activeGrid.onUnhandledKey(input, this);
     }
+  }
+
+  async onClick(cell: GridCell): Promise<void> {
+    cell.fire(this);
   }
 }
 
@@ -120,6 +124,8 @@ export interface AbstractButtonManager {
     args?: string[],
     modifiersOverrides?: Partial<ButtonModifiers>,
   ): Promise<void>;
+
+  onClick(cell: GridCell): Promise<void>;
 }
 
 export abstract class ButtonGrid {
@@ -133,7 +139,7 @@ export abstract class ButtonGrid {
   abstract get rows(): readonly (readonly GridCell[])[];
 
   /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
-  onUnhandledKey(input: KeyEventInput, manager: ButtonGridManager): Promise<KeyResponse> {
+  onUnhandledKey(input: KeyEventInput, manager: AbstractButtonManager): Promise<KeyResponse> {
     // Default implementation is empty.
     return Promise.resolve(KeyResponse.PASS);
   }
@@ -154,6 +160,7 @@ export abstract class ButtonGrid {
   // getAllKeys() can be overridden by subclasses to include keys
   // which delegate to other grids via onUnhandledKey().
   getAllKeys(): string[] {
+    // TODO: Currently no subclasses actually override this. Do we even use it?
     return this.getAllCellKeys();
   }
 
