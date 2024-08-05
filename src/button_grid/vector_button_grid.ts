@@ -1,6 +1,6 @@
 
 import { ButtonGrid, GridCell } from "../button_grid.js";
-import { backButton, DispatchButton, GotoButton } from './button.js';
+import { backButton, DispatchButton, SubcommandDispatchButton, GotoButton } from './button.js';
 import { UnsignedNumberedButton } from './button/numbered.js';
 import { svg } from '../util.js';
 
@@ -40,6 +40,7 @@ export class VectorButtonGrid extends ButtonGrid {
       ],
       [
         new DispatchButton("<math><mo>&times;</mo></math>", "cross", "C"),
+        new SubcommandDispatchButton("A", "vapply", "A"),
       ],
       [
         new DispatchButton("len", "length", "l"),

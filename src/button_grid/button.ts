@@ -1,7 +1,8 @@
 
 import { AbstractButtonManager, ButtonGrid, GridCell } from "../button_grid.js";
+import { subcommandStr } from '../tauri_api.js';
 import { modifiersToRustArgs } from './modifier_delegate.js';
-import { SubcommandBehavior, IsSubcommand } from './subcommand.js';
+import { SubcommandBehavior, SubcommandButtonManager, IsSubcommand } from './subcommand.js';
 import { svg } from '../util.js';
 
 export abstract class Button implements GridCell {
@@ -75,4 +76,25 @@ export class GotoButton extends Button {
 export function backButton(gridFactory: ButtonGrid | (() => ButtonGrid)): GotoButton {
   const image = svg('assets/back.svg', {alt: 'back'});
   return new GotoButton(image, "Escape", gridFactory);
+}
+
+export class SubcommandDispatchButton extends Button {
+  readonly commandName: string;
+
+  constructor(label: string | HTMLElement, commandName: string, keyboardShortcut: string | null) {
+    super(label, keyboardShortcut);
+    this.commandName = commandName;
+  }
+
+  async fire(manager: AbstractButtonManager): Promise<void> {
+    const subcommandManager = new SubcommandButtonManager(manager, async (subcommandId) => {
+      await manager.invokeMathCommand(this.commandName, [subcommandStr(subcommandId)]);
+    })
+    manager.setCurrentManager(subcommandManager);
+    manager.resetState();
+  }
+
+  asSubcommand(): SubcommandBehavior {
+    return "invalid";
+  }
 }

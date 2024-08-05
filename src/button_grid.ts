@@ -48,7 +48,10 @@ export class ButtonGridManager implements AbstractButtonManager {
   resetState(): void {
     this.setActiveGrid(this.rootGrid);
     this.resetModifiers();
-    this.managerFacade.setCurrentManager(this);
+  }
+
+  setCurrentManager(manager: AbstractButtonManager): void {
+    this.managerFacade.setCurrentManager(manager);
   }
 
   resetModifiers(): void {
@@ -100,7 +103,7 @@ export class ButtonGridManager implements AbstractButtonManager {
     const button = this.activeGrid.getKeyMappingTable()[input.toEmacsSyntax()];
     if (button !== undefined) {
       input.event.preventDefault();
-      await this.onClick(button);
+      await this.managerFacade.onClick(button);
       return KeyResponse.BLOCK;
     } else {
       return await this.activeGrid.onUnhandledKey(input, this.managerFacade);
@@ -191,6 +194,7 @@ export interface AbstractButtonManager {
 
   onClick(cell: GridCell): Promise<void>;
   onEscape(): Promise<void>;
+  setCurrentManager(manager: AbstractButtonManager): void;
 }
 
 export abstract class ButtonGrid {

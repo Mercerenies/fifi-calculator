@@ -54,6 +54,10 @@ export class SubcommandButtonManager implements AbstractButtonManager {
     throw new Error("Attempted to invoke regular command during subcommand input!");
   }
 
+  setCurrentManager(manager: AbstractButtonManager): void {
+    this.parent.setCurrentManager(manager);
+  }
+
   async onClick(cell: GridCell): Promise<void> {
     try {
       const subcommand = cell.asSubcommand(this);
@@ -66,10 +70,11 @@ export class SubcommandButtonManager implements AbstractButtonManager {
       }
     } finally {
       this.resetState();
+      this.setCurrentManager(this.parent);
     }
   }
 
   async onEscape(): Promise<void> {
-    this.resetState();
+    this.setCurrentManager(this.parent);
   }
 }

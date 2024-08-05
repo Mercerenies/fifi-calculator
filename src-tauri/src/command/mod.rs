@@ -199,6 +199,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("vmask".to_string(), Box::new(BinaryFunctionCommand::named("vmask")));
   map.insert("norm".to_string(), Box::new(vector::NormCommand::new()));
   map.insert("cross".to_string(), Box::new(BinaryFunctionCommand::named("cross")));
+  map.insert("vapply".to_string(), Box::new(vector::VectorApplyCommand::new()));
 
   // Vector statistics commands
   map.insert("mean".to_string(), Box::new(dispatch_on_flags_command(FlagDispatchArgs {

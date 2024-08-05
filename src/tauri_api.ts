@@ -118,9 +118,9 @@ export function defaultCommandOptions(): CommandOptions {
 
 // Returns a string argument representing the SubcommandId object, in
 // a format Rust understands.
-export function subcommand(name: string, options: CommandOptions): string;
-export function subcommand(subcommandId: SubcommandId): string;
-export function subcommand(nameOrId: string | SubcommandId, options?: CommandOptions): string {
+export function subcommandStr(name: string, options: CommandOptions): string;
+export function subcommandStr(subcommandId: SubcommandId): string;
+export function subcommandStr(nameOrId: string | SubcommandId, options?: CommandOptions): string {
   /* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */
   const subcommand: SubcommandId = (typeof nameOrId === 'string' ? { name: nameOrId, options: options! } : nameOrId);
   return JSON.stringify(subcommand);
