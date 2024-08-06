@@ -484,6 +484,8 @@ mod tests {
     hash_map.insert("nop".to_string(), Box::new(NullaryCommand));
     hash_map.insert("test_func".to_string(), Box::new(UnaryFunctionCommand::named("test_func")));
     hash_map.insert("test_func2".to_string(), Box::new(BinaryFunctionCommand::named("test_func2")));
+    hash_map.insert("+".to_string(), Box::new(BinaryFunctionCommand::named("+")));
+    hash_map.insert("*".to_string(), Box::new(BinaryFunctionCommand::named("*")));
     CommandDispatchTable::from_hash_map(hash_map)
   }
 
@@ -1323,6 +1325,133 @@ mod tests {
       Expr::from(20),
       Expr::call("vector", vec![
         Expr::from(30),
+      ]),
+    ]));
+  }
+
+  #[test]
+  fn test_outer_product() {
+    let command = OuterProductCommand::new();
+    let arg = {
+      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
+      serde_json::to_string(&subcommand_id).unwrap()
+    };
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![
+        Expr::from(30),
+        Expr::from(40),
+      ]),
+      Expr::call("vector", vec![
+        Expr::from(50),
+        Expr::from(60),
+        Expr::from(70),
+      ]),
+    ];
+    let output_stack = act_on_stack(&command, (setup_sample_dispatch_table, vec![arg]), input_stack).unwrap();
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![
+        Expr::call("vector", vec![
+          Expr::call("test_func2", vec![Expr::from(30), Expr::from(50)]),
+          Expr::call("test_func2", vec![Expr::from(30), Expr::from(60)]),
+          Expr::call("test_func2", vec![Expr::from(30), Expr::from(70)]),
+        ]),
+        Expr::call("vector", vec![
+          Expr::call("test_func2", vec![Expr::from(40), Expr::from(50)]),
+          Expr::call("test_func2", vec![Expr::from(40), Expr::from(60)]),
+          Expr::call("test_func2", vec![Expr::from(40), Expr::from(70)]),
+        ]),
+      ]),
+    ]));
+  }
+
+  #[test]
+  fn test_outer_product_with_keep_modifier() {
+    let command = OuterProductCommand::new();
+    let arg = {
+      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
+      serde_json::to_string(&subcommand_id).unwrap()
+    };
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![
+        Expr::from(30),
+        Expr::from(40),
+      ]),
+      Expr::call("vector", vec![
+        Expr::from(50),
+        Expr::from(60),
+        Expr::from(70),
+      ]),
+    ];
+    let opts = CommandOptions::default().with_keep_modifier();
+    let output_stack = act_on_stack(&command, (setup_sample_dispatch_table, vec![arg], opts), input_stack).unwrap();
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![
+        Expr::from(30),
+        Expr::from(40),
+      ]),
+      Expr::call("vector", vec![
+        Expr::from(50),
+        Expr::from(60),
+        Expr::from(70),
+      ]),
+      Expr::call("vector", vec![
+        Expr::call("vector", vec![
+          Expr::call("test_func2", vec![Expr::from(30), Expr::from(50)]),
+          Expr::call("test_func2", vec![Expr::from(30), Expr::from(60)]),
+          Expr::call("test_func2", vec![Expr::from(30), Expr::from(70)]),
+        ]),
+        Expr::call("vector", vec![
+          Expr::call("test_func2", vec![Expr::from(40), Expr::from(50)]),
+          Expr::call("test_func2", vec![Expr::from(40), Expr::from(60)]),
+          Expr::call("test_func2", vec![Expr::from(40), Expr::from(70)]),
+        ]),
+      ]),
+    ]));
+  }
+
+  #[test]
+  fn test_inner_product() {
+    let command = InnerProductCommand::new();
+    let mul_arg = {
+      let subcommand_id = SubcommandId { name: String::from("*"), options: CommandOptions::default() };
+      serde_json::to_string(&subcommand_id).unwrap()
+    };
+    let add_arg = {
+      let subcommand_id = SubcommandId { name: String::from("+"), options: CommandOptions::default() };
+      serde_json::to_string(&subcommand_id).unwrap()
+    };
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![
+        Expr::from(30),
+        Expr::from(40),
+        Expr::from(50),
+      ]),
+      Expr::call("vector", vec![
+        Expr::from(60),
+        Expr::from(70),
+        Expr::from(80),
+      ]),
+    ];
+    let output_stack = act_on_stack(&command, (setup_sample_dispatch_table, vec![mul_arg, add_arg]), input_stack).unwrap();
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("+", vec![
+        Expr::call("+", vec![
+          Expr::call("*", vec![Expr::from(30), Expr::from(60)]),
+          Expr::call("*", vec![Expr::from(40), Expr::from(70)]),
+        ]),
+        Expr::call("*", vec![Expr::from(50), Expr::from(80)]),
       ]),
     ]));
   }
