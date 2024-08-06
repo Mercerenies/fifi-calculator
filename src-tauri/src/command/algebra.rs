@@ -3,6 +3,8 @@
 
 use super::arguments::{UnaryArgumentSchema, validate_schema};
 use super::base::{Command, CommandContext, CommandOutput};
+use super::subcommand::Subcommand;
+use super::options::CommandOptions;
 use crate::errorlist::ErrorList;
 use crate::expr::Expr;
 use crate::expr::atom::Atom;
@@ -57,5 +59,9 @@ impl Command for FindRootCommand {
     stack.push(expr);
 
     Ok(CommandOutput::from_errors(errors))
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
   }
 }

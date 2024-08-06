@@ -17,7 +17,7 @@ pub struct SimplifierError {
 }
 
 /// Error indicating that the function's arity was not correct.
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
 #[error("Expected {expected} argument(s) but got {actual}.")]
 pub struct ArityError {
   pub expected: usize,

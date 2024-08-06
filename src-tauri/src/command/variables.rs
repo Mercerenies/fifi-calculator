@@ -3,6 +3,8 @@
 
 use super::arguments::{UnaryArgumentSchema, BinaryArgumentSchema, validate_schema};
 use super::base::{Command, CommandContext, CommandOutput};
+use super::options::CommandOptions;
+use super::subcommand::Subcommand;
 use crate::errorlist::ErrorList;
 use crate::expr::Expr;
 use crate::expr::prisms::StringToVar;
@@ -116,6 +118,10 @@ impl Command for SubstituteVarCommand {
 
     Ok(CommandOutput::from_errors(errors))
   }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
+  }
 }
 
 impl Command for StoreVarCommand {
@@ -139,6 +145,10 @@ impl Command for StoreVarCommand {
 
     Ok(CommandOutput::success())
   }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
+  }
 }
 
 impl Command for UnbindVarCommand {
@@ -159,5 +169,9 @@ impl Command for UnbindVarCommand {
     state.undo_stack_mut().push_change(UpdateVarChange::new(variable_name, old_value, None));
 
     Ok(CommandOutput::success())
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
   }
 }

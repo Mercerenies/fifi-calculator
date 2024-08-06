@@ -230,6 +230,18 @@ impl Vector {
     let args = self.into_iter().map(abs).collect();
     Expr::call("max", args)
   }
+
+  /// Produces the outer product of this and another vector, using the
+  /// given function as the multiplication operation.
+  pub fn outer_product<F>(self, other: Vector, mut f: F) -> Matrix
+  where F: FnMut(Expr, Expr) -> Expr {
+    if self.is_empty() || other.is_empty() {
+      return Matrix::default();
+    }
+    Matrix::from_generator(self.len(), other.len(), move |index| {
+      f(self[index.y].clone(), other[index.x].clone())
+    })
+  }
 }
 
 impl Prism<Expr, Vector> for ExprToVector {
@@ -509,5 +521,36 @@ mod tests {
   #[should_panic]
   fn test_norm_zero_panics() {
     Vector::default().norm(0);
+  }
+
+  #[test]
+  fn test_outer_product_on_empty() {
+    assert_eq!(
+      Vector::default().outer_product(Vector::from(vec![Expr::from(10)]), |_, _| unreachable!()),
+      Matrix::default(),
+    );
+    assert_eq!(
+      Vector::from(vec![Expr::from(10)]).outer_product(Vector::default(), |_, _| unreachable!()),
+      Matrix::default(),
+    );
+    assert_eq!(
+      Vector::default().outer_product(Vector::default(), |_, _| unreachable!()),
+      Matrix::default(),
+    );
+  }
+
+  #[test]
+  fn test_outer_product() {
+    fn test_func(a: impl Into<Expr>, b: impl Into<Expr>) -> Expr {
+      Expr::call("test_func", vec![a.into(), b.into()])
+    }
+
+    let a_vec = Vector::from(vec![Expr::from(10), Expr::from(20)]);
+    let b_vec = Vector::from(vec![Expr::from(100), Expr::from(200), Expr::from(300)]);
+    let mat = a_vec.outer_product(b_vec, test_func);
+    assert_eq!(mat, Matrix::new(vec![
+      vec![test_func(10, 100), test_func(10, 200), test_func(10, 300)],
+      vec![test_func(20, 100), test_func(20, 200), test_func(20, 300)],
+    ]).unwrap());
   }
 }

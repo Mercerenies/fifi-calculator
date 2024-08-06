@@ -1,5 +1,6 @@
 
-import { ButtonGridManager, ButtonGrid, GridCell } from "../button_grid.js";
+import { AbstractButtonManager, ButtonGrid, GridCell } from "../button_grid.js";
+import { SubcommandBehavior } from './subcommand.js';
 import { ButtonModifiers } from './modifier_delegate.js';
 import { backButton, Button } from './button.js';
 import { variableNameInput } from '../input_box/algebraic_input.js';
@@ -43,13 +44,17 @@ export class VariableStoreButton extends Button {
     this.overrideKeepModifier = overrideKeepModifier;
   }
 
-  async fire(manager: ButtonGridManager): Promise<void> {
+  async fire(manager: AbstractButtonManager): Promise<void> {
     // Fire-and-forget a new promise that gets user input, so we don't
     // hold up the existing input.
     this.readAndStore(manager);
   }
 
-  private async readAndStore(manager: ButtonGridManager): Promise<void> {
+  asSubcommand(): SubcommandBehavior {
+    return "invalid";
+  }
+
+  private async readAndStore(manager: AbstractButtonManager): Promise<void> {
     try {
       const isValid = await TAURI.validateStackSize(1);
       if (!isValid) {
@@ -75,18 +80,21 @@ export class VariableStoreButton extends Button {
 }
 
 export class VariableUnbindButton extends Button {
-
   constructor() {
     super("<math><mo lspace='0' rspace='0'>↚</mo></math>", "u");
   }
 
-  async fire(manager: ButtonGridManager): Promise<void> {
+  async fire(manager: AbstractButtonManager): Promise<void> {
     // Fire-and-forget a new promise that gets user input, so we don't
     // hold up the existing input.
     this.readAndStore(manager);
   }
 
-  private async readAndStore(manager: ButtonGridManager): Promise<void> {
+  asSubcommand(): SubcommandBehavior {
+    return "invalid";
+  }
+
+  private async readAndStore(manager: AbstractButtonManager): Promise<void> {
     try {
       const variableName = await variableNameInput(manager.inputManager);
       if (!variableName) {

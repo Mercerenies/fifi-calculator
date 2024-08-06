@@ -1,5 +1,5 @@
 
-import { ButtonGridManager, ButtonGrid, GridCell } from "../button_grid.js";
+import { AbstractButtonManager, ButtonGrid, GridCell } from "../button_grid.js";
 import { AlgebraButtonGrid } from "./algebra_button_grid.js";
 import { StorageButtonGrid } from "./storage_button_grid.js";
 import { VectorButtonGrid } from "./vector_button_grid.js";
@@ -18,10 +18,6 @@ import { NumericalInputButton, AlgebraicInputButton } from './button/input.js';
 import { numericalInputToStack } from '../input_box/numerical_input.js';
 import { KeyEventInput, KeyResponse } from '../keyboard.js';
 import { svg } from '../util.js';
-
-export interface Hideable {
-  hide(): void;
-}
 
 function discardSvg(): HTMLElement {
   return svg('assets/discard.svg', {alt: "pop"});
@@ -50,13 +46,10 @@ export class MainButtonGrid extends ButtonGrid {
 
   readonly rows: readonly (readonly GridCell[])[];
 
-  private onEscapeDismissable: Hideable;
-
   private subgrids: Subgrids;
 
-  constructor(onEscapeDismissable: Hideable) {
+  constructor() {
     super();
-    this.onEscapeDismissable = onEscapeDismissable;
     this.subgrids = new Subgrids(this);
     this.rows = this.initRows();
   }
@@ -106,13 +99,13 @@ export class MainButtonGrid extends ButtonGrid {
     ];
   }
 
-  async onUnhandledKey(input: KeyEventInput, manager: ButtonGridManager): Promise<KeyResponse> {
+  async onUnhandledKey(input: KeyEventInput, manager: AbstractButtonManager): Promise<KeyResponse> {
     const key = input.toEmacsSyntax();
 
     const forwardingRule = SUBGRID_FORWARDING_TABLE[key];
     if (forwardingRule !== undefined) {
       const table = this.subgrids[forwardingRule].getKeyMappingTable();
-      await table[key].fire(manager);
+      await manager.onClick(table[key]);
       return KeyResponse.BLOCK;
     }
 
@@ -122,7 +115,7 @@ export class MainButtonGrid extends ButtonGrid {
       numericalInputToStack(manager.inputManager, this.translateInitialInput(key)); // Fire-and-forget promise
       return KeyResponse.BLOCK;
     } else if (key === "Escape") {
-      this.onEscapeDismissable.hide();
+      await manager.onEscape();
       return KeyResponse.BLOCK;
     } else {
       return KeyResponse.PASS;

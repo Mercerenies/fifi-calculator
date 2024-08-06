@@ -1,5 +1,6 @@
 
-import { ButtonGridManager, ButtonGrid, GridCell } from "../button_grid.js";
+import { AbstractButtonManager, ButtonGrid, GridCell } from "../button_grid.js";
+import { SubcommandBehavior } from './subcommand.js';
 import { backButton, Button, DispatchButton } from './button.js';
 import { InputBoxManager } from '../input_box.js';
 import { FreeformInputMethod } from '../input_box/freeform_input.js';
@@ -56,9 +57,13 @@ export class SetDisplayRadixButton extends Button {
     this.targetRadix = targetRadix;
   }
 
-  async fire(manager: ButtonGridManager): Promise<void> {
+  async fire(manager: AbstractButtonManager): Promise<void> {
     await manager.invokeMathCommand(this.commandName, [String(this.targetRadix)]);
     manager.resetState();
+  }
+
+  asSubcommand(): SubcommandBehavior {
+    return "invalid";
   }
 }
 
@@ -70,11 +75,15 @@ export class SetDisplayRadixToInputButton extends Button {
     super("r", "r");
   }
 
-  async fire(manager: ButtonGridManager): Promise<void> {
+  async fire(manager: AbstractButtonManager): Promise<void> {
     this.getInputAndSet(manager); // Fire-and-forget
   }
 
-  private async getInputAndSet(manager: ButtonGridManager): Promise<void> {
+  asSubcommand(): SubcommandBehavior {
+    return "invalid";
+  }
+
+  private async getInputAndSet(manager: AbstractButtonManager): Promise<void> {
     try {
       const userInput = await getRadixUserInput(manager.inputManager);
       if (userInput !== undefined) {

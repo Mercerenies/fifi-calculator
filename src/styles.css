@@ -150,6 +150,12 @@ input.prefix-arg-value {
     grid-template-columns: repeat(5, 1fr);
 }
 
+.button-grid-top-label {
+    height: 16px;
+    margin-top: 0.6em;
+    margin-bottom: 0.6em;
+}
+
 .button-panel-below-grid {
     padding-top: 1em;
 }

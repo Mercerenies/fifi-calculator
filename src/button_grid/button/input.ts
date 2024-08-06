@@ -1,5 +1,6 @@
 
-import { ButtonGridManager } from "../../button_grid.js";
+import { AbstractButtonManager } from "../../button_grid.js";
+import { SubcommandBehavior } from '../subcommand.js';
 import { modifiersToRustArgs } from "../modifier_delegate.js";
 import { Button } from '../button.js';
 import { numericalInputToStack } from '../../input_box/numerical_input.js';
@@ -12,11 +13,16 @@ function pencilSvg(): HTMLElement {
 }
 
 export abstract class InputButton extends Button {
-  abstract runInputFlow(gridManager: ButtonGridManager): Promise<void>;
+  abstract runInputFlow(gridManager: AbstractButtonManager): Promise<void>;
 
-  async fire(manager: ButtonGridManager): Promise<void> {
+  async fire(manager: AbstractButtonManager): Promise<void> {
     await this.runInputFlow(manager);
     manager.resetState();
+  }
+
+  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+  asSubcommand(manager: AbstractButtonManager): SubcommandBehavior {
+    return "invalid";
   }
 }
 
@@ -25,7 +31,7 @@ export class NumericalInputButton extends InputButton {
     super("<span class='mathy-text'>#</span>", null);
   }
 
-  runInputFlow(manager: ButtonGridManager): Promise<void> {
+  runInputFlow(manager: AbstractButtonManager): Promise<void> {
     return numericalInputToStack(manager.inputManager, "");
   }
 }
@@ -35,7 +41,7 @@ export class AlgebraicInputButton extends InputButton {
     super("<math><mi>f</mi></math>", "'");
   }
 
-  runInputFlow(manager: ButtonGridManager): Promise<void> {
+  runInputFlow(manager: AbstractButtonManager): Promise<void> {
     return algebraicInputToStack(manager.inputManager, "");
   }
 }
@@ -45,7 +51,7 @@ export class StringInputButton extends InputButton {
     super("&quot;", '"');
   }
 
-  runInputFlow(manager: ButtonGridManager): Promise<void> {
+  runInputFlow(manager: AbstractButtonManager): Promise<void> {
     return stringInputToStack(manager.inputManager, "");
   }
 }
@@ -60,7 +66,7 @@ export class AlgebraicEditButton extends InputButton {
     super(pencilSvg(), "`");
   }
 
-  runInputFlow(manager: ButtonGridManager): Promise<void> {
+  runInputFlow(manager: AbstractButtonManager): Promise<void> {
     const modifiers = manager.getModifiers();
     const stackIndex = Math.max(modifiers.prefixArgument ?? 1, 1) - 1;
     return editStackFrame(manager.inputManager, stackIndex, {

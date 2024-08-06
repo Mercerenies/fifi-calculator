@@ -1,4 +1,5 @@
 
+pub mod accum;
 pub mod algebra;
 pub mod arguments;
 mod base;
@@ -14,6 +15,7 @@ pub mod nullary;
 pub mod options;
 pub mod shuffle;
 pub mod statistics;
+pub mod subcommand;
 pub mod units;
 pub mod variables;
 pub mod vector;
@@ -198,6 +200,18 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("vmask".to_string(), Box::new(BinaryFunctionCommand::named("vmask")));
   map.insert("norm".to_string(), Box::new(vector::NormCommand::new()));
   map.insert("cross".to_string(), Box::new(BinaryFunctionCommand::named("cross")));
+  map.insert("vapply".to_string(), Box::new(accum::VectorApplyCommand::new()));
+  map.insert("vmap".to_string(), Box::new(accum::VectorMapCommand::new()));
+  map.insert("vreduce".to_string(), Box::new(dispatch_on_inverse_command(
+    accum::VectorReduceCommand::new(accum::ReduceDir::LeftToRight),
+    accum::VectorReduceCommand::new(accum::ReduceDir::RightToLeft),
+  )));
+  map.insert("vaccum".to_string(), Box::new(dispatch_on_inverse_command(
+    accum::VectorAccumCommand::new(accum::ReduceDir::LeftToRight),
+    accum::VectorAccumCommand::new(accum::ReduceDir::RightToLeft),
+  )));
+  map.insert("outerprod".to_string(), Box::new(accum::OuterProductCommand::new()));
+  map.insert("innerprod".to_string(), Box::new(accum::InnerProductCommand::new()));
 
   // Vector statistics commands
   map.insert("mean".to_string(), Box::new(dispatch_on_flags_command(FlagDispatchArgs {

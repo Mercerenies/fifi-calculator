@@ -4,6 +4,7 @@
 
 import { KeyEventInput, KeyResponse } from './keyboard.js';
 import { ModifierDelegate, ButtonModifiers, modifiersToRustArgs } from './button_grid/modifier_delegate.js';
+import { SubcommandBehavior } from './button_grid/subcommand.js';
 import { TAURI } from './tauri_api.js';
 import { InputBoxManager } from './input_box.js';
 
@@ -15,13 +16,17 @@ const GRID_CELLS_PER_ROW = 5;
 // nodes we generate.
 const GRID_ROWS = 6;
 
-export class ButtonGridManager {
+export class ButtonGridManager implements AbstractButtonManager {
   private domElement: HTMLElement;
   private rootGrid: ButtonGrid;
   private activeGrid: ButtonGrid;
   private modifierDelegate: ModifierDelegate;
+  private onEscapeDismissable: Hideable;
+  private buttonGridLabel: HTMLElement;
+  private managerFacade: ManagerFacade;
 
   readonly inputManager: InputBoxManager;
+  readonly labelHTML: string = "&nbsp;";
 
   constructor(args: ButtonGridManagerArgs) {
     this.domElement = args.domElement;
@@ -29,6 +34,9 @@ export class ButtonGridManager {
     this.activeGrid = args.initialGrid;
     this.modifierDelegate = args.modifierDelegate;
     this.inputManager = args.inputManager;
+    this.onEscapeDismissable = args.onEscapeDismissable;
+    this.buttonGridLabel = args.buttonGridLabel;
+    this.managerFacade = new ManagerFacade(this);
     this.setActiveGrid(args.initialGrid); // Initialize the grid
   }
 
@@ -43,6 +51,11 @@ export class ButtonGridManager {
   resetState(): void {
     this.setActiveGrid(this.rootGrid);
     this.resetModifiers();
+  }
+
+  setCurrentManager(manager: AbstractButtonManager): void {
+    this.managerFacade.setCurrentManager(manager);
+    this.buttonGridLabel.innerHTML = manager.labelHTML;
   }
 
   resetModifiers(): void {
@@ -76,7 +89,7 @@ export class ButtonGridManager {
       const row = this.activeGrid.rows[y] ?? [];
       for (let x = 0; x < GRID_CELLS_PER_ROW; x++) {
         const gridCell = row[x] ?? new Spacer();
-        gridDiv.appendChild(gridCell.getHTML(this));
+        gridDiv.appendChild(gridCell.getHTML(this.managerFacade));
       }
     }
     this.domElement.appendChild(gridDiv);
@@ -94,12 +107,77 @@ export class ButtonGridManager {
     const button = this.activeGrid.getKeyMappingTable()[input.toEmacsSyntax()];
     if (button !== undefined) {
       input.event.preventDefault();
-      await button.fire(this);
+      await this.managerFacade.onClick(button);
       return KeyResponse.BLOCK;
     } else {
-      return await this.activeGrid.onUnhandledKey(input, this);
+      return await this.activeGrid.onUnhandledKey(input, this.managerFacade);
     }
   }
+
+  async onClick(cell: GridCell): Promise<void> {
+    cell.fire(this);
+  }
+
+  async onEscape(): Promise<void> {
+    this.onEscapeDismissable.hide();
+  }
+}
+
+// Private helper which delegates to a settable AbstractButtonManager.
+// We have this extra layer of indirection so we can set up all of the
+// HTML for the button grids one time (with one object as the closure)
+// and have this object dispatch to the appropriate place for a
+// command or subcommand, based on the state of the system.
+class ManagerFacade implements AbstractButtonManager {
+  private currentManager: AbstractButtonManager;
+
+  constructor(manager: ButtonGridManager) {
+    this.currentManager = manager;
+  }
+
+  get inputManager(): InputBoxManager {
+    return this.currentManager.inputManager;
+  }
+
+  get labelHTML(): string {
+    return this.currentManager.labelHTML;
+  }
+
+  getModifiers(): ButtonModifiers {
+    return this.currentManager.getModifiers();
+  }
+
+  setActiveGrid(grid: ButtonGrid): void {
+    this.currentManager.setActiveGrid(grid);
+  }
+
+  resetState(): void {
+    this.currentManager.resetState();
+  }
+
+  invokeMathCommand(
+    commandName: string,
+    args?: string[],
+    modifiersOverrides?: Partial<ButtonModifiers>,
+  ): Promise<void> {
+    return this.currentManager.invokeMathCommand(commandName, args, modifiersOverrides);
+  }
+
+  onClick(cell: GridCell): Promise<void> {
+    return this.currentManager.onClick(cell);
+  }
+
+  onEscape(): Promise<void> {
+    return this.currentManager.onEscape();
+  }
+
+  setCurrentManager(manager: AbstractButtonManager): void {
+    this.currentManager = manager;
+  }
+}
+
+export interface Hideable {
+  hide(): void;
 }
 
 export interface ButtonGridManagerArgs {
@@ -107,6 +185,26 @@ export interface ButtonGridManagerArgs {
   initialGrid: ButtonGrid;
   modifierDelegate: ModifierDelegate;
   inputManager: InputBoxManager;
+  onEscapeDismissable: Hideable;
+  buttonGridLabel: HTMLElement;
+}
+
+export interface AbstractButtonManager {
+  readonly inputManager: InputBoxManager;
+  readonly labelHTML: string;
+
+  getModifiers(): ButtonModifiers;
+  setActiveGrid(grid: ButtonGrid): void;
+  resetState(): void;
+  invokeMathCommand(
+    commandName: string,
+    args?: string[],
+    modifiersOverrides?: Partial<ButtonModifiers>,
+  ): Promise<void>;
+
+  onClick(cell: GridCell): Promise<void>;
+  onEscape(): Promise<void>;
+  setCurrentManager(manager: AbstractButtonManager): void;
 }
 
 export abstract class ButtonGrid {
@@ -120,7 +218,7 @@ export abstract class ButtonGrid {
   abstract get rows(): readonly (readonly GridCell[])[];
 
   /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
-  onUnhandledKey(input: KeyEventInput, manager: ButtonGridManager): Promise<KeyResponse> {
+  onUnhandledKey(input: KeyEventInput, manager: AbstractButtonManager): Promise<KeyResponse> {
     // Default implementation is empty.
     return Promise.resolve(KeyResponse.PASS);
   }
@@ -141,6 +239,7 @@ export abstract class ButtonGrid {
   // getAllKeys() can be overridden by subclasses to include keys
   // which delegate to other grids via onUnhandledKey().
   getAllKeys(): string[] {
+    // TODO: Currently no subclasses actually override this. Do we even use it?
     return this.getAllCellKeys();
   }
 
@@ -167,8 +266,9 @@ export abstract class ButtonGrid {
 export interface GridCell {
   readonly keyboardShortcut: string | null;
 
-  getHTML(manager: ButtonGridManager): HTMLElement;
-  fire(manager: ButtonGridManager): Promise<void>;
+  getHTML(manager: AbstractButtonManager): HTMLElement;
+  fire(manager: AbstractButtonManager): Promise<void>;
+  asSubcommand(manager: AbstractButtonManager): SubcommandBehavior;
 }
 
 // Empty grid cell.
@@ -182,5 +282,10 @@ export class Spacer implements GridCell {
   fire(): Promise<void> {
     // No action.
     return Promise.resolve();
+  }
+
+  asSubcommand(): SubcommandBehavior {
+    // No action.
+    return "pass";
   }
 }

@@ -12,6 +12,8 @@ use crate::util::prism::Prism;
 use crate::state::ApplicationState;
 use super::base::{Command, CommandContext, CommandOutput};
 use super::arguments::{NullaryArgumentSchema, validate_schema};
+use super::options::CommandOptions;
+use super::subcommand::Subcommand;
 
 use std::cmp::Ordering;
 
@@ -154,6 +156,13 @@ impl Command for DatasetDrivenCommand {
       }
     }
   }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    Some(Subcommand::new(1, |exprs| {
+      let [expr] = exprs.try_into().expect("Expected one argument");
+      self.wrap_expr(expr)
+    }))
+  }
 }
 
 impl Command for CovarianceCommand {
@@ -202,6 +211,10 @@ impl Command for CovarianceCommand {
 
     Ok(CommandOutput::from_errors(errors))
   }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    Some(Subcommand::named(2, &self.function_name))
+  }
 }
 
 #[cfg(test)]
@@ -209,6 +222,7 @@ mod tests {
   use super::*;
   use crate::command::test_utils::act_on_stack;
   use crate::command::options::CommandOptions;
+  use crate::command::subcommand::test_utils::{try_call as try_call_subcommand};
   use crate::stack::{Stack, StackError};
 
   fn dataset_command() -> DatasetDrivenCommand {
@@ -451,5 +465,27 @@ mod tests {
         Expr::from(40),
       ])]),
     ]));
+  }
+
+  #[test]
+  fn test_dataset_command_subcommand() {
+    let command = dataset_command();
+    let subcommand = command.as_subcommand(&CommandOptions::default()).unwrap();
+    assert_eq!(subcommand.arity(), 1);
+
+    let (expr, errors) = try_call_subcommand(&subcommand, vec![Expr::from(0)]).unwrap();
+    assert!(errors.is_empty());
+    assert_eq!(expr, Expr::call("test_func", vec![Expr::from(0)]));
+  }
+
+  #[test]
+  fn test_covariance_command_subcommand() {
+    let command = CovarianceCommand::named("test_func");
+    let subcommand = command.as_subcommand(&CommandOptions::default()).unwrap();
+    assert_eq!(subcommand.arity(), 2);
+
+    let (expr, errors) = try_call_subcommand(&subcommand, vec![Expr::from(0), Expr::from(10)]).unwrap();
+    assert!(errors.is_empty());
+    assert_eq!(expr, Expr::call("test_func", vec![Expr::from(0), Expr::from(10)]));
   }
 }

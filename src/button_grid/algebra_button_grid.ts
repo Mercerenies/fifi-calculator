@@ -1,5 +1,6 @@
 
-import { ButtonGridManager, ButtonGrid, GridCell } from "../button_grid.js";
+import { AbstractButtonManager, ButtonGrid, GridCell } from "../button_grid.js";
+import { SubcommandBehavior } from './subcommand.js';
 import { backButton, Button } from './button.js';
 import { variableNameInput } from '../input_box/algebraic_input.js';
 import { FreeformInputMethod } from '../input_box/freeform_input.js';
@@ -40,13 +41,13 @@ export class VariableSubstituteButton extends Button {
     super("/.", "b");
   }
 
-  async fire(manager: ButtonGridManager): Promise<void> {
+  async fire(manager: AbstractButtonManager): Promise<void> {
     // Fire-and-forget a new promise that gets user input, so we don't
     // hold up the existing input.
     this.readAndSubstitute(manager);
   }
 
-  private async readAndSubstitute(manager: ButtonGridManager): Promise<void> {
+  private async readAndSubstitute(manager: AbstractButtonManager): Promise<void> {
     try {
       const isValid = await TAURI.validateStackSize(1);
       if (!isValid) {
@@ -65,6 +66,10 @@ export class VariableSubstituteButton extends Button {
       manager.resetState();
     }
   }
+
+  asSubcommand(): SubcommandBehavior {
+    return "invalid";
+  }
 }
 
 // TODO: Common superclass for buttons which expect one variable as
@@ -75,13 +80,13 @@ export class FindRootButton extends Button {
     super("=0", "R");
   }
 
-  async fire(manager: ButtonGridManager): Promise<void> {
+  async fire(manager: AbstractButtonManager): Promise<void> {
     // Fire-and-forget a new promise that gets user input, so we don't
     // hold up the existing input.
     this.readAndApply(manager);
   }
 
-  private async readAndApply(manager: ButtonGridManager): Promise<void> {
+  private async readAndApply(manager: AbstractButtonManager): Promise<void> {
     try {
       const isValid = await TAURI.validateStackSize(2);
       if (!isValid) {
@@ -96,6 +101,10 @@ export class FindRootButton extends Button {
       manager.resetState();
     }
   }
+
+  asSubcommand(): SubcommandBehavior {
+    return "invalid";
+  }
 }
 
 export class DerivativeButton extends Button {
@@ -104,13 +113,13 @@ export class DerivativeButton extends Button {
     super("<span class='mathy-text'>dx</span>", "d");
   }
 
-  async fire(manager: ButtonGridManager): Promise<void> {
+  async fire(manager: AbstractButtonManager): Promise<void> {
     // Fire-and-forget a new promise that gets user input, so we don't
     // hold up the existing input.
     this.readAndApply(manager);
   }
 
-  private async readAndApply(manager: ButtonGridManager): Promise<void> {
+  private async readAndApply(manager: AbstractButtonManager): Promise<void> {
     try {
       const isValid = await TAURI.validateStackSize(1);
       if (!isValid) {
@@ -124,5 +133,9 @@ export class DerivativeButton extends Button {
     } finally {
       manager.resetState();
     }
+  }
+
+  asSubcommand(): SubcommandBehavior {
+    return "invalid";
   }
 }
