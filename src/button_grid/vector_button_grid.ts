@@ -43,6 +43,7 @@ export class VectorButtonGrid extends ButtonGrid {
         new SubcommandDispatchButton("A", "vapply", "A"),
         new SubcommandDispatchButton("M", "vmap", "M"),
         new SubcommandDispatchButton("R", "vreduce", "R"),
+        new SubcommandDispatchButton("U", "vaccum", "U"),
       ],
       [
         new DispatchButton("len", "length", "l"),

@@ -49,6 +49,20 @@ pub struct VectorReduceCommand {
   direction: ReduceDir,
 }
 
+/// `VectorAccumCommand` works similarly to [`VectorReduceCommand`] but
+/// produces a vector of intermediate values rather than a single
+/// scalar result.
+///
+/// Specifically, `VectorAccumCommand` expects a bianry subcommand as
+/// argument. This command pops a single value off the stack, which
+/// must be a vector. The subcommand is used to reduce the vector, and
+/// a resulting vector of the same length (containing the intermediate
+/// results) is pushed onto the stack.
+#[derive(Debug)]
+pub struct VectorAccumCommand {
+  direction: ReduceDir,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReduceDir {
   LeftToRight,
@@ -75,6 +89,16 @@ impl VectorMapCommand {
 }
 
 impl VectorReduceCommand {
+  pub fn new(direction: ReduceDir) -> Self {
+    Self { direction }
+  }
+
+  pub fn direction(&self) -> ReduceDir {
+    self.direction
+  }
+}
+
+impl VectorAccumCommand {
   pub fn new(direction: ReduceDir) -> Self {
     Self { direction }
   }
@@ -214,7 +238,59 @@ impl Command for VectorReduceCommand {
         }).unwrap() // unwrap: Vector is non-empty
       }
     };
-    stack.push(expr.into());
+    stack.push(expr);
+    Ok(CommandOutput::from_errors(errors))
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
+  }
+}
+
+impl Command for VectorAccumCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    context: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    let subcommand_id = validate_schema(&unary_subcommand_argument_schema(), args)?;
+    let calculation_mode = state.calculation_mode().clone();
+    let mut errors = ErrorList::new();
+    let simplifier = context.simplifier.as_ref();
+    state.undo_stack_mut().push_cut();
+    let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
+
+    let subcommand = subcommand_id.as_ref().get_subcommand(context.dispatch_table)?;
+    anyhow::ensure!(subcommand.arity() == 2, "Expected binary subcommand");
+
+    let input_expr = stack.pop()?;
+    let vec = match prisms::ExprToVector.narrow_type(input_expr) {
+      Ok(vec) => vec,
+      Err(input_expr) => {
+        if !context.opts.keep_modifier {
+          stack.push(input_expr);
+        }
+        anyhow::bail!("Expected vector");
+      }
+    };
+
+    // call_or_panic: We checked the arity above.
+    let output_vec = match self.direction {
+      ReduceDir::LeftToRight => {
+        util::accum_left(vec.into_iter(), |a, b| {
+          subcommand.call_or_panic(vec![a, b], simplifier, calculation_mode.clone(), &mut errors)
+        }).collect::<Vector>()
+      }
+      ReduceDir::RightToLeft => {
+        let mut output_vec = util::accum_right(vec.into_iter(), |a, b| {
+          subcommand.call_or_panic(vec![a, b], simplifier, calculation_mode.clone(), &mut errors)
+        }).collect::<Vector>();
+        output_vec.as_mut_vec().reverse();
+        output_vec
+      }
+    };
+    stack.push(output_vec.into());
     Ok(CommandOutput::from_errors(errors))
   }
 
@@ -790,6 +866,302 @@ mod tests {
       Expr::from(10),
       Expr::from(20),
       Expr::from(30),
+    ]));
+  }
+
+  #[test]
+  fn test_accum_command() {
+    let command = VectorAccumCommand::new(ReduceDir::LeftToRight);
+    let arg = {
+      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
+      serde_json::to_string(&subcommand_id).unwrap()
+    };
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![
+        Expr::from(30),
+        Expr::from(40),
+        Expr::from(50),
+      ]),
+    ];
+    let output_stack = act_on_stack(&command, (setup_sample_dispatch_table, vec![arg]), input_stack).unwrap();
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![
+        Expr::from(30),
+        Expr::call("test_func2", vec![
+          Expr::from(30),
+          Expr::from(40),
+        ]),
+        Expr::call("test_func2", vec![
+          Expr::call("test_func2", vec![
+            Expr::from(30),
+            Expr::from(40),
+          ]),
+          Expr::from(50),
+        ]),
+      ]),
+    ]));
+  }
+
+  #[test]
+  fn test_accum_command_right_to_left() {
+    let command = VectorAccumCommand::new(ReduceDir::RightToLeft);
+    let arg = {
+      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
+      serde_json::to_string(&subcommand_id).unwrap()
+    };
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![
+        Expr::from(30),
+        Expr::from(40),
+        Expr::from(50),
+      ]),
+    ];
+    let output_stack = act_on_stack(&command, (setup_sample_dispatch_table, vec![arg]), input_stack).unwrap();
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![
+        Expr::call("test_func2", vec![
+          Expr::from(30),
+          Expr::call("test_func2", vec![
+            Expr::from(40),
+            Expr::from(50),
+          ]),
+        ]),
+        Expr::call("test_func2", vec![
+          Expr::from(40),
+          Expr::from(50),
+        ]),
+        Expr::from(50),
+      ]),
+    ]));
+  }
+
+  #[test]
+  fn test_accum_command_with_keep_modifier() {
+    let command = VectorAccumCommand::new(ReduceDir::LeftToRight);
+    let arg = {
+      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
+      serde_json::to_string(&subcommand_id).unwrap()
+    };
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![
+        Expr::from(30),
+        Expr::from(40),
+        Expr::from(50),
+      ]),
+    ];
+    let opts = CommandOptions::default().with_keep_modifier();
+    let output_stack = act_on_stack(&command, (setup_sample_dispatch_table, vec![arg], opts), input_stack).unwrap();
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![
+        Expr::from(30),
+        Expr::from(40),
+        Expr::from(50),
+      ]),
+      Expr::call("vector", vec![
+        Expr::from(30),
+        Expr::call("test_func2", vec![
+          Expr::from(30),
+          Expr::from(40),
+        ]),
+        Expr::call("test_func2", vec![
+          Expr::call("test_func2", vec![
+            Expr::from(30),
+            Expr::from(40),
+          ]),
+          Expr::from(50),
+        ]),
+      ]),
+    ]));
+  }
+
+  #[test]
+  fn test_accum_command_right_to_left_with_keep_modifier() {
+    let command = VectorAccumCommand::new(ReduceDir::RightToLeft);
+    let arg = {
+      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
+      serde_json::to_string(&subcommand_id).unwrap()
+    };
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![
+        Expr::from(30),
+        Expr::from(40),
+        Expr::from(50),
+      ]),
+    ];
+    let opts = CommandOptions::default().with_keep_modifier();
+    let output_stack = act_on_stack(&command, (setup_sample_dispatch_table, vec![arg], opts), input_stack).unwrap();
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![
+        Expr::from(30),
+        Expr::from(40),
+        Expr::from(50),
+      ]),
+      Expr::call("vector", vec![
+        Expr::call("test_func2", vec![
+          Expr::from(30),
+          Expr::call("test_func2", vec![
+            Expr::from(40),
+            Expr::from(50),
+          ]),
+        ]),
+        Expr::call("test_func2", vec![
+          Expr::from(40),
+          Expr::from(50),
+        ]),
+        Expr::from(50),
+      ]),
+    ]));
+  }
+
+  #[test]
+  fn test_accum_command_type_error() {
+    let command = VectorAccumCommand::new(ReduceDir::LeftToRight);
+    let arg = {
+      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
+      serde_json::to_string(&subcommand_id).unwrap()
+    };
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("some_other_function", vec![
+        Expr::from(30),
+        Expr::from(40),
+        Expr::from(50),
+      ]),
+    ];
+    let err = act_on_stack(&command, (setup_sample_dispatch_table, vec![arg]), input_stack).unwrap_err();
+    assert_eq!(err.to_string(), "Expected vector");
+  }
+
+  #[test]
+  fn test_accum_command_empty_vec_error() {
+    let command = VectorAccumCommand::new(ReduceDir::LeftToRight);
+    let arg = {
+      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
+      serde_json::to_string(&subcommand_id).unwrap()
+    };
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![]),
+    ];
+    let output_stack = act_on_stack(&command, (setup_sample_dispatch_table, vec![arg]), input_stack).unwrap();
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![]),
+    ]));
+  }
+
+  #[test]
+  fn test_accum_command_arity_error() {
+    let command = VectorAccumCommand::new(ReduceDir::LeftToRight);
+    let arg = {
+      let subcommand_id = SubcommandId { name: String::from("test_func"), options: CommandOptions::default() };
+      serde_json::to_string(&subcommand_id).unwrap()
+    };
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![
+        Expr::from(30),
+        Expr::from(40),
+        Expr::from(50),
+      ]),
+    ];
+    let err = act_on_stack(&command, (setup_sample_dispatch_table, vec![arg]), input_stack).unwrap_err();
+    assert_eq!(err.to_string(), "Expected binary subcommand");
+  }
+
+  #[test]
+  fn test_accum_command_on_empty_stack() {
+    let command = VectorAccumCommand::new(ReduceDir::LeftToRight);
+    let arg = {
+      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
+      serde_json::to_string(&subcommand_id).unwrap()
+    };
+    let input_stack = Vec::<Expr>::new();
+    let err = act_on_stack(&command, (setup_sample_dispatch_table, vec![arg]), input_stack).unwrap_err();
+    let err = err.downcast::<StackError>().unwrap();
+    assert_eq!(err, StackError::NotEnoughElements { expected: 1, actual: 0 });
+  }
+
+  #[test]
+  fn test_accum_command_on_invalid_subcommand() {
+    let command = VectorAccumCommand::new(ReduceDir::LeftToRight);
+    let arg = {
+      let subcommand_id = SubcommandId { name: String::from("nop"), options: CommandOptions::default() };
+      serde_json::to_string(&subcommand_id).unwrap()
+    };
+    let input_stack = vec![
+      Expr::call("vector", vec![Expr::from(10)]),
+    ];
+    let err = act_on_stack(&command, (setup_sample_dispatch_table, vec![arg]), input_stack).unwrap_err();
+    let err = err.downcast::<GetSubcommandError>().unwrap();
+    assert!(matches!(err, GetSubcommandError::InvalidSubcommandError(_)));
+  }
+
+  #[test]
+  fn test_accum_command_on_vector_of_len_one() {
+    let command = VectorAccumCommand::new(ReduceDir::LeftToRight);
+    let arg = {
+      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
+      serde_json::to_string(&subcommand_id).unwrap()
+    };
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![
+        Expr::from(30),
+      ]),
+    ];
+    let output_stack = act_on_stack(&command, (setup_sample_dispatch_table, vec![arg]), input_stack).unwrap();
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![
+        Expr::from(30),
+      ]),
+    ]));
+  }
+
+  #[test]
+  fn test_accum_command_right_to_left_on_vector_of_len_one() {
+    let command = VectorAccumCommand::new(ReduceDir::RightToLeft);
+    let arg = {
+      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
+      serde_json::to_string(&subcommand_id).unwrap()
+    };
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![
+        Expr::from(30),
+      ]),
+    ];
+    let output_stack = act_on_stack(&command, (setup_sample_dispatch_table, vec![arg]), input_stack).unwrap();
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![
+        Expr::from(30),
+      ]),
     ]));
   }
 }

@@ -206,6 +206,10 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
     accum::VectorReduceCommand::new(accum::ReduceDir::LeftToRight),
     accum::VectorReduceCommand::new(accum::ReduceDir::RightToLeft),
   )));
+  map.insert("vaccum".to_string(), Box::new(dispatch_on_inverse_command(
+    accum::VectorAccumCommand::new(accum::ReduceDir::LeftToRight),
+    accum::VectorAccumCommand::new(accum::ReduceDir::RightToLeft),
+  )));
 
   // Vector statistics commands
   map.insert("mean".to_string(), Box::new(dispatch_on_flags_command(FlagDispatchArgs {
