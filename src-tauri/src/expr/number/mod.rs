@@ -1,13 +1,15 @@
 
 mod complex;
-mod visitor;
 mod power;
-pub mod prisms;
+mod quaternion;
 mod real;
 mod repr;
+mod visitor;
+pub mod prisms;
 
 pub use real::{Number, ParseNumberError};
 pub use complex::ComplexNumber;
+pub use quaternion::Quaternion;
 pub use repr::NumberRepr;
 pub use power::{pow_real, pow_complex_to_real, pow_complex, root_real, root_complex};
 

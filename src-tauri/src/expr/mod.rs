@@ -20,7 +20,7 @@ pub mod walker;
 use atom::Atom;
 use var::Var;
 use var::table::VarTable;
-use number::{Number, ComplexNumber};
+use number::{Number, ComplexNumber, Quaternion};
 use crate::util::prism::ErrorWithPayload;
 
 use thiserror::Error;
@@ -66,6 +66,8 @@ impl Expr {
       Expr::Call(f, args) => {
         if f == ComplexNumber::FUNCTION_NAME && args.len() == 2 {
           args[0].is_zero() && args[1].is_zero()
+        } else if f == Quaternion::FUNCTION_NAME && args.len() == 4 {
+          args[0].is_zero() && args[1].is_zero() && args[2].is_zero() && args[3].is_zero()
         } else {
           false
         }
@@ -83,6 +85,8 @@ impl Expr {
       Expr::Call(f, args) => {
         if f == ComplexNumber::FUNCTION_NAME && args.len() == 2 {
           args[0].is_one() && args[1].is_zero()
+        } else if f == Quaternion::FUNCTION_NAME && args.len() == 4 {
+          args[0].is_one() && args[1].is_zero() && args[2].is_zero() && args[3].is_zero()
         } else {
           false
         }

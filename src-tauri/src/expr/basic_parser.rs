@@ -3,7 +3,7 @@
 //! mode](crate::display::basic::BasicLanguageMode].
 
 use super::Expr;
-use super::number::ComplexNumber;
+use super::number::{ComplexNumber, Quaternion};
 use super::vector::Vector;
 use super::tokenizer::{ExprTokenizer, Token, TokenData, TokenizerError};
 use crate::parsing::shunting_yard::{self, ShuntingYardDriver, ShuntingYardError};
@@ -168,21 +168,24 @@ impl<'a> ExprParser<'a> {
         Ok((Spanned::new(Expr::call(f, args), Span::new(token.span.start, end)), tail))
       }
       TokenData::LeftParen => {
-        let ((mut args, end), tail) = self.parse_function_args(&stream[1..], TokenData::RightParen)?;
+        let ((args, end), tail) = self.parse_function_args(&stream[1..], TokenData::RightParen)?;
         let span = Span::new(token.span.start, end);
         match args.len() {
           1 => {
             // Parenthesized expression, just return the inside
-            let arg = args.pop().unwrap();
+            let [arg] = args.try_into().unwrap();
             Ok((Spanned::new(arg, span), tail))
           }
           2 => {
-            // Complex number expression. Right now we write this
-            // explicitly and count on a simplifier to simplify it if
-            // given literal numbers.
-            let imag = args.pop().unwrap();
-            let real = args.pop().unwrap();
-            let expr = Expr::call("+", vec![real, Expr::call("*", vec![imag, Expr::from(ComplexNumber::ii())])]);
+            // Complex number expression.
+            let [real, imag] = args.try_into().unwrap();
+            let expr = Expr::call(ComplexNumber::FUNCTION_NAME, vec![real, imag]);
+            Ok((Spanned::new(expr, span), tail))
+          }
+          4 => {
+            // Quaternion expression
+            let [r, i, j, k] = args.try_into().unwrap();
+            let expr = Expr::call(Quaternion::FUNCTION_NAME, vec![r, i, j, k]);
             Ok((Spanned::new(expr, span), tail))
           }
           _ => {

@@ -3,7 +3,7 @@ use super::{LanguageMode, LanguageModeEngine, output_sep_by};
 use crate::parsing::operator::{Operator, Precedence, OperatorTable};
 use crate::parsing::operator::fixity::FixityType;
 use crate::expr::Expr;
-use crate::expr::number::{Number, ComplexNumber};
+use crate::expr::number::{Number, ComplexNumber, Quaternion};
 use crate::expr::atom::{Atom, write_escaped_str};
 use crate::expr::basic_parser::ExprParser;
 use crate::expr::vector::Vector;
@@ -214,6 +214,19 @@ impl BasicLanguageMode {
     out.push(')');
   }
 
+  fn quat_to_html(&self, engine: &LanguageModeEngine, out: &mut String, args: &[Expr]) {
+    assert_eq!(args.len(), 4, "Expecting slice of four Exprs, got {:?}", args);
+    out.push('(');
+    engine.write_to_html(out, &args[0], Precedence::MIN);
+    out.push_str(", ");
+    engine.write_to_html(out, &args[1], Precedence::MIN);
+    out.push_str(", ");
+    engine.write_to_html(out, &args[2], Precedence::MIN);
+    out.push_str(", ");
+    engine.write_to_html(out, &args[3], Precedence::MIN);
+    out.push(')');
+  }
+
   fn incomplete_object_to_html(&self, engine: &LanguageModeEngine, out: &mut String, args: &[Expr]) {
     assert_eq!(args.len(), 1, "Expecting slice of two Exprs, got {:?}", args);
     if let Expr::Atom(Atom::String(s)) = &args[0] {
@@ -251,6 +264,8 @@ impl LanguageMode for BasicLanguageMode {
           self.incomplete_object_to_html(engine, out, args);
         } else if f == ComplexNumber::FUNCTION_NAME && args.len() == 2 {
           self.complex_to_html(engine, out, args);
+        } else if f == Quaternion::FUNCTION_NAME && args.len() == 4 {
+          self.quat_to_html(engine, out, args);
         } else if f == Vector::FUNCTION_NAME {
           self.vector_to_html(engine, out, args);
         } else {

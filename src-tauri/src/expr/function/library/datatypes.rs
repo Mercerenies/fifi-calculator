@@ -13,6 +13,7 @@ use crate::util::prism::Identity;
 pub fn append_datatype_functions(table: &mut FunctionTable) {
   table.insert(vector_function());
   table.insert(complex_function());
+  table.insert(quaternion_function());
   table.insert(closed_interval());
   table.insert(right_open_interval());
   table.insert(left_open_interval());
@@ -43,6 +44,29 @@ pub fn complex_function() -> Function {
       |args, engine| {
         let args = engine.differentiate_each(args)?;
         Ok(Expr::call("complex", args))
+      }
+    )
+    .build()
+}
+
+pub fn quaternion_function() -> Function {
+  FunctionBuilder::new("quat")
+    .add_case(
+      // Only real part
+      builder::arity_four().of_types(Identity, prisms::ExprToZero, prisms::ExprToZero, prisms::ExprToZero).and_then(|a, _, _, _, _| {
+        Ok(a)
+      })
+    )
+    .add_case(
+      // Only complex part
+      builder::arity_four().of_types(Identity, Identity, prisms::ExprToZero, prisms::ExprToZero).and_then(|a, b, _, _, _| {
+        Ok(Expr::call("complex", vec![a, b]))
+      })
+    )
+    .set_derivative(
+      |args, engine| {
+        let args = engine.differentiate_each(args)?;
+        Ok(Expr::call("quat", args))
       }
     )
     .build()
