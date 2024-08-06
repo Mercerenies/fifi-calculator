@@ -41,6 +41,7 @@ export class VectorButtonGrid extends ButtonGrid {
       [
         new DispatchButton("<math><mo>&times;</mo></math>", "cross", "C"),
         new SubcommandDispatchButton("A", "vapply", "A"),
+        new SubcommandDispatchButton("M", "vmap", "M"),
       ],
       [
         new DispatchButton("len", "length", "l"),

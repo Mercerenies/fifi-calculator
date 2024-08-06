@@ -135,6 +135,17 @@ pub struct VectorApplyCommand {
   _priv: (),
 }
 
+/// `VectorMapCommand` expects a unary subcommand as argument. This
+/// command pops a single value off the stack, which must be a vector,
+/// and applies the subcommand to each vector element separately,
+/// producing a new vector.
+///
+/// Respects the "keep" modifier.
+#[derive(Debug, Default)]
+pub struct VectorMapCommand {
+  _priv: (),
+}
+
 /// `VectorFromIncompleteObjectCommand` pops stack elements until it finds
 /// the incomplete object [`ObjectType::LeftBracket`]. Then it pushes
 /// a vector containing every value popped up to that point.
@@ -287,6 +298,12 @@ impl NormCommand {
 }
 
 impl VectorApplyCommand {
+  pub fn new() -> Self {
+    Self { _priv: () }
+  }
+}
+
+impl VectorMapCommand {
   pub fn new() -> Self {
     Self { _priv: () }
   }
@@ -646,6 +663,48 @@ impl Command for VectorApplyCommand {
       }
     };
     stack.push(expr);
+    Ok(CommandOutput::from_errors(errors))
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
+  }
+}
+
+impl Command for VectorMapCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    context: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    let subcommand_id = validate_schema(&unary_subcommand_argument_schema(), args)?;
+    let calculation_mode = state.calculation_mode().clone();
+    let mut errors = ErrorList::new();
+    let simplifier = context.simplifier.as_ref();
+    state.undo_stack_mut().push_cut();
+    let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
+
+    let subcommand = subcommand_id.as_ref().get_subcommand(context.dispatch_table)?;
+    if subcommand.arity() != 1 {
+      anyhow::bail!("Expected unary subcommand");
+    }
+
+    let input_expr = stack.pop()?;
+    let vec = match prisms::ExprToVector.narrow_type(input_expr) {
+      Ok(vec) => vec,
+      Err(input_expr) => {
+        if !context.opts.keep_modifier {
+          stack.push(input_expr);
+        }
+        anyhow::bail!("Expected vector");
+      }
+    };
+    // call_or_panic: We checked the arity above.
+    let output_vec: Vector = vec.into_iter()
+      .map(|expr| subcommand.call_or_panic(vec![expr], simplifier, calculation_mode.clone(), &mut errors))
+      .collect();
+    stack.push(output_vec.into());
     Ok(CommandOutput::from_errors(errors))
   }
 
@@ -1265,5 +1324,120 @@ mod tests {
     let err = act_on_stack(&command, (setup_sample_dispatch_table, vec![arg]), input_stack).unwrap_err();
     let err = err.downcast::<GetSubcommandError>().unwrap();
     assert!(matches!(err, GetSubcommandError::InvalidSubcommandError(_)));
+  }
+
+  #[test]
+  fn test_map_command() {
+    let command = VectorMapCommand::new();
+    let arg = {
+      let subcommand_id = SubcommandId { name: String::from("test_func"), options: CommandOptions::default() };
+      serde_json::to_string(&subcommand_id).unwrap()
+    };
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![
+        Expr::from(30),
+        Expr::from(40),
+        Expr::from(50),
+      ]),
+    ];
+    let output_stack = act_on_stack(&command, (setup_sample_dispatch_table, vec![arg]), input_stack).unwrap();
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![
+        Expr::call("test_func", vec![Expr::from(30)]),
+        Expr::call("test_func", vec![Expr::from(40)]),
+        Expr::call("test_func", vec![Expr::from(50)]),
+      ]),
+    ]));
+  }
+
+  #[test]
+  fn test_map_command_with_keep_modifier() {
+    let command = VectorMapCommand::new();
+    let arg = {
+      let subcommand_id = SubcommandId { name: String::from("test_func"), options: CommandOptions::default() };
+      serde_json::to_string(&subcommand_id).unwrap()
+    };
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![
+        Expr::from(30),
+        Expr::from(40),
+        Expr::from(50),
+      ]),
+    ];
+    let opts = CommandOptions::default().with_keep_modifier();
+    let output_stack = act_on_stack(&command, (setup_sample_dispatch_table, vec![arg], opts), input_stack).unwrap();
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![
+        Expr::from(30),
+        Expr::from(40),
+        Expr::from(50),
+      ]),
+      Expr::call("vector", vec![
+        Expr::call("test_func", vec![Expr::from(30)]),
+        Expr::call("test_func", vec![Expr::from(40)]),
+        Expr::call("test_func", vec![Expr::from(50)]),
+      ]),
+    ]));
+  }
+
+  #[test]
+  fn test_map_command_on_empty_vec() {
+    let command = VectorMapCommand::new();
+    let arg = {
+      let subcommand_id = SubcommandId { name: String::from("test_func"), options: CommandOptions::default() };
+      serde_json::to_string(&subcommand_id).unwrap()
+    };
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![]),
+    ];
+    let output_stack = act_on_stack(&command, (setup_sample_dispatch_table, vec![arg]), input_stack).unwrap();
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![]),
+    ]));
+  }
+
+  #[test]
+  fn test_map_command_on_non_vector() {
+    let command = VectorMapCommand::new();
+    let arg = {
+      let subcommand_id = SubcommandId { name: String::from("test_func"), options: CommandOptions::default() };
+      serde_json::to_string(&subcommand_id).unwrap()
+    };
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::from(30),
+    ];
+    let err = act_on_stack(&command, (setup_sample_dispatch_table, vec![arg]), input_stack).unwrap_err();
+    assert_eq!(err.to_string(), "Expected vector");
+
+  }
+
+  #[test]
+  fn test_map_command_with_subcommand_of_wrong_arity() {
+    let command = VectorMapCommand::new();
+    let arg = {
+      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
+      serde_json::to_string(&subcommand_id).unwrap()
+    };
+    let input_stack = vec![
+      Expr::from(10),
+      Expr::from(20),
+      Expr::call("vector", vec![]),
+    ];
+    let err = act_on_stack(&command, (setup_sample_dispatch_table, vec![arg]), input_stack).unwrap_err();
+    assert_eq!(err.to_string(), "Expected unary subcommand");
   }
 }
