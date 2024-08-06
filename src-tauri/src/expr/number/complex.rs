@@ -121,6 +121,8 @@ impl ComplexNumber {
     ComplexNumber::new(magn.ln(), angle.0)
   }
 
+  /// The reciprocal of this complex number. Panics if
+  /// `self.is_zero()`.
   pub fn recip(&self) -> ComplexNumber {
     let abs_sqr = self.abs_sqr();
     ComplexNumber::new(

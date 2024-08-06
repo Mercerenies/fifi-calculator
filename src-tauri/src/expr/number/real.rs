@@ -703,6 +703,14 @@ impl ops::Div for &Number {
   }
 }
 
+impl ops::Div<&Number> for Number {
+  type Output = Number;
+
+  fn div(self, other: &Number) -> Number {
+    self / (*other).clone()
+  }
+}
+
 impl ops::Div<i64> for Number {
   type Output = Number;
 

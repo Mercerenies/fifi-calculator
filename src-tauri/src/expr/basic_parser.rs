@@ -324,10 +324,30 @@ mod tests {
     assert_eq!(
       expr,
       Expr::call(
-        "+",
+        "complex",
         vec![
           Expr::from(1),
-          Expr::call("*", vec![Expr::from(2), Expr::from(ComplexNumber::ii())]),
+          Expr::from(2),
+        ],
+      ),
+    );
+  }
+
+  #[test]
+  fn test_quaternion_expr() {
+    let table = OperatorTable::common_operators();
+    let parser = ExprParser::new(&table);
+
+    let expr = parser.tokenize_and_parse("(1, 2, 3, 4)").unwrap();
+    assert_eq!(
+      expr,
+      Expr::call(
+        "quat",
+        vec![
+          Expr::from(1),
+          Expr::from(2),
+          Expr::from(3),
+          Expr::from(4),
         ],
       ),
     );
