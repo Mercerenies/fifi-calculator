@@ -16,7 +16,7 @@ use crate::expr::Expr;
 use crate::expr::prisms;
 use crate::expr::atom::Atom;
 use crate::expr::algebra::infinity::InfiniteConstant;
-use crate::expr::number::{Number, ComplexNumber};
+use crate::expr::number::{Number, ComplexNumber, Quaternion};
 use crate::expr::vector::Vector;
 use crate::expr::vector::matrix::Matrix;
 use crate::expr::simplifier::error::DomainError;
@@ -152,6 +152,9 @@ pub struct VectorFromIncompleteObjectCommand {
 /// * If two elements were popped, they are treated as the real and
 /// imaginary parts of a new complex number, which is pushed onto the
 /// stack.
+///
+/// * If four elements were popped, they are treated as the four
+/// components of a quaternion, which is pushed onto the stack.
 ///
 /// * If any other number of elements is popped, an error is produced.
 ///
@@ -637,12 +640,18 @@ impl Command for ComplexFromIncompleteObjectCommand {
         // Complex number.
         let mut errors = ErrorList::new();
         let [real, imag] = elems.try_into().unwrap();
-        let complex = Expr::call("+", vec![
-          real,
-          Expr::call("*", vec![imag, Expr::from(ComplexNumber::ii())]),
-        ]);
+        let complex = Expr::call(ComplexNumber::FUNCTION_NAME, vec![real, imag]);
         let complex = context.simplify_expr(complex, calculation_mode, &mut errors);
         stack.push(complex);
+        Ok(CommandOutput::from_errors(errors))
+      }
+      4 => {
+        // Quaternion.
+        let mut errors = ErrorList::new();
+        let [r, i, j, k] = elems.try_into().unwrap();
+        let quat = Expr::call(Quaternion::FUNCTION_NAME, vec![r, i, j, k]);
+        let quat = context.simplify_expr(quat, calculation_mode, &mut errors);
+        stack.push(quat);
         Ok(CommandOutput::from_errors(errors))
       }
       len => {
