@@ -202,6 +202,10 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("cross".to_string(), Box::new(BinaryFunctionCommand::named("cross")));
   map.insert("vapply".to_string(), Box::new(accum::VectorApplyCommand::new()));
   map.insert("vmap".to_string(), Box::new(accum::VectorMapCommand::new()));
+  map.insert("vreduce".to_string(), Box::new(dispatch_on_inverse_command(
+    accum::VectorReduceCommand::new(accum::ReduceDir::LeftToRight),
+    accum::VectorReduceCommand::new(accum::ReduceDir::RightToLeft),
+  )));
 
   // Vector statistics commands
   map.insert("mean".to_string(), Box::new(dispatch_on_flags_command(FlagDispatchArgs {

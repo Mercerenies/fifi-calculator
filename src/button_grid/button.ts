@@ -87,8 +87,9 @@ export class SubcommandDispatchButton extends Button {
   }
 
   async fire(manager: AbstractButtonManager): Promise<void> {
+    const mainCommandModifiers = manager.getModifiers();
     const subcommandManager = new SubcommandButtonManager(manager, async (subcommandId) => {
-      await manager.invokeMathCommand(this.commandName, [subcommandStr(subcommandId)]);
+      await manager.invokeMathCommand(this.commandName, [subcommandStr(subcommandId)], mainCommandModifiers);
     })
     manager.setCurrentManager(subcommandManager);
     manager.resetState();
