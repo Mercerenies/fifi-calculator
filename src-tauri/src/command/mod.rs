@@ -210,6 +210,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
     accum::VectorAccumCommand::new(accum::ReduceDir::LeftToRight),
     accum::VectorAccumCommand::new(accum::ReduceDir::RightToLeft),
   )));
+  map.insert("outerprod".to_string(), Box::new(accum::OuterProductCommand::new()));
 
   // Vector statistics commands
   map.insert("mean".to_string(), Box::new(dispatch_on_flags_command(FlagDispatchArgs {

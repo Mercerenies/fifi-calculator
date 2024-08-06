@@ -49,11 +49,12 @@ export class VectorButtonGrid extends ButtonGrid {
         new DispatchButton("len", "length", "l"),
         new UnsignedNumberedButton("$", "arrange", "a", "Width:"),
         new DispatchButton(magnifyingLensSvg(), "find", "f"),
-      ],
-      [
         new DispatchButton("Az", "sort", "S"),
         new DispatchButton("⍋", "grade", "G"),
+      ],
+      [
         new DispatchButton("<small><math><mrow><mo>|</mo><mi>·</mi><mo>|</mo></mrow></math></small>", "norm", "N"),
+        new SubcommandDispatchButton("<math><mo>&otimes;</mo></math>", "outerprod", "O"),
       ],
       [
         backButton(this.rootGrid),

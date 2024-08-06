@@ -10,7 +10,7 @@ use super::base::{Command, CommandContext, CommandOutput};
 use super::options::CommandOptions;
 use super::subcommand::{Subcommand, StringToSubcommandId, ParsedSubcommandId};
 use crate::util;
-use crate::util::prism::Prism;
+use crate::util::prism::{Prism, PrismExt};
 use crate::errorlist::ErrorList;
 use crate::expr::prisms;
 use crate::expr::vector::Vector;
@@ -44,6 +44,8 @@ pub struct VectorMapCommand {
 /// This command pops a single value off the stack, which must be a
 /// nonempty vector. The subcommand is used to reduce the vector and
 /// produce a single scalar.
+///
+/// Respects the "keep" modifier.
 #[derive(Debug)]
 pub struct VectorReduceCommand {
   direction: ReduceDir,
@@ -53,11 +55,13 @@ pub struct VectorReduceCommand {
 /// produces a vector of intermediate values rather than a single
 /// scalar result.
 ///
-/// Specifically, `VectorAccumCommand` expects a bianry subcommand as
+/// Specifically, `VectorAccumCommand` expects a binary subcommand as
 /// argument. This command pops a single value off the stack, which
 /// must be a vector. The subcommand is used to reduce the vector, and
 /// a resulting vector of the same length (containing the intermediate
 /// results) is pushed onto the stack.
+///
+/// Respects the "keep" modifier.
 #[derive(Debug)]
 pub struct VectorAccumCommand {
   direction: ReduceDir,
@@ -67,6 +71,20 @@ pub struct VectorAccumCommand {
 pub enum ReduceDir {
   LeftToRight,
   RightToLeft,
+}
+
+/// `OuterProductCommand` expects a binary subcommand as argument.
+/// This command pops two values off the stack, both of which shall be
+/// vectors. The subcommand is applied to every possible combination
+/// of one element from the first vector and one element from the
+/// second, producing a matrix of results, where each row represents a
+/// value from the first vector and each column represents a value
+/// from the second vector.
+///
+/// Respects the "keep" modifier.
+#[derive(Debug)]
+pub struct OuterProductCommand {
+  _priv: (),
 }
 
 fn unary_subcommand_argument_schema() -> UnaryArgumentSchema<StringToSubcommandId, ParsedSubcommandId> {
@@ -105,6 +123,12 @@ impl VectorAccumCommand {
 
   pub fn direction(&self) -> ReduceDir {
     self.direction
+  }
+}
+
+impl OuterProductCommand {
+  pub fn new() -> Self {
+    Self { _priv: () }
   }
 }
 
@@ -291,6 +315,49 @@ impl Command for VectorAccumCommand {
       }
     };
     stack.push(output_vec.into());
+    Ok(CommandOutput::from_errors(errors))
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
+  }
+}
+
+impl Command for OuterProductCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    context: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    let subcommand_id = validate_schema(&unary_subcommand_argument_schema(), args)?;
+    let calculation_mode = state.calculation_mode().clone();
+    let mut errors = ErrorList::new();
+    let simplifier = context.simplifier.as_ref();
+    state.undo_stack_mut().push_cut();
+    let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
+
+    let subcommand = subcommand_id.as_ref().get_subcommand(context.dispatch_table)?;
+    anyhow::ensure!(subcommand.arity() == 2, "Expected binary subcommand");
+
+    let prism = prisms::ExprToVector.and(prisms::ExprToVector);
+
+    let [a_vec, b_vec] = stack.pop_several(2)?.try_into().unwrap();
+    let (a_vec, b_vec) = match prism.narrow_type((a_vec, b_vec)) {
+      Ok(values) => values,
+      Err((a_vec, b_vec)) => {
+        if !context.opts.keep_modifier {
+          stack.push_several([a_vec, b_vec]);
+        }
+        anyhow::bail!("Expected two vectors");
+      }
+    };
+
+    // call_or_panic: We checked the arity above.
+    let output_matrix = a_vec.outer_product(b_vec, |a, b| {
+      subcommand.call_or_panic(vec![a, b], simplifier, calculation_mode.clone(), &mut errors)
+    });
+    stack.push(output_matrix.into());
     Ok(CommandOutput::from_errors(errors))
   }
 
