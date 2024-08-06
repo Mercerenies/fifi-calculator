@@ -26,12 +26,18 @@ export class IsSubcommand {
 export class SubcommandButtonManager implements AbstractButtonManager {
   private parent: AbstractButtonManager;
   private callback: (subcommand: SubcommandId) => Promise<void>;
+  private cancelCallback: () => Promise<void>;
 
   readonly labelHTML: string = "Entering subcommand...";
 
-  constructor(parent: AbstractButtonManager, callback: (subcommand: SubcommandId) => Promise<void>) {
+  constructor(
+    parent: AbstractButtonManager,
+    callback: (subcommand: SubcommandId) => Promise<void>,
+    cancelCallback?: () => Promise<void>,
+  ) {
     this.parent = parent;
     this.callback = callback;
+    this.cancelCallback = cancelCallback ?? (() => Promise.resolve());
   }
 
   get inputManager(): InputBoxManager {
@@ -77,6 +83,7 @@ export class SubcommandButtonManager implements AbstractButtonManager {
   }
 
   async onEscape(): Promise<void> {
+    await this.cancelCallback();
     this.setCurrentManager(this.parent);
   }
 }
