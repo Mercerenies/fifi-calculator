@@ -82,7 +82,7 @@ pub enum ReduceDir {
 /// from the second vector.
 ///
 /// Respects the "keep" modifier.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct OuterProductCommand {
   _priv: (),
 }
@@ -99,7 +99,7 @@ pub struct OuterProductCommand {
 /// scalar as the result. This scalar is pushed onto the stack.
 ///
 /// Respects the "keep" modifier.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct InnerProductCommand {
   _priv: (),
 }
