@@ -498,13 +498,15 @@ mod tests {
     context.dispatch_table = concrete_table;
   }
 
+  fn subcommand(name: &str) -> String {
+    let subcommand_id = SubcommandId { name: String::from(name), options: CommandOptions::default() };
+    serde_json::to_string(&subcommand_id).unwrap()
+  }
+
   #[test]
   fn test_apply_command_unary() {
     let command = VectorApplyCommand::new();
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -521,10 +523,7 @@ mod tests {
   #[test]
   fn test_apply_command_unary_with_keep_modifier() {
     let command = VectorApplyCommand::new();
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -543,10 +542,7 @@ mod tests {
   #[test]
   fn test_apply_command_on_empty_stack() {
     let command = VectorApplyCommand::new();
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func");
     let input_stack = Vec::<Expr>::new();
     let err = act_on_stack(&command, (setup_sample_dispatch_table, vec![arg]), input_stack).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
@@ -556,10 +552,7 @@ mod tests {
   #[test]
   fn test_apply_command_type_error() {
     let command = VectorApplyCommand::new();
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -572,10 +565,7 @@ mod tests {
   #[test]
   fn test_apply_command_arity_error() {
     let command = VectorApplyCommand::new();
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -589,10 +579,7 @@ mod tests {
   #[test]
   fn test_apply_command_binary() {
     let command = VectorApplyCommand::new();
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func2");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -609,10 +596,7 @@ mod tests {
   #[test]
   fn test_apply_command_binary_with_keep_modifier() {
     let command = VectorApplyCommand::new();
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func2");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -631,10 +615,7 @@ mod tests {
   #[test]
   fn test_apply_command_on_nonexistent_subcommand() {
     let command = VectorApplyCommand::new();
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("nonexistent"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("nonexistent");
     let input_stack = vec![
       Expr::call("vector", vec![Expr::from(10)]),
     ];
@@ -646,10 +627,7 @@ mod tests {
   #[test]
   fn test_apply_command_on_invalid_subcommand() {
     let command = VectorApplyCommand::new();
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("nop"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("nop");
     let input_stack = vec![
       Expr::call("vector", vec![Expr::from(10)]),
     ];
@@ -661,10 +639,7 @@ mod tests {
   #[test]
   fn test_map_command() {
     let command = VectorMapCommand::new();
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -689,10 +664,7 @@ mod tests {
   #[test]
   fn test_map_command_with_keep_modifier() {
     let command = VectorMapCommand::new();
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -723,10 +695,7 @@ mod tests {
   #[test]
   fn test_map_command_on_empty_vec() {
     let command = VectorMapCommand::new();
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -743,10 +712,7 @@ mod tests {
   #[test]
   fn test_map_command_on_non_vector() {
     let command = VectorMapCommand::new();
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -760,10 +726,7 @@ mod tests {
   #[test]
   fn test_map_command_with_subcommand_of_wrong_arity() {
     let command = VectorMapCommand::new();
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func2");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -776,10 +739,7 @@ mod tests {
   #[test]
   fn test_reduce_command() {
     let command = VectorReduceCommand::new(ReduceDir::LeftToRight);
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func2");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -806,10 +766,7 @@ mod tests {
   #[test]
   fn test_reduce_command_right_to_left() {
     let command = VectorReduceCommand::new(ReduceDir::RightToLeft);
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func2");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -836,10 +793,7 @@ mod tests {
   #[test]
   fn test_reduce_command_with_keep_modifier() {
     let command = VectorReduceCommand::new(ReduceDir::LeftToRight);
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func2");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -872,10 +826,7 @@ mod tests {
   #[test]
   fn test_reduce_command_right_to_left_with_keep_modifier() {
     let command = VectorReduceCommand::new(ReduceDir::RightToLeft);
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func2");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -908,10 +859,7 @@ mod tests {
   #[test]
   fn test_reduce_command_type_error() {
     let command = VectorReduceCommand::new(ReduceDir::LeftToRight);
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func2");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -928,10 +876,7 @@ mod tests {
   #[test]
   fn test_reduce_command_empty_vec_error() {
     let command = VectorReduceCommand::new(ReduceDir::LeftToRight);
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func2");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -944,10 +889,7 @@ mod tests {
   #[test]
   fn test_reduce_command_arity_error() {
     let command = VectorReduceCommand::new(ReduceDir::LeftToRight);
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -964,10 +906,7 @@ mod tests {
   #[test]
   fn test_reduce_command_on_empty_stack() {
     let command = VectorReduceCommand::new(ReduceDir::LeftToRight);
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func2");
     let input_stack = Vec::<Expr>::new();
     let err = act_on_stack(&command, (setup_sample_dispatch_table, vec![arg]), input_stack).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
@@ -977,10 +916,7 @@ mod tests {
   #[test]
   fn test_reduce_command_on_invalid_subcommand() {
     let command = VectorReduceCommand::new(ReduceDir::LeftToRight);
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("nop"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("nop");
     let input_stack = vec![
       Expr::call("vector", vec![Expr::from(10)]),
     ];
@@ -992,10 +928,7 @@ mod tests {
   #[test]
   fn test_reduce_command_on_vector_of_len_one() {
     let command = VectorReduceCommand::new(ReduceDir::LeftToRight);
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func2");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -1014,10 +947,7 @@ mod tests {
   #[test]
   fn test_reduce_command_right_to_left_on_vector_of_len_one() {
     let command = VectorReduceCommand::new(ReduceDir::RightToLeft);
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func2");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -1036,10 +966,7 @@ mod tests {
   #[test]
   fn test_accum_command() {
     let command = VectorAccumCommand::new(ReduceDir::LeftToRight);
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func2");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -1073,10 +1000,7 @@ mod tests {
   #[test]
   fn test_accum_command_right_to_left() {
     let command = VectorAccumCommand::new(ReduceDir::RightToLeft);
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func2");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -1110,10 +1034,7 @@ mod tests {
   #[test]
   fn test_accum_command_with_keep_modifier() {
     let command = VectorAccumCommand::new(ReduceDir::LeftToRight);
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func2");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -1153,10 +1074,7 @@ mod tests {
   #[test]
   fn test_accum_command_right_to_left_with_keep_modifier() {
     let command = VectorAccumCommand::new(ReduceDir::RightToLeft);
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func2");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -1196,10 +1114,7 @@ mod tests {
   #[test]
   fn test_accum_command_type_error() {
     let command = VectorAccumCommand::new(ReduceDir::LeftToRight);
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func2");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -1216,10 +1131,7 @@ mod tests {
   #[test]
   fn test_accum_command_empty_vec_error() {
     let command = VectorAccumCommand::new(ReduceDir::LeftToRight);
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func2");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -1236,10 +1148,7 @@ mod tests {
   #[test]
   fn test_accum_command_arity_error() {
     let command = VectorAccumCommand::new(ReduceDir::LeftToRight);
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -1256,10 +1165,7 @@ mod tests {
   #[test]
   fn test_accum_command_on_empty_stack() {
     let command = VectorAccumCommand::new(ReduceDir::LeftToRight);
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func2");
     let input_stack = Vec::<Expr>::new();
     let err = act_on_stack(&command, (setup_sample_dispatch_table, vec![arg]), input_stack).unwrap_err();
     let err = err.downcast::<StackError>().unwrap();
@@ -1269,10 +1175,7 @@ mod tests {
   #[test]
   fn test_accum_command_on_invalid_subcommand() {
     let command = VectorAccumCommand::new(ReduceDir::LeftToRight);
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("nop"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("nop");
     let input_stack = vec![
       Expr::call("vector", vec![Expr::from(10)]),
     ];
@@ -1284,10 +1187,7 @@ mod tests {
   #[test]
   fn test_accum_command_on_vector_of_len_one() {
     let command = VectorAccumCommand::new(ReduceDir::LeftToRight);
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func2");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -1308,10 +1208,7 @@ mod tests {
   #[test]
   fn test_accum_command_right_to_left_on_vector_of_len_one() {
     let command = VectorAccumCommand::new(ReduceDir::RightToLeft);
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func2");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -1332,10 +1229,7 @@ mod tests {
   #[test]
   fn test_outer_product() {
     let command = OuterProductCommand::new();
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func2");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -1371,10 +1265,7 @@ mod tests {
   #[test]
   fn test_outer_product_with_keep_modifier() {
     let command = OuterProductCommand::new();
-    let arg = {
-      let subcommand_id = SubcommandId { name: String::from("test_func2"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let arg = subcommand("test_func2");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
@@ -1420,14 +1311,8 @@ mod tests {
   #[test]
   fn test_inner_product() {
     let command = InnerProductCommand::new();
-    let mul_arg = {
-      let subcommand_id = SubcommandId { name: String::from("*"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
-    let add_arg = {
-      let subcommand_id = SubcommandId { name: String::from("+"), options: CommandOptions::default() };
-      serde_json::to_string(&subcommand_id).unwrap()
-    };
+    let mul_arg = subcommand("*");
+    let add_arg = subcommand("+");
     let input_stack = vec![
       Expr::from(10),
       Expr::from(20),
