@@ -5,7 +5,7 @@
 //! For first-order vector commands, see the [`vector`
 //! module](crate::command::vector).
 
-use super::arguments::{UnaryArgumentSchema, validate_schema};
+use super::arguments::{UnaryArgumentSchema, BinaryArgumentSchema, validate_schema};
 use super::base::{Command, CommandContext, CommandOutput};
 use super::options::CommandOptions;
 use super::subcommand::{Subcommand, StringToSubcommandId, ParsedSubcommandId};
@@ -87,8 +87,34 @@ pub struct OuterProductCommand {
   _priv: (),
 }
 
+/// `InnerProductCommand` expects a pair of binary subcommands as
+/// arguments. The first will be treated as a multiplication operation
+/// and the second as addition.
+///
+/// This command pops two values off the stack, which shall be
+/// non-empty vectors of the same length. The vectors are paired off
+/// pointwise and multiplied together according to the first
+/// subcommand. Then the results of such multiplication are reduced
+/// (from the left) using the additive subcommand to produce a single
+/// scalar as the result. This scalar is pushed onto the stack.
+///
+/// Respects the "keep" modifier.
+#[derive(Debug)]
+pub struct InnerProductCommand {
+  _priv: (),
+}
+
 fn unary_subcommand_argument_schema() -> UnaryArgumentSchema<StringToSubcommandId, ParsedSubcommandId> {
   UnaryArgumentSchema::new(
+    "subcommand identifier".to_string(),
+    StringToSubcommandId,
+  )
+}
+
+fn binary_subcommand_argument_schema() -> BinaryArgumentSchema<StringToSubcommandId, ParsedSubcommandId, StringToSubcommandId, ParsedSubcommandId> {
+  BinaryArgumentSchema::new(
+    "subcommand identifier".to_string(),
+    StringToSubcommandId,
     "subcommand identifier".to_string(),
     StringToSubcommandId,
   )
@@ -127,6 +153,12 @@ impl VectorAccumCommand {
 }
 
 impl OuterProductCommand {
+  pub fn new() -> Self {
+    Self { _priv: () }
+  }
+}
+
+impl InnerProductCommand {
   pub fn new() -> Self {
     Self { _priv: () }
   }
@@ -358,6 +390,69 @@ impl Command for OuterProductCommand {
       subcommand.call_or_panic(vec![a, b], simplifier, calculation_mode.clone(), &mut errors)
     });
     stack.push(output_matrix.into());
+    Ok(CommandOutput::from_errors(errors))
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
+  }
+}
+
+impl Command for InnerProductCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    context: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    let (mult_id, add_id) = validate_schema(&binary_subcommand_argument_schema(), args)?;
+    let calculation_mode = state.calculation_mode().clone();
+    let mut errors = ErrorList::new();
+    let simplifier = context.simplifier.as_ref();
+    state.undo_stack_mut().push_cut();
+    let mut stack = KeepableStack::new(state.main_stack_mut(), context.opts.keep_modifier);
+
+    let mult_subcommand = mult_id.as_ref().get_subcommand(context.dispatch_table)?;
+    let add_subcommand = add_id.as_ref().get_subcommand(context.dispatch_table)?;
+    anyhow::ensure!(mult_subcommand.arity() == 2, "Expected binary subcommand");
+    anyhow::ensure!(add_subcommand.arity() == 2, "Expected binary subcommand");
+
+    let prism = prisms::ExprToVector.and(prisms::ExprToVector);
+
+    let [a_vec, b_vec] = stack.pop_several(2)?.try_into().unwrap();
+    let (a_vec, b_vec) = match prism.narrow_type((a_vec, b_vec)) {
+      Ok(values) => values,
+      Err((a_vec, b_vec)) => {
+        if !context.opts.keep_modifier {
+          stack.push_several([a_vec, b_vec]);
+        }
+        anyhow::bail!("Expected two vectors");
+      }
+    };
+    if a_vec.len() != b_vec.len() {
+      if !context.opts.keep_modifier {
+        stack.push_several([prisms::ExprToVector.widen_type(a_vec), prisms::ExprToVector.widen_type(b_vec)]);
+      }
+      anyhow::bail!("Vector length mismatch");
+    }
+    if a_vec.is_empty() {
+      if !context.opts.keep_modifier {
+        stack.push_several([prisms::ExprToVector.widen_type(a_vec), prisms::ExprToVector.widen_type(b_vec)]);
+      }
+      anyhow::bail!("Expected non-empty vectors");
+    }
+
+    // call_or_panic: We checked the arity above.
+    //
+    // Note: We have to collect the intermediate results into a
+    // vector, since we can't double borrow `errors`.
+    let intermediate_vec: Vec<_> = a_vec.into_iter().zip(b_vec)
+      .map(|(a, b)| mult_subcommand.call_or_panic(vec![a, b], simplifier, calculation_mode.clone(), &mut errors))
+      .collect();
+    let expr = intermediate_vec.into_iter()
+      .reduce(|acc, x| add_subcommand.call_or_panic(vec![acc, x], simplifier, calculation_mode.clone(), &mut errors))
+      .unwrap();
+    stack.push(expr);
     Ok(CommandOutput::from_errors(errors))
   }
 
