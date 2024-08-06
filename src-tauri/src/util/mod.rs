@@ -168,6 +168,39 @@ where I: DoubleEndedIterator,
   iter.rev().reduce(|a, b| f(b, a))
 }
 
+/// Like `Iterator::reduce`, but produces an iterator of intermediate
+/// values. Reduces left-to-right.
+pub fn accum_left<I, F>(iter: I, mut f: F) -> impl Iterator<Item = I::Item>
+where I: Iterator,
+      F: FnMut(I::Item, I::Item) -> I::Item,
+      I::Item: Clone {
+  iter.scan(None, move |state, x| {
+    let new_state = match state.take() {
+      None => x,
+      Some(s) => f(s, x),
+    };
+    *state = Some(new_state.clone());
+    Some(new_state)
+  })
+}
+
+/// Like [`reduce_right`] but produces an iterator of intermediate
+/// values. Note that the iterator is produced in reverse order.
+///
+/// Example:
+///
+/// ```
+/// let v = vec![1, 2, 3];
+/// let res: Vec<_> = accum_right(v, |a, b| a + b).collect();
+/// assert_eq!(res, vec![3, 5, 6]);
+/// ```
+pub fn accum_right<I, F>(iter: I, mut f: F) -> impl Iterator<Item = I::Item>
+where I: DoubleEndedIterator,
+      F: FnMut(I::Item, I::Item) -> I::Item,
+      I::Item: Clone {
+  accum_left(iter.rev(), move |a, b| f(b, a))
+}
+
 /// If the iterator consists of exactly one value, returns that value.
 /// Otherwise, returns `None`.
 pub fn into_singleton<I: IntoIterator>(iter: I) -> Option<I::Item> {
@@ -410,6 +443,34 @@ mod tests {
   fn test_reduce_right_on_non_associative_operation_with_singleton_list() {
     let list = vec![66];
     assert_eq!(reduce_right(list.into_iter(), |_, _| panic!("Should not be called!")), Some(66));
+  }
+
+  #[test]
+  fn test_accum_left() {
+    let list = vec![1, 2, 3, 4];
+    let result: Vec<_> = accum_left(list.into_iter(), |a, b| a - b).collect();
+    assert_eq!(result, vec![1, -1, -4, -8]);
+  }
+
+  #[test]
+  fn test_accum_left_on_empty() {
+    let list = Vec::<i64>::new();
+    let result: Vec<_> = accum_left(list.into_iter(), |_, _| panic!("Should not be called")).collect();
+    assert_eq!(result, Vec::<i64>::new());
+  }
+
+  #[test]
+  fn test_accum_right() {
+    let list = vec![1, 2, 3, 4];
+    let result: Vec<_> = accum_right(list.into_iter(), |a, b| a - b).collect();
+    assert_eq!(result, vec![4, -1, 3, -2]);
+  }
+
+  #[test]
+  fn test_accum_right_on_empty() {
+    let list = Vec::<i64>::new();
+    let result: Vec<_> = accum_right(list.into_iter(), |_, _| panic!("Should not be called")).collect();
+    assert_eq!(result, Vec::<i64>::new());
   }
 
   #[test]
