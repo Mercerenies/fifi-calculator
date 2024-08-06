@@ -28,16 +28,17 @@ export class SubcommandButtonManager implements AbstractButtonManager {
   private callback: (subcommand: SubcommandId) => Promise<void>;
   private cancelCallback: () => Promise<void>;
 
-  readonly labelHTML: string = "Entering subcommand...";
+  readonly labelHTML: string;
 
   constructor(
     parent: AbstractButtonManager,
     callback: (subcommand: SubcommandId) => Promise<void>,
-    cancelCallback?: () => Promise<void>,
+    opts: Partial<SubcommandButtonManagerOpts> = {},
   ) {
     this.parent = parent;
     this.callback = callback;
-    this.cancelCallback = cancelCallback ?? (() => Promise.resolve());
+    this.cancelCallback = opts.cancelCallback ?? (() => Promise.resolve());
+    this.labelHTML = opts.labelHTML ?? "Entering subcommand...";
   }
 
   get inputManager(): InputBoxManager {
@@ -68,22 +69,38 @@ export class SubcommandButtonManager implements AbstractButtonManager {
 
   async onClick(cell: GridCell): Promise<void> {
     try {
+      this.setCurrentManager(this.parent);
       const subcommand = cell.asSubcommand(this);
       if (subcommand === "pass") {
         await this.parent.onClick(cell);
       } else if (subcommand === "invalid") {
-        TAURI.showError("Invalid subcommand");
+        await TAURI.showError("Invalid subcommand");
       } else {
         await this.callback(subcommand.subcommand);
       }
     } finally {
       this.resetState();
-      this.setCurrentManager(this.parent);
     }
   }
 
   async onEscape(): Promise<void> {
-    await this.cancelCallback();
     this.setCurrentManager(this.parent);
+    await this.cancelCallback();
   }
+
+  static queryForSubcommand(
+    parentManager: AbstractButtonManager,
+    callback: (subcommand: SubcommandId) => Promise<void>,
+    opts: Partial<SubcommandButtonManagerOpts> = {},
+  ): SubcommandButtonManager {
+    const subcommandManager = new SubcommandButtonManager(parentManager, callback, opts);
+    parentManager.setCurrentManager(subcommandManager);
+    parentManager.resetState();
+    return subcommandManager;
+  }
+}
+
+export interface SubcommandButtonManagerOpts {
+  cancelCallback: () => Promise<void>,
+  labelHTML: string;
 }

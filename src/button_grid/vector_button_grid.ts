@@ -1,6 +1,7 @@
 
 import { ButtonGrid, GridCell } from "../button_grid.js";
-import { backButton, DispatchButton, SubcommandDispatchButton, GotoButton } from './button.js';
+import { backButton, DispatchButton,
+         SubcommandDispatchButton, DoubleSubcommandDispatchButton, GotoButton } from './button.js';
 import { UnsignedNumberedButton } from './button/numbered.js';
 import { svg } from '../util.js';
 
@@ -55,6 +56,7 @@ export class VectorButtonGrid extends ButtonGrid {
       [
         new DispatchButton("<small><math><mrow><mo>|</mo><mi>·</mi><mo>|</mo></mrow></math></small>", "norm", "N"),
         new SubcommandDispatchButton("<math><mo>&otimes;</mo></math>", "outerprod", "O"),
+        innerProductButton(),
       ],
       [
         backButton(this.rootGrid),
@@ -66,4 +68,11 @@ export class VectorButtonGrid extends ButtonGrid {
 
 export interface VectorButtonGridSubgrids {
   vectorStats: ButtonGrid,
+}
+
+function innerProductButton(): DoubleSubcommandDispatchButton {
+  return new DoubleSubcommandDispatchButton("<math><mi>·</mi></math>", "innerprod", "I", {
+    firstLabelHTML: "Entering <tt>&lt;×&gt;</tt> subcommand...",
+    secondLabelHTML: "Entering <tt>&lt;+&gt;</tt> subcommand...",
+  });
 }
