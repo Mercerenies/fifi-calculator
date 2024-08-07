@@ -1,11 +1,11 @@
 
 use super::{Expr, TryFromExprError};
-use super::number::{Number, ComplexNumber, ComplexLike};
+use super::number::{Number, ComplexNumber, ComplexLike, Quaternion, QuaternionLike};
 use super::algebra::infinity::{InfiniteConstant, UnboundedNumber};
 use super::vector::Vector;
 use super::incomplete::IncompleteObject;
 use super::interval::RawInterval;
-use super::prisms::{ExprToComplex, ExprToVector, ExprToInfinity,
+use super::prisms::{ExprToQuaternion, ExprToVector, ExprToInfinity,
                     expr_to_string, expr_to_incomplete_object, expr_to_unbounded_interval};
 use crate::util::prism::Prism;
 
@@ -14,7 +14,7 @@ use std::convert::TryFrom;
 /// The `Literal` type is the subset of the [`Expr`] type which
 /// represents literal values. This subset is defined inductively.
 ///
-/// * Real or complex number literals are literal values.
+/// * Real, complex, or quaternion number literals are literal values.
 ///
 /// * Strings are literal values.
 ///
@@ -36,7 +36,7 @@ pub struct Literal {
 
 #[derive(Debug, Clone, PartialEq)]
 enum LiteralImpl {
-  Numerical(ComplexLike),
+  Numerical(QuaternionLike),
   String(String),
   IncompleteObject(IncompleteObject),
   Interval(RawInterval<UnboundedNumber>),
@@ -49,8 +49,8 @@ impl Literal {
     Literal { data: LiteralImpl::Vector(v) }
   }
 
-  fn try_from_as_complex(expr: Expr) -> Result<Self, Expr> {
-    ExprToComplex.narrow_type(expr).map(|c| Literal { data: LiteralImpl::Numerical(c) })
+  fn try_from_as_quat(expr: Expr) -> Result<Self, Expr> {
+    ExprToQuaternion.narrow_type(expr).map(|c| Literal { data: LiteralImpl::Numerical(c) })
   }
 
   fn try_from_as_string(expr: Expr) -> Result<Self, Expr> {
@@ -82,7 +82,13 @@ impl Literal {
 
 impl From<ComplexLike> for Literal {
   fn from(c: ComplexLike) -> Self {
-    Literal { data: LiteralImpl::Numerical(c) }
+    Literal { data: LiteralImpl::Numerical(c.into()) }
+  }
+}
+
+impl From<QuaternionLike> for Literal {
+  fn from(q: QuaternionLike) -> Self {
+    Literal { data: LiteralImpl::Numerical(q) }
   }
 }
 
@@ -101,6 +107,12 @@ impl From<Number> for Literal {
 impl From<ComplexNumber> for Literal {
   fn from(c: ComplexNumber) -> Self {
     ComplexLike::Complex(c).into()
+  }
+}
+
+impl From<Quaternion> for Literal {
+  fn from(q: Quaternion) -> Self {
+    QuaternionLike::Quaternion(q).into()
   }
 }
 
@@ -150,7 +162,7 @@ impl TryFrom<Expr> for Literal {
   type Error = TryFromExprError;
 
   fn try_from(expr: Expr) -> Result<Self, Self::Error> {
-    Literal::try_from_as_complex(expr).or_else(|expr| {
+    Literal::try_from_as_quat(expr).or_else(|expr| {
       Literal::try_from_as_vector(expr)
     }).or_else(|expr| {
       Literal::try_from_as_string(expr)
@@ -184,6 +196,7 @@ mod tests {
     expect_roundtrip(Literal::from(Number::from(-2.5)));
     expect_roundtrip(Literal::from(ComplexNumber::new(1, 1)));
     expect_roundtrip(Literal::from(ComplexNumber::new(-2, Number::ratio(1, 2))));
+    expect_roundtrip(Literal::from(Quaternion::new(1, 2, 3, 4)));
     expect_roundtrip(Literal::from(InfiniteConstant::NegInfinity));
     expect_roundtrip(Literal::from(Interval::new(UnboundedNumber::finite(3), IntervalType::Closed, UnboundedNumber::POS_INFINITY).into_raw()));
     expect_roundtrip(Literal::from(IncompleteObject::new(ObjectType::LeftParen)));

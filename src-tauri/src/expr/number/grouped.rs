@@ -125,6 +125,15 @@ impl QuaternionLike {
   }
 }
 
+impl From<ComplexLike> for QuaternionLike {
+  fn from(input: ComplexLike) -> QuaternionLike {
+    match input {
+      ComplexLike::Real(real) => QuaternionLike::Real(real),
+      ComplexLike::Complex(complex) => QuaternionLike::Complex(complex),
+    }
+  }
+}
+
 impl From<ComplexLike> for ComplexNumber {
   fn from(input: ComplexLike) -> ComplexNumber {
     match input {
