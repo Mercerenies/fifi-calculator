@@ -919,22 +919,10 @@ pub fn abs() -> Function {
 pub fn signum() -> Function {
   FunctionBuilder::new("signum")
     .add_case(
-      // Real number signum
-      builder::arity_one().of_type(expr_to_number()).and_then(|arg, _| {
-        Ok(Expr::from(arg.signum()))
-      })
-    )
-    .add_case(
-      // Complex number signum
-      builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
-        let arg = ComplexNumber::from(arg);
-        if arg.is_zero() {
-          // Corner case
-          Ok(Expr::from(arg))
-        } else {
-          let abs = ComplexNumber::from_real(Number::from(arg.abs()));
-          Ok(Expr::from(arg / abs))
-        }
+      // Real number / complex number / quaternion signum
+      builder::arity_one().of_type(ExprToQuaternion).and_then(|arg, _| {
+        let arg = arg.map(|r| r.signum(), |z| z.signum(), |q| q.signum());
+        Ok(Expr::from(arg))
       })
     )
     .add_case(

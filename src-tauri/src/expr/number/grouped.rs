@@ -112,6 +112,17 @@ impl QuaternionLike {
   pub fn is_quaternion(&self) -> bool {
     matches!(self, QuaternionLike::Quaternion(_))
   }
+
+  pub fn map<F, G, H>(self, real_fn: F, complex_fn: G, quat_fn: H) -> Self
+  where F: FnOnce(Number) -> Number,
+        G: FnOnce(ComplexNumber) -> ComplexNumber,
+        H: FnOnce(Quaternion) -> Quaternion {
+    match self {
+      QuaternionLike::Real(r) => QuaternionLike::Real(real_fn(r)),
+      QuaternionLike::Complex(z) => QuaternionLike::Complex(complex_fn(z)),
+      QuaternionLike::Quaternion(q) => QuaternionLike::Quaternion(quat_fn(q)),
+    }
+  }
 }
 
 impl From<ComplexLike> for ComplexNumber {
