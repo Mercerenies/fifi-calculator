@@ -47,7 +47,6 @@ pub fn includes_infinity(interval: &Interval<UnboundedNumber>) -> bool {
     interval.right().is_infinite() && interval.interval_type().includes_right()
 }
 
-/// Returns a union of intervals.
 pub fn interval_recip(interval: Interval<UnboundedNumber>) -> Interval<UnboundedNumber> {
   // Follows the algorithm at
   // https://en.wikipedia.org/wiki/Interval_arithmetic#Interval_operators,

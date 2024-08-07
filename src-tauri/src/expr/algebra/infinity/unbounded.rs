@@ -1,6 +1,7 @@
 
 use crate::expr::{Expr, TryFromExprError};
 use crate::expr::number::Number;
+use crate::util::PreOne;
 use crate::util::prism::Prism;
 use super::prisms::expr_to_unbounded_number;
 use super::signed::SignedInfinity;
@@ -65,6 +66,20 @@ impl TryFrom<Expr> for UnboundedNumber {
 impl PartialOrd for UnboundedNumber {
   fn partial_cmp(&self, other: &UnboundedNumber) -> Option<Ordering> {
     Some(self.cmp(other))
+  }
+}
+
+impl PreOne for UnboundedNumber {
+  fn pre_one() -> Self {
+    Self::Finite(Number::one())
+  }
+
+  fn is_pre_one(&self) -> bool {
+    if let Self::Finite(n) = self {
+      n.is_one()
+    } else {
+      false
+    }
   }
 }
 

@@ -11,6 +11,7 @@ pub mod stricteq;
 
 use regex::{Regex, escape};
 use either::Either;
+use num::One;
 use num::pow::Pow;
 
 use std::fmt::{self, Formatter, Display};
@@ -39,6 +40,12 @@ pub trait TryPow<RHS> {
   fn try_pow(self, rhs: RHS) -> Result<Self::Output, Self::Error>;
 }
 
+/// [`One`] without the [`Mul`] constraint.
+pub trait PreOne: Sized {
+  fn pre_one() -> Self;
+  fn is_pre_one(&self) -> bool;
+}
+
 impl Sign {
   pub fn other(self) -> Self {
     match self {
@@ -53,6 +60,18 @@ impl Recip for f32 {
 
   fn recip(self) -> Self::Output {
     self.recip()
+  }
+}
+
+// Note: The PartialEq bound here will hopefully be removable once
+// num::One removes that bound on their end.
+impl<T: One + PartialEq> PreOne for T {
+  fn pre_one() -> Self {
+    T::one()
+  }
+
+  fn is_pre_one(&self) -> bool {
+    self.is_one()
   }
 }
 

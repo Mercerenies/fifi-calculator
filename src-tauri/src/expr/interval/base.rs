@@ -3,11 +3,11 @@ use super::interval_type::IntervalType;
 use super::bound::Bounded;
 use super::raw::RawInterval;
 use crate::expr::Expr;
-use crate::expr::number::powi_by_repeated_square_err_with_one;
-use crate::util::{unwrap_infallible, TryPow};
+use crate::expr::number::powi_by_repeated_square_err;
+use crate::util::{unwrap_infallible, TryPow, PreOne};
 
 use try_traits::ops::{TryAdd, TrySub, TryMul, TryMulAssign};
-use num::{One, BigInt};
+use num::BigInt;
 
 use std::ops::Neg;
 
@@ -218,27 +218,38 @@ where T: TryMul<Output=T> + Default + Ord + Clone {
   }
 }
 
+/// Panics if `exp` is negative.
 impl<T> TryPow<BigInt> for Interval<T>
-where T: TryMul<Output=T> + Default + One + Ord + Clone {
+where T: TryMul<Output=T> + Default + PreOne + Ord + Clone {
   type Output = Interval<T>;
   type Error = <T as TryMul>::Error;
 
   fn try_pow(self, exp: BigInt) -> Result<Self::Output, Self::Error> {
-    powi_by_repeated_square_err_with_one(
-      self,
-      exp,
-      Self::singleton(T::one()),
-    )
+    powi_by_repeated_square_err(self, exp)
   }
 }
 
+/// Panics if `exp` is negative.
 impl<T> TryPow<i64> for Interval<T>
-where T: TryMul<Output=T> + Default + One + Ord + Clone {
+where T: TryMul<Output=T> + Default + PreOne + Ord + Clone {
   type Output = Interval<T>;
   type Error = <T as TryMul>::Error;
 
   fn try_pow(self, exp: i64) -> Result<Self::Output, Self::Error> {
     self.try_pow(BigInt::from(exp))
+  }
+}
+
+impl<T> PreOne for Interval<T>
+where T: PreOne + Default + Ord {
+  fn pre_one() -> Self {
+    Self::new(T::pre_one(), IntervalType::Closed, T::pre_one())
+  }
+
+  fn is_pre_one(&self) -> bool {
+    self.interval_type == IntervalType::Closed &&
+      self.left.is_pre_one() &&
+      self.right.is_pre_one()
   }
 }
 

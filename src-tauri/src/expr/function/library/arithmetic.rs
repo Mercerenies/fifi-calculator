@@ -2,7 +2,7 @@
 //! Basic arithmetic function evaluation rules.
 
 use crate::expr::Expr;
-use crate::expr::interval::{Interval, interval_div, includes_infinity};
+use crate::expr::interval::{Interval, interval_div, interval_recip, includes_infinity};
 use crate::expr::function::{Function, FunctionContext};
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
@@ -17,7 +17,7 @@ use crate::expr::calculus::DifferentiationError;
 use crate::expr::algebra::infinity::{InfiniteConstant, UnboundedNumber, is_infinite_constant,
                                      multiply_infinities, infinite_pow};
 use crate::graphics::GRAPHICS_NAME;
-use crate::util::repeated;
+use crate::util::{repeated, TryPow};
 use crate::util::prism::Identity;
 
 use num::{Zero, One, BigInt};
@@ -527,6 +527,34 @@ pub fn power() -> Function {
       builder::arity_two().of_types(prisms::ExprToVector, ExprToComplex).and_then(|arg1, arg2, _| {
         let result = arg1.map(|elem| Expr::call("^", vec![elem, Expr::from(arg2.clone())]));
         Ok(result.into_expr())
+      })
+    )
+    .add_case(
+      // Interval to scalar power function
+      builder::arity_two().of_types(prisms::expr_to_unbounded_interval(), prisms::expr_to_i64()).and_then(|arg1, arg2, ctx| {
+        let arg1_interval = Interval::from(arg1.clone());
+        let input_has_infinity = includes_infinity(&arg1_interval);
+        let result = if arg2 < 0 {
+          interval_recip(arg1_interval).try_pow(- arg2)
+        } else {
+          arg1_interval.try_pow(arg2)
+        };
+        match result {
+          Err(err) => {
+            ctx.errors.push(SimplifierError::new("^", err));
+            Err((arg1, arg2))
+          }
+          Ok(result) => {
+            if !input_has_infinity && includes_infinity(&result) && !ctx.calculation_mode.has_infinity_flag() {
+              // Do not produce infinities if the calculation mode
+              // doesn't allow it.
+              ctx.errors.push(SimplifierError::division_by_zero("^"));
+              Err((arg1, arg2))
+            } else {
+              Ok(result.into())
+            }
+          }
+        }
       })
     )
     .add_case(
