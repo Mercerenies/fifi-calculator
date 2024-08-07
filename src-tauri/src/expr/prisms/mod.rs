@@ -6,7 +6,7 @@ pub use matcher::{MatcherSpec, MatchedExpr};
 use super::Expr;
 use super::var::Var;
 use super::atom::Atom;
-use super::number::{Number, ComplexNumber, ComplexLike};
+use super::number::{Number, ComplexNumber, Quaternion, ComplexLike, QuaternionLike};
 use super::interval::{RawInterval, IntervalOrScalar};
 use super::literal::Literal;
 use super::incomplete::IncompleteObject;
@@ -30,13 +30,13 @@ pub use super::algebra::infinity::{ExprToInfinity, UnboundedNumber,
                                    expr_to_signed_infinity, expr_to_unbounded_number};
 
 /// An expression which is literally equal to the value zero.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LiteralZero {
   expr: Expr,
 }
 
 /// An expression which is literally equal to the value one.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LiteralOne {
   expr: Expr,
 }
@@ -62,6 +62,11 @@ pub struct ExprToOne;
 #[derive(Debug, Clone, Copy, Default)]
 pub struct ExprToComplex;
 
+/// Prism which downcasts an [`Expr`] to a [`QuaternionLike`]: a real
+/// number, complex number, or a quaternion.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ExprToQuaternion;
+
 /// Prism which only accepts expressions which are a [`Var`].
 #[derive(Debug, Clone, Copy, Default)]
 pub struct ExprToVar;
@@ -73,7 +78,7 @@ pub struct NumberToPositiveNumber;
 
 /// A real number which is guaranteed to be positive. This is the
 /// result type of the [`expr_to_positive_number`] prism.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PositiveNumber {
   data: Number,
 }
@@ -198,6 +203,10 @@ pub fn expr_to_number_or_inf() -> impl Prism<Expr, Either<Number, InfiniteConsta
 
 pub fn expr_to_complex_or_inf() -> impl Prism<Expr, Either<ComplexLike, InfiniteConstant>> + Clone {
   ExprToComplex.or(ExprToInfinity)
+}
+
+pub fn expr_to_quaternion_or_inf() -> impl Prism<Expr, Either<QuaternionLike, InfiniteConstant>> + Clone {
+  ExprToQuaternion.or(ExprToInfinity)
 }
 
 /// Prism which parses an [`Expr`] as a vector (in the expression
@@ -360,6 +369,47 @@ impl Prism<Expr, ComplexLike> for ExprToComplex {
   }
 }
 
+impl Prism<Expr, QuaternionLike> for ExprToQuaternion {
+  fn narrow_type(&self, input: Expr) -> Result<QuaternionLike, Expr> {
+    fn quaternion_prism() -> impl Prism<(((Expr, Expr), Expr), Expr), (((Number, Number), Number), Number)> {
+      expr_to_number()
+        .and(expr_to_number())
+        .and(expr_to_number())
+        .and(expr_to_number())
+    }
+
+    match input {
+      Expr::Atom(Atom::Number(r)) => Ok(QuaternionLike::Real(r)),
+      Expr::Call(function_name, args) => {
+        if function_name == ComplexNumber::FUNCTION_NAME && args.len() == 2 {
+          let [a, b] = args.try_into().unwrap();
+          match OnTuple2::both(expr_to_number()).narrow_type((a, b)) {
+            Err((a, b)) => Err(Expr::Call(function_name, vec![a, b])),
+            Ok((a, b)) => Ok(QuaternionLike::Complex(ComplexNumber::new(a, b))),
+          }
+        } else if function_name == Quaternion::FUNCTION_NAME && args.len() == 4 {
+          let [r, i, j, k] = args.try_into().unwrap();
+          match quaternion_prism().narrow_type((((r, i), j), k)) {
+            Err((((r, i), j), k)) => Err(Expr::Call(function_name, vec![r, i, j, k])),
+            Ok((((r, i), j), k)) => Ok(QuaternionLike::Quaternion(Quaternion::new(r, i, j, k))),
+          }
+        } else {
+          Err(Expr::Call(function_name, args))
+        }
+      }
+      _ => Err(input),
+    }
+  }
+
+  fn widen_type(&self, input: QuaternionLike) -> Expr {
+    match input {
+      QuaternionLike::Real(r) => r.into(),
+      QuaternionLike::Complex(z) => z.into(),
+      QuaternionLike::Quaternion(q) => q.into(),
+    }
+  }
+}
+
 impl Prism<Expr, Var> for ExprToVar {
   fn narrow_type(&self, input: Expr) -> Result<Var, Expr> {
     if let Expr::Atom(Atom::Var(var)) = input {
@@ -405,5 +455,179 @@ impl Prism<String, ParsedI64> for StringToI64 {
   }
   fn widen_type(&self, input: ParsedI64) -> String {
     input.input
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_expr_to_zero_widen() {
+    let prism = ExprToZero;
+    assert_eq!(
+      prism.widen_type(LiteralZero { expr: Expr::zero() }),
+      Expr::zero(),
+    );
+  }
+
+  #[test]
+  fn test_expr_to_one_widen() {
+    let prism = ExprToOne;
+    assert_eq!(
+      prism.widen_type(LiteralOne { expr: Expr::one() }),
+      Expr::one(),
+    );
+  }
+
+  #[test]
+  fn test_expr_to_zero_narrow() {
+    let prism = ExprToZero;
+    assert!(prism.narrow_type(Expr::zero()).is_ok());
+    assert!(prism.narrow_type(Expr::call("complex", vec![Expr::zero(), Expr::zero()])).is_ok());
+    assert!(prism.narrow_type(Expr::call("quat", vec![Expr::zero(), Expr::zero(), Expr::zero(), Expr::zero()])).is_ok());
+    assert!(prism.narrow_type(Expr::one()).is_err());
+    assert!(prism.narrow_type(Expr::call("complex", vec![Expr::zero(), Expr::one()])).is_err());
+    assert!(prism.narrow_type(Expr::call("quat", vec![Expr::zero(), Expr::zero(), Expr::one(), Expr::zero()])).is_err());
+    assert!(prism.narrow_type(Expr::call("quat", vec![Expr::zero(), Expr::zero()])).is_err());
+    assert!(prism.narrow_type(Expr::call("foobar", vec![Expr::zero(), Expr::zero()])).is_err());
+    assert!(prism.narrow_type(Expr::var("abc").unwrap()).is_err());
+  }
+
+  #[test]
+  fn test_expr_to_one_narrow() {
+    let prism = ExprToOne;
+    assert!(prism.narrow_type(Expr::one()).is_ok());
+    assert!(prism.narrow_type(Expr::call("complex", vec![Expr::one(), Expr::zero()])).is_ok());
+    assert!(prism.narrow_type(Expr::call("quat", vec![Expr::one(), Expr::zero(), Expr::zero(), Expr::zero()])).is_ok());
+    assert!(prism.narrow_type(Expr::from(9)).is_err());
+    assert!(prism.narrow_type(Expr::call("complex", vec![Expr::from(1), Expr::from(1)])).is_err());
+    assert!(prism.narrow_type(Expr::call("quat", vec![Expr::one(), Expr::one(), Expr::one(), Expr::one()])).is_err());
+    assert!(prism.narrow_type(Expr::call("quat", vec![Expr::one(), Expr::zero()])).is_err());
+    assert!(prism.narrow_type(Expr::call("foobar", vec![Expr::one(), Expr::zero()])).is_err());
+    assert!(prism.narrow_type(Expr::var("abc").unwrap()).is_err());
+  }
+
+  #[test]
+  fn test_expr_to_complex_widen() {
+    let prism = ExprToComplex;
+    assert_eq!(
+      prism.widen_type(ComplexLike::Complex(ComplexNumber::new(1, 4))),
+      Expr::call("complex", vec![Expr::from(1), Expr::from(4)]),
+    );
+    assert_eq!(
+      prism.widen_type(ComplexLike::Real(Number::from(9))),
+      Expr::from(9),
+    );
+  }
+
+  #[test]
+  fn test_expr_to_quaternion_widen() {
+    let prism = ExprToQuaternion;
+    assert_eq!(
+      prism.widen_type(QuaternionLike::Real(Number::from(9))),
+      Expr::from(9),
+    );
+    assert_eq!(
+      prism.widen_type(QuaternionLike::Complex(ComplexNumber::new(9, 4))),
+      Expr::call("complex", vec![Expr::from(9), Expr::from(4)]),
+    );
+    assert_eq!(
+      prism.widen_type(QuaternionLike::Quaternion(Quaternion::new(1, 4, 7, 10))),
+      Expr::call("quat", vec![Expr::from(1), Expr::from(4), Expr::from(7), Expr::from(10)]),
+    );
+  }
+
+  #[test]
+  fn test_expr_to_complex_narrow() {
+    let prism = ExprToComplex;
+    assert_eq!(
+      prism.narrow_type(Expr::call("complex", vec![Expr::from(1), Expr::from(4)])).unwrap(),
+      ComplexLike::Complex(ComplexNumber::new(1, 4)),
+    );
+    assert_eq!(
+      prism.narrow_type(Expr::from(99)).unwrap(),
+      ComplexLike::Real(Number::from(99)),
+    );
+    assert!(prism.narrow_type(Expr::call("complex", vec![Expr::from(1), Expr::from(4), Expr::from(5)])).is_err());
+    assert!(prism.narrow_type(Expr::call("quat", vec![Expr::from(1), Expr::from(4), Expr::from(8), Expr::from(5)])).is_err());
+    assert!(prism.narrow_type(Expr::call("complex", vec![Expr::from(1), Expr::var("xyz").unwrap()])).is_err());
+    assert!(prism.narrow_type(Expr::var("abc").unwrap()).is_err());
+  }
+
+  #[test]
+  fn test_expr_to_quaternion_narrow() {
+    let prism = ExprToQuaternion;
+    assert_eq!(
+      prism.narrow_type(Expr::call("complex", vec![Expr::from(1), Expr::from(4)])).unwrap(),
+      QuaternionLike::Complex(ComplexNumber::new(1, 4)),
+    );
+    assert_eq!(
+      prism.narrow_type(Expr::call("quat", vec![Expr::from(1), Expr::from(4), Expr::from(7), Expr::from(9)])).unwrap(),
+      QuaternionLike::Quaternion(Quaternion::new(1, 4, 7, 9)),
+    );
+    assert_eq!(
+      prism.narrow_type(Expr::from(99)).unwrap(),
+      QuaternionLike::Real(Number::from(99)),
+    );
+    assert!(prism.narrow_type(Expr::call("complex", vec![Expr::from(1), Expr::from(4), Expr::from(5)])).is_err());
+    assert!(prism.narrow_type(Expr::call("quat", vec![Expr::from(1), Expr::from(4), Expr::from(5)])).is_err());
+    assert!(prism.narrow_type(Expr::call("quat", vec![Expr::from(1), Expr::from(4), Expr::from(5), Expr::var("a").unwrap()])).is_err());
+    assert!(prism.narrow_type(Expr::call("complex", vec![Expr::from(1), Expr::var("xyz").unwrap()])).is_err());
+    assert!(prism.narrow_type(Expr::var("abc").unwrap()).is_err());
+  }
+
+  #[test]
+  fn test_expr_to_var() {
+    fn var(s: &str) -> Var {
+      Var::new(s).unwrap()
+    }
+    fn evar(s: &str) -> Expr {
+      Expr::var(s).unwrap()
+    }
+
+    assert_eq!(ExprToVar.widen_type(var("abc")), evar("abc"));
+    assert_eq!(ExprToVar.narrow_type(evar("abc")).unwrap(), var("abc"));
+    assert!(ExprToVar.narrow_type(Expr::from(9)).is_err());
+    assert!(ExprToVar.narrow_type(Expr::string("abc")).is_err());
+    assert!(ExprToVar.narrow_type(Expr::call("foobar", vec![])).is_err());
+    assert!(ExprToVar.narrow_type(Expr::call("foobar", vec![evar("x")])).is_err());
+  }
+
+  #[test]
+  fn test_number_to_positive_number() {
+    assert_eq!(
+      NumberToPositiveNumber.widen_type(PositiveNumber { data: Number::from(9) }),
+      Number::from(9),
+    );
+    assert_eq!(
+      NumberToPositiveNumber.narrow_type(Number::from(9)).unwrap(),
+      PositiveNumber { data: Number::from(9) },
+    );
+    assert_eq!(
+      NumberToPositiveNumber.narrow_type(Number::from(0)).unwrap_err(),
+      Number::from(0),
+    );
+    assert_eq!(
+      NumberToPositiveNumber.narrow_type(Number::from(-9)).unwrap_err(),
+      Number::from(-9),
+    );
+  }
+
+  #[test]
+  fn test_string_to_usize() {
+    assert_eq!(StringToUsize.widen_type(ParsedUsize { value: 3, input: String::from("3") }), String::from("3"));
+    assert_eq!(usize::from(StringToUsize.narrow_type(String::from("84")).unwrap()), 84);
+    assert!(StringToUsize.narrow_type(String::from("-3")).is_err());
+    assert!(StringToUsize.narrow_type(String::from("zzz")).is_err());
+  }
+
+  #[test]
+  fn test_string_to_i64() {
+    assert_eq!(StringToI64.widen_type(ParsedI64 { value: 3, input: String::from("3") }), String::from("3"));
+    assert_eq!(i64::from(StringToI64.narrow_type(String::from("84")).unwrap()), 84);
+    assert_eq!(i64::from(StringToI64.narrow_type(String::from("-3")).unwrap()), -3);
+    assert!(StringToI64.narrow_type(String::from("zzz")).is_err());
+    assert!(StringToI64.narrow_type(String::from("")).is_err());
   }
 }
