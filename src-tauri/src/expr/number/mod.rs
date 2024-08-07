@@ -24,18 +24,13 @@ use std::ops::MulAssign;
 
 // TODO: Consider using try_traits for some of our failable ops like Div.
 
-/// Raises `input` to the power of `exp`, using the repeated squaring
-/// technique.
-///
-/// `exp` must be a nonnegative integer, or else this function panics.
-/// If `exp` is equal to zero, this function returns `T::one()`.
-pub fn powi_by_repeated_square_err<T>(mut input: T, mut exp: BigInt) -> Result<T, T::Error>
-where T: One + TryMulAssign + Clone {
+pub fn powi_by_repeated_square_err_with_one<T>(mut input: T, mut exp: BigInt, one: T) -> Result<T, T::Error>
+where T: TryMulAssign + Clone {
   assert!(exp >= BigInt::zero());
   if exp.is_zero() {
-    return Ok(T::one());
+    return Ok(one);
   }
-  let mut result = T::one();
+  let mut result = one;
   while exp > BigInt::one() {
     if exp.clone() % BigInt::from(2) == BigInt::zero() {
       input.try_mul_assign(input.clone())?;
@@ -47,6 +42,16 @@ where T: One + TryMulAssign + Clone {
   }
   result.try_mul_assign(input)?;
   Ok(result)
+}
+
+/// Raises `input` to the power of `exp`, using the repeated squaring
+/// technique.
+///
+/// `exp` must be a nonnegative integer, or else this function panics.
+/// If `exp` is equal to zero, this function returns `T::one()`.
+pub fn powi_by_repeated_square_err<T>(input: T, exp: BigInt) -> Result<T, T::Error>
+where T: One + TryMulAssign + Clone {
+  powi_by_repeated_square_err_with_one(input, exp, T::one())
 }
 
 pub fn powi_by_repeated_square<T>(input: T, exp: BigInt) -> T

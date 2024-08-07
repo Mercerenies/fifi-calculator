@@ -3,9 +3,11 @@ use super::interval_type::IntervalType;
 use super::bound::Bounded;
 use super::raw::RawInterval;
 use crate::expr::Expr;
-use crate::util::unwrap_infallible;
+use crate::expr::number::powi_by_repeated_square_err_with_one;
+use crate::util::{unwrap_infallible, TryPow};
 
-use try_traits::ops::{TryAdd, TrySub, TryMul};
+use try_traits::ops::{TryAdd, TrySub, TryMul, TryMulAssign};
+use num::{One, BigInt};
 
 use std::ops::Neg;
 
@@ -203,6 +205,40 @@ where T: TryMul + Default + Ord + Clone,
 
   fn try_mul(self, other: Self) -> Result<Self::Output, Self::Error> {
     self.apply_monotone_err(other, |x, y| x.try_mul(y))
+  }
+}
+
+impl<T> TryMulAssign for Interval<T>
+where T: TryMul<Output=T> + Default + Ord + Clone {
+  type Error = <T as TryMul>::Error;
+
+  fn try_mul_assign(&mut self, other: Self) -> Result<(), Self::Error> {
+    *self = self.clone().try_mul(other)?;
+    Ok(())
+  }
+}
+
+impl<T> TryPow<BigInt> for Interval<T>
+where T: TryMul<Output=T> + Default + One + Ord + Clone {
+  type Output = Interval<T>;
+  type Error = <T as TryMul>::Error;
+
+  fn try_pow(self, exp: BigInt) -> Result<Self::Output, Self::Error> {
+    powi_by_repeated_square_err_with_one(
+      self,
+      exp,
+      Self::singleton(T::one()),
+    )
+  }
+}
+
+impl<T> TryPow<i64> for Interval<T>
+where T: TryMul<Output=T> + Default + One + Ord + Clone {
+  type Output = Interval<T>;
+  type Error = <T as TryMul>::Error;
+
+  fn try_pow(self, exp: i64) -> Result<Self::Output, Self::Error> {
+    self.try_pow(BigInt::from(exp))
   }
 }
 
