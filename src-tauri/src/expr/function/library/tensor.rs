@@ -609,12 +609,12 @@ pub fn determinant() -> Function {
 pub fn trace() -> Function {
   FunctionBuilder::new("trace")
     .add_case(
-      builder::arity_one().of_type(prisms::ExprToTypedMatrix::new(prisms::ExprToComplex)).and_then(|mat, ctx| {
+      builder::arity_one().of_type(prisms::ExprToTypedMatrix::new(prisms::ExprToQuaternion)).and_then(|mat, ctx| {
         if mat.width() != mat.height() {
           ctx.errors.push(SimplifierError::custom_error("trace", "Expected square matrix"));
           return Err(mat);
         }
-        Ok(mat.map(ComplexNumber::from).trace().into())
+        Ok(mat.trace().into())
       })
     )
     .build()

@@ -261,6 +261,17 @@ impl Add for ComplexLike {
   }
 }
 
+impl Add<&ComplexLike> for ComplexLike {
+  type Output = ComplexLike;
+
+  fn add(self, other: &Self) -> Self::Output {
+    match (self, other) {
+      (ComplexLike::Real(a), ComplexLike::Real(b)) => ComplexLike::Real(a + b),
+      (a, b) => ComplexLike::Complex(ComplexNumber::from(a) + ComplexNumber::from(b.to_owned())),
+    }
+  }
+}
+
 impl Sub for ComplexLike {
   type Output = ComplexLike;
 
@@ -374,6 +385,14 @@ impl Add for QuaternionLike {
       QuaternionPair::Complexes(a, b) => QuaternionLike::Complex(a + b),
       QuaternionPair::Quaternions(a, b) => QuaternionLike::Quaternion(a + b),
     }
+  }
+}
+
+impl Add<&QuaternionLike> for QuaternionLike {
+  type Output = QuaternionLike;
+
+  fn add(self, other: &Self) -> Self::Output {
+    self + (*other).clone()
   }
 }
 
