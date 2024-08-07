@@ -15,7 +15,10 @@ pub use repr::NumberRepr;
 pub use power::{pow_real, pow_complex_to_real, pow_complex, root_real, root_complex};
 pub use grouped::{ComplexLike, QuaternionLike};
 
+use crate::util::unwrap_infallible;
+
 use num::{BigInt, Zero, One};
+use try_traits::ops::TryMulAssign;
 
 use std::ops::MulAssign;
 
@@ -26,24 +29,30 @@ use std::ops::MulAssign;
 ///
 /// `exp` must be a nonnegative integer, or else this function panics.
 /// If `exp` is equal to zero, this function returns `T::one()`.
-pub fn powi_by_repeated_square<T>(mut input: T, mut exp: BigInt) -> T
-where T: One + MulAssign + Clone {
+pub fn powi_by_repeated_square_err<T>(mut input: T, mut exp: BigInt) -> Result<T, T::Error>
+where T: One + TryMulAssign + Clone {
   assert!(exp >= BigInt::zero());
   if exp.is_zero() {
-    return T::one();
+    return Ok(T::one());
   }
   let mut result = T::one();
   while exp > BigInt::one() {
     if exp.clone() % BigInt::from(2) == BigInt::zero() {
-      input *= input.clone();
+      input.try_mul_assign(input.clone())?;
       exp /= BigInt::from(2);
     } else {
-      result *= input.clone();
+      result.try_mul_assign(input.clone())?;
       exp -= BigInt::one();
     }
   }
-  result *= input;
-  result
+  result.try_mul_assign(input)?;
+  Ok(result)
+}
+
+pub fn powi_by_repeated_square<T>(input: T, exp: BigInt) -> T
+where T: One + MulAssign + Clone {
+  let result = powi_by_repeated_square_err(input, exp);
+  unwrap_infallible(result)
 }
 
 #[cfg(test)]
