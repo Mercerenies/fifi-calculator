@@ -4,8 +4,8 @@
 
 use super::{Vector, ExprToVector, LengthError};
 use crate::expr::Expr;
-use crate::expr::number::{Number, ComplexNumber, ComplexLike};
-use crate::expr::prisms::ExprToComplex;
+use crate::expr::number::{Number, ComplexNumber, Quaternion, ComplexLike, QuaternionLike};
+use crate::expr::prisms::ExprToQuaternion;
 use crate::util;
 use crate::util::prism::{Prism, PrismExt};
 
@@ -30,8 +30,7 @@ pub struct ExprToTensor;
 
 #[derive(Debug, Clone, PartialEq)]
 enum TensorImpl {
-  RealScalar(Number),
-  ComplexScalar(ComplexNumber),
+  Scalar(QuaternionLike),
   Vector(Vector),
 }
 
@@ -39,14 +38,21 @@ impl Tensor {
   /// Constructs a `Tensor` which is a literal real number.
   pub fn real_scalar(n: Number) -> Self {
     Tensor {
-      data: TensorImpl::RealScalar(n),
+      data: TensorImpl::Scalar(QuaternionLike::Real(n)),
     }
   }
 
   /// Constructs a `Tensor` which is a literal complex number.
   pub fn complex_scalar(c: ComplexNumber) -> Self {
     Tensor {
-      data: TensorImpl::ComplexScalar(c),
+      data: TensorImpl::Scalar(QuaternionLike::Complex(c)),
+    }
+  }
+
+  /// Constructs a `Tensor` which is a literal quaternion.
+  pub fn quaternion_scalar(q: Quaternion) -> Self {
+    Tensor {
+      data: TensorImpl::Scalar(QuaternionLike::Quaternion(q)),
     }
   }
 
@@ -73,8 +79,7 @@ impl Tensor {
   /// The rank of a scalar is zero, and the rank of a vector is one.
   pub fn rank(&self) -> usize {
     match &self.data {
-      TensorImpl::RealScalar(_) => 0,
-      TensorImpl::ComplexScalar(_) => 0,
+      TensorImpl::Scalar(_) => 0,
       TensorImpl::Vector(_) => 1,
     }
   }
@@ -85,8 +90,7 @@ impl Tensor {
   /// an error if not.
   pub fn extend_to(self, len: usize) -> Result<Vector, LengthError> {
     match self.data {
-      TensorImpl::RealScalar(n) => Ok(util::repeated(Expr::from(n), len)),
-      TensorImpl::ComplexScalar(c) => Ok(util::repeated(Expr::from(c), len)),
+      TensorImpl::Scalar(n) => Ok(util::repeated(Expr::from(n), len)),
       TensorImpl::Vector(v) => {
         if v.len() == len {
           Ok(v)
@@ -101,8 +105,7 @@ impl Tensor {
   /// scalar, it's wrapped in a one-element vector.
   pub fn into_vector(self) -> Vector {
     match self.data {
-      TensorImpl::RealScalar(n) => Vector::from(vec![Expr::from(n)]),
-      TensorImpl::ComplexScalar(c) => Vector::from(vec![Expr::from(c)]),
+      TensorImpl::Scalar(n) => Vector::from(vec![Expr::from(n)]),
       TensorImpl::Vector(v) => v,
     }
   }
@@ -145,8 +148,7 @@ impl Tensor {
   pub fn try_add(self, other: Tensor) -> Result<Tensor, LengthError> {
     self.try_broadcasted_op(
       other,
-      Number::add,
-      ComplexNumber::add,
+      QuaternionLike::add,
       "+",
     )
   }
@@ -156,8 +158,7 @@ impl Tensor {
   pub fn try_sub(self, other: Tensor) -> Result<Tensor, LengthError> {
     self.try_broadcasted_op(
       other,
-      Number::sub,
-      ComplexNumber::sub,
+      QuaternionLike::sub,
       "-",
     )
   }
@@ -167,8 +168,7 @@ impl Tensor {
   pub fn try_mul(self, other: Tensor) -> Result<Tensor, LengthError> {
     self.try_broadcasted_op(
       other,
-      Number::mul,
-      ComplexNumber::mul,
+      QuaternionLike::mul,
       "*",
     )
   }
@@ -182,8 +182,7 @@ impl Tensor {
   pub fn try_div(self, other: Tensor) -> Result<Tensor, LengthError> {
     self.try_broadcasted_op(
       other,
-      Number::div,
-      ComplexNumber::div,
+      QuaternionLike::div,
       "/",
     )
   }
@@ -191,23 +190,13 @@ impl Tensor {
   fn try_broadcasted_op(
     self,
     other: Tensor,
-    real_op: impl FnOnce(Number, Number) -> Number,
-    complex_op: impl FnOnce(ComplexNumber, ComplexNumber) -> ComplexNumber,
+    scalar_op: impl FnOnce(QuaternionLike, QuaternionLike) -> QuaternionLike,
     function_name: &str,
   ) -> Result<Tensor, LengthError> {
     use TensorImpl::*;
     match (self.data, other.data) {
-      (RealScalar(left), RealScalar(right)) => {
-        Ok(Tensor::real_scalar(real_op(left, right)))
-      }
-      (RealScalar(left), ComplexScalar(right)) => {
-        Ok(Tensor::complex_scalar(complex_op(ComplexNumber::from_real(left), right)))
-      }
-      (ComplexScalar(left), RealScalar(right)) => {
-        Ok(Tensor::complex_scalar(complex_op(left, ComplexNumber::from_real(right))))
-      }
-      (ComplexScalar(left), ComplexScalar(right)) => {
-        Ok(Tensor::complex_scalar(complex_op(left, right)))
+      (Scalar(left), Scalar(right)) => {
+        Ok(Tensor::from(scalar_op(left, right)))
       }
       (Vector(left), Vector(right)) => {
         left.zip_with(right, |a, b| Expr::call(function_name, vec![a, b]))
@@ -264,8 +253,7 @@ impl Div for Tensor {
 impl From<Tensor> for Expr {
   fn from(b: Tensor) -> Expr {
     match b.data {
-      TensorImpl::RealScalar(n) => n.into(),
-      TensorImpl::ComplexScalar(c) => c.into(),
+      TensorImpl::Scalar(n) => n.into(),
       TensorImpl::Vector(v) => v.into_expr(),
     }
   }
@@ -273,19 +261,21 @@ impl From<Tensor> for Expr {
 
 impl From<ComplexLike> for Tensor {
   fn from(b: ComplexLike) -> Tensor {
-    match b {
-      ComplexLike::Real(n) => Tensor::real_scalar(n),
-      ComplexLike::Complex(c) => Tensor::complex_scalar(c),
-    }
+    Tensor::from(QuaternionLike::from(b))
+  }
+}
+
+impl From<QuaternionLike> for Tensor {
+  fn from(b: QuaternionLike) -> Tensor {
+    Tensor { data: TensorImpl::Scalar(b) }
   }
 }
 
 impl Prism<Expr, Tensor> for ExprToTensor {
   fn narrow_type(&self, expr: Expr) -> Result<Tensor, Expr> {
-    let prism = ExprToComplex.or(ExprToVector);
+    let prism = ExprToQuaternion.or(ExprToVector);
     prism.narrow_type(expr).map(|either| match either {
-      Either::Left(ComplexLike::Real(r)) => Tensor::real_scalar(r),
-      Either::Left(ComplexLike::Complex(c)) => Tensor::complex_scalar(c),
+      Either::Left(q) => Tensor::from(q),
       Either::Right(v) => Tensor::vector(v),
     })
   }
@@ -303,9 +293,11 @@ mod tests {
   #[test]
   fn test_shape_of_broadcastable_constructors() {
     let real_scalar = Tensor::real_scalar(Number::from(99));
-    assert_eq!(real_scalar.data, TensorImpl::RealScalar(Number::from(99)));
+    assert_eq!(real_scalar.data, TensorImpl::Scalar(QuaternionLike::Real(Number::from(99))));
     let complex_scalar = Tensor::complex_scalar(ComplexNumber::zero());
-    assert_eq!(complex_scalar.data, TensorImpl::ComplexScalar(ComplexNumber::zero()));
+    assert_eq!(complex_scalar.data, TensorImpl::Scalar(QuaternionLike::Complex(ComplexNumber::zero())));
+    let quat_scalar = Tensor::quaternion_scalar(Quaternion::zero());
+    assert_eq!(quat_scalar.data, TensorImpl::Scalar(QuaternionLike::Quaternion(Quaternion::zero())));
     let vector = Tensor::vector(Vector::default());
     assert_eq!(vector.data, TensorImpl::Vector(Vector::default()));
   }
@@ -316,6 +308,8 @@ mod tests {
     assert_eq!(real_scalar.rank(), 0);
     let complex_scalar = Tensor::complex_scalar(ComplexNumber::zero());
     assert_eq!(complex_scalar.rank(), 0);
+    let quat_scalar = Tensor::quaternion_scalar(Quaternion::zero());
+    assert_eq!(quat_scalar.rank(), 0);
     let vector = Tensor::vector(Vector::default());
     assert_eq!(vector.rank(), 1);
   }
@@ -335,6 +329,15 @@ mod tests {
     assert_eq!(x.clone().extend_to(0), Ok(Vector::from(vec![])));
     assert_eq!(x.clone().extend_to(1), Ok(Vector::from(vec![Expr::from(z.clone())])));
     assert_eq!(x.extend_to(2), Ok(Vector::from(vec![Expr::from(z.clone()), Expr::from(z)])));
+  }
+
+  #[test]
+  fn test_extend_to_on_quat_scalar() {
+    let q = Quaternion::new(2, 1, 7, 8);
+    let x = Tensor::quaternion_scalar(q.clone());
+    assert_eq!(x.clone().extend_to(0), Ok(Vector::from(vec![])));
+    assert_eq!(x.clone().extend_to(1), Ok(Vector::from(vec![Expr::from(q.clone())])));
+    assert_eq!(x.extend_to(2), Ok(Vector::from(vec![Expr::from(q.clone()), Expr::from(q)])));
   }
 
   #[test]

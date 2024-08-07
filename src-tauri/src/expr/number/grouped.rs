@@ -396,6 +396,18 @@ impl Add<&QuaternionLike> for QuaternionLike {
   }
 }
 
+impl Sub for QuaternionLike {
+  type Output = QuaternionLike;
+
+  fn sub(self, other: Self) -> Self::Output {
+    match QuaternionPair::promote(self, other) {
+      QuaternionPair::Reals(a, b) => QuaternionLike::Real(a - b),
+      QuaternionPair::Complexes(a, b) => QuaternionLike::Complex(a - b),
+      QuaternionPair::Quaternions(a, b) => QuaternionLike::Quaternion(a - b),
+    }
+  }
+}
+
 impl Mul for QuaternionLike {
   type Output = QuaternionLike;
 
@@ -404,6 +416,18 @@ impl Mul for QuaternionLike {
       QuaternionPair::Reals(a, b) => QuaternionLike::Real(a * b),
       QuaternionPair::Complexes(a, b) => QuaternionLike::Complex(a * b),
       QuaternionPair::Quaternions(a, b) => QuaternionLike::Quaternion(a * b),
+    }
+  }
+}
+
+impl Div for QuaternionLike {
+  type Output = QuaternionLike;
+
+  fn div(self, other: Self) -> Self::Output {
+    match QuaternionPair::promote(self, other) {
+      QuaternionPair::Reals(a, b) => QuaternionLike::Real(a / b),
+      QuaternionPair::Complexes(a, b) => QuaternionLike::Complex(a / b),
+      QuaternionPair::Quaternions(a, b) => QuaternionLike::Quaternion(a / b),
     }
   }
 }
