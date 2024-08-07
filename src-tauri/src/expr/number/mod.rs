@@ -14,6 +14,7 @@ pub use repr::NumberRepr;
 pub use power::{pow_real, pow_complex_to_real, pow_complex, root_real, root_complex};
 
 use super::Expr;
+use visitor::QuaternionPair;
 use crate::util::stricteq::StrictEq;
 
 use num::{BigInt, Zero, One};
@@ -56,6 +57,16 @@ where T: One + MulAssign + Clone {
 pub enum ComplexLike {
   Real(Number),
   Complex(ComplexNumber),
+}
+
+/// A real number, complex number, or quaternion. Like
+/// [`ComplexLike`], this is used as a target for a prism and can be
+/// lifted to a [`Quaternion`] via [`From::from`] when desired.
+#[derive(Clone, Debug)]
+pub enum QuaternionLike {
+  Real(Number),
+  Complex(ComplexNumber),
+  Quaternion(Quaternion),
 }
 
 impl ComplexLike {
@@ -120,6 +131,20 @@ impl ComplexLike {
   }
 }
 
+impl QuaternionLike {
+  pub fn is_real(&self) -> bool {
+    matches!(self, QuaternionLike::Real(_))
+  }
+
+  pub fn is_complex(&self) -> bool {
+    matches!(self, QuaternionLike::Complex(_))
+  }
+
+  pub fn is_quaternion(&self) -> bool {
+    matches!(self, QuaternionLike::Quaternion(_))
+  }
+}
+
 impl From<ComplexLike> for ComplexNumber {
   fn from(input: ComplexLike) -> ComplexNumber {
     match input {
@@ -140,6 +165,32 @@ impl From<ComplexLike> for Expr {
     match input {
       ComplexLike::Real(real) => real.into(),
       ComplexLike::Complex(complex) => complex.into(),
+    }
+  }
+}
+
+impl From<QuaternionLike> for Quaternion {
+  fn from(input: QuaternionLike) -> Quaternion {
+    match input {
+      QuaternionLike::Real(real) => Quaternion::from(real),
+      QuaternionLike::Complex(complex) => Quaternion::from(complex),
+      QuaternionLike::Quaternion(quat) => quat,
+    }
+  }
+}
+
+impl From<i64> for QuaternionLike {
+  fn from(input: i64) -> QuaternionLike {
+    QuaternionLike::Real(Number::from(input))
+  }
+}
+
+impl From<QuaternionLike> for Expr {
+  fn from(input: QuaternionLike) -> Expr {
+    match input {
+      QuaternionLike::Real(real) => real.into(),
+      QuaternionLike::Complex(complex) => complex.into(),
+      QuaternionLike::Quaternion(quat) => quat.into(),
     }
   }
 }
@@ -169,11 +220,42 @@ impl PartialEq for ComplexLike {
   }
 }
 
+impl Eq for ComplexLike {}
+
+impl PartialEq for QuaternionLike {
+  fn eq(&self, other: &Self) -> bool {
+    match (self, other) {
+      (QuaternionLike::Real(a), QuaternionLike::Real(b)) => a == b,
+      (QuaternionLike::Complex(a), QuaternionLike::Complex(b)) => a == b,
+      (QuaternionLike::Quaternion(a), QuaternionLike::Quaternion(b)) => a == b,
+      (a, b) => {
+        // This third case technically always works, but the above
+        // cases avoid an extra clone on `self` and `other` in
+        // situations where we have an exact match.
+        Quaternion::from(a.to_owned()) == Quaternion::from(b.to_owned())
+      }
+    }
+  }
+}
+
+impl Eq for QuaternionLike {}
+
 impl StrictEq for ComplexLike {
   fn strict_eq(&self, other: &Self) -> bool {
     match (self, other) {
       (ComplexLike::Real(a), ComplexLike::Real(b)) => a.strict_eq(b),
       (ComplexLike::Complex(a), ComplexLike::Complex(b)) => a.strict_eq(b),
+      _ => false
+    }
+  }
+}
+
+impl StrictEq for QuaternionLike {
+  fn strict_eq(&self, other: &Self) -> bool {
+    match (self, other) {
+      (QuaternionLike::Real(a), QuaternionLike::Real(b)) => a.strict_eq(b),
+      (QuaternionLike::Complex(a), QuaternionLike::Complex(b)) => a.strict_eq(b),
+      (QuaternionLike::Quaternion(a), QuaternionLike::Quaternion(b)) => a.strict_eq(b),
       _ => false
     }
   }
@@ -259,10 +341,61 @@ impl One for ComplexLike {
   }
 
   fn is_one(&self) -> bool {
-    dbg!(self);
     match self {
       ComplexLike::Real(r) => r.is_one(),
       ComplexLike::Complex(z) => z.is_one(),
+    }
+  }
+}
+
+impl Zero for QuaternionLike {
+  fn zero() -> Self {
+    QuaternionLike::Real(Number::zero())
+  }
+
+  fn is_zero(&self) -> bool {
+    match self {
+      QuaternionLike::Real(r) => r.is_zero(),
+      QuaternionLike::Complex(z) => z.is_zero(),
+      QuaternionLike::Quaternion(q) => q.is_zero(),
+    }
+  }
+}
+
+impl One for QuaternionLike {
+  fn one() -> Self {
+    QuaternionLike::Real(Number::one())
+  }
+
+  fn is_one(&self) -> bool {
+    match self {
+      QuaternionLike::Real(r) => r.is_one(),
+      QuaternionLike::Complex(z) => z.is_one(),
+      QuaternionLike::Quaternion(q) => q.is_one(),
+    }
+  }
+}
+
+impl Add for QuaternionLike {
+  type Output = QuaternionLike;
+
+  fn add(self, other: Self) -> Self::Output {
+    match QuaternionPair::promote(self, other) {
+      QuaternionPair::Reals(a, b) => QuaternionLike::Real(a + b),
+      QuaternionPair::Complexes(a, b) => QuaternionLike::Complex(a + b),
+      QuaternionPair::Quaternions(a, b) => QuaternionLike::Quaternion(a + b),
+    }
+  }
+}
+
+impl Mul for QuaternionLike {
+  type Output = QuaternionLike;
+
+  fn mul(self, other: Self) -> Self::Output {
+    match QuaternionPair::promote(self, other) {
+      QuaternionPair::Reals(a, b) => QuaternionLike::Real(a * b),
+      QuaternionPair::Complexes(a, b) => QuaternionLike::Complex(a * b),
+      QuaternionPair::Quaternions(a, b) => QuaternionLike::Quaternion(a * b),
     }
   }
 }

@@ -250,6 +250,18 @@ impl From<ComplexNumber> for Expr {
   }
 }
 
+impl From<Quaternion> for Expr {
+  fn from(q: Quaternion) -> Expr {
+    let (r, i, j, k) = q.into_parts();
+    Expr::call(Quaternion::FUNCTION_NAME, vec![
+      Expr::from(r),
+      Expr::from(i),
+      Expr::from(j),
+      Expr::from(k),
+    ])
+  }
+}
+
 impl From<BigInt> for Expr {
   fn from(b: BigInt) -> Expr {
     Expr::Atom(Atom::Number(b.into()))

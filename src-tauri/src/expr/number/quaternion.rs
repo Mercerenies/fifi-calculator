@@ -1,5 +1,5 @@
 
-use super::{Number, powi_by_repeated_square};
+use super::{Number, ComplexNumber, powi_by_repeated_square};
 use crate::util::stricteq::StrictEq;
 
 use serde::{Serialize, Deserialize};
@@ -123,6 +123,19 @@ impl StrictEq for Quaternion {
       && self.i.strict_eq(&other.i)
       && self.j.strict_eq(&other.j)
       && self.k.strict_eq(&other.k)
+  }
+}
+
+impl From<Number> for Quaternion {
+  fn from(n: Number) -> Self {
+    Self::from_real(n)
+  }
+}
+
+impl From<ComplexNumber> for Quaternion {
+  fn from(c: ComplexNumber) -> Self {
+    let (real, imag) = c.into_parts();
+    Self::new(real, imag, 0, 0)
   }
 }
 

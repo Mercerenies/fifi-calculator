@@ -238,6 +238,12 @@ impl Display for ComplexNumber {
   }
 }
 
+impl From<Number> for ComplexNumber {
+  fn from(n: Number) -> ComplexNumber {
+    ComplexNumber::from_real(n)
+  }
+}
+
 impl ops::Add for ComplexNumber {
   type Output = ComplexNumber;
 
