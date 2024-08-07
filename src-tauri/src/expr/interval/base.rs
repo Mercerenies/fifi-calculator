@@ -192,8 +192,9 @@ where <T as TrySub>::Output: Default + Ord {
   }
 }
 
-/// Note: This instance assumes that the multiplication on `T` is a
-/// monotone operation with respect to its `Ord` instance.
+/// Note: This instance assumes that the multiplication on `T` (where
+/// defined) is a monotone operation with respect to its `Ord`
+/// instance.
 impl<T> TryMul for Interval<T>
 where T: TryMul + Default + Ord + Clone,
       <T as TryMul>::Output: Default + Ord + Clone {
