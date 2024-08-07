@@ -2,7 +2,7 @@
 //! Functions which operate on vectors and/or matrices.
 
 use crate::expr::Expr;
-use crate::expr::number::ComplexNumber;
+use crate::expr::number::{ComplexNumber, Quaternion};
 use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder};
@@ -622,6 +622,14 @@ pub fn trace() -> Function {
 
 pub fn matrix_multiplication() -> Function {
   FunctionBuilder::new("@")
+    .add_case(
+      // Quaternion times quaternion
+      builder::arity_two().of_types(prisms::ExprToQuaternion, prisms::ExprToQuaternion).and_then(|a, b, _| {
+        let a = Quaternion::from(a);
+        let b = Quaternion::from(b);
+        Ok((a * b).into())
+      })
+    )
     .add_case(
       // Vector times scalar
       builder::arity_two().of_types(prisms::ExprToVector, prisms::ExprToQuaternion).and_then(|v, q, _| {
