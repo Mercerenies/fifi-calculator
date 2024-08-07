@@ -8,6 +8,7 @@ use super::table::VarTable;
 
 use thiserror::Error;
 use once_cell::sync::Lazy;
+use regex::Regex;
 
 use std::collections::HashSet;
 use std::f64::consts::{PI, E};
@@ -23,10 +24,17 @@ pub static RESERVED_NAMES: Lazy<HashSet<Var>> = Lazy::new(|| {
   ].into_iter().map(|s| Var::new(s).unwrap()).collect()
 });
 
-#[derive(Error, Debug, Clone)]
-#[error("variable name '{name}' is reserved")]
-pub struct NameIsReservedError {
-  name: Var,
+pub static DOLLAR_SIGN_NAME_RE: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"^\$+[0-9]*$").unwrap()
+});
+
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum NameIsReservedError {
+  #[error("Variable name '{name}' is a reserved constant")]
+  ReservedConstant { name: Var },
+  #[error("Variable name '{name}' is a special dollar-sign name")]
+  DollarSignName { name: Var },
 }
 
 /// The Euler-Mascheroni constant. The std::f64::consts constant is
@@ -50,8 +58,48 @@ pub fn bind_constants(table: &mut VarTable<Expr>) {
 /// error. Otherwise, returns `Ok`.
 pub fn validate_non_reserved_var_name(name: &Var) -> Result<(), NameIsReservedError> {
   if RESERVED_NAMES.contains(name) {
-    Err(NameIsReservedError { name: name.clone() })
+    Err(NameIsReservedError::ReservedConstant { name: name.clone() })
+  } else if DOLLAR_SIGN_NAME_RE.is_match(name.as_str()) {
+    Err(NameIsReservedError::DollarSignName { name: name.clone() })
   } else {
     Ok(())
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn var(name: &str) -> Var {
+    Var::new(name).unwrap()
+  }
+
+  #[test]
+  fn test_validate_non_reserved_var_name_on_safe_names() {
+    validate_non_reserved_var_name(&var("x")).unwrap();
+    validate_non_reserved_var_name(&var("xyz")).unwrap();
+    validate_non_reserved_var_name(&var("AbCd")).unwrap();
+    validate_non_reserved_var_name(&var("$x")).unwrap();
+    validate_non_reserved_var_name(&var("Pi")).unwrap();
+    validate_non_reserved_var_name(&var("PI")).unwrap();
+    validate_non_reserved_var_name(&var("z")).unwrap();
+  }
+
+  #[test]
+  fn test_validate_non_reserved_var_name_on_constant() {
+    assert!(matches!(validate_non_reserved_var_name(&var("pi")), Err(NameIsReservedError::ReservedConstant { .. })));
+    assert!(matches!(validate_non_reserved_var_name(&var("gamma")), Err(NameIsReservedError::ReservedConstant { .. })));
+    assert!(matches!(validate_non_reserved_var_name(&var("e")), Err(NameIsReservedError::ReservedConstant { .. })));
+    assert!(matches!(validate_non_reserved_var_name(&var("i")), Err(NameIsReservedError::ReservedConstant { .. })));
+    assert!(matches!(validate_non_reserved_var_name(&var("phi")), Err(NameIsReservedError::ReservedConstant { .. })));
+  }
+
+  #[test]
+  fn test_validate_non_reserved_var_name_on_dollar_sign_name() {
+    assert!(matches!(validate_non_reserved_var_name(&var("$")), Err(NameIsReservedError::DollarSignName { .. })));
+    assert!(matches!(validate_non_reserved_var_name(&var("$1")), Err(NameIsReservedError::DollarSignName { .. })));
+    assert!(matches!(validate_non_reserved_var_name(&var("$392")), Err(NameIsReservedError::DollarSignName { .. })));
+    assert!(matches!(validate_non_reserved_var_name(&var("$$$")), Err(NameIsReservedError::DollarSignName { .. })));
+    assert!(matches!(validate_non_reserved_var_name(&var("$$$001")), Err(NameIsReservedError::DollarSignName { .. })));
   }
 }
