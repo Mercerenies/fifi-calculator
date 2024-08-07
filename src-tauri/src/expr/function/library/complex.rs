@@ -9,8 +9,8 @@ use crate::expr::Expr;
 use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder};
-use crate::expr::prisms::{self, ExprToComplex};
-use crate::expr::number::ComplexNumber;
+use crate::expr::prisms::{self, ExprToComplex, ExprToQuaternion};
+use crate::expr::number::{ComplexNumber, Quaternion};
 use crate::expr::vector::Vector;
 use crate::expr::algebra::infinity::InfiniteConstant;
 
@@ -26,9 +26,21 @@ pub fn append_complex_functions(table: &mut FunctionTable) {
 pub fn conjugate() -> Function {
   FunctionBuilder::new("conj")
     .add_case(
+      // Conjugate of a real number (identity function)
+      builder::arity_one().of_type(prisms::expr_to_number()).and_then(|arg, _| {
+        Ok(Expr::from(arg))
+      })
+    )
+    .add_case(
       // Conjugate of a complex number
       builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
         Ok(Expr::from(ComplexNumber::from(arg).conj()))
+      })
+    )
+    .add_case(
+      // Conjugate of a quaternion
+      builder::arity_one().of_type(ExprToQuaternion).and_then(|arg, _| {
+        Ok(Expr::from(Quaternion::from(arg).conj()))
       })
     )
     .add_case(
@@ -87,6 +99,13 @@ pub fn re() -> Function {
       })
     )
     .add_case(
+      // Real part of a quaternion
+      builder::arity_one().of_type(ExprToQuaternion).and_then(|arg, _| {
+        let arg = Quaternion::from(arg);
+        Ok(arg.into_parts().0.into())
+      })
+    )
+    .add_case(
       // Pointwise real-part of a vector
       builder::arity_one().of_type(prisms::ExprToVector).and_then(|vec, _| {
         let vec: Vector = vec.into_iter().map(|e| Expr::call("re", vec![e])).collect();
@@ -112,6 +131,13 @@ pub fn im() -> Function {
       // Imaginary part of a complex number
       builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
         let arg = ComplexNumber::from(arg);
+        Ok(arg.into_parts().1.into())
+      })
+    )
+    .add_case(
+      // Imaginary part of a quaternion
+      builder::arity_one().of_type(ExprToQuaternion).and_then(|arg, _| {
+        let arg = Quaternion::from(arg);
         Ok(arg.into_parts().1.into())
       })
     )
