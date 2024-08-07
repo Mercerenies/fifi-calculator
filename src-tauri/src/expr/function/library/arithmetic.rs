@@ -9,9 +9,10 @@ use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
 use crate::expr::vector::Vector;
 use crate::expr::vector::matrix::Matrix;
 use crate::expr::vector::tensor::Tensor;
-use crate::expr::prisms::{self, expr_to_number, ExprToComplex};
-use crate::expr::number::{Number, ComplexNumber, pow_real, pow_complex, pow_complex_to_real};
-use crate::expr::simplifier::error::SimplifierError;
+use crate::expr::prisms::{self, expr_to_number, ExprToComplex, ExprToQuaternion};
+use crate::expr::number::{Number, ComplexNumber, Quaternion, QuaternionLike,
+                          pow_real, pow_complex, pow_complex_to_real};
+use crate::expr::simplifier::error::{SimplifierError, DomainError};
 use crate::expr::calculus::DifferentiationError;
 use crate::expr::algebra::infinity::{InfiniteConstant, UnboundedNumber, is_infinite_constant,
                                      multiply_infinities, infinite_pow};
@@ -19,7 +20,7 @@ use crate::graphics::GRAPHICS_NAME;
 use crate::util::repeated;
 use crate::util::prism::Identity;
 
-use num::{Zero, One};
+use num::{Zero, One, BigInt};
 use either::Either;
 use try_traits::ops::{TryAdd, TrySub, TryMul};
 
@@ -64,6 +65,16 @@ pub fn addition() -> Function {
           .map(ComplexNumber::from)
           .reduce(|a, b| a + b)
           .unwrap_or(ComplexNumber::zero());
+        Ok(Expr::from(sum))
+      })
+    )
+    .add_case(
+      // Quaternion addition
+      builder::any_arity().of_type(ExprToQuaternion).and_then(|args, _| {
+        let sum = args.into_iter()
+          .map(Quaternion::from)
+          .reduce(|a, b| a + b)
+          .unwrap_or(Quaternion::zero());
         Ok(Expr::from(sum))
       })
     )
@@ -146,6 +157,13 @@ pub fn subtraction() -> Function {
       // Complex number subtraction
       builder::arity_two().both_of_type(ExprToComplex).and_then(|arg1, arg2, _| {
         let difference = ComplexNumber::from(arg1) - ComplexNumber::from(arg2);
+        Ok(Expr::from(difference))
+      })
+    )
+    .add_case(
+      // Quaternion subtraction
+      builder::arity_two().both_of_type(ExprToQuaternion).and_then(|arg1, arg2, _| {
+        let difference = Quaternion::from(arg1) - Quaternion::from(arg2);
         Ok(Expr::from(difference))
       })
     )
@@ -244,6 +262,16 @@ pub fn multiplication() -> Function {
           .reduce(|a, b| a * b)
           .unwrap_or(ComplexNumber::one());
         Ok(Expr::from(product))
+      })
+    )
+    .add_case(
+      // Quaternions (Trap case; you must use '@' not '*' for
+      // non-commutative multiplication)
+      builder::any_arity().of_type(ExprToQuaternion).and_then(|args, context| {
+        context.errors.push(
+          SimplifierError::new("*", DomainError::new("Quaternion multiplication is non-commutative; use @ not *")),
+        );
+        Err(args)
       })
     )
     .add_case(
@@ -426,7 +454,7 @@ pub fn division() -> Function {
         }
       })
     )
-    .build()
+    .build() // TODO Trap case for quaternions if we implement a division variant of the infix `@`
 }
 
 pub fn power() -> Function {
@@ -476,6 +504,20 @@ pub fn power() -> Function {
         }
         let power = pow_complex(arg1.into(), arg2.into());
         Ok(Expr::from(power))
+      })
+    )
+    .add_case(
+      // Quaternion power function (only integer powers are supported)
+      builder::arity_two().of_types(ExprToQuaternion, ExprToQuaternion).and_then(|arg1, arg2, context| {
+        let arg2 = match try_quat_into_bigint(arg2) {
+          Ok(arg2) => arg2,
+          Err(original_arg2) => {
+            context.errors.push(SimplifierError::custom_error("^", "Only integer powers are supported for quaternion exponentiation"));
+            return Err((arg1, original_arg2));
+          }
+        };
+        let result = Quaternion::from(arg1).powi(arg2);
+        Ok(result.into())
       })
     )
     .add_case(
@@ -635,6 +677,15 @@ pub fn power() -> Function {
       })
     )
     .build()
+}
+
+fn try_quat_into_bigint(quat: QuaternionLike) -> Result<BigInt, QuaternionLike> {
+  match quat {
+    QuaternionLike::Real(r) => {
+      BigInt::try_from(r).map_err(|err| QuaternionLike::Real(err.number))
+    }
+    _ => Err(quat),
+  }
 }
 
 pub fn modulo() -> Function {
