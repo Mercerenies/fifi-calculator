@@ -22,7 +22,7 @@ use crate::util::prism::Identity;
 
 use num::{Zero, One, BigInt};
 use either::Either;
-use try_traits::ops::{TryAdd, TrySub, TryMul};
+use try_traits::ops::{TryAdd, TrySub, TryMul, TryDiv};
 
 use std::cmp::Ordering;
 

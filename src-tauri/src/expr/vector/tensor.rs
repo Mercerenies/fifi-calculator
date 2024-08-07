@@ -11,6 +11,7 @@ use crate::util::prism::{Prism, PrismExt};
 
 use num::{Zero, One};
 use either::Either;
+use try_traits::ops::{TryAdd, TrySub, TryMul, TryDiv};
 
 use std::ops::{Add, Sub, Mul, Div};
 
@@ -143,50 +144,6 @@ impl Tensor {
     Ok(())
   }
 
-  /// Adds two `Tensor` values together. Produces an error if
-  /// both are vectors and they have different lengths.
-  pub fn try_add(self, other: Tensor) -> Result<Tensor, LengthError> {
-    self.try_broadcasted_op(
-      other,
-      QuaternionLike::add,
-      "+",
-    )
-  }
-
-  /// Subtracts two `Tensor` values together. Produces an error
-  /// if both are vectors and they have different lengths.
-  pub fn try_sub(self, other: Tensor) -> Result<Tensor, LengthError> {
-    self.try_broadcasted_op(
-      other,
-      QuaternionLike::sub,
-      "-",
-    )
-  }
-
-  /// Multiplies two `Tensor` values together. Produces an
-  /// error if both are vectors and they have different lengths.
-  pub fn try_mul(self, other: Tensor) -> Result<Tensor, LengthError> {
-    self.try_broadcasted_op(
-      other,
-      QuaternionLike::mul,
-      "*",
-    )
-  }
-
-  /// Divides two `Tensor` values together. Produces an error
-  /// if both are vectors and they have different lengths.
-  ///
-  /// If both are scalars and the denominator is equal to zero, this
-  /// function will panic, since it delegates to [`Number::div`] or
-  /// [`ComplexNumber::div`] in that case.
-  pub fn try_div(self, other: Tensor) -> Result<Tensor, LengthError> {
-    self.try_broadcasted_op(
-      other,
-      QuaternionLike::div,
-      "/",
-    )
-  }
-
   fn try_broadcasted_op(
     self,
     other: Tensor,
@@ -215,6 +172,70 @@ impl Tensor {
         Ok(Tensor::vector(res))
       }
     }
+  }
+}
+
+impl TryAdd for Tensor {
+  type Output = Tensor;
+  type Error = LengthError;
+
+  /// Adds two `Tensor` values together. Produces an error if
+  /// both are vectors and they have different lengths.
+  fn try_add(self, other: Tensor) -> Result<Tensor, LengthError> {
+    self.try_broadcasted_op(
+      other,
+      QuaternionLike::add,
+      "+",
+    )
+  }
+}
+
+impl TrySub for Tensor {
+  type Output = Tensor;
+  type Error = LengthError;
+
+  /// Subtracts two `Tensor` values together. Produces an error
+  /// if both are vectors and they have different lengths.
+  fn try_sub(self, other: Tensor) -> Result<Tensor, LengthError> {
+    self.try_broadcasted_op(
+      other,
+      QuaternionLike::sub,
+      "-",
+    )
+  }
+}
+
+impl TryMul for Tensor {
+  type Output = Tensor;
+  type Error = LengthError;
+
+  /// Multiplies two `Tensor` values together. Produces an
+  /// error if both are vectors and they have different lengths.
+  fn try_mul(self, other: Tensor) -> Result<Tensor, LengthError> {
+    self.try_broadcasted_op(
+      other,
+      QuaternionLike::mul,
+      "*",
+    )
+  }
+}
+
+impl TryDiv for Tensor {
+  type Output = Tensor;
+  type Error = LengthError;
+
+  /// Divides two `Tensor` values together. Produces an error
+  /// if both are vectors and they have different lengths.
+  ///
+  /// If both are scalars and the denominator is equal to zero, this
+  /// function will panic, since it delegates to [`Number::div`],
+  /// [`ComplexNumber::div`], or [`Quaternion::div`] in that case.
+  fn try_div(self, other: Tensor) -> Result<Tensor, LengthError> {
+    self.try_broadcasted_op(
+      other,
+      QuaternionLike::div,
+      "/",
+    )
   }
 }
 
