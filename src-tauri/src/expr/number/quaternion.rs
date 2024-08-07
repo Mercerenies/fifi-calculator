@@ -204,6 +204,7 @@ impl ops::MulAssign for Quaternion {
 impl ops::Div for Quaternion {
   type Output = Quaternion;
 
+  #[allow(clippy::suspicious_arithmetic_impl)] // Multiplication by reciprocal is correct
   fn div(self, other: Self) -> Self {
     self * other.recip()
   }

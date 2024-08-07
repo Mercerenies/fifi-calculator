@@ -14,7 +14,7 @@ use std::ops::{Add, Mul, Neg, Div};
 /// takes care of it for any satisfactory type.
 pub trait MatrixElement: Clone + Zero + One + for<'a> Add<&'a Self, Output=Self> + for<'a> Mul<&'a Self, Output=Self> + Neg<Output=Self> {}
 
-/// Trait for elements that are both [`MatrixElement`] and [`Recip`].
+/// Trait for elements that are both [`MatrixElement`] and [`Div`].
 /// This is the trait required to be able to fully row reduce a
 /// matrix. As with [`MatrixElement`], a blanket impl takes any
 /// eligible types to this trait automatically, so manual

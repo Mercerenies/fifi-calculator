@@ -11,8 +11,8 @@ use num::{Zero, One};
 use std::ops::{Add, Sub, Neg, Mul, Div, MulAssign};
 
 /// Either a real number or a complex number. This is used as a target
-/// for the [`ExprToComplex`](super::prisms::ExprToComplex) prism and
-/// can be safely converted (via [`From::from`]) into a
+/// for the [`ExprToComplex`](crate::expr::prisms::ExprToComplex)
+/// prism and can be safely converted (via [`From::from`]) into a
 /// [`ComplexNumber`] if desired.
 ///
 /// If we directly wrote a prism for narrowing `Expr` to

@@ -45,7 +45,7 @@ pub struct Unit<T> {
   temperature_offset: Option<Box<T>>,
 }
 
-/// Error type returned from [`Unit::with_composition`].
+/// Error type returned from [`Unit::try_with_composed`].
 #[derive(Debug, Clone, Error, PartialEq, Eq)]
 #[error("{reason}")]
 pub struct UnitCompositionError<T> {

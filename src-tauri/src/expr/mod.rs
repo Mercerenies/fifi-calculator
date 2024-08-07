@@ -192,7 +192,7 @@ impl ErrorWithPayload<Expr> for TryFromExprError {
 /// such as infix operators and is mainly used for getting reasonable
 /// error output in case of a parse error. For regular program output,
 /// consider using a [language
-/// mode](crate::display::language::LanguageMode) instead.
+/// mode](crate::mode::display::language::LanguageMode) instead.
 impl Display for Expr {
   fn fmt(&self, f: &mut Formatter) -> fmt::Result {
     match self {

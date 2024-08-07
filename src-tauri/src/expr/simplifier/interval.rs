@@ -10,10 +10,6 @@ use super::base::{Simplifier, SimplifierContext};
 /// this simplifier applies to any applications of the `..`, `^..`,
 /// `..^`, and `^..^` operators to two arguments, both of which are
 /// real numbers.
-///
-/// Normalization of intervals is done with the
-/// [`Interval::normalize`](crate::expr::interval::Interval::normalize)
-/// method.
 #[derive(Debug, Default)]
 pub struct IntervalNormalizer {
   _priv: (),

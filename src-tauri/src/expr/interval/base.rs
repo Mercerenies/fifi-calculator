@@ -15,8 +15,8 @@ use std::ops::Neg;
 /// Intervals are always kept in normal form, which is defined as
 /// follows. An interval is in normal form if it is either (a)
 /// nonempty or (b) equal to the interval `0..^0` (where 0 is the
-/// value [`T::default()`]). Put another way, the normal form of the
-/// empty interval is `0..^0`.
+/// value [`T::default()`](Default::default)). Put another way, the
+/// normal form of the empty interval is `0..^0`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Interval<T> {
   left: T,

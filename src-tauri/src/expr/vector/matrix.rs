@@ -18,8 +18,9 @@ pub struct Matrix {
 /// satisfy the inner prism.
 ///
 /// NOTE: This prism is NOT mutually exclusive with
-/// [`ExprToTensor`](super::tensor::ExprToTensor) or [`ExprToVector`]
-/// and should not be used in a disjunction with either of those.
+/// [`ExprToTensor`](super::tensor::ExprToTensor) or
+/// [`ExprToVector`](super::ExprToVector) and should not be used in a
+/// disjunction with either of those.
 #[derive(Debug, Clone)]
 pub struct ExprToTypedMatrix<P> {
   element_prism: P,
