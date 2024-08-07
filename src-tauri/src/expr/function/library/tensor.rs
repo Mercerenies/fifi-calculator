@@ -624,15 +624,15 @@ pub fn matrix_multiplication() -> Function {
   FunctionBuilder::new("@")
     .add_case(
       // Vector times scalar
-      builder::arity_two().of_types(prisms::ExprToVector, prisms::ExprToComplex).and_then(|v, z, _| {
-        let product = Tensor::vector(v) * Tensor::from(z);
+      builder::arity_two().of_types(prisms::ExprToVector, prisms::ExprToQuaternion).and_then(|v, q, _| {
+        let product = Tensor::vector(v) * q;
         Ok(product.into())
       })
     )
     .add_case(
       // Scalar times vector
-      builder::arity_two().of_types(prisms::ExprToVector, prisms::ExprToComplex).and_then(|z, v, _| {
-        let product = Tensor::vector(z) * Tensor::from(v);
+      builder::arity_two().of_types(prisms::ExprToQuaternion, prisms::ExprToVector).and_then(|q, v, _| {
+        let product = q * Tensor::vector(v);
         Ok(product.into())
       })
     )

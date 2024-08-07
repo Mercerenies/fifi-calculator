@@ -218,35 +218,21 @@ impl Tensor {
   }
 }
 
-impl Add for Tensor {
+impl Mul<QuaternionLike> for Tensor {
   type Output = Tensor;
 
-  fn add(self, other: Tensor) -> Tensor {
-    self.try_add(other).unwrap_or_else(|err| panic!("{err}"))
+  fn mul(self, other: QuaternionLike) -> Tensor {
+    // unwrap: At least one of the arguments is a scalar.
+    self.try_mul(Tensor::from(other)).unwrap()
   }
 }
 
-impl Sub for Tensor {
-  type Output = Tensor;
-
-  fn sub(self, other: Tensor) -> Tensor {
-    self.try_sub(other).unwrap_or_else(|err| panic!("{err}"))
-  }
-}
-
-impl Mul for Tensor {
+impl Mul<Tensor> for QuaternionLike {
   type Output = Tensor;
 
   fn mul(self, other: Tensor) -> Tensor {
-    self.try_mul(other).unwrap_or_else(|err| panic!("{err}"))
-  }
-}
-
-impl Div for Tensor {
-  type Output = Tensor;
-
-  fn div(self, other: Tensor) -> Tensor {
-    self.try_div(other).unwrap_or_else(|err| panic!("{err}"))
+    // unwrap: At least one of the arguments is a scalar.
+    Tensor::from(self).try_mul(other).unwrap()
   }
 }
 

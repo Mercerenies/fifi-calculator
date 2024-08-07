@@ -24,7 +24,6 @@ use num::{Zero, One, BigInt};
 use either::Either;
 use try_traits::ops::{TryAdd, TrySub, TryMul};
 
-use std::ops::{Add, Mul};
 use std::cmp::Ordering;
 
 pub fn append_arithmetic_functions(table: &mut FunctionTable) {
@@ -85,11 +84,10 @@ pub fn addition() -> Function {
           context.errors.push(SimplifierError::new("+", err));
           return Err(args);
         }
-        // Now that we've validated the lengths, we can safely add all
-        // of the values together. `Broadcastable::add` can panic, but
-        // it won't since we know the lengths are good.
+        // unwrap: Now that we've validated the lengths, we can safely
+        // add all of the values together.
         let sum = args.into_iter()
-          .fold(Tensor::zero(), Tensor::add);
+          .fold(Tensor::zero(), |a, b| a.try_add(b).unwrap());
         Ok(sum.into())
       })
     )
@@ -174,7 +172,9 @@ pub fn subtraction() -> Function {
           context.errors.push(SimplifierError::new("-", err));
           return Err((arg1, arg2));
         }
-        Ok(Expr::from(arg1 - arg2))
+        // unwrap: Now that we've validated the lengths, we can safely
+        // subtract.
+        Ok(Expr::from(arg1.try_sub(arg2).unwrap()))
       })
     )
     .add_case(
@@ -281,11 +281,10 @@ pub fn multiplication() -> Function {
           context.errors.push(SimplifierError::new("*", err));
           return Err(args);
         }
-        // Now that we've validated the lengths, we can safely add all
-        // of the values together. `Tensor::add` can panic, but
-        // it won't since we know the lengths are good.
+        // unwrap: Now that we've validated the lengths, we can safely
+        // multiply all of the values together.
         let product = args.into_iter()
-          .fold(Tensor::one(), Tensor::mul);
+          .fold(Tensor::one(), |a, b| a.try_mul(b).unwrap());
         Ok(product.into())
       })
     )
@@ -371,9 +370,9 @@ pub fn division() -> Function {
         // `arg2` is a vector (since the above cases would have
         // handled any situations where both are scalar), so the
         // division operator here merely simplifies the expression and
-        // does NOT invoke Number::div or ComplexNumber::div, so
-        // division by zero will NOT panic here.
-        Ok(Expr::from(arg1 / arg2))
+        // does NOT invoke Number::div, ComplexNumber::div, or
+        // Quaternion::div, so division by zero will NOT panic here.
+        Ok(Expr::from(arg1.try_div(arg2).unwrap()))
       })
     )
     .add_case(
