@@ -21,10 +21,17 @@ use std::ops::MulAssign;
 
 // TODO: Consider using try_traits for some of our failable ops like Div.
 
-// Precondition: exp > 0.
-fn powi_by_repeated_square<T>(mut input: T, mut exp: BigInt) -> T
+/// Raises `input` to the power of `exp`, using the repeated squaring
+/// technique.
+///
+/// `exp` must be a nonnegative integer, or else this function panics.
+/// If `exp` is equal to zero, this function returns `T::one()`.
+pub fn powi_by_repeated_square<T>(mut input: T, mut exp: BigInt) -> T
 where T: One + MulAssign + Clone {
-  assert!(exp > BigInt::zero());
+  assert!(exp >= BigInt::zero());
+  if exp.is_zero() {
+    return T::one();
+  }
   let mut result = T::one();
   while exp > BigInt::one() {
     if exp.clone() % BigInt::from(2) == BigInt::zero() {
@@ -37,4 +44,30 @@ where T: One + MulAssign + Clone {
   }
   result *= input;
   result
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_powi_by_repeated_square() {
+    assert_eq!(
+      powi_by_repeated_square(BigInt::from(3), BigInt::from(10)),
+      BigInt::from(59_049),
+    );
+  }
+
+  #[test]
+  fn test_powi_by_repeated_square_on_zero_exponent() {
+    assert_eq!(powi_by_repeated_square(BigInt::from(1), BigInt::from(0)), BigInt::from(1));
+    assert_eq!(powi_by_repeated_square(BigInt::from(-1), BigInt::from(0)), BigInt::from(1));
+    assert_eq!(powi_by_repeated_square(BigInt::from(0), BigInt::from(0)), BigInt::from(1));
+  }
+
+  #[test]
+  #[should_panic]
+  fn test_powi_by_repeated_square_on_negative_exponent() {
+    powi_by_repeated_square(BigInt::from(1), BigInt::from(-1));
+  }
 }
