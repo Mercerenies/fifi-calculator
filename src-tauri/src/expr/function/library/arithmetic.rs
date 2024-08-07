@@ -701,8 +701,8 @@ pub fn modulo() -> Function {
       })
     )
     .add_case(
-      // Trap case: Complex numbers
-      builder::arity_two().both_of_type(ExprToComplex).and_then(|arg1, arg2, context| {
+      // Trap case: Complex numbers or quaternions
+      builder::arity_two().both_of_type(ExprToQuaternion).and_then(|arg1, arg2, context| {
         context.errors.push(SimplifierError::expected_real("%"));
         Err((arg1, arg2))
       })
@@ -739,8 +739,8 @@ pub fn floor_division() -> Function {
       })
     )
     .add_case(
-      // Trap case: Complex numbers
-      builder::arity_two().both_of_type(ExprToComplex).and_then(|arg1, arg2, context| {
+      // Trap case: Complex numbers / quaternions
+      builder::arity_two().both_of_type(ExprToQuaternion).and_then(|arg1, arg2, context| {
         context.errors.push(SimplifierError::expected_real("div"));
         Err((arg1, arg2))
       })
@@ -760,6 +760,13 @@ pub fn arithmetic_negate() -> Function {
       // Complex number negation
       builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
         let arg = ComplexNumber::from(arg);
+        Ok(Expr::from(- arg))
+      })
+    )
+    .add_case(
+      // Quaternion negation
+      builder::arity_one().of_type(ExprToQuaternion).and_then(|arg, _| {
+        let arg = Quaternion::from(arg);
         Ok(Expr::from(- arg))
       })
     )
@@ -794,12 +801,22 @@ pub fn arithmetic_negate() -> Function {
 pub fn reciprocal() -> Function {
   FunctionBuilder::new("recip")
     .add_case(
-      // Real / Complex number negation
+      // Real / Complex number reciprocal
       builder::arity_one().of_type(ExprToComplex).and_then(|arg, ctx| {
         if arg.is_zero() {
           return division_by_zero(ctx, "recip", arg);
         }
         Ok(Expr::from(arg.map(|r| r.recip(), |c| c.recip())))
+      })
+    )
+    .add_case(
+      // Quaternion reciprocal
+      builder::arity_one().of_type(ExprToQuaternion).and_then(|arg, ctx| {
+        if arg.is_zero() {
+          return division_by_zero(ctx, "recip", arg);
+        }
+        let arg = Quaternion::from(arg);
+        Ok(Expr::from(arg.recip()))
       })
     )
     .add_case(
@@ -866,6 +883,13 @@ pub fn abs() -> Function {
       // Complex number abs
       builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
         let arg = ComplexNumber::from(arg);
+        Ok(Expr::from(arg.abs()))
+      })
+    )
+    .add_case(
+      // Quaternion length
+      builder::arity_one().of_type(ExprToQuaternion).and_then(|arg, _| {
+        let arg = Quaternion::from(arg);
         Ok(Expr::from(arg.abs()))
       })
     )
