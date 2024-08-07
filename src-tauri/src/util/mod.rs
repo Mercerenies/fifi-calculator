@@ -11,6 +11,7 @@ pub mod stricteq;
 
 use regex::{Regex, escape};
 use either::Either;
+use num::pow::Pow;
 
 use std::fmt::{self, Formatter, Display};
 use std::convert::Infallible;
@@ -30,6 +31,14 @@ pub trait Recip {
   fn recip(self) -> Self::Output;
 }
 
+/// `try_traits`-style variant of [`Pow`] trait.
+pub trait TryPow<RHS> {
+  type Output;
+  type Error;
+
+  fn try_pow(self, rhs: RHS) -> Result<Self::Output, Self::Error>;
+}
+
 impl Sign {
   pub fn other(self) -> Self {
     match self {
@@ -44,6 +53,16 @@ impl Recip for f32 {
 
   fn recip(self) -> Self::Output {
     self.recip()
+  }
+}
+
+impl<T, RHS> TryPow<RHS> for T
+where T: Pow<RHS> {
+  type Output = T::Output;
+  type Error = Infallible;
+
+  fn try_pow(self, rhs: RHS) -> Result<Self::Output, Self::Error> {
+    Ok(self.pow(rhs))
   }
 }
 
