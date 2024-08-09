@@ -5,10 +5,10 @@ use crate::expr::Expr;
 use crate::expr::number::ComplexNumber;
 use super::Var;
 use super::table::VarTable;
+use super::dollar_sign::DollarSignVar;
 
 use thiserror::Error;
 use once_cell::sync::Lazy;
-use regex::Regex;
 
 use std::collections::HashSet;
 use std::f64::consts::{PI, E};
@@ -22,10 +22,6 @@ pub static RESERVED_NAMES: Lazy<HashSet<Var>> = Lazy::new(|| {
     // Symbolic names used by our algebra system
     "inf", "uinf", "nan",
   ].into_iter().map(|s| Var::new(s).unwrap()).collect()
-});
-
-pub static DOLLAR_SIGN_NAME_RE: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(r"^\$+[0-9]*$").unwrap()
 });
 
 #[derive(Error, Debug, Clone, PartialEq, Eq)]
@@ -59,7 +55,7 @@ pub fn bind_constants(table: &mut VarTable<Expr>) {
 pub fn validate_non_reserved_var_name(name: &Var) -> Result<(), NameIsReservedError> {
   if RESERVED_NAMES.contains(name) {
     Err(NameIsReservedError::ReservedConstant { name: name.clone() })
-  } else if DOLLAR_SIGN_NAME_RE.is_match(name.as_str()) {
+  } else if DollarSignVar::is_dollar_sign_var(&name) {
     Err(NameIsReservedError::DollarSignName { name: name.clone() })
   } else {
     Ok(())

@@ -1,5 +1,6 @@
 
 pub mod constants;
+pub mod dollar_sign;
 pub mod table;
 
 use crate::util::prism::Prism;
