@@ -1,6 +1,7 @@
 
 mod base;
 pub mod chained;
+pub mod dollar_sign;
 pub mod evaluator;
 pub mod flattener;
 pub mod error;
@@ -41,4 +42,24 @@ pub fn default_simplifier(function_table: &FunctionTable) -> Box<dyn Simplifier 
   // is arbitrary.
   let default_simplifier = DefaultSimplifier { function_table };
   Box::new(RepeatedSimplifier::new(default_simplifier, 5))
+}
+
+#[cfg(test)]
+pub(crate) mod test_utils {
+  use super::*;
+  use super::base::SimplifierContext;
+  use super::error::SimplifierError;
+  use crate::mode::calculation::CalculationMode;
+  use crate::errorlist::ErrorList;
+
+  pub fn run_simplifier(simplifier: &impl Simplifier, expr: Expr) -> (Expr, ErrorList<SimplifierError>) {
+    let mut errors = ErrorList::new();
+    let mut context = SimplifierContext {
+      base_simplifier: simplifier,
+      calculation_mode: CalculationMode::default(),
+      errors: &mut errors,
+    };
+    let expr = simplifier.simplify_expr(expr, &mut context);
+    (expr, errors)
+  }
 }

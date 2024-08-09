@@ -8,8 +8,15 @@ pub struct ErrorList<E> {
 }
 
 impl<E> ErrorList<E> {
+  /// A new, empty error list.
   pub fn new() -> Self {
     Self::default()
+  }
+
+  /// A new error list which contains the elements of the given
+  /// vector, in order.
+  pub fn of(errors: Vec<E>) -> Self {
+    Self { errors }
   }
 
   pub fn push(&mut self, error: E) {
@@ -24,6 +31,10 @@ impl<E> ErrorList<E> {
 
   pub fn is_empty(&self) -> bool {
     self.errors.is_empty()
+  }
+
+  pub fn len(&self) -> usize {
+    self.errors.len()
   }
 
   pub fn unwrap_result_or_else<T, E1, F>(&mut self, result: Result<T, E1>, default: F) -> T
@@ -70,5 +81,11 @@ impl<E> Default for ErrorList<E> {
 impl<E> From<ErrorList<E>> for Vec<E> {
   fn from(error_list: ErrorList<E>) -> Self {
     error_list.into_vec()
+  }
+}
+
+impl<E> FromIterator<E> for ErrorList<E> {
+  fn from_iter<I: IntoIterator<Item = E>>(iter: I) -> Self {
+    Self { errors: iter.into_iter().collect() }
   }
 }

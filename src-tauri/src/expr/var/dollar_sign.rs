@@ -10,6 +10,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use std::str::FromStr;
+use std::fmt::{self, Display, Formatter};
 
 pub static DOLLAR_SIGN_NAME_RE: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"^\$+([0-9]*)$").unwrap()
@@ -32,8 +33,14 @@ impl DollarSignVar {
     DOLLAR_SIGN_NAME_RE.is_match(var.as_str())
   }
 
-  fn value(&self) -> usize {
+  pub fn value(&self) -> usize {
     self.value
+  }
+}
+
+impl Display for DollarSignVar {
+  fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    write!(f, "${}", self.value)
   }
 }
 
@@ -48,6 +55,17 @@ impl TryFrom<Var> for DollarSignVar {
   type Error = Var;
 
   fn try_from(var: Var) -> Result<Self, Self::Error> {
+    match DollarSignVar::try_from(&var) {
+      Ok(dollar_sign_var) => Ok(dollar_sign_var),
+      Err(_) => Err(var),
+    }
+  }
+}
+
+impl<'a> TryFrom<&'a Var> for DollarSignVar {
+  type Error = &'a Var;
+
+  fn try_from(var: &'a Var) -> Result<Self, Self::Error> {
     let Some(captures) = DOLLAR_SIGN_NAME_RE.captures(var.as_str()) else {
       return Err(var);
     };
