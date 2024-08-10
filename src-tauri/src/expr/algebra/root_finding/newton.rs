@@ -81,7 +81,7 @@ impl<'a> NewtonRaphsonFunction<'a> {
     var: Var,
     function_table: &FunctionTable,
     simplifier: &'a dyn Simplifier,
-  ) -> Result<Self, NewtonRaphsonError> {
+  ) -> Result<Self, DifferentiationFailure> {
     let deriv = differentiate(function_table, expr.clone(), var.clone())?;
     Ok(Self {
       function: ExprFunction::new(expr, var.clone(), simplifier),
@@ -89,12 +89,12 @@ impl<'a> NewtonRaphsonFunction<'a> {
     })
   }
 
-  pub fn eval_at(&self, value: ComplexLike) -> Result<ComplexLike, NewtonRaphsonError> {
+  pub fn eval_at(&self, value: ComplexLike) -> Result<ComplexLike, FunctionEvalError> {
     let x = self.function.eval_at_complex(value)?;
     Ok(x)
   }
 
-  pub fn eval_deriv_at(&self, value: ComplexLike) -> Result<ComplexLike, NewtonRaphsonError> {
+  pub fn eval_deriv_at(&self, value: ComplexLike) -> Result<ComplexLike, FunctionEvalError> {
     let x = self.derivative.eval_at_complex(value)?;
     Ok(x)
   }
