@@ -110,6 +110,12 @@ fn find_root(
         }
       }
     }
+    RootFindingInput::PairOfReals(pair) => {
+      // Two real numbers as input. Always use Secant Method.
+      let function = SecantMethodFunction::from_expr(expr, var, simplifier);
+      let result = find_root_secant(&function, pair.0, pair.1)?;
+      Ok(result)
+    }
   }
 }
 
