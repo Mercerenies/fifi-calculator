@@ -1,5 +1,6 @@
 
 pub mod newton;
+pub mod secant;
 
 use crate::expr::Expr;
 use crate::expr::vector::Vector;
