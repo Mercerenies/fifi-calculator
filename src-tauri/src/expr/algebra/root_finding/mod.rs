@@ -1,4 +1,5 @@
 
+pub mod bisection;
 pub mod newton;
 pub mod secant;
 
