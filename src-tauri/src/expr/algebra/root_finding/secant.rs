@@ -1,4 +1,9 @@
 
+//! Implementation of the secant method for finding roots of
+//! real-valued continuous functions.
+//!
+//! See <https://en.wikipedia.org/wiki/Secant_method>.
+
 use super::FoundRoot;
 
 use crate::expr::Expr;
@@ -27,7 +32,7 @@ pub enum SecantMethodError {
   FunctionEvalError(#[from] FunctionEvalError),
   #[error("Failed to converge after {iterations} iterations")]
   FailedToConverge { iterations: usize },
-  #[error("Division by zero during Newton-Raphson convergence")]
+  #[error("Division by zero during secant method convergence")]
   DivisionByZero,
 }
 
@@ -45,6 +50,7 @@ impl SecantMethod {
     initial_value1: Number,
     initial_value2: Number,
   ) -> Result<FoundRoot<Number>, SecantMethodError> {
+    // TODO Do not re-evaluate the function value when f1 becomes f0.
     let mut x0 = initial_value1;
     let mut x1 = initial_value2;
     for _ in 0..self.max_iterations {
