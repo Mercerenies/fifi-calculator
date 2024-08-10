@@ -6,7 +6,8 @@ pub mod secant;
 use crate::expr::Expr;
 use crate::expr::vector::Vector;
 use crate::expr::number::{Number, ComplexNumber, ComplexLike};
-use crate::expr::prisms::{ExprToComplex, expr_to_typed_vector, expr_to_number};
+use crate::expr::prisms::{ExprToComplex, expr_to_typed_vector, expr_to_number, expr_to_interval};
+use crate::expr::interval::RawInterval;
 use crate::util::prism::{Prism, PrismExt};
 
 use either::Either;
@@ -17,6 +18,7 @@ pub enum RootFindingInput {
   Real(Number),
   Complex(ComplexNumber),
   PairOfReals(PairOfReals),
+  Interval(RawInterval<Number>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -39,15 +41,17 @@ pub struct FoundRoot<T> {
 /// literals.
 pub fn expr_to_root_finding_input() -> impl Prism<Expr, RootFindingInput> + Clone {
   use Either::{Left, Right};
-  ExprToComplex.or(expr_to_pair_of_reals())
+  ExprToComplex.or(expr_to_pair_of_reals()).or(expr_to_interval())
     .rmap(|complex_like| match complex_like {
-      Left(ComplexLike::Real(r)) => RootFindingInput::Real(r),
-      Left(ComplexLike::Complex(c)) => RootFindingInput::Complex(c),
-      Right(pair) => RootFindingInput::PairOfReals(pair),
+      Left(Left(ComplexLike::Real(r))) => RootFindingInput::Real(r),
+      Left(Left(ComplexLike::Complex(c))) => RootFindingInput::Complex(c),
+      Left(Right(pair)) => RootFindingInput::PairOfReals(pair),
+      Right(interval) => RootFindingInput::Interval(interval),
     }, |input| match input {
-      RootFindingInput::Real(r) => Left(ComplexLike::Real(r)),
-      RootFindingInput::Complex(c) => Left(ComplexLike::Complex(c)),
-      RootFindingInput::PairOfReals(pair) => Right(pair),
+      RootFindingInput::Real(r) => Left(Left(ComplexLike::Real(r))),
+      RootFindingInput::Complex(c) => Left(Left(ComplexLike::Complex(c))),
+      RootFindingInput::PairOfReals(pair) => Left(Right(pair)),
+      RootFindingInput::Interval(interval) => Right(interval),
     })
 }
 

@@ -9,9 +9,11 @@ use crate::expr::function::table::FunctionTable;
 use crate::expr::simplifier::Simplifier;
 use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::number::{Number, ComplexLike};
+use crate::expr::interval::Interval;
 use crate::expr::algebra::root_finding::{RootFindingInput, expr_to_root_finding_input};
 use crate::expr::algebra::root_finding::newton::{NewtonRaphsonFunction, NewtonRaphsonMethod, NewtonRaphsonError};
 use crate::expr::algebra::root_finding::secant::{SecantMethodFunction, SecantMethod, SecantMethodError};
+use crate::expr::algebra::root_finding::bisection::{BisectionFunction, BisectionMethod, BisectionError};
 use crate::expr::prisms;
 use crate::util::prism::Identity;
 
@@ -116,6 +118,12 @@ fn find_root(
       let result = find_root_secant(&function, pair.0, pair.1)?;
       Ok(result)
     }
+    RootFindingInput::Interval(raw_interval) => {
+      let interval = Interval::from(raw_interval);
+      let function = BisectionFunction::from_expr(expr, var, simplifier);
+      let result = find_root_bisection(&function, interval)?;
+      Ok(result)
+    }
   }
 }
 
@@ -148,5 +156,22 @@ fn find_root_secant(
 
   let algorithm = SecantMethod::default();
   let root = algorithm.find_root(function, initial_guess1, initial_guess2)?;
+  Ok(root.into_expr())
+}
+
+fn find_root_bisection(
+  function: &BisectionFunction,
+  interval: Interval<Number>,
+) -> Result<Expr, BisectionError> {
+  // Since the result from Secant Method is never an exact quantity
+  // anyway, we don't want to misleadingly provide rational results
+  // with ridiculously large numerators and denominators, so go ahead
+  // and force the whole computation to be inexact.
+  let (left_bound, right_bound) = interval.into_extremes();
+  let left_bound = left_bound.to_inexact();
+  let right_bound = right_bound.to_inexact();
+
+  let algorithm = BisectionMethod::default();
+  let root = algorithm.find_root(function, left_bound, right_bound)?;
   Ok(root.into_expr())
 }

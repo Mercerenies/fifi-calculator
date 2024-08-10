@@ -58,6 +58,10 @@ impl<T: Default + Ord> Interval<T> {
     )
   }
 
+  pub fn into_extremes(self) -> (T, T) {
+    (self.left, self.right)
+  }
+
   fn normalize(self) -> Self {
     if self.is_empty() {
       // The interval is empty, so represent it as the canonical empty interval.
