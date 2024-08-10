@@ -90,7 +90,7 @@ fn find_root(
 
   let algorithm = NewtonRaphsonMethod::default();
   let function = NewtonRaphsonFunction::from_expr(expr, var, table, simplifier)?;
-  let root = algorithm.find_root(function, initial_guess)?;
+  let root = algorithm.find_root(&function, initial_guess)?;
   // TODO: Fallback methods in Newton-Raphson fails to find a derivative.
   Ok(root.into_expr())
 }

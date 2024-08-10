@@ -53,7 +53,7 @@ impl NewtonRaphsonMethod {
 
   pub fn find_root(
     &self,
-    function: NewtonRaphsonFunction,
+    function: &NewtonRaphsonFunction,
     initial_guess: ComplexLike,
   ) -> Result<FoundRoot<ComplexLike>, NewtonRaphsonError> {
     let mut current_value = initial_guess;
