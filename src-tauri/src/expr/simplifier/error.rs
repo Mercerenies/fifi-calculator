@@ -41,7 +41,7 @@ pub const ZERO_TO_ZERO_POWER: &str = "Indeterminate form 0^0";
 impl SimplifierError {
   pub fn new<E, S>(function: S, error: E) -> Self
   where S: Into<String>,
-        E: StdError + Send + Sync + 'static {
+        E: Into<anyhow::Error> {
     Self {
       function: function.into(),
       error: error.into(),
