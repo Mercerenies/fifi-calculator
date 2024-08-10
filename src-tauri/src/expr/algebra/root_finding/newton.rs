@@ -4,9 +4,9 @@
 //!
 //! See <https://en.wikipedia.org/wiki/Newton%27s_method>.
 
+use super::FoundRoot;
 use crate::expr::Expr;
 use crate::expr::algebra::{ExprFunction, FunctionEvalError};
-use crate::expr::vector::Vector;
 use crate::expr::simplifier::Simplifier;
 use crate::expr::var::Var;
 use crate::expr::function::table::FunctionTable;
@@ -25,12 +25,6 @@ pub struct NewtonRaphsonMethod {
 pub struct NewtonRaphsonFunction<'a> {
   function: ExprFunction<'a>,
   derivative: ExprFunction<'a>,
-}
-
-#[derive(Debug, Clone)]
-pub struct FoundRoot {
-  pub value: ComplexLike,
-  pub final_epsilon: f64,
 }
 
 #[derive(Debug, Clone, Error)]
@@ -61,7 +55,7 @@ impl NewtonRaphsonMethod {
     &self,
     function: NewtonRaphsonFunction,
     initial_guess: ComplexLike,
-  ) -> Result<FoundRoot, NewtonRaphsonError> {
+  ) -> Result<FoundRoot<ComplexLike>, NewtonRaphsonError> {
     let mut current_value = initial_guess;
     for _ in 0..self.max_iterations {
       // First, check if we're already within epsilon of a root.
@@ -103,16 +97,6 @@ impl<'a> NewtonRaphsonFunction<'a> {
   pub fn eval_deriv_at(&self, value: ComplexLike) -> Result<ComplexLike, NewtonRaphsonError> {
     let x = self.derivative.eval_at_complex(value)?;
     Ok(x)
-  }
-}
-
-impl FoundRoot {
-  pub fn into_vec(self) -> Vector {
-    Vector::from(vec![self.value.into(), self.final_epsilon.into()])
-  }
-
-  pub fn into_expr(self) -> Expr {
-    self.into_vec().into()
   }
 }
 
