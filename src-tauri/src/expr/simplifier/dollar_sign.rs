@@ -1,6 +1,7 @@
 
 use super::base::{Simplifier, SimplifierContext};
 use super::error::SimplifierError;
+use super::chained::ChainedSimplifier;
 use crate::stack::StackError;
 use crate::stack::base::RandomAccessStackLike;
 use crate::expr::Expr;
@@ -39,6 +40,16 @@ where S: RandomAccessStackLike<Elem = Expr> {
   /// stack.
   pub fn new(stack: &'a S) -> Self {
     Self { stack }
+  }
+
+  /// Constructs a [`ChainedSimplifier`] which runs a
+  /// [`DollarSignRefSimplifier`] step before the given simplifier.
+  pub fn prepended<'b, SIMPL>(stack: &'a S, base_simplifier: SIMPL) -> ChainedSimplifier<'a, 'b>
+  where SIMPL: Simplifier + 'b {
+    ChainedSimplifier::new(
+      Box::new(Self::new(stack)),
+      Box::new(base_simplifier),
+    )
   }
 
   fn substitute_var(&self, var: &DollarSignVar) -> Result<Expr, DollarSignRefError> {

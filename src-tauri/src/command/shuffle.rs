@@ -10,7 +10,9 @@ use crate::stack::keepable::KeepableStack;
 use crate::stack::base::{StackLike, RandomAccessStackLike};
 use crate::expr::Expr;
 use crate::expr::prisms::{StringToUsize, ParsedUsize};
+use crate::expr::simplifier::dollar_sign::DollarSignRefSimplifier;
 use crate::util::prism::Identity;
+use crate::util::cow_dyn::CowDyn;
 use crate::mode::display::language::LanguageMode;
 use crate::errorlist::ErrorList;
 
@@ -255,7 +257,9 @@ impl Command for ReplaceStackElemCommand {
     state.undo_stack_mut().push_cut();
 
     let expr = self.try_parse(value, state.display_settings().language_mode().as_ref())?;
-    let expr = ctx.simplify_expr(expr, calculation_mode, &mut errors);
+    let expr = ctx.simplify_expr_using(expr, calculation_mode, &mut errors, |base_simplifier| {
+      CowDyn::Owned(Box::new(DollarSignRefSimplifier::prepended(state.main_stack(), base_simplifier)))
+    });
 
     let mut stack = state.main_stack_mut();
     if ctx.opts.keep_modifier {
@@ -1012,6 +1016,74 @@ mod tests {
     assert_eq!(
       err,
       StackError::NotEnoughElements { expected: 8, actual: 7 },
+    )
+  }
+
+  #[test]
+  fn test_replace_stack_elem_using_substitution_vars() {
+    let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
+    let output_stack = act_on_stack(
+      &ReplaceStackElemCommand { is_mouse_interaction: false },
+      vec!["3", "$1 + $2"],
+      input_stack,
+    ).unwrap();
+    assert_eq!(
+      output_stack,
+      stack_of(vec![
+        Expr::from(10),
+        Expr::from(20),
+        Expr::from(30),
+        Expr::call("+", vec![Expr::from(70), Expr::from(60)]),
+        Expr::from(50),
+        Expr::from(60),
+        Expr::from(70),
+      ]),
+    )
+  }
+
+  #[test]
+  fn test_replace_stack_elem_using_self_referential_substitution_vars() {
+    let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
+    let output_stack = act_on_stack(
+      &ReplaceStackElemCommand { is_mouse_interaction: false },
+      vec!["0", "$1 + $2"],
+      input_stack,
+    ).unwrap();
+    assert_eq!(
+      output_stack,
+      stack_of(vec![
+        Expr::from(10),
+        Expr::from(20),
+        Expr::from(30),
+        Expr::from(40),
+        Expr::from(50),
+        Expr::from(60),
+        Expr::call("+", vec![Expr::from(70), Expr::from(60)]),
+      ]),
+    )
+  }
+
+  #[test]
+  fn test_replace_stack_elem_using_self_referential_substitution_vars_and_keep_arg() {
+    let input_stack = vec![10, 20, 30, 40, 50, 60, 70];
+    let opts = CommandOptions::default().with_keep_modifier();
+    let output_stack = act_on_stack(
+      &ReplaceStackElemCommand { is_mouse_interaction: false },
+      (opts, vec!["0", "$1 + $2"]),
+      input_stack,
+    ).unwrap();
+    assert_eq!(
+      output_stack,
+      stack_of(vec![
+        Expr::from(10),
+        Expr::from(20),
+        Expr::from(30),
+        Expr::from(40),
+        Expr::from(50),
+        Expr::from(60),
+        Expr::from(70),
+        Expr::call("+", vec![Expr::from(70), Expr::from(60)]),
+      ]),
     )
   }
 }

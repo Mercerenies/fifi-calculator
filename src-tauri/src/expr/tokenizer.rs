@@ -1,6 +1,6 @@
 
 use super::number::{Number, ParseNumberError};
-use super::var::Var;
+use super::var::{self, Var};
 use super::atom::{write_escaped_str, process_escape_char, InvalidEscapeError};
 use crate::parsing::operator::{Operator, OperatorTable};
 use crate::parsing::source::{Span, SourceOffset};
@@ -196,8 +196,7 @@ impl<'a> ExprTokenizer<'a> {
   }
 
   fn read_variable_token(&self, state: &mut TokenizerState<'_>) -> Option<Token> {
-    static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[a-zA-Z][a-zA-Z0-9']*").unwrap());
-    state.read_regex(&RE).map(|m| {
+    state.read_regex(&var::VALID_NAME_PREFIX_RE).map(|m| {
       let var = Var::new(m.as_str()).expect("expected valid variable name from tokenizer");
       Token::new(TokenData::Var(var), m.span())
     })

@@ -8,6 +8,7 @@ use crate::expr::simplifier::error::SimplifierError;
 use crate::errorlist::ErrorList;
 use crate::units::parsing::{UnitParser, NullaryUnitParser};
 use crate::mode::calculation::CalculationMode;
+use crate::util::cow_dyn::CowDyn;
 use super::options::CommandOptions;
 use super::subcommand::Subcommand;
 use super::dispatch::CommandDispatchTable;
@@ -79,12 +80,23 @@ impl<'a, 'b, 'c> CommandContext<'a, 'b, 'c> {
     calculation_mode: CalculationMode,
     errors: &mut ErrorList<SimplifierError>,
   ) -> Expr {
+    self.simplify_expr_using(expr, calculation_mode, errors, CowDyn::Borrowed)
+  }
+
+  pub fn simplify_expr_using<'s>(
+    &'s self,
+    expr: Expr,
+    calculation_mode: CalculationMode,
+    errors: &mut ErrorList<SimplifierError>,
+    custom_simplifier_fn: impl FnOnce(&'s (dyn Simplifier + 'a)) -> CowDyn<'s, dyn Simplifier + 'a>,
+  ) -> Expr {
+    let simplifier = custom_simplifier_fn(self.simplifier.as_ref());
     let mut simplifier_context = SimplifierContext {
-      base_simplifier: self.simplifier.as_ref(),
+      base_simplifier: simplifier.as_ref(),
       errors,
       calculation_mode,
     };
-    self.simplifier.simplify_expr(expr, &mut simplifier_context)
+    simplifier.simplify_expr(expr, &mut simplifier_context)
   }
 }
 

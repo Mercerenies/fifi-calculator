@@ -34,6 +34,10 @@ pub static VALID_NAME_RE: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"^[a-zA-Z$][a-zA-Z$0-9']*$").unwrap()
 });
 
+pub static VALID_NAME_PREFIX_RE: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"^[a-zA-Z$][a-zA-Z$0-9']*").unwrap()
+});
+
 impl Var {
   pub fn new(name: impl Into<String>) -> Option<Self> {
     Self::try_from(name.into()).ok()
