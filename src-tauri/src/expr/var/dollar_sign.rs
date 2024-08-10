@@ -69,7 +69,7 @@ impl<'a> TryFrom<&'a Var> for DollarSignVar {
     let Some(captures) = DOLLAR_SIGN_NAME_RE.captures(var.as_str()) else {
       return Err(var);
     };
-    let value = if &captures[1] == "" {
+    let value = if captures[1].is_empty() {
       1
     } else {
       // unwrap: Regex capture is a valid usize.

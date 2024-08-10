@@ -55,7 +55,7 @@ pub fn bind_constants(table: &mut VarTable<Expr>) {
 pub fn validate_non_reserved_var_name(name: &Var) -> Result<(), NameIsReservedError> {
   if RESERVED_NAMES.contains(name) {
     Err(NameIsReservedError::ReservedConstant { name: name.clone() })
-  } else if DollarSignVar::is_dollar_sign_var(&name) {
+  } else if DollarSignVar::is_dollar_sign_var(name) {
     Err(NameIsReservedError::DollarSignName { name: name.clone() })
   } else {
     Ok(())
