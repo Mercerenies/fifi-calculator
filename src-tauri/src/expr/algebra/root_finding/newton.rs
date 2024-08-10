@@ -4,8 +4,8 @@
 //!
 //! See <https://en.wikipedia.org/wiki/Newton%27s_method>.
 
-use super::{ExprFunction, FunctionEvalError};
 use crate::expr::Expr;
+use crate::expr::algebra::{ExprFunction, FunctionEvalError};
 use crate::expr::vector::Vector;
 use crate::expr::simplifier::Simplifier;
 use crate::expr::var::Var;

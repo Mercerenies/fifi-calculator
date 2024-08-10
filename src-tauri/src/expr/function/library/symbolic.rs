@@ -9,7 +9,7 @@ use crate::expr::function::table::FunctionTable;
 use crate::expr::simplifier::Simplifier;
 use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::number::ComplexLike;
-use crate::expr::algebra::newton::{NewtonRaphsonFunction, NewtonRaphsonMethod, NewtonRaphsonError};
+use crate::expr::algebra::root_finding::newton::{NewtonRaphsonFunction, NewtonRaphsonMethod, NewtonRaphsonError};
 use crate::expr::prisms;
 use crate::util::prism::Identity;
 
