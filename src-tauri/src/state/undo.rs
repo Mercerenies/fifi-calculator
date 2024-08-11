@@ -3,10 +3,13 @@
 //! [`UndoableState`].
 
 use crate::undo::UndoableChange;
+use crate::util::Ellipsis;
 use crate::expr::Expr;
 use crate::expr::var::Var;
 use crate::stack::base::RandomAccessStackLike;
 use super::UndoableState;
+
+use std::fmt::{self, Debug, Formatter};
 
 /// `UndoableChange` that pushes a single value onto the stack at the
 /// given position.
@@ -43,6 +46,14 @@ pub struct UpdateVarChange {
   new_value: Option<Expr>,
 }
 
+/// `UndoableChange` that toggles the value of the given Boolean flag
+/// on the state object.
+#[derive(Clone)]
+pub struct ToggleFlagChange<F> {
+  flag_name: String,
+  accessor: F,
+}
+
 impl PushExprChange {
   pub fn new(index: usize, expr: Expr) -> Self {
     Self { index, expr }
@@ -76,6 +87,22 @@ impl UpdateVarChange {
 
   pub fn update_var(var: Var, old_value: Expr, new_value: Expr) -> Self {
     Self { var, old_value: Some(old_value), new_value: Some(new_value) }
+  }
+}
+
+impl<F> ToggleFlagChange<F>
+where F: Fn(&mut UndoableState) -> &mut bool {
+  pub fn new(flag_name: impl Into<String>, accessor: F) -> Self {
+    Self {
+      flag_name: flag_name.into(),
+      accessor,
+    }
+  }
+
+  /// The name of the flag being toggled. This name has no effect on
+  /// semantics but can be useful in debug output and error messages.
+  pub fn flag_name(&self) -> &str {
+    &self.flag_name
   }
 }
 
@@ -144,6 +171,32 @@ impl UndoableChange<UndoableState> for UpdateVarChange {
       Some(old_value) => table.insert(self.var.clone(), old_value),
       None => table.remove(&self.var),
     };
+  }
+
+  fn undo_summary(&self) -> String {
+    format!("{:?}", self)
+  }
+}
+
+impl<F> Debug for ToggleFlagChange<F> {
+  fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    f.debug_struct("ToggleFlagChange")
+      .field("flag_name", &self.flag_name)
+      .field("accessor", &Ellipsis)
+      .finish()
+  }
+}
+
+impl<F> UndoableChange<UndoableState> for ToggleFlagChange<F>
+where F: Fn(&mut UndoableState) -> &mut bool {
+  fn play_forward(&self, state: &mut UndoableState) {
+    let accessor = (self.accessor)(state);
+    *accessor = !*accessor;
+  }
+
+  fn play_backward(&self, state: &mut UndoableState) {
+    let accessor = (self.accessor)(state);
+    *accessor = !*accessor;
   }
 
   fn undo_summary(&self) -> String {

@@ -14,11 +14,29 @@ use either::Either;
 use num::One;
 use num::pow::Pow;
 
-use std::fmt::{self, Formatter, Display};
+use std::fmt::{self, Formatter, Debug, Display};
 use std::convert::Infallible;
 use std::cmp::{Reverse, Ordering};
 use std::iter::{self, Extend};
 use std::ops::{Mul, Neg};
+
+/// A singleton object whose output under the [`Debug`] trait is
+/// `"..."`. Used in debug output of some objects.
+///
+/// Example usage:
+///
+/// ```
+/// impl<T> Debug for SomeType<T> {
+///   fn fmt(&self, f: &mut Formatter) -> Result {
+///     f.debug_struct("SomeType")
+///       .field("name", &self.name)
+///       .field("value", &Ellipsis) // self.value of type T might not be Debug!
+///       .finish();
+///   }
+/// }
+/// ```
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct Ellipsis;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Sign {
@@ -99,6 +117,18 @@ impl Display for Sign {
       Self::Negative => write!(f, "-"),
       Self::Positive => write!(f, "+"),
     }
+  }
+}
+
+impl Debug for Ellipsis {
+  fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    write!(f, "...")
+  }
+}
+
+impl Display for Ellipsis {
+  fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    write!(f, "...")
   }
 }
 

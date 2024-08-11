@@ -12,13 +12,15 @@ use super::subcommand::Subcommand;
 use super::arguments::{ArgumentSchema, NullaryArgumentSchema, UnaryArgumentSchema};
 use crate::undo::UndoableChange;
 use crate::state::{ApplicationState, UndoableState};
+use crate::state::undo::ToggleFlagChange;
 use crate::util::radix::{Radix, StringToRadix};
 
-/// [`UndoableChange`] which toggles the graphics enabled state.
-#[derive(Clone, Debug)]
-pub struct ToggleGraphicsChange;
-
 /// [`UndoableChange`] which toggles the infinity mode.
+///
+/// Note that this *cannot* be written in terms of
+/// [`ToggleFlagChange`], as `ToggleInfinityChange` references an
+/// individual bit on a bitmask, and `ToggleFlagChange` requires a
+/// `&mut bool`.
 #[derive(Clone, Debug)]
 pub struct ToggleInfinityChange;
 
@@ -52,10 +54,14 @@ impl SetDisplayRadixCommand {
 }
 
 pub fn toggle_graphics_command() -> impl Command + Send + Sync {
+  fn toggle_flag_change() -> ToggleFlagChange<fn(&mut UndoableState) -> &mut bool> {
+    ToggleFlagChange::new("is_graphics_enabled", |state| &mut state.display_settings_mut().is_graphics_enabled)
+  }
+
   GeneralCommand::new(|state, args, _| {
     NullaryArgumentSchema::new().validate(args)?;
     state.undo_stack_mut().push_cut();
-    state.undo_stack_mut().push_change(ToggleGraphicsChange);
+    state.undo_stack_mut().push_change(toggle_flag_change());
     let settings = state.display_settings_mut();
     settings.is_graphics_enabled = !settings.is_graphics_enabled;
     Ok(CommandOutput::success())
@@ -96,22 +102,6 @@ impl Command for SetDisplayRadixCommand {
 
   fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
     None
-  }
-}
-
-impl UndoableChange<UndoableState> for ToggleGraphicsChange {
-  fn play_forward(&self, state: &mut UndoableState) {
-    let settings = state.display_settings_mut();
-    settings.is_graphics_enabled = !settings.is_graphics_enabled;
-  }
-
-  fn play_backward(&self, state: &mut UndoableState) {
-    let settings = state.display_settings_mut();
-    settings.is_graphics_enabled = !settings.is_graphics_enabled;
-  }
-
-  fn undo_summary(&self) -> String {
-    format!("{:?}", self)
   }
 }
 
