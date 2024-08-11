@@ -352,7 +352,6 @@ mod tests {
   fn sample_unicode_table() -> UnicodeAliasTable {
     UnicodeAliasTable::new(vec![
       UnicodeAlias::simple("A", "𝔸"),
-      UnicodeAlias::simple("otimes", "⊗"),
     ]).unwrap()
   }
 
