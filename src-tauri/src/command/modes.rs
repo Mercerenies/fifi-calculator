@@ -68,6 +68,23 @@ pub fn toggle_graphics_command() -> impl Command + Send + Sync {
   })
 }
 
+pub fn toggle_unicode_command() -> impl Command + Send + Sync {
+  fn toggle_flag_change() -> ToggleFlagChange<fn(&mut UndoableState) -> &mut bool> {
+    ToggleFlagChange::new("prefers_unicode_output", |state| {
+      &mut state.display_settings_mut().language_settings.prefers_unicode_output
+    })
+  }
+
+  GeneralCommand::new(|state, args, _| {
+    NullaryArgumentSchema::new().validate(args)?;
+    state.undo_stack_mut().push_cut();
+    state.undo_stack_mut().push_change(toggle_flag_change());
+    let settings = &mut state.display_settings_mut().language_settings;
+    settings.prefers_unicode_output = !settings.prefers_unicode_output;
+    Ok(CommandOutput::success())
+  })
+}
+
 pub fn toggle_infinity_command() -> impl Command + Send + Sync {
   GeneralCommand::new(|state, args, _| {
     NullaryArgumentSchema::new().validate(args)?;

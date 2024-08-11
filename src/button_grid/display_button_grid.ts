@@ -36,6 +36,7 @@ export class DisplayButtonGrid extends ButtonGrid {
       [],
       [
         new DispatchButton(imageSvg(), "toggle_graphics", "G"),
+        new DispatchButton("¶", "toggle_unicode", "u"),
       ],
       [
         backButton(this.rootGrid),
