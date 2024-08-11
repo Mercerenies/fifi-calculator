@@ -62,7 +62,14 @@ pub struct LanguageModeEngine<'a, 'b> {
 
 #[derive(Debug, Clone)]
 pub struct LanguageSettings {
+  /// The preferred radix for outputting real numbers.
   pub preferred_radix: Radix,
+  /// If true, the user prefers certain operator, function, and
+  /// variable names to be replaced with Unicode equivalents in
+  /// output. This does NOT affect input, which always accepts either
+  /// an ASCII name or its Unicode equivalent(s), regardless of this
+  /// flag.
+  pub prefers_unicode_output: bool,
 }
 
 impl<'a, 'b> LanguageModeEngine<'a, 'b> {
@@ -77,7 +84,10 @@ impl<'a, 'b> LanguageModeEngine<'a, 'b> {
 
 impl Default for LanguageSettings {
   fn default() -> Self {
-    LanguageSettings { preferred_radix: Radix::DECIMAL }
+    LanguageSettings {
+      preferred_radix: Radix::DECIMAL,
+      prefers_unicode_output: true,
+    }
   }
 }
 

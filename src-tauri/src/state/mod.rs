@@ -121,6 +121,9 @@ impl ApplicationState {
     Ok(())
   }
 
+  /// The modeline, which appears in teletype font at the bottom of
+  /// the screen and indicates the current values of various
+  /// user-specified flags.
   pub fn modeline(&self) -> String {
     let mut modeline = String::new();
     modeline.push_str(&modeline_str_for_radix(self.display_settings().language_settings.preferred_radix));
@@ -128,6 +131,11 @@ impl ApplicationState {
       modeline.push_str("Inf");
     } else {
       modeline.push_str("-  ");
+    }
+    if self.display_settings().language_settings.prefers_unicode_output {
+      modeline.push_str("U");
+    } else {
+      modeline.push_str("-");
     }
     if self.display_settings().is_graphics_enabled {
       modeline.push_str("Gr");
