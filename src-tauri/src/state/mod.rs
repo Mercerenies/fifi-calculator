@@ -218,9 +218,10 @@ fn modeline_str_for_radix(radix: Radix) -> String {
     8 => String::from("Oct"),
     10 => String::from("Dec"),
     16 => String::from("Hex"),
-    n => format!("R={}", n),
+    n if n < 10 => format!("R={}", n),
+    n => format!("R{}", n),
   };
-  format!("{:5}", s)
+  format!("{:3}", s)
 }
 
 impl UndoableState {

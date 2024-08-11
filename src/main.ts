@@ -21,7 +21,10 @@ function refreshUndoButtons(uiManager: UiManager, state: UndoAvailabilityPayload
 
 function refreshModeline(payload: ModelinePayload) {
   const modeline = Page.getModelineBar();
-  modeline.innerHTML = payload.modelineText;
+  const pre = document.createElement("pre");
+  pre.innerHTML = payload.modelineText;
+  modeline.innerHTML = "";
+  modeline.appendChild(pre);
 }
 
 window.addEventListener("DOMContentLoaded", async function() {
