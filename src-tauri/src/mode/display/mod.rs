@@ -1,5 +1,6 @@
 
 pub mod language;
+pub mod unicode;
 
 use crate::expr::Expr;
 use language::{LanguageMode, LanguageSettings};
