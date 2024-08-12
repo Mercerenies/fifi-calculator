@@ -38,8 +38,9 @@ impl<L: LanguageMode> FancyLanguageMode<L> {
   }
 
   fn write_var(out: &mut String, var: &Var) {
+    let var_name = encode_safe(var.as_str());
     out.push_str(r#"<span class="mathy-text">"#);
-    out.push_str(var.as_str());
+    out.push_str(var_name.as_ref());
     out.push_str("</span>");
   }
 }
