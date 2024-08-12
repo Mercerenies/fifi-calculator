@@ -9,11 +9,16 @@ use super::base::{Command, CommandOutput, CommandContext};
 use super::general::GeneralCommand;
 use super::options::CommandOptions;
 use super::subcommand::Subcommand;
-use super::arguments::{ArgumentSchema, NullaryArgumentSchema, UnaryArgumentSchema};
+use super::arguments::{NullaryArgumentSchema, UnaryArgumentSchema, validate_schema};
 use crate::undo::UndoableChange;
 use crate::state::{ApplicationState, UndoableState};
 use crate::state::undo::ToggleFlagChange;
 use crate::util::radix::{Radix, StringToRadix};
+use crate::mode::display::language::LanguageMode;
+use crate::mode::display::language::basic::BasicLanguageMode;
+use crate::mode::display::language::fancy::FancyLanguageMode;
+
+use std::sync::Arc;
 
 /// [`UndoableChange`] which toggles the infinity mode.
 ///
@@ -32,12 +37,27 @@ pub struct SetDisplayRadixChange {
   pub new_value: Radix,
 }
 
+/// [`UndoableChange`] which sets the engine's language mode to the
+/// given value.
+#[derive(Clone)]
+pub struct SetLanguageModeChange {
+  pub old_value: Arc<dyn LanguageMode + Send + Sync>,
+  pub new_value: Arc<dyn LanguageMode + Send + Sync>,
+}
+
 /// Command which sets the display radix to the given value. Expects a
 /// single radix value (per [`StringToRadix`]) as argument. Does not
 /// use the keep modifier or numerical argument.
 #[derive(Debug, Clone, Default)]
 pub struct SetDisplayRadixCommand {
   _priv: (),
+}
+
+/// Command which sets the language mode to the given value. Does not
+/// use the keep modifier or numerical argument.
+#[derive(Clone)]
+pub struct SetLanguageModeCommand {
+  value: Arc<dyn LanguageMode + Send + Sync>,
 }
 
 impl SetDisplayRadixCommand {
@@ -53,13 +73,29 @@ impl SetDisplayRadixCommand {
   }
 }
 
+impl SetLanguageModeCommand {
+  pub fn new(value: Arc<dyn LanguageMode + Send + Sync>) -> Self {
+    Self { value }
+  }
+
+  pub fn basic_language_mode() -> Self {
+    let mode = Arc::new(BasicLanguageMode::from_common_operators());
+    Self::new(mode)
+  }
+
+  pub fn fancy_language_mode() -> Self {
+    let mode = Arc::new(FancyLanguageMode::from_common_unicode(BasicLanguageMode::from_common_operators()));
+    Self::new(mode)
+  }
+}
+
 pub fn toggle_graphics_command() -> impl Command + Send + Sync {
   fn toggle_flag_change() -> ToggleFlagChange<fn(&mut UndoableState) -> &mut bool> {
     ToggleFlagChange::new("is_graphics_enabled", |state| &mut state.display_settings_mut().is_graphics_enabled)
   }
 
   GeneralCommand::new(|state, args, _| {
-    NullaryArgumentSchema::new().validate(args)?;
+    validate_schema(&NullaryArgumentSchema::new(), args)?;
     state.undo_stack_mut().push_cut();
     state.undo_stack_mut().push_change(toggle_flag_change());
     let settings = state.display_settings_mut();
@@ -76,7 +112,7 @@ pub fn toggle_unicode_command() -> impl Command + Send + Sync {
   }
 
   GeneralCommand::new(|state, args, _| {
-    NullaryArgumentSchema::new().validate(args)?;
+    validate_schema(&NullaryArgumentSchema::new(), args)?;
     state.undo_stack_mut().push_cut();
     state.undo_stack_mut().push_change(toggle_flag_change());
     let settings = &mut state.display_settings_mut().language_settings;
@@ -87,7 +123,7 @@ pub fn toggle_unicode_command() -> impl Command + Send + Sync {
 
 pub fn toggle_infinity_command() -> impl Command + Send + Sync {
   GeneralCommand::new(|state, args, _| {
-    NullaryArgumentSchema::new().validate(args)?;
+    validate_schema(&NullaryArgumentSchema::new(), args)?;
     state.undo_stack_mut().push_cut();
     state.undo_stack_mut().push_change(ToggleInfinityChange);
     let calc = state.calculation_mode_mut();
@@ -104,7 +140,7 @@ impl Command for SetDisplayRadixCommand {
     _: &CommandContext,
   ) -> anyhow::Result<CommandOutput> {
     let old_radix = state.display_settings().language_settings.preferred_radix;
-    let new_radix = Self::argument_schema().validate(args)?;
+    let new_radix = validate_schema(&Self::argument_schema(), args)?;
     if old_radix == new_radix {
       // Nothing to change, so don't modify the undo stack.
       return Ok(CommandOutput::success());
@@ -114,6 +150,31 @@ impl Command for SetDisplayRadixCommand {
     state.undo_stack_mut().push_cut();
     state.undo_stack_mut()
       .push_change(SetDisplayRadixChange { old_value: old_radix, new_value: new_radix });
+    Ok(CommandOutput::success())
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
+  }
+}
+
+impl Command for SetLanguageModeCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    _: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    validate_schema(&NullaryArgumentSchema::new(), args)?;
+    let old_language_mode = state.display_settings().base_language_mode.clone();
+
+    state.undo_stack_mut().push_cut();
+    state.undo_stack_mut()
+      .push_change(SetLanguageModeChange {
+        old_value: old_language_mode,
+        new_value: self.value.clone(),
+      });
+    state.display_settings_mut().base_language_mode = self.value.clone();
     Ok(CommandOutput::success())
   }
 
@@ -151,5 +212,21 @@ impl UndoableChange<UndoableState> for SetDisplayRadixChange {
 
   fn undo_summary(&self) -> String {
     format!("{:?}", self)
+  }
+}
+
+impl UndoableChange<UndoableState> for SetLanguageModeChange {
+  fn play_forward(&self, state: &mut UndoableState) {
+    let settings = state.display_settings_mut();
+    settings.base_language_mode = self.new_value.clone();
+  }
+
+  fn play_backward(&self, state: &mut UndoableState) {
+    let settings = state.display_settings_mut();
+    settings.base_language_mode = self.old_value.clone();
+  }
+
+  fn undo_summary(&self) -> String {
+    String::from("SetLanguageModeChange { ... }")
   }
 }

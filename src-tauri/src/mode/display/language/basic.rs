@@ -287,7 +287,7 @@ impl LanguageMode for BasicLanguageMode {
       }
       Expr::Atom(Atom::Var(v)) => {
         let var = self.translate_to_unicode(engine, v.as_str());
-        out.push_str(var);
+        out.push_str(encode_safe(var).as_ref());
       }
       Expr::Atom(Atom::String(s)) => {
         write_escaped_str(out, s).unwrap(); // unwrap: impl Write for String doesn't fail.

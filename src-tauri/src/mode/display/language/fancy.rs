@@ -37,8 +37,16 @@ impl<L: LanguageMode> FancyLanguageMode<L> {
       .with_unicode_table(common_unicode_aliases())
   }
 
-  fn write_var(out: &mut String, var: &Var) {
-    let var_name = encode_safe(var.as_str());
+  fn translate_to_unicode<'a>(&'a self, engine: &LanguageModeEngine, ascii_name: &'a str) -> &'a str {
+    if !engine.language_settings().prefers_unicode_output {
+      return ascii_name;
+    }
+    self.unicode_table.get_unicode(ascii_name).unwrap_or(ascii_name)
+  }
+
+  fn write_var(&self, engine: &LanguageModeEngine, out: &mut String, var: &Var) {
+    let var_name = self.translate_to_unicode(engine, var.as_str());
+    let var_name = encode_safe(var_name);
     out.push_str(r#"<span class="mathy-text">"#);
     out.push_str(var_name.as_ref());
     out.push_str("</span>");
@@ -58,7 +66,7 @@ impl<L: LanguageMode> LanguageMode for FancyLanguageMode<L> {
         self.inner_mode.write_to_html(engine, out, expr, prec)
       }
       Expr::Atom(Atom::Var(v)) => {
-        Self::write_var(out, v)
+        self.write_var(engine, out, v)
       }
       Expr::Call(_, _) => {
         self.inner_mode.write_to_html(engine, out, expr, prec)
