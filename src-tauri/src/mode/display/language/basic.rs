@@ -11,6 +11,8 @@ use crate::expr::vector::Vector;
 use crate::expr::incomplete::{IncompleteObject, ObjectType};
 use crate::util::cow_dyn::CowDyn;
 
+use html_escape::encode_safe;
+
 use num::Zero;
 
 #[derive(Clone, Debug, Default)]
@@ -61,7 +63,7 @@ impl BasicLanguageMode {
 
   fn fn_call_to_html(&self, engine: &LanguageModeEngine, out: &mut String, f: &str, args: &[Expr]) {
     let f = self.translate_to_unicode(engine, f);
-    out.push_str(f);
+    out.push_str(encode_safe(f).as_ref());
     out.push('(');
     output_sep_by(out, args.iter(), ", ", |out, e| engine.write_to_html(out, e, Precedence::MIN));
     out.push(')');
@@ -89,7 +91,7 @@ impl BasicLanguageMode {
     // juxtaposition.
     if op.operator_name() != "*" {
       let operator_name = self.translate_to_unicode(engine, op.operator_name());
-      out.push_str(operator_name);
+      out.push_str(encode_safe(operator_name).as_ref());
       out.push(' ');
     }
     engine.write_to_html(out, right_arg, infix_props.right_precedence());
@@ -122,7 +124,7 @@ impl BasicLanguageMode {
         // juxtaposition.
         if op.operator_name() != "*" {
           let operator_name = self.translate_to_unicode(engine, op.operator_name());
-          out.push_str(operator_name);
+          out.push_str(encode_safe(operator_name).as_ref());
           out.push(' ');
         }
       }
@@ -156,7 +158,7 @@ impl BasicLanguageMode {
       out.push('(');
     }
     let operator_name = self.translate_to_unicode(engine, op.operator_name());
-    out.push_str(operator_name);
+    out.push_str(encode_safe(operator_name).as_ref());
     out.push(' ');
     engine.write_to_html(out, &args[0], prefix_props.precedence());
     if needs_parens {
@@ -182,7 +184,7 @@ impl BasicLanguageMode {
     engine.write_to_html(out, &args[0], postfix_props.precedence());
     out.push(' ');
     let operator_name = self.translate_to_unicode(engine, op.operator_name());
-    out.push_str(operator_name);
+    out.push_str(encode_safe(operator_name).as_ref());
     if needs_parens {
       out.push(')');
     }
@@ -392,6 +394,13 @@ mod tests {
   }
 
   #[test]
+  fn test_simple_function_call_with_html_special_chars() {
+    let mode = BasicLanguageMode::default();
+    let expr = Expr::call("<span>", vec![Expr::from(9), Expr::from(8), Expr::from(7)]);
+    assert_eq!(to_html(&mode, &expr), "&lt;span&gt;(9, 8, 7)");
+  }
+
+  #[test]
   fn test_simple_function_call_with_unicode() {
     let mode = BasicLanguageMode::default()
       .with_unicode_table(sample_unicode_table());
@@ -546,6 +555,13 @@ mod tests {
   }
 
   #[test]
+  fn test_op_with_unicode() {
+    let mode = BasicLanguageMode::from_common_operators();
+    let expr = Expr::call("<", vec![Expr::from(1), Expr::from(2)]);
+    assert_eq!(to_html(&mode, &expr), "1 &lt; 2");
+  }
+
+  #[test]
   fn test_power_with_negative_base() {
     let mode = BasicLanguageMode::from_common_operators();
     let expr = Expr::call("^", vec![Expr::from(-1), Expr::from(2)]);
@@ -613,7 +629,7 @@ mod tests {
     let mode = BasicLanguageMode::from_common_operators();
     let expr = Expr::call("<=", vec![Expr::from(100), Expr::from(200)]);
     assert_eq!(to_html(&mode, &expr), "100 ≤ 200");
-    assert_eq!(to_html_no_unicode(&mode, &expr), "100 <= 200");
+    assert_eq!(to_html_no_unicode(&mode, &expr), "100 &lt;= 200");
   }
 
   #[test]
@@ -621,8 +637,8 @@ mod tests {
     let mode = BasicLanguageMode::from_common_operators();
     let mode = mode.to_reversible_language_mode();
     let expr = Expr::call("<=", vec![Expr::from(100), Expr::from(200)]);
-    assert_eq!(to_html(mode.as_ref(), &expr), "100 <= 200");
-    assert_eq!(to_html_no_unicode(mode.as_ref(), &expr), "100 <= 200");
+    assert_eq!(to_html(mode.as_ref(), &expr), "100 &lt;= 200");
+    assert_eq!(to_html_no_unicode(mode.as_ref(), &expr), "100 &lt;= 200");
   }
 
   #[test]

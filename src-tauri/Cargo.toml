@@ -36,6 +36,7 @@ base64 = "0.22.1"
 either = { version = "1.12.0", features = ["serde"] }
 itertools = "0.13.0"
 try-traits = "0.1.1"
+html-escape = "0.2.13"
 
 [features]
 # This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!
