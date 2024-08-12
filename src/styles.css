@@ -339,6 +339,84 @@ input, button {
     background-color: #f6f6f6;
 }
 
+/* Fancy brackets */
+.bracketed {
+    display: inline-block;
+    position: relative;
+    vertical-align: middle;
+}
+
+.bracketed::before, .bracketed::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    height: 100%;
+}
+
+.bracketed::before {
+    left: 0;
+}
+
+.bracketed::after {
+    right: 0;
+}
+
+.bracketed--square {
+    padding: 0 6px;
+    margin: 0 6px;
+}
+
+.bracketed--square::before, .bracketed--square::after {
+    border: 1px solid var(--main-text-color);
+    width: 6px;
+}
+
+.bracketed--square::before {
+    border-right: 0;
+}
+
+.bracketed--square::after {
+    border-left: 0;
+}
+
+.bracketed--vert {
+    padding: 0 3px;
+    margin: 0;
+}
+
+.bracketed--vert::before, .bracketed--vert::after {
+    width: 3px;
+}
+
+.bracketed-vert::before {
+    border-left: 1px solid var(--main-text-color);
+}
+
+.bracketed-vert::after {
+    border-right: 1px solid var(--main-text-color);
+}
+
+.bracketed--parens {
+    padding: 0 4px;
+    margin: 0;
+}
+
+.bracketed--parens::before, .bracketed--parens::after {
+    width: 5px;
+}
+
+.bracketed--parens::before {
+    border-top-left-radius: 50% 50%;
+    border-bottom-left-radius: 50% 50%;
+    border-left: 1px solid var(--main-text-color);
+}
+
+.bracketed--parens::after {
+    border-top-right-radius: 50% 50%;
+    border-bottom-right-radius: 50% 50%;
+    border-right: 1px solid var(--main-text-color);
+}
+
 /* "Small screen" mode for mobile devices */
 @media (max-width: 840px) {
     .value-stack {

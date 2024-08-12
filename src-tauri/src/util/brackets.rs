@@ -14,6 +14,19 @@ pub struct ConstBrackets<'a> {
   end_bracket: &'a str,
 }
 
+/// HTML bracketing construct.
+#[derive(Debug, Clone)]
+pub struct HtmlBrackets {
+  bracket_type: HtmlBracketsType,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HtmlBracketsType {
+  SquareBrackets,
+  Parentheses,
+  VerticalBars,
+}
+
 /// A bracketing construct, which can be used to contain certain text
 /// within brackets of some kind.
 pub trait BracketConstruct<W: SafeWrite> {
@@ -76,6 +89,22 @@ impl ConstBrackets<'static> {
   }
 }
 
+impl HtmlBrackets {
+  pub const fn new(bracket_type: HtmlBracketsType) -> Self {
+    Self { bracket_type }
+  }
+}
+
+impl HtmlBracketsType {
+  pub fn css_classes(self) -> &'static str {
+    match self {
+      HtmlBracketsType::SquareBrackets => ".bracketed .bracketed--square",
+      HtmlBracketsType::Parentheses => ".bracketed .bracketed--parens",
+      HtmlBracketsType::VerticalBars => ".bracketed .bracketed--vert",
+    }
+  }
+}
+
 impl<'a, W: SafeWrite> BracketConstruct<W> for ConstBrackets<'a> {
   fn write_open(&self, w: &mut W) -> Result<(), W::Error> {
     w.write_str(&self.start_bracket)
@@ -83,6 +112,16 @@ impl<'a, W: SafeWrite> BracketConstruct<W> for ConstBrackets<'a> {
 
   fn write_close(&self, w: &mut W) -> Result<(), W::Error> {
     w.write_str(&self.end_bracket)
+  }
+}
+
+impl<'a, W: SafeWrite> BracketConstruct<W> for HtmlBrackets {
+  fn write_open(&self, w: &mut W) -> Result<(), W::Error> {
+    write!(w, r#"<span class="{}">"#, self.bracket_type.css_classes())
+  }
+
+  fn write_close(&self, w: &mut W) -> Result<(), W::Error> {
+    w.write_str("</span>")
   }
 }
 
@@ -134,5 +173,18 @@ mod tests {
     assert_eq!(result1, "result str 1");
     assert_eq!(result2, "result str 2");
     assert_eq!(s, "a(b)cd");
+  }
+
+  #[test]
+  fn test_write_bracketed_with_html() {
+    let mut s = String::new();
+    unwrap_infallible(write!(s, "a"));
+    let result = unwrap_infallible(HtmlBrackets::new(HtmlBracketsType::Parentheses).write_bracketed(&mut s, |s| {
+      write!(s, "b")?;
+      Ok("result str")
+    }));
+    unwrap_infallible(write!(s, "c"));
+    assert_eq!(result, "result str");
+    assert_eq!(s, r#"a<span class=".bracketed .bracketed--parens">b</span>c"#);
   }
 }
