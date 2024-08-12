@@ -76,6 +76,28 @@ impl<L: LanguageMode> FancyLanguageMode<L> {
     }
     out.push_str("</span>");
   }
+
+  fn write_e_to_exponent(&self, engine: &LanguageModeEngine, out: &mut String, args: &[Expr], prec: Precedence) {
+    assert!(args.len() == 1);
+    let [exp] = args else { unreachable!() };
+
+    let needs_parens = prec > EXPONENT_PRECEDENCE;
+
+    out.push_str("<span>");
+    if needs_parens {
+      out.push('(');
+    }
+
+    out.push_str("<span>𝕖</span>");
+    out.push_str("<sup>");
+    engine.write_to_html(out, exp, EXPONENT_PRECEDENCE);
+    out.push_str("</sup>");
+
+    if needs_parens {
+      out.push(')');
+    }
+    out.push_str("</span>");
+  }
 }
 
 impl<L: LanguageMode + Default> Default for FancyLanguageMode<L> {
@@ -96,6 +118,8 @@ impl<L: LanguageMode> LanguageMode for FancyLanguageMode<L> {
       Expr::Call(f, args) => {
         if f == "^" && args.len() == 2 {
           self.write_exponent(engine, out, args, prec)
+        } else if f == "exp" && args.len() == 1 {
+          self.write_e_to_exponent(engine, out, args, prec)
         } else {
           self.inner_mode.write_to_html(engine, out, expr, prec)
         }
