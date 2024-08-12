@@ -68,7 +68,7 @@ impl<L: LanguageMode> FancyLanguageMode<L> {
     engine.write_to_html(out, base, EXPONENT_PRECEDENCE.incremented());
     out.push_str("</span>");
     out.push_str("<sup>");
-    engine.write_to_html(out, exp, EXPONENT_PRECEDENCE);
+    engine.write_to_html(out, exp, Precedence::MIN);
     out.push_str("</sup>");
 
     if needs_parens {
@@ -90,7 +90,7 @@ impl<L: LanguageMode> FancyLanguageMode<L> {
 
     out.push_str("<span>𝕖</span>");
     out.push_str("<sup>");
-    engine.write_to_html(out, exp, EXPONENT_PRECEDENCE);
+    engine.write_to_html(out, exp, Precedence::MIN);
     out.push_str("</sup>");
 
     if needs_parens {
