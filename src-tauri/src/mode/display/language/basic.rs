@@ -15,6 +15,9 @@ use html_escape::encode_safe;
 
 use num::Zero;
 
+/// The basic, and default, language mode. This language mode has
+/// minimal support for sophisticated output or pretty-printing and is
+/// designed to be mostly reversible.
 #[derive(Clone, Debug, Default)]
 pub struct BasicLanguageMode {
   known_operators: OperatorTable,

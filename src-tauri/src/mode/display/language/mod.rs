@@ -1,5 +1,6 @@
 
 pub mod basic;
+pub mod fancy;
 pub mod graphics;
 
 use crate::util::cow_dyn::CowDyn;
