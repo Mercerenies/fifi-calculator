@@ -7,6 +7,7 @@ use crate::util::cow_dyn::CowDyn;
 use crate::expr::Expr;
 use crate::expr::var::Var;
 use crate::expr::atom::Atom;
+use crate::util::brackets::{BracketConstruct, fancy_parens, fancy_square_brackets};
 
 use html_escape::encode_safe;
 
@@ -57,23 +58,15 @@ impl<L: LanguageMode> FancyLanguageMode<L> {
     assert!(args.len() == 2);
     let [base, exp] = args else { unreachable!() };
 
-    let needs_parens = prec > EXPONENT_PRECEDENCE;
-
     out.push_str("<span>");
-    if needs_parens {
-      out.push('(');
-    }
-
-    out.push_str("<span>");
-    engine.write_to_html(out, base, EXPONENT_PRECEDENCE.incremented());
-    out.push_str("</span>");
-    out.push_str("<sup>");
-    engine.write_to_html(out, exp, Precedence::MIN);
-    out.push_str("</sup>");
-
-    if needs_parens {
-      out.push(')');
-    }
+    fancy_parens(true).write_bracketed_if_ok(out, prec > EXPONENT_PRECEDENCE, |out| {
+      out.push_str("<span>");
+      engine.write_to_html(out, base, EXPONENT_PRECEDENCE.incremented());
+      out.push_str("</span>");
+      out.push_str("<sup>");
+      engine.write_to_html(out, exp, Precedence::MIN);
+      out.push_str("</sup>");
+    });
     out.push_str("</span>");
   }
 
@@ -81,21 +74,13 @@ impl<L: LanguageMode> FancyLanguageMode<L> {
     assert!(args.len() == 1);
     let [exp] = args else { unreachable!() };
 
-    let needs_parens = prec > EXPONENT_PRECEDENCE;
-
     out.push_str("<span>");
-    if needs_parens {
-      out.push('(');
-    }
-
-    out.push_str("<span>𝕖</span>");
-    out.push_str("<sup>");
-    engine.write_to_html(out, exp, Precedence::MIN);
-    out.push_str("</sup>");
-
-    if needs_parens {
-      out.push(')');
-    }
+    fancy_parens(true).write_bracketed_if_ok(out, prec > EXPONENT_PRECEDENCE, |out| {
+      out.push_str("<span>𝕖</span>");
+      out.push_str("<sup>");
+      engine.write_to_html(out, exp, Precedence::MIN);
+      out.push_str("</sup>");
+    });
     out.push_str("</span>");
   }
 }
@@ -194,5 +179,78 @@ mod tests {
     let mode = mode.to_reversible_language_mode();
     let expr = Expr::call("foo", vec![Expr::from(9), Expr::from(8), Expr::from(7)]);
     assert_eq!(to_html(mode.as_ref(), &expr), "foo(9, 8, 7)");
+  }
+
+  #[test]
+  fn test_e_to_power() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("exp", vec![Expr::from(9)]);
+    assert_eq!(
+      to_html(&mode, &expr),
+      r#"<span><span>𝕖</span><sup>9</sup></span>"#,
+    );
+  }
+
+  #[test]
+  fn test_power() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("^", vec![Expr::from(2), Expr::from(10)]);
+    assert_eq!(
+      to_html(&mode, &expr),
+      r#"<span><span>2</span><sup>10</sup></span>"#,
+    );
+  }
+
+  #[test]
+  fn test_power_nested_right() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("^", vec![
+      Expr::from(2),
+      Expr::call("^", vec![Expr::from(3), Expr::from(10)]),
+    ]);
+    assert_eq!(
+      to_html(&mode, &expr),
+      r#"<span><span>2</span><sup><span><span>3</span><sup>10</sup></span></sup></span>"#,
+    );
+  }
+
+  #[test]
+  fn test_power_nested_left() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("^", vec![
+      Expr::call("^", vec![Expr::from(2), Expr::from(3)]),
+      Expr::from(10),
+    ]);
+    assert_eq!(
+      to_html(&mode, &expr),
+      r#"<span><span><span><span class="bracketed bracketed--parens"><span>2</span><sup>3</sup></span></span></span><sup>10</sup></span>"#,
+    );
+  }
+
+  #[test]
+  fn test_power_of_e_nested_left() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("^", vec![
+      Expr::call("exp", vec![Expr::from(3)]),
+      Expr::from(10),
+    ]);
+    assert_eq!(
+      to_html(&mode, &expr),
+      r#"<span><span><span><span class="bracketed bracketed--parens"><span>𝕖</span><sup>3</sup></span></span></span><sup>10</sup></span>"#,
+    );
+  }
+
+  #[test]
+  fn test_exp_with_wrong_arity() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("exp", vec![Expr::from(2), Expr::from(3)]);
+    assert_eq!(to_html(&mode, &expr), r#"exp<span class="bracketed bracketed--parens">2, 3</span>"#);
+  }
+
+  #[test]
+  fn test_power_with_wrong_arity() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("^", vec![Expr::from(2)]);
+    assert_eq!(to_html(&mode, &expr), r#"^<span class="bracketed bracketed--parens">2</span>"#);
   }
 }
