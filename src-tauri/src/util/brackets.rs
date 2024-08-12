@@ -106,9 +106,9 @@ impl HtmlBrackets {
 impl HtmlBracketsType {
   pub fn css_classes(self) -> &'static str {
     match self {
-      HtmlBracketsType::SquareBrackets => ".bracketed .bracketed--square",
-      HtmlBracketsType::Parentheses => ".bracketed .bracketed--parens",
-      HtmlBracketsType::VerticalBars => ".bracketed .bracketed--vert",
+      HtmlBracketsType::SquareBrackets => "bracketed bracketed--square",
+      HtmlBracketsType::Parentheses => "bracketed bracketed--parens",
+      HtmlBracketsType::VerticalBars => "bracketed bracketed--vert",
     }
   }
 }
@@ -228,6 +228,6 @@ mod tests {
     }));
     unwrap_infallible(write!(s, "c"));
     assert_eq!(result, "result str");
-    assert_eq!(s, r#"a<span class=".bracketed .bracketed--parens">b</span>c"#);
+    assert_eq!(s, r#"a<span class="bracketed bracketed--parens">b</span>c"#);
   }
 }

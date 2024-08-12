@@ -84,7 +84,9 @@ impl SetLanguageModeCommand {
   }
 
   pub fn fancy_language_mode() -> Self {
-    let mode = Arc::new(FancyLanguageMode::from_common_unicode(BasicLanguageMode::from_common_operators()));
+    let mode = Arc::new(FancyLanguageMode::from_common_unicode(
+      BasicLanguageMode::from_common_operators().with_fancy_parens(),
+    ));
     Self::new(mode)
   }
 }
