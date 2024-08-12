@@ -222,6 +222,7 @@ input, button {
 
 .mathy-text {
     font-style: italic;
+    font-family: "Latin Modern Math", math;
 }
 
 .toggleable-container {
