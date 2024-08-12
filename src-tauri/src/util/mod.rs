@@ -2,6 +2,7 @@
 //! Various utility functions.
 
 pub mod angles;
+pub mod brackets;
 pub mod cow_dyn;
 pub mod matrix;
 pub mod point;
@@ -154,6 +155,16 @@ impl Neg for Sign {
 }
 
 pub fn unwrap_infallible<T>(res: Result<T, Infallible>) -> T {
+  match res {
+    Ok(res) => res,
+    Err(_) => unreachable!(),
+  }
+}
+
+pub fn unwrap_infallible_like<T, E>(res: Result<T, E>) -> T
+where E: Into<Infallible> {
+  // No sense in calling the Into impl; we know it exists so save the
+  // effort.
   match res {
     Ok(res) => res,
     Err(_) => unreachable!(),
