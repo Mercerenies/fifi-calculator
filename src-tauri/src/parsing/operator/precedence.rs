@@ -19,15 +19,15 @@ impl Precedence {
   ///
   /// Use [`from_raw`](Precedence::from_raw) to bypass the
   /// multiplication and construct a `Precedence` value directly.
-  pub fn new(n: u64) -> Precedence {
+  pub const fn new(n: u64) -> Precedence {
     Precedence(n * 10)
   }
 
-  pub fn from_raw(n: u64) -> Precedence {
+  pub const fn from_raw(n: u64) -> Precedence {
     Precedence(n)
   }
 
-  pub fn incremented(self) -> Precedence {
+  pub const fn incremented(self) -> Precedence {
     Precedence(self.0 + 1)
   }
 }
