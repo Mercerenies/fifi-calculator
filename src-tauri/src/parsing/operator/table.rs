@@ -21,6 +21,11 @@ pub struct OperatorAmbiguity<'a> {
   right: Vec<&'a Operator>,
 }
 
+/// Precedence used for the caret `^` infix operator. This is provided
+/// as a top-level constant, since some language modes render
+/// exponents in a special way (such as using superscripts).
+pub const EXPONENT_PRECEDENCE: Precedence = Precedence::new(200);
+
 impl OperatorTable {
   pub fn new() -> OperatorTable {
     OperatorTable::default()
@@ -69,7 +74,7 @@ impl OperatorTable {
       Operator::new("..^", Fixity::new().with_infix("..^", Associativity::NONE, Precedence::new(196))),
       Operator::new("^..", Fixity::new().with_infix("^..", Associativity::NONE, Precedence::new(196))),
       Operator::new("^..^", Fixity::new().with_infix("^..^", Associativity::NONE, Precedence::new(196))),
-      Operator::new("^", Fixity::new().with_infix("^", Associativity::RIGHT, Precedence::new(200))),
+      Operator::new("^", Fixity::new().with_infix("^", Associativity::RIGHT, EXPONENT_PRECEDENCE)),
       multiplication_operator(),
       Operator::new("@", Fixity::new().with_infix("@", Associativity::LEFT, Precedence::new(195))), // Matrix mul
       Operator::new("/", Fixity::new().with_infix("/", Associativity::LEFT, Precedence::new(190))),

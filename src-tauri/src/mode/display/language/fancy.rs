@@ -1,6 +1,7 @@
 
 use super::{LanguageMode, LanguageModeEngine};
 use crate::parsing::operator::Precedence;
+use crate::parsing::operator::table::EXPONENT_PRECEDENCE;
 use crate::mode::display::unicode::{UnicodeAliasTable, common_unicode_aliases};
 use crate::util::cow_dyn::CowDyn;
 use crate::expr::Expr;
@@ -51,6 +52,30 @@ impl<L: LanguageMode> FancyLanguageMode<L> {
     out.push_str(var_name.as_ref());
     out.push_str("</span>");
   }
+
+  fn write_exponent(&self, engine: &LanguageModeEngine, out: &mut String, args: &[Expr], prec: Precedence) {
+    assert!(args.len() == 2);
+    let [base, exp] = args else { unreachable!() };
+
+    let needs_parens = prec > EXPONENT_PRECEDENCE;
+
+    out.push_str("<span>");
+    if needs_parens {
+      out.push('(');
+    }
+
+    out.push_str("<span>");
+    engine.write_to_html(out, base, EXPONENT_PRECEDENCE.incremented());
+    out.push_str("</span>");
+    out.push_str("<sup>");
+    engine.write_to_html(out, exp, EXPONENT_PRECEDENCE);
+    out.push_str("</sup>");
+
+    if needs_parens {
+      out.push(')');
+    }
+    out.push_str("</span>");
+  }
 }
 
 impl<L: LanguageMode + Default> Default for FancyLanguageMode<L> {
@@ -68,8 +93,12 @@ impl<L: LanguageMode> LanguageMode for FancyLanguageMode<L> {
       Expr::Atom(Atom::Var(v)) => {
         self.write_var(engine, out, v)
       }
-      Expr::Call(_, _) => {
-        self.inner_mode.write_to_html(engine, out, expr, prec)
+      Expr::Call(f, args) => {
+        if f == "^" && args.len() == 2 {
+          self.write_exponent(engine, out, args, prec)
+        } else {
+          self.inner_mode.write_to_html(engine, out, expr, prec)
+        }
       }
     }
   }
