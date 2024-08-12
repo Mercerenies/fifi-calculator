@@ -139,3 +139,60 @@ impl<L: LanguageMode> LanguageMode for FancyLanguageMode<L> {
     self.inner_mode.parse(text)
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::mode::display::language::test_utils::to_html;
+  use crate::mode::display::language::basic::BasicLanguageMode;
+  use crate::expr::number::ComplexNumber;
+
+  fn sample_language_mode() -> FancyLanguageMode<BasicLanguageMode> {
+    FancyLanguageMode::from_common_unicode(
+      BasicLanguageMode::from_common_operators().with_fancy_parens(),
+    )
+  }
+
+  #[test]
+  fn test_atoms() {
+    let mode = sample_language_mode();
+    assert_eq!(to_html(&mode, &Expr::from(9)), "9");
+    assert_eq!(to_html(&mode, &Expr::from(r#"abc"def\"#)), r#""abc\"def\\""#);
+  }
+
+  #[test]
+  fn test_var_output() {
+    let mode = sample_language_mode();
+    assert_eq!(
+      to_html(&mode, &Expr::var("x").unwrap()),
+      r#"<span class="mathy-text">x</span>"#,
+    );
+  }
+
+  #[test]
+  fn test_complex_numbers() {
+    let mode = sample_language_mode();
+    assert_eq!(
+      to_html(&mode, &Expr::from(ComplexNumber::new(2, -2))),
+      r#"<span class="bracketed bracketed--parens">2, -2</span>"#,
+    );
+  }
+
+  #[test]
+  fn test_simple_function_call() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("foo", vec![Expr::from(9), Expr::from(8), Expr::from(7)]);
+    assert_eq!(
+      to_html(&mode, &expr),
+      r#"foo<span class="bracketed bracketed--parens">9, 8, 7</span>"#,
+    );
+  }
+
+  #[test]
+  fn test_simple_function_call_in_reversible_mode() {
+    let mode = sample_language_mode();
+    let mode = mode.to_reversible_language_mode();
+    let expr = Expr::call("foo", vec![Expr::from(9), Expr::from(8), Expr::from(7)]);
+    assert_eq!(to_html(mode.as_ref(), &expr), "foo(9, 8, 7)");
+  }
+}

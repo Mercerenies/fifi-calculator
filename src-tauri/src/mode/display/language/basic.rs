@@ -333,20 +333,8 @@ impl LanguageMode for BasicLanguageMode {
 mod tests {
   use super::*;
   use crate::mode::display::language::LanguageSettings;
+  use crate::mode::display::language::test_utils::{to_html, to_html_no_unicode};
   use crate::mode::display::unicode::{UnicodeAlias, UnicodeAliasTable};
-
-  fn to_html<M>(mode: &M, expr: &Expr) -> String
-  where M: LanguageMode + ?Sized {
-    let settings = LanguageSettings::default();
-    mode.to_html(expr, &settings)
-  }
-
-  fn to_html_no_unicode<M>(mode: &M, expr: &Expr) -> String
-  where M: LanguageMode + ?Sized {
-    let mut settings = LanguageSettings::default();
-    settings.prefers_unicode_output = false;
-    mode.to_html(expr, &settings)
-  }
 
   fn sample_unicode_table() -> UnicodeAliasTable {
     UnicodeAliasTable::new(vec![

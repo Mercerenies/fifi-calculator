@@ -148,3 +148,21 @@ where I: IntoIterator<Item = T>,
     }
   }
 }
+
+#[cfg(test)]
+pub(crate) mod test_utils {
+  use super::*;
+
+  pub fn to_html<M>(mode: &M, expr: &Expr) -> String
+  where M: LanguageMode + ?Sized {
+    let settings = LanguageSettings::default();
+    mode.to_html(expr, &settings)
+  }
+
+  pub fn to_html_no_unicode<M>(mode: &M, expr: &Expr) -> String
+  where M: LanguageMode + ?Sized {
+    let mut settings = LanguageSettings::default();
+    settings.prefers_unicode_output = false;
+    mode.to_html(expr, &settings)
+  }
+}
