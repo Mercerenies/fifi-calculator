@@ -31,11 +31,11 @@ pub struct TryFromStringError {
 }
 
 pub static VALID_NAME_RE: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(r"^[a-zA-Z$][a-zA-Z$0-9']*$").unwrap()
+  Regex::new(r"^(?:[a-zA-Z$][a-zA-Z$0-9']*|∞|⧝)$").unwrap()
 });
 
 pub static VALID_NAME_PREFIX_RE: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(r"^[a-zA-Z$][a-zA-Z$0-9']*").unwrap()
+  Regex::new(r"^(?:[a-zA-Z$][a-zA-Z$0-9']*|∞|⧝)").unwrap()
 });
 
 impl Var {
@@ -122,6 +122,7 @@ mod test {
     Var::new("$a$").unwrap();
     Var::new("$A$").unwrap();
     Var::new("A$").unwrap();
+    Var::new("∞").unwrap();
   }
 
   #[test]
@@ -143,6 +144,9 @@ mod test {
     assert_eq!(Var::new("'''''''"), None);
     assert_eq!(Var::new("$^"), None);
     assert_eq!(Var::new("$["), None);
+    assert_eq!(Var::new("$∞"), None);
+    assert_eq!(Var::new("∞x"), None);
+    assert_eq!(Var::new("∞∞"), None);
   }
 
   #[test]

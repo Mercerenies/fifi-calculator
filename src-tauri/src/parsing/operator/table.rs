@@ -88,6 +88,11 @@ impl OperatorTable {
       Operator::new(">=", Fixity::new().with_infix(">=", Associativity::NONE, Precedence::new(160))),
       Operator::new("&&", Fixity::new().with_infix("&&", Associativity::FULL, Precedence::new(110))),
       Operator::new("||", Fixity::new().with_infix("||", Associativity::FULL, Precedence::new(100))),
+
+      // Also admit Unicode equivalents to several operators.
+      Operator::new("≠", Fixity::new().with_infix("≠", Associativity::NONE, Precedence::new(160))),
+      Operator::new("≤", Fixity::new().with_infix("≤", Associativity::NONE, Precedence::new(160))),
+      Operator::new("≥", Fixity::new().with_infix("≥", Associativity::NONE, Precedence::new(160))),
     ].into_iter().collect()
   }
 

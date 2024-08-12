@@ -1,5 +1,6 @@
 
 use super::{LanguageMode, LanguageModeEngine, output_sep_by};
+use crate::mode::display::unicode::{UnicodeAliasTable, common_unicode_aliases};
 use crate::parsing::operator::{Operator, Precedence, OperatorTable};
 use crate::parsing::operator::fixity::FixityType;
 use crate::expr::Expr;
@@ -15,6 +16,7 @@ use num::Zero;
 #[derive(Clone, Debug, Default)]
 pub struct BasicLanguageMode {
   known_operators: OperatorTable,
+  unicode_table: UnicodeAliasTable,
   // Default is false. If true, the output should be readable by the
   // default parser. If false, some things may be pretty-printed (such
   // as incomplete objects).
@@ -26,18 +28,39 @@ impl BasicLanguageMode {
     Self::default()
   }
 
+  /// Replaces the [`UnicodeAliasTable`] associated with `self` and
+  /// returns a modified version of `self`.
+  pub fn with_unicode_table(mut self, table: UnicodeAliasTable) -> Self {
+    self.unicode_table = table;
+    self
+  }
+
   pub fn from_operators(known_operators: OperatorTable) -> Self {
     Self {
       known_operators,
+      unicode_table: UnicodeAliasTable::default(),
       uses_reversible_output: false,
     }
   }
 
   pub fn from_common_operators() -> Self {
     Self::from_operators(OperatorTable::common_operators())
+      .with_unicode_table(common_unicode_aliases())
+  }
+
+  fn translate_to_unicode<'a>(&'a self, engine: &LanguageModeEngine, ascii_name: &'a str) -> &'a str {
+    if !engine.language_settings().prefers_unicode_output || self.uses_reversible_output {
+      // Technically, we could output Unicode in reversible mode,
+      // since the parser supports it. But in the interests of showing
+      // the user a more "canonical" version of the value, we disable
+      // Unicode output unconditionally.
+      return ascii_name;
+    }
+    self.unicode_table.get_unicode(ascii_name).unwrap_or(ascii_name)
   }
 
   fn fn_call_to_html(&self, engine: &LanguageModeEngine, out: &mut String, f: &str, args: &[Expr]) {
+    let f = self.translate_to_unicode(engine, f);
     out.push_str(f);
     out.push('(');
     output_sep_by(out, args.iter(), ", ", |out, e| engine.write_to_html(out, e, Precedence::MIN));
@@ -65,7 +88,8 @@ impl BasicLanguageMode {
     // Special case: Infix multiplication can always be represented as
     // juxtaposition.
     if op.operator_name() != "*" {
-      out.push_str(op.operator_name());
+      let operator_name = self.translate_to_unicode(engine, op.operator_name());
+      out.push_str(operator_name);
       out.push(' ');
     }
     engine.write_to_html(out, right_arg, infix_props.right_precedence());
@@ -97,7 +121,8 @@ impl BasicLanguageMode {
         // Special case: Infix multiplication can always be represented as
         // juxtaposition.
         if op.operator_name() != "*" {
-          out.push_str(op.operator_name());
+          let operator_name = self.translate_to_unicode(engine, op.operator_name());
+          out.push_str(operator_name);
           out.push(' ');
         }
       }
@@ -130,7 +155,8 @@ impl BasicLanguageMode {
     if needs_parens {
       out.push('(');
     }
-    out.push_str(op.operator_name());
+    let operator_name = self.translate_to_unicode(engine, op.operator_name());
+    out.push_str(operator_name);
     out.push(' ');
     engine.write_to_html(out, &args[0], prefix_props.precedence());
     if needs_parens {
@@ -155,7 +181,8 @@ impl BasicLanguageMode {
     }
     engine.write_to_html(out, &args[0], postfix_props.precedence());
     out.push(' ');
-    out.push_str(op.operator_name());
+    let operator_name = self.translate_to_unicode(engine, op.operator_name());
+    out.push_str(operator_name);
     if needs_parens {
       out.push(')');
     }
@@ -254,7 +281,8 @@ impl LanguageMode for BasicLanguageMode {
         }
       }
       Expr::Atom(Atom::Var(v)) => {
-        out.push_str(&v.to_string());
+        let var = self.translate_to_unicode(engine, v.as_str());
+        out.push_str(var);
       }
       Expr::Atom(Atom::String(s)) => {
         write_escaped_str(out, s).unwrap(); // unwrap: impl Write for String doesn't fail.
@@ -306,10 +334,25 @@ impl LanguageMode for BasicLanguageMode {
 mod tests {
   use super::*;
   use crate::mode::display::language::LanguageSettings;
+  use crate::mode::display::unicode::{UnicodeAlias, UnicodeAliasTable};
 
-  fn to_html(mode: &BasicLanguageMode, expr: &Expr) -> String {
+  fn to_html<M>(mode: &M, expr: &Expr) -> String
+  where M: LanguageMode + ?Sized {
     let settings = LanguageSettings::default();
     mode.to_html(expr, &settings)
+  }
+
+  fn to_html_no_unicode<M>(mode: &M, expr: &Expr) -> String
+  where M: LanguageMode + ?Sized {
+    let mut settings = LanguageSettings::default();
+    settings.prefers_unicode_output = false;
+    mode.to_html(expr, &settings)
+  }
+
+  fn sample_unicode_table() -> UnicodeAliasTable {
+    UnicodeAliasTable::new(vec![
+      UnicodeAlias::simple("A", "𝔸"),
+    ]).unwrap()
   }
 
   #[test]
@@ -346,6 +389,61 @@ mod tests {
     assert_eq!(to_html(&mode, &expr), "foo(9)");
     let expr = Expr::call("foo", vec![]);
     assert_eq!(to_html(&mode, &expr), "foo()");
+  }
+
+  #[test]
+  fn test_simple_function_call_with_unicode() {
+    let mode = BasicLanguageMode::default()
+      .with_unicode_table(sample_unicode_table());
+    let expr = Expr::call("foo", vec![Expr::from(9), Expr::from(8), Expr::from(7)]);
+    assert_eq!(to_html(&mode, &expr), "foo(9, 8, 7)");
+    let expr = Expr::call("foo", vec![Expr::from(9)]);
+    assert_eq!(to_html(&mode, &expr), "foo(9)");
+    let expr = Expr::call("foo", vec![]);
+    assert_eq!(to_html(&mode, &expr), "foo()");
+    let expr = Expr::call("A", vec![]);
+    assert_eq!(to_html(&mode, &expr), "𝔸()");
+    let expr = Expr::call("A", vec![Expr::from(10), Expr::from(20)]);
+    assert_eq!(to_html(&mode, &expr), "𝔸(10, 20)");
+    let expr = Expr::call("A", vec![Expr::var("A").unwrap(), Expr::var("a").unwrap()]);
+    assert_eq!(to_html(&mode, &expr), "𝔸(𝔸, a)");
+  }
+
+  #[test]
+  fn test_simple_function_call_with_unicode_in_reversible_mode() {
+    let mode = BasicLanguageMode::default()
+      .with_unicode_table(sample_unicode_table());
+    let mode = mode.to_reversible_language_mode();
+    let expr = Expr::call("foo", vec![Expr::from(9), Expr::from(8), Expr::from(7)]);
+    assert_eq!(to_html(mode.as_ref(), &expr), "foo(9, 8, 7)");
+    let expr = Expr::call("foo", vec![Expr::from(9)]);
+    assert_eq!(to_html(mode.as_ref(), &expr), "foo(9)");
+    let expr = Expr::call("foo", vec![]);
+    assert_eq!(to_html(mode.as_ref(), &expr), "foo()");
+    let expr = Expr::call("A", vec![]);
+    assert_eq!(to_html(mode.as_ref(), &expr), "A()");
+    let expr = Expr::call("A", vec![Expr::from(10), Expr::from(20)]);
+    assert_eq!(to_html(mode.as_ref(), &expr), "A(10, 20)");
+    let expr = Expr::call("A", vec![Expr::var("A").unwrap(), Expr::var("a").unwrap()]);
+    assert_eq!(to_html(mode.as_ref(), &expr), "A(A, a)");
+  }
+
+  #[test]
+  fn test_simple_function_call_with_unicode_with_unicode_preferences_off() {
+    let mode = BasicLanguageMode::default()
+      .with_unicode_table(sample_unicode_table());
+    let expr = Expr::call("foo", vec![Expr::from(9), Expr::from(8), Expr::from(7)]);
+    assert_eq!(to_html_no_unicode(&mode, &expr), "foo(9, 8, 7)");
+    let expr = Expr::call("foo", vec![Expr::from(9)]);
+    assert_eq!(to_html_no_unicode(&mode, &expr), "foo(9)");
+    let expr = Expr::call("foo", vec![]);
+    assert_eq!(to_html_no_unicode(&mode, &expr), "foo()");
+    let expr = Expr::call("A", vec![]);
+    assert_eq!(to_html_no_unicode(&mode, &expr), "A()");
+    let expr = Expr::call("A", vec![Expr::from(10), Expr::from(20)]);
+    assert_eq!(to_html_no_unicode(&mode, &expr), "A(10, 20)");
+    let expr = Expr::call("A", vec![Expr::var("A").unwrap(), Expr::var("a").unwrap()]);
+    assert_eq!(to_html_no_unicode(&mode, &expr), "A(A, a)");
   }
 
   #[test]
@@ -508,6 +606,23 @@ mod tests {
       vec![Expr::string("[")],
     );
     assert_eq!(to_html(&mode, &expr), "[ ...");
+  }
+
+  #[test]
+  fn test_unicode_operator() {
+    let mode = BasicLanguageMode::from_common_operators();
+    let expr = Expr::call("<=", vec![Expr::from(100), Expr::from(200)]);
+    assert_eq!(to_html(&mode, &expr), "100 ≤ 200");
+    assert_eq!(to_html_no_unicode(&mode, &expr), "100 <= 200");
+  }
+
+  #[test]
+  fn test_unicode_operator_in_reversible_mode() {
+    let mode = BasicLanguageMode::from_common_operators();
+    let mode = mode.to_reversible_language_mode();
+    let expr = Expr::call("<=", vec![Expr::from(100), Expr::from(200)]);
+    assert_eq!(to_html(mode.as_ref(), &expr), "100 <= 200");
+    assert_eq!(to_html_no_unicode(mode.as_ref(), &expr), "100 <= 200");
   }
 
   #[test]

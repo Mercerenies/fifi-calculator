@@ -9,16 +9,20 @@ pub mod identity;
 pub mod interval;
 pub mod partial;
 pub mod repeated;
+pub mod unicode;
 
 pub use base::{Simplifier, SimplifierContext};
 
 use crate::expr::Expr;
 use crate::expr::function::table::FunctionTable;
 use repeated::RepeatedSimplifier;
+use unicode::UnicodeSimplifier;
 
 #[derive(Debug)]
 struct DefaultSimplifier<'a> {
   function_table: &'a FunctionTable,
+  // We store this one in advance since it's nontrivial to construct.
+  unicode_simplifier: UnicodeSimplifier,
 }
 
 // This could technically be built up as a ChainedSimplifier, but
@@ -28,6 +32,7 @@ struct DefaultSimplifier<'a> {
 // implementation we need.
 impl<'a> Simplifier for DefaultSimplifier<'a> {
   fn simplify_expr_part(&self, mut expr: Expr, ctx: &mut SimplifierContext) -> Expr {
+    expr = self.unicode_simplifier.simplify_expr_part(expr, ctx);
     expr = partial::IdentityRemover::new(self.function_table).simplify_expr_part(expr, ctx);
     expr = evaluator::FunctionEvaluator::new(self.function_table).simplify_expr_part(expr, ctx);
     expr = flattener::FunctionFlattener::new(self.function_table).simplify_expr_part(expr, ctx);
@@ -40,7 +45,10 @@ pub fn default_simplifier(function_table: &FunctionTable) -> Box<dyn Simplifier 
   // We repeat the DefaultSimplifier pipeline a few times, to make
   // sure we get all reasonable simplifications. The choice of 5 times
   // is arbitrary.
-  let default_simplifier = DefaultSimplifier { function_table };
+  let default_simplifier = DefaultSimplifier {
+    function_table,
+    unicode_simplifier: UnicodeSimplifier::from_common_aliases(),
+  };
   Box::new(RepeatedSimplifier::new(default_simplifier, 5))
 }
 
