@@ -27,6 +27,14 @@ pub enum HtmlBracketsType {
   VerticalBars,
 }
 
+/// Bracketing construct which chooses from two constituent bracketing
+/// constructs based on a Boolean flag.
+pub struct ChoiceBrackets<B1, B2> {
+  flag: bool,
+  false_brackets: B1,
+  true_brackets: B2,
+}
+
 /// A bracketing construct, which can be used to contain certain text
 /// within brackets of some kind.
 pub trait BracketConstruct<W: SafeWrite> {
@@ -105,6 +113,12 @@ impl HtmlBracketsType {
   }
 }
 
+impl<B1, B2> ChoiceBrackets<B1, B2> {
+  pub const fn new(flag: bool, false_brackets: B1, true_brackets: B2) -> Self {
+    Self { flag, false_brackets, true_brackets }
+  }
+}
+
 impl<'a, W: SafeWrite> BracketConstruct<W> for ConstBrackets<'a> {
   fn write_open(&self, w: &mut W) -> Result<(), W::Error> {
     w.write_str(&self.start_bracket)
@@ -123,6 +137,35 @@ impl<'a, W: SafeWrite> BracketConstruct<W> for HtmlBrackets {
   fn write_close(&self, w: &mut W) -> Result<(), W::Error> {
     w.write_str("</span>")
   }
+}
+
+impl<B1, B2, W> BracketConstruct<W> for ChoiceBrackets<B1, B2>
+where
+  B1: BracketConstruct<W>,
+  B2: BracketConstruct<W>,
+  W: SafeWrite {
+  fn write_open(&self, w: &mut W) -> Result<(), W::Error> {
+    if self.flag {
+      self.true_brackets.write_open(w)
+    } else {
+      self.false_brackets.write_open(w)
+    }
+  }
+
+  fn write_close(&self, w: &mut W) -> Result<(), W::Error> {
+    if self.flag {
+      self.true_brackets.write_close(w)
+    } else {
+      self.false_brackets.write_close(w)
+    }
+  }
+}
+
+/// If the `is_fancy` parameter is false, this bracketing construct
+/// uses ordinary parentheses. If the `is_fancy` parameter is true,
+/// uses HTML resizing parentheses.
+pub const fn fancy_parens(is_fancy: bool) -> ChoiceBrackets<ConstBrackets<'static>, HtmlBrackets> {
+  ChoiceBrackets::new(is_fancy, ConstBrackets::parens(), HtmlBrackets::new(HtmlBracketsType::Parentheses))
 }
 
 #[cfg(test)]
