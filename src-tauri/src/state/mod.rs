@@ -133,9 +133,9 @@ impl ApplicationState {
       modeline.push_str("-  ");
     }
     if self.display_settings().language_settings.prefers_unicode_output {
-      modeline.push_str("U");
+      modeline.push('U');
     } else {
-      modeline.push_str("-");
+      modeline.push('-');
     }
     if self.display_settings().is_graphics_enabled {
       modeline.push_str("Gr");
