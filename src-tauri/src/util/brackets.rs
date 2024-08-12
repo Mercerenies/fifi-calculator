@@ -162,10 +162,17 @@ where
 }
 
 /// If the `is_fancy` parameter is false, this bracketing construct
-/// uses ordinary parentheses. If the `is_fancy` parameter is true,
-/// uses HTML resizing parentheses.
+/// uses ordinary parentheses. If the `is_fancy` parameter is true, it
+/// instead uses HTML resizing parentheses.
 pub const fn fancy_parens(is_fancy: bool) -> ChoiceBrackets<ConstBrackets<'static>, HtmlBrackets> {
   ChoiceBrackets::new(is_fancy, ConstBrackets::parens(), HtmlBrackets::new(HtmlBracketsType::Parentheses))
+}
+
+/// If the `is_fancy` parameter is false, this bracketing construct
+/// uses ordinary square brackets. If the `is_fancy` parameter is
+/// true, it uses HTML square brackets which resize automatically.
+pub const fn fancy_square_brackets(is_fancy: bool) -> ChoiceBrackets<ConstBrackets<'static>, HtmlBrackets> {
+  ChoiceBrackets::new(is_fancy, ConstBrackets::square(), HtmlBrackets::new(HtmlBracketsType::SquareBrackets))
 }
 
 #[cfg(test)]

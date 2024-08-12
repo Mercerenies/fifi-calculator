@@ -10,7 +10,7 @@ use crate::expr::basic_parser::ExprParser;
 use crate::expr::vector::Vector;
 use crate::expr::incomplete::{IncompleteObject, ObjectType};
 use crate::util::cow_dyn::CowDyn;
-use crate::util::brackets::{BracketConstruct, fancy_parens};
+use crate::util::brackets::{BracketConstruct, fancy_parens, fancy_square_brackets};
 
 use html_escape::encode_safe;
 
@@ -230,9 +230,9 @@ impl BasicLanguageMode {
   }
 
   fn vector_to_html(&self, engine: &LanguageModeEngine, out: &mut String, elems: &[Expr]) {
-    out.push('[');
-    output_sep_by(out, elems.iter(), ", ", |out, e| engine.write_to_html(out, e, Precedence::MIN));
-    out.push(']');
+    fancy_square_brackets(self.uses_fancy_parens).write_bracketed_if_ok(out, true, |out| {
+      output_sep_by(out, elems.iter(), ", ", |out, e| engine.write_to_html(out, e, Precedence::MIN));
+    });
   }
 
   fn complex_to_html(&self, engine: &LanguageModeEngine, out: &mut String, args: &[Expr]) {
@@ -618,6 +618,19 @@ mod tests {
       vec![Expr::from(-99)],
     );
     assert_eq!(to_html(&mode, &expr), "[-99]");
+  }
+
+  #[test]
+  fn test_singleton_vector_with_fancy_parens_output() {
+    let mode = BasicLanguageMode::from_common_operators().with_fancy_parens();
+    let expr = Expr::call(
+      "vector",
+      vec![Expr::from(-99)],
+    );
+    assert_eq!(
+      to_html(&mode, &expr),
+      r#"<span class="bracketed bracketed--square">-99</span>"#,
+    );
   }
 
   #[test]
