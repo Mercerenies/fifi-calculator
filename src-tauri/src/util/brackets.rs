@@ -17,7 +17,8 @@ pub struct ConstBrackets<'a> {
 /// HTML bracketing construct.
 #[derive(Debug, Clone)]
 pub struct HtmlBrackets {
-  bracket_type: HtmlBracketsType,
+  left_bracket_type: HtmlBracketsType,
+  right_bracket_type: HtmlBracketsType,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -99,16 +100,56 @@ impl ConstBrackets<'static> {
 
 impl HtmlBrackets {
   pub const fn new(bracket_type: HtmlBracketsType) -> Self {
-    Self { bracket_type }
+    Self {
+      left_bracket_type: bracket_type,
+      right_bracket_type: bracket_type,
+    }
+  }
+
+  pub const fn non_matching(left_bracket_type: HtmlBracketsType, right_bracket_type: HtmlBracketsType) -> Self {
+    Self { left_bracket_type, right_bracket_type }
+  }
+
+  pub fn css_classes(&self) -> String {
+    if self.left_bracket_type == self.right_bracket_type {
+      format!("{} {}", HtmlBracketsType::BASE_CSS_CLASS, self.left_bracket_type.two_sided_css_class())
+    } else {
+      format!("{} {} {}", HtmlBracketsType::BASE_CSS_CLASS, self.left_bracket_type.left_css_class(), self.right_bracket_type.right_css_class())
+    }
   }
 }
 
 impl HtmlBracketsType {
-  pub fn css_classes(self) -> &'static str {
+  /// Base CSS class for any bracket type. All bracketing `<span>`
+  /// constructs should include this CSS class.
+  pub const BASE_CSS_CLASS: &'static str = "bracketed";
+
+  /// CSS class for a two-sided bracket of this type. Every HTML
+  /// bracketing construct should include either (1) one of these
+  /// tags, or (2) a [left](Self::left_css_class) and a [right](Self::right_css_class) class.
+  pub fn two_sided_css_class(self) -> &'static str {
     match self {
-      HtmlBracketsType::SquareBrackets => "bracketed bracketed--square",
-      HtmlBracketsType::Parentheses => "bracketed bracketed--parens",
-      HtmlBracketsType::VerticalBars => "bracketed bracketed--vert",
+      HtmlBracketsType::SquareBrackets => "bracketed--square",
+      HtmlBracketsType::Parentheses => "bracketed--parens",
+      HtmlBracketsType::VerticalBars => "bracketed--vert",
+    }
+  }
+
+  /// A left-side CSS class for a bracket of this type.
+  pub fn left_css_class(self) -> &'static str {
+    match self {
+      HtmlBracketsType::SquareBrackets => "bracketed--square-left",
+      HtmlBracketsType::Parentheses => "bracketed--parens-left",
+      HtmlBracketsType::VerticalBars => "bracketed--vert-left",
+    }
+  }
+
+  /// A right-side CSS class for a bracket of this type.
+  pub fn right_css_class(self) -> &'static str {
+    match self {
+      HtmlBracketsType::SquareBrackets => "bracketed--square-right",
+      HtmlBracketsType::Parentheses => "bracketed--parens-right",
+      HtmlBracketsType::VerticalBars => "bracketed--vert-right",
     }
   }
 }
@@ -131,7 +172,7 @@ impl<'a, W: SafeWrite> BracketConstruct<W> for ConstBrackets<'a> {
 
 impl<'a, W: SafeWrite> BracketConstruct<W> for HtmlBrackets {
   fn write_open(&self, w: &mut W) -> Result<(), W::Error> {
-    write!(w, r#"<span class="{}">"#, self.bracket_type.css_classes())
+    write!(w, r#"<span class="{}">"#, self.css_classes())
   }
 
   fn write_close(&self, w: &mut W) -> Result<(), W::Error> {
@@ -236,5 +277,19 @@ mod tests {
     unwrap_infallible(write!(s, "c"));
     assert_eq!(result, "result str");
     assert_eq!(s, r#"a<span class="bracketed bracketed--parens">b</span>c"#);
+  }
+
+  #[test]
+  fn test_write_bracketed_with_non_matching_html() {
+    let brackets = HtmlBrackets::non_matching(HtmlBracketsType::Parentheses, HtmlBracketsType::SquareBrackets);
+    let mut s = String::new();
+    unwrap_infallible(write!(s, "a"));
+    let result = unwrap_infallible(brackets.write_bracketed(&mut s, |s| {
+      write!(s, "b")?;
+      Ok("result str")
+    }));
+    unwrap_infallible(write!(s, "c"));
+    assert_eq!(result, "result str");
+    assert_eq!(s, r#"a<span class="bracketed bracketed--parens-left bracketed--square-right">b</span>c"#);
   }
 }
