@@ -380,19 +380,20 @@ input, button {
 }
 
 .bracketed--vert {
-    padding: 0 3px;
-    margin: 0;
+    height: 90%;
+    padding: 0 4px;
+    margin: 0 2px;
 }
 
 .bracketed--vert::before, .bracketed--vert::after {
     width: 3px;
 }
 
-.bracketed-vert::before {
+.bracketed--vert::before {
     border-left: 1px solid var(--main-text-color);
 }
 
-.bracketed-vert::after {
+.bracketed--vert::after {
     border-right: 1px solid var(--main-text-color);
 }
 

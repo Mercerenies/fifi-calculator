@@ -7,7 +7,8 @@ use crate::util::cow_dyn::CowDyn;
 use crate::expr::Expr;
 use crate::expr::var::Var;
 use crate::expr::atom::Atom;
-use crate::util::brackets::{BracketConstruct, fancy_parens, fancy_square_brackets};
+use crate::util::brackets::{BracketConstruct, fancy_parens, fancy_square_brackets,
+                            HtmlBrackets, HtmlBracketsType};
 
 use html_escape::encode_safe;
 
@@ -83,6 +84,27 @@ impl<L: LanguageMode> FancyLanguageMode<L> {
     });
     out.push_str("</span>");
   }
+
+  fn write_abs_value_bars(
+    &self,
+    engine: &LanguageModeEngine,
+    out: &mut String,
+    inner_arg: &Expr,
+    subscript_arg: Option<&Expr>,
+  ) {
+    let abs_value_bars = HtmlBrackets::new(HtmlBracketsType::VerticalBars);
+
+    out.push_str("<span>");
+    abs_value_bars.write_bracketed_if_ok(out, true, |out| {
+      engine.write_to_html(out, inner_arg, Precedence::MIN);
+    });
+    if let Some(subscript_arg) = subscript_arg {
+      out.push_str("<sub>");
+      engine.write_to_html(out, subscript_arg, Precedence::MIN);
+      out.push_str("</sub>");
+    }
+    out.push_str("</span>");
+  }
 }
 
 impl<L: LanguageMode + Default> Default for FancyLanguageMode<L> {
@@ -105,6 +127,12 @@ impl<L: LanguageMode> LanguageMode for FancyLanguageMode<L> {
           self.write_exponent(engine, out, args, prec)
         } else if f == "exp" && args.len() == 1 {
           self.write_e_to_exponent(engine, out, args, prec)
+        } else if f == "abs" && args.len() == 1 {
+          let [arg] = args.as_slice() else { unreachable!() };
+          self.write_abs_value_bars(engine, out, arg, None)
+        } else if f == "norm" && args.len() == 2 {
+          let [arg, k] = args.as_slice() else { unreachable!() };
+          self.write_abs_value_bars(engine, out, arg, Some(k))
         } else {
           self.inner_mode.write_to_html(engine, out, expr, prec)
         }
