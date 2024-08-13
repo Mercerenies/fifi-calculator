@@ -1,17 +1,23 @@
 
 use super::{LanguageMode, LanguageModeEngine};
 use crate::parsing::operator::Precedence;
-use crate::parsing::operator::table::{EXPONENT_PRECEDENCE, INTERVAL_PRECEDENCE};
+use crate::parsing::operator::table::{EXPONENT_PRECEDENCE, INTERVAL_PRECEDENCE,
+                                      PREFIX_FUNCTION_CALL_PRECEDENCE};
 use crate::mode::display::unicode::{UnicodeAliasTable, common_unicode_aliases};
 use crate::util::cow_dyn::CowDyn;
 use crate::expr::Expr;
+use crate::expr::number::Number;
 use crate::expr::var::Var;
 use crate::expr::atom::Atom;
 use crate::expr::interval::IntervalType;
 use crate::util::brackets::{BracketConstruct, fancy_parens, fancy_square_brackets,
                             HtmlBrackets, HtmlBracketsType};
 
+use once_cell::sync::Lazy;
 use html_escape::encode_safe;
+use num::Zero;
+
+use std::collections::HashSet;
 
 /// The fancy language mode, which uses HTML to render certain
 /// function types using a more mathematical notation. In any case
@@ -21,6 +27,45 @@ use html_escape::encode_safe;
 pub struct FancyLanguageMode<L> {
   inner_mode: L,
   unicode_table: UnicodeAliasTable,
+}
+
+/// The set of function names eligible for prefix promotion. A
+/// function call in this set will be promoted (in output) to a prefix
+/// operator (with precedence [`PREFIX_FUNCTION_CALL_PRECEDENCE`]) if
+/// the argument is simple enough. The phrase "simple enough" is
+/// defined by the function [`can_prefix_promote_arg`]. For instance,
+/// `sin(x)` will output as `sin x`, but more complex arguments like
+/// `sin(x + y)` will be left alone.
+///
+/// Only unary functions are eligible for such promotion. Note that
+/// the two-argument function `log` undergoes a similar promotion via
+/// a special rule in [`FancyLanguageMode`].
+pub static PREFIX_PROMOTION_FUNCTIONS: Lazy<HashSet<String>> = Lazy::new(|| {
+  [
+    "det", "trace",
+    "ln",
+    "sin", "cos", "tan", "sec", "csc", "cot",
+    "sinh", "cosh", "tanh", "sech", "csch", "coth",
+  ].into_iter().map(String::from).collect()
+});
+
+/// Returns true if the argument is simple enough for prefix
+/// promotion. See [`PREFIX_PROMOTION_FUNCTIONS`] for more details on
+/// this promotion rule.
+///
+/// Arguments which are simple enough for prefix promotion include:
+///
+/// * Nonnegative real numbers
+///
+/// * Variables
+///
+/// * String literals
+pub fn can_prefix_promote_arg(arg: &Expr) -> bool {
+  let Expr::Atom(atom) = arg else { return false; };
+  match atom {
+    Atom::Number(n) => *n >= Number::zero(),
+    Atom::String(_) | Atom::Var(_) => true,
+  }
 }
 
 impl<L: LanguageMode> FancyLanguageMode<L> {
@@ -122,6 +167,21 @@ impl<L: LanguageMode> FancyLanguageMode<L> {
     });
     out.push_str("</span>");
   }
+
+  fn write_with_prefix_promotion(
+    &self,
+    engine: &LanguageModeEngine,
+    out: &mut String,
+    function: &str,
+    arg: &Expr,
+    prec: Precedence,
+  ) {
+    fancy_parens(true).write_bracketed_if_ok(out, prec > PREFIX_FUNCTION_CALL_PRECEDENCE, |out| {
+      out.push_str(function);
+      out.push(' ');
+      engine.write_to_html(out, arg, PREFIX_FUNCTION_CALL_PRECEDENCE);
+    });
+  }
 }
 
 impl<L: LanguageMode + Default> Default for FancyLanguageMode<L> {
@@ -152,6 +212,8 @@ impl<L: LanguageMode> LanguageMode for FancyLanguageMode<L> {
           self.write_abs_value_bars(engine, out, arg, Some(k))
         } else if IntervalType::is_interval_type(f) && args.len() == 2 {
           self.write_interval(engine, out, f, args)
+        } else if PREFIX_PROMOTION_FUNCTIONS.contains(f) && args.len() == 1 && can_prefix_promote_arg(&args[0]) {
+          self.write_with_prefix_promotion(engine, out, f, &args[0], prec)
         } else {
           self.inner_mode.write_to_html(engine, out, expr, prec)
         }
@@ -183,6 +245,25 @@ mod tests {
     FancyLanguageMode::from_common_unicode(
       BasicLanguageMode::from_common_operators().with_fancy_parens(),
     )
+  }
+
+  #[test]
+  fn test_can_prefix_promote_arg() {
+    // Arguments simple enough to promote
+    assert!(can_prefix_promote_arg(&Expr::from(19)));
+    assert!(can_prefix_promote_arg(&Expr::from(0)));
+    assert!(can_prefix_promote_arg(&Expr::from(0.0)));
+    assert!(can_prefix_promote_arg(&Expr::string("xyz")));
+    assert!(can_prefix_promote_arg(&Expr::string("")));
+    assert!(can_prefix_promote_arg(&Expr::var("a").unwrap()));
+    assert!(can_prefix_promote_arg(&Expr::var("X").unwrap()));
+
+    // Arguments which cannot promote
+    assert!(!can_prefix_promote_arg(&Expr::from(-1)));
+    assert!(!can_prefix_promote_arg(&Expr::from(-0.0)));
+    assert!(!can_prefix_promote_arg(&Expr::call("foo", vec![])));
+    assert!(!can_prefix_promote_arg(&Expr::call("foo", vec![Expr::from(0)])));
+    assert!(!can_prefix_promote_arg(&Expr::call("vector", vec![])));
   }
 
   #[test]
