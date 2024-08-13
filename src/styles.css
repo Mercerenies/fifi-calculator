@@ -38,7 +38,7 @@
 
 .value-stack {
     overflow-y: scroll;
-    height: 450px;
+    height: 490px;
     border-radius: 10px;
     margin: 0em 1em 1em 1em;
     background-color: #ffffff;
@@ -87,7 +87,7 @@
 }
 
 .right-panel {
-    height: 450px;
+    height: 490px;
 }
 
 .input-box {
