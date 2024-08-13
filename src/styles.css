@@ -366,53 +366,110 @@ input, button {
     margin: 0 6px;
 }
 
-.bracketed--square::before, .bracketed--square::after {
+.bracketed--square-left {
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 6px;
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-left: 6px;
+}
+
+.bracketed--square-right {
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-right: 6px;
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-right: 6px;
+}
+
+.bracketed--square::before, .bracketed--square::after,
+.bracketed--square-left::before, .bracketed--square-right::after {
     border: 1px solid var(--main-text-color);
     width: 6px;
 }
 
-.bracketed--square::before {
+.bracketed--square::before, .bracketed--square-left::before {
     border-right: 0;
 }
 
-.bracketed--square::after {
+.bracketed--square::after, .bracketed--square-right::after {
     border-left: 0;
 }
 
-.bracketed--vert {
+.bracketed--vert, .bracketed--vert-left, .bracketed--vert-right {
     height: 90%;
+}
+
+.bracketed--vert {
     padding: 0 4px;
     margin: 0 2px;
 }
 
-.bracketed--vert::before, .bracketed--vert::after {
+.bracketed--vert-left {
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 4px;
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-left: 2px;
+}
+
+.bracketed--vert-right {
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-right: 4px;
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-right: 2px;
+}
+
+.bracketed--vert::before, .bracketed--vert::after,
+.bracketed--vert-left::before, .bracketed--vert-right::after {
     width: 3px;
 }
 
-.bracketed--vert::before {
+.bracketed--vert::before, .bracketed--vert-left::before {
     border-left: 1px solid var(--main-text-color);
 }
 
-.bracketed--vert::after {
+.bracketed--vert::after, .bracketed--vert-right::after {
     border-right: 1px solid var(--main-text-color);
+}
+
+.bracketed--parens, .bracketed--parens-left, .bracketed--parens-right {
+    margin: 0;
 }
 
 .bracketed--parens {
     padding: 0 4px;
-    margin: 0;
 }
 
-.bracketed--parens::before, .bracketed--parens::after {
+.bracketed--parens-left {
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 4px;
+}
+
+.bracketed--parens-right {
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-right: 4px;
+}
+
+.bracketed--parens::before, .bracketed--parens::after,
+.bracketed--parens-left::before, .bracketed--parens-right::after {
     width: 5px;
 }
 
-.bracketed--parens::before {
+.bracketed--parens::before, .bracketed--parens-left::before {
     border-top-left-radius: 50% 50%;
     border-bottom-left-radius: 50% 50%;
     border-left: 1px solid var(--main-text-color);
 }
 
-.bracketed--parens::after {
+.bracketed--parens::after, .bracketed--parens-right::after {
     border-top-right-radius: 50% 50%;
     border-bottom-right-radius: 50% 50%;
     border-right: 1px solid var(--main-text-color);
