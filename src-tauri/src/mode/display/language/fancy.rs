@@ -253,6 +253,7 @@ mod tests {
     assert!(can_prefix_promote_arg(&Expr::from(19)));
     assert!(can_prefix_promote_arg(&Expr::from(0)));
     assert!(can_prefix_promote_arg(&Expr::from(0.0)));
+    assert!(can_prefix_promote_arg(&Expr::from(0.2)));
     assert!(can_prefix_promote_arg(&Expr::string("xyz")));
     assert!(can_prefix_promote_arg(&Expr::string("")));
     assert!(can_prefix_promote_arg(&Expr::var("a").unwrap()));
@@ -260,7 +261,7 @@ mod tests {
 
     // Arguments which cannot promote
     assert!(!can_prefix_promote_arg(&Expr::from(-1)));
-    assert!(!can_prefix_promote_arg(&Expr::from(-0.0)));
+    assert!(!can_prefix_promote_arg(&Expr::from(-0.2)));
     assert!(!can_prefix_promote_arg(&Expr::call("foo", vec![])));
     assert!(!can_prefix_promote_arg(&Expr::call("foo", vec![Expr::from(0)])));
     assert!(!can_prefix_promote_arg(&Expr::call("vector", vec![])));
@@ -298,6 +299,16 @@ mod tests {
     assert_eq!(
       to_html(&mode, &expr),
       r#"foo<span class="bracketed bracketed--parens">9, 8, 7</span>"#,
+    );
+  }
+
+  #[test]
+  fn test_unary_function_call() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("foo", vec![Expr::from(9)]);
+    assert_eq!(
+      to_html(&mode, &expr),
+      r#"foo<span class="bracketed bracketed--parens">9</span>"#,
     );
   }
 
@@ -409,6 +420,56 @@ mod tests {
     assert_eq!(
       to_html(&mode, &expr),
       r#"norm<span class="bracketed bracketed--parens">-1</span>"#,
+    );
+  }
+
+  #[test]
+  fn test_interval() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("^..", vec![Expr::from(1), Expr::from(10)]);
+    assert_eq!(
+      to_html(&mode, &expr),
+      r#"<span><span class="bracketed bracketed--parens-left bracketed--square-right">1 .. 10</span></span>"#,
+    );
+  }
+
+  #[test]
+  fn test_interval_wrong_arity() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("^..", vec![Expr::from(1)]);
+    assert_eq!(
+      to_html(&mode, &expr),
+      r#"^..<span class="bracketed bracketed--parens">1</span>"#,
+    );
+  }
+
+  #[test]
+  fn test_sin_with_simple_arg() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("sin", vec![Expr::from(0.5)]);
+    assert_eq!(
+      to_html(&mode, &expr),
+      r#"sin 0.5"#,
+    );
+  }
+
+  #[test]
+  fn test_sin_with_negative_arg() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("sin", vec![Expr::from(-0.5)]);
+    assert_eq!(
+      to_html(&mode, &expr),
+      r#"sin<span class="bracketed bracketed--parens">-0.5</span>"#,
+    );
+  }
+
+  #[test]
+  fn test_sin_with_wrong_arity() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("sin", vec![]);
+    assert_eq!(
+      to_html(&mode, &expr),
+      r#"sin<span class="bracketed bracketed--parens"></span>"#,
     );
   }
 }
