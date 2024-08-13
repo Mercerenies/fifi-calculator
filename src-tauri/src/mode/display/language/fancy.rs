@@ -182,6 +182,22 @@ impl<L: LanguageMode> FancyLanguageMode<L> {
       engine.write_to_html(out, arg, PREFIX_FUNCTION_CALL_PRECEDENCE);
     });
   }
+
+  fn write_logarithm_with_prefix_promotion(
+    &self,
+    engine: &LanguageModeEngine,
+    out: &mut String,
+    arg: &Expr,
+    base: &Expr,
+    prec: Precedence,
+  ) {
+    fancy_parens(true).write_bracketed_if_ok(out, prec > PREFIX_FUNCTION_CALL_PRECEDENCE, |out| {
+      out.push_str("log<sub>");
+      engine.write_to_html(out, base, Precedence::MIN);
+      out.push_str("</sub> ");
+      engine.write_to_html(out, arg, PREFIX_FUNCTION_CALL_PRECEDENCE);
+    });
+  }
 }
 
 impl<L: LanguageMode + Default> Default for FancyLanguageMode<L> {
@@ -214,6 +230,8 @@ impl<L: LanguageMode> LanguageMode for FancyLanguageMode<L> {
           self.write_interval(engine, out, f, args)
         } else if PREFIX_PROMOTION_FUNCTIONS.contains(f) && args.len() == 1 && can_prefix_promote_arg(&args[0]) {
           self.write_with_prefix_promotion(engine, out, f, &args[0], prec)
+        } else if f == "log" && args.len() == 2 && can_prefix_promote_arg(&args[0]) {
+          self.write_logarithm_with_prefix_promotion(engine, out, &args[0], &args[1], prec)
         } else {
           self.inner_mode.write_to_html(engine, out, expr, prec)
         }
@@ -470,6 +488,16 @@ mod tests {
     assert_eq!(
       to_html(&mode, &expr),
       r#"sin<span class="bracketed bracketed--parens"></span>"#,
+    );
+  }
+
+  #[test]
+  fn test_logarithm() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("log", vec![Expr::from(10), Expr::from(100)]);
+    assert_eq!(
+      to_html(&mode, &expr),
+      r#"log<sub>100</sub> 10"#,
     );
   }
 }
