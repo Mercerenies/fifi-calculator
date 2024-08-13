@@ -1,12 +1,13 @@
 
 use super::{LanguageMode, LanguageModeEngine};
 use crate::parsing::operator::Precedence;
-use crate::parsing::operator::table::EXPONENT_PRECEDENCE;
+use crate::parsing::operator::table::{EXPONENT_PRECEDENCE, INTERVAL_PRECEDENCE};
 use crate::mode::display::unicode::{UnicodeAliasTable, common_unicode_aliases};
 use crate::util::cow_dyn::CowDyn;
 use crate::expr::Expr;
 use crate::expr::var::Var;
 use crate::expr::atom::Atom;
+use crate::expr::interval::IntervalType;
 use crate::util::brackets::{BracketConstruct, fancy_parens, fancy_square_brackets,
                             HtmlBrackets, HtmlBracketsType};
 
@@ -105,6 +106,22 @@ impl<L: LanguageMode> FancyLanguageMode<L> {
     }
     out.push_str("</span>");
   }
+
+  fn write_interval(&self, engine: &LanguageModeEngine, out: &mut String, interval_type: &str, args: &[Expr]) {
+    assert!(args.len() == 2);
+    let [left, right] = args else { unreachable!() };
+    let interval_type = IntervalType::parse(interval_type).expect("Expected interval type in write_interval");
+    let brackets = interval_type.html_brackets();
+    let prec = INTERVAL_PRECEDENCE.incremented();
+
+    out.push_str("<span>");
+    brackets.write_bracketed_if_ok(out, true, |out| {
+      engine.write_to_html(out, left, prec);
+      out.push_str(" .. ");
+      engine.write_to_html(out, right, prec);
+    });
+    out.push_str("</span>");
+  }
 }
 
 impl<L: LanguageMode + Default> Default for FancyLanguageMode<L> {
@@ -133,6 +150,8 @@ impl<L: LanguageMode> LanguageMode for FancyLanguageMode<L> {
         } else if f == "norm" && args.len() == 2 {
           let [arg, k] = args.as_slice() else { unreachable!() };
           self.write_abs_value_bars(engine, out, arg, Some(k))
+        } else if IntervalType::is_interval_type(f) && args.len() == 2 {
+          self.write_interval(engine, out, f, args)
         } else {
           self.inner_mode.write_to_html(engine, out, expr, prec)
         }

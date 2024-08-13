@@ -26,6 +26,11 @@ pub struct OperatorAmbiguity<'a> {
 /// exponents in a special way (such as using superscripts).
 pub const EXPONENT_PRECEDENCE: Precedence = Precedence::new(200);
 
+/// Precedence used for all of the interval constructor infix
+/// operators. Like [`EXPONENT_PRECEDENCE`], these operators are
+/// treated specially by some language modes.
+pub const INTERVAL_PRECEDENCE: Precedence = Precedence::new(196);
+
 impl OperatorTable {
   pub fn new() -> OperatorTable {
     OperatorTable::default()
@@ -70,10 +75,10 @@ impl OperatorTable {
     // when it makes sense to do so. See
     // https://www.gnu.org/software/emacs/manual/html_mono/calc.html#Composition-Basics
     vec![
-      Operator::new("..", Fixity::new().with_infix("..", Associativity::NONE, Precedence::new(196))),
-      Operator::new("..^", Fixity::new().with_infix("..^", Associativity::NONE, Precedence::new(196))),
-      Operator::new("^..", Fixity::new().with_infix("^..", Associativity::NONE, Precedence::new(196))),
-      Operator::new("^..^", Fixity::new().with_infix("^..^", Associativity::NONE, Precedence::new(196))),
+      Operator::new("..", Fixity::new().with_infix("..", Associativity::NONE, INTERVAL_PRECEDENCE)),
+      Operator::new("..^", Fixity::new().with_infix("..^", Associativity::NONE, INTERVAL_PRECEDENCE)),
+      Operator::new("^..", Fixity::new().with_infix("^..", Associativity::NONE, INTERVAL_PRECEDENCE)),
+      Operator::new("^..^", Fixity::new().with_infix("^..^", Associativity::NONE, INTERVAL_PRECEDENCE)),
       Operator::new("^", Fixity::new().with_infix("^", Associativity::RIGHT, EXPONENT_PRECEDENCE)),
       multiplication_operator(),
       Operator::new("@", Fixity::new().with_infix("@", Associativity::LEFT, Precedence::new(195))), // Matrix mul

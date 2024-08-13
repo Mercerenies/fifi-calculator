@@ -1,5 +1,6 @@
 
 use super::bound::BoundType;
+use crate::util::brackets::HtmlBrackets;
 
 use thiserror::Error;
 
@@ -59,6 +60,10 @@ impl IntervalType {
     }
   }
 
+  pub fn is_interval_type(s: &str) -> bool {
+    Self::parse(s).is_ok()
+  }
+
   /// Returns the greatest-lower-bound of `self` and `other`,
   /// according to the `PartialOrd` instance for `IntervalType`.
   pub fn min(self, other: IntervalType) -> IntervalType {
@@ -88,12 +93,17 @@ impl IntervalType {
     }
   }
 
-  pub fn includes_left(&self) -> bool {
-    *self == IntervalType::Closed || *self == IntervalType::RightOpen
+  pub fn includes_left(self) -> bool {
+    self == IntervalType::Closed || self == IntervalType::RightOpen
   }
 
-  pub fn includes_right(&self) -> bool {
-    *self == IntervalType::Closed || *self == IntervalType::LeftOpen
+  pub fn includes_right(self) -> bool {
+    self == IntervalType::Closed || self == IntervalType::LeftOpen
+  }
+
+  pub fn html_brackets(self) -> HtmlBrackets {
+    let (left_bound, right_bound) = self.into_bounds();
+    HtmlBrackets::non_matching(left_bound.html_bracket_type(), right_bound.html_bracket_type())
   }
 }
 
