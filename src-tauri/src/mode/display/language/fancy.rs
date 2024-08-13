@@ -281,4 +281,34 @@ mod tests {
     let expr = Expr::call("^", vec![Expr::from(2)]);
     assert_eq!(to_html(&mode, &expr), r#"^<span class="bracketed bracketed--parens">2</span>"#);
   }
+
+  #[test]
+  fn test_absolute_value() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("abs", vec![Expr::from(-1)]);
+    assert_eq!(
+      to_html(&mode, &expr),
+      r#"<span><span class="bracketed bracketed--vert">-1</span></span>"#,
+    );
+  }
+
+  #[test]
+  fn test_absolute_value_wrong_arity() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("abs", vec![]);
+    assert_eq!(
+      to_html(&mode, &expr),
+      r#"abs<span class="bracketed bracketed--parens"></span>"#,
+    );
+  }
+
+  #[test]
+  fn test_norm_wrong_arity() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("norm", vec![Expr::from(-1)]);
+    assert_eq!(
+      to_html(&mode, &expr),
+      r#"norm<span class="bracketed bracketed--parens">-1</span>"#,
+    );
+  }
 }
