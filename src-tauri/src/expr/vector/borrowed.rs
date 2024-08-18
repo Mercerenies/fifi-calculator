@@ -45,7 +45,7 @@ impl<'a> BorrowedVector<'a> {
     self.data.get(i)
   }
 
-  pub fn as_slice(&self) -> &[Expr] {
+  pub fn as_slice(&self) -> &'a [Expr] {
     self.data
   }
 
