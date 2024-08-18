@@ -1,4 +1,6 @@
 
+use crate::util::brackets::HtmlBracketsType;
+
 use std::cmp::{Ordering, min};
 use std::ops::{Add, Sub, Mul};
 
@@ -75,6 +77,15 @@ impl<T> Bounded<T> {
       Ordering::Greater => self,
       Ordering::Less => other,
       Ordering::Equal => Bounded::new(self.scalar, self.bound_type.max(other.bound_type)),
+    }
+  }
+}
+
+impl BoundType {
+  pub fn html_bracket_type(self) -> HtmlBracketsType {
+    match self {
+      BoundType::Inclusive => HtmlBracketsType::SquareBrackets,
+      BoundType::Exclusive => HtmlBracketsType::Parentheses,
     }
   }
 }

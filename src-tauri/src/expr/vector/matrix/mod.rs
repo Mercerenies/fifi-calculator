@@ -1,4 +1,6 @@
 
+pub mod borrowed;
+
 use crate::util::prism::{Prism, PrismExt, ErrorWithPayload, Identity};
 use crate::expr::Expr;
 use crate::expr::prisms::expr_to_typed_vector;

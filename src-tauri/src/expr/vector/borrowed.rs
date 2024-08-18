@@ -45,7 +45,7 @@ impl<'a> BorrowedVector<'a> {
     self.data.get(i)
   }
 
-  pub fn as_slice(&self) -> &[Expr] {
+  pub fn as_slice(&self) -> &'a [Expr] {
     self.data
   }
 
@@ -55,6 +55,10 @@ impl<'a> BorrowedVector<'a> {
 
   pub fn is_empty(&self) -> bool {
     self.data.is_empty()
+  }
+
+  pub fn to_owned(&self) -> Vector {
+    Vector::from(self.data.to_owned())
   }
 }
 

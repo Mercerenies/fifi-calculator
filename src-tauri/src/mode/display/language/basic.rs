@@ -10,13 +10,20 @@ use crate::expr::basic_parser::ExprParser;
 use crate::expr::vector::Vector;
 use crate::expr::incomplete::{IncompleteObject, ObjectType};
 use crate::util::cow_dyn::CowDyn;
+use crate::util::brackets::{BracketConstruct, fancy_parens, fancy_square_brackets};
+
+use html_escape::encode_safe;
 
 use num::Zero;
 
+/// The basic, and default, language mode. This language mode has
+/// minimal support for sophisticated output or pretty-printing and is
+/// designed to be mostly reversible.
 #[derive(Clone, Debug, Default)]
 pub struct BasicLanguageMode {
   known_operators: OperatorTable,
   unicode_table: UnicodeAliasTable,
+  uses_fancy_parens: bool,
   // Default is false. If true, the output should be readable by the
   // default parser. If false, some things may be pretty-printed (such
   // as incomplete objects).
@@ -35,11 +42,26 @@ impl BasicLanguageMode {
     self
   }
 
+  /// Configures this language mode to use fancy parentheses. Rather
+  /// than outputting ordinary `(` and `)` characters for parentheses,
+  /// this language mode will output more sophisticated HTML which
+  /// dynamically resizes the parentheses based on the content height.
+  ///
+  /// This flag is mutually exclusive with the reversible output flag.
+  /// Setting the fancy parentheses un-sets the reversible output
+  /// flag.
+  pub fn with_fancy_parens(mut self) -> Self {
+    self.uses_fancy_parens = true;
+    self.uses_reversible_output = false;
+    self
+  }
+
   pub fn from_operators(known_operators: OperatorTable) -> Self {
     Self {
       known_operators,
       unicode_table: UnicodeAliasTable::default(),
       uses_reversible_output: false,
+      uses_fancy_parens: false,
     }
   }
 
@@ -61,10 +83,10 @@ impl BasicLanguageMode {
 
   fn fn_call_to_html(&self, engine: &LanguageModeEngine, out: &mut String, f: &str, args: &[Expr]) {
     let f = self.translate_to_unicode(engine, f);
-    out.push_str(f);
-    out.push('(');
-    output_sep_by(out, args.iter(), ", ", |out, e| engine.write_to_html(out, e, Precedence::MIN));
-    out.push(')');
+    out.push_str(encode_safe(f).as_ref());
+    fancy_parens(self.uses_fancy_parens).write_bracketed_if_ok(out, true, |out| {
+      output_sep_by(out, args.iter(), ", ", |out, e| engine.write_to_html(out, e, Precedence::MIN));
+    });
   }
 
   // TODO Take InfixProperties directly, in addition to Operator?
@@ -79,23 +101,19 @@ impl BasicLanguageMode {
   ) {
     assert!(op.fixity().is_infix(), "Expected an infix operator: {:?}", op);
     let infix_props = op.fixity().as_infix().unwrap();
-    let needs_parens = infix_props.precedence() < prec;
-    if needs_parens {
-      out.push('(');
-    }
-    engine.write_to_html(out, left_arg, infix_props.left_precedence());
-    out.push(' ');
-    // Special case: Infix multiplication can always be represented as
-    // juxtaposition.
-    if op.operator_name() != "*" {
-      let operator_name = self.translate_to_unicode(engine, op.operator_name());
-      out.push_str(operator_name);
+    fancy_parens(self.uses_fancy_parens).write_bracketed_if_ok(out, prec > infix_props.precedence(), |out| {
+
+      engine.write_to_html(out, left_arg, infix_props.left_precedence());
       out.push(' ');
-    }
-    engine.write_to_html(out, right_arg, infix_props.right_precedence());
-    if needs_parens {
-      out.push(')');
-    }
+      // Special case: Infix multiplication can always be represented as
+      // juxtaposition.
+      if op.operator_name() != "*" {
+        let operator_name = self.translate_to_unicode(engine, op.operator_name());
+        out.push_str(encode_safe(operator_name).as_ref());
+        out.push(' ');
+      }
+      engine.write_to_html(out, right_arg, infix_props.right_precedence());
+    });
   }
 
   // TODO Take InfixProperties directly, in addition to Operator?
@@ -110,28 +128,23 @@ impl BasicLanguageMode {
     assert!(!args.is_empty());
     assert!(op.fixity().is_infix(), "Expected an infix operator: {:?}", op);
     let infix_props = op.fixity().as_infix().unwrap();
-    let needs_parens = infix_props.precedence() < prec;
-    if needs_parens {
-      out.push('(');
-    }
-    let mut first = true;
-    for arg in args {
-      if !first {
-        out.push(' ');
-        // Special case: Infix multiplication can always be represented as
-        // juxtaposition.
-        if op.operator_name() != "*" {
-          let operator_name = self.translate_to_unicode(engine, op.operator_name());
-          out.push_str(operator_name);
+    fancy_parens(self.uses_fancy_parens).write_bracketed_if_ok(out, prec > infix_props.precedence(), |out| {
+      let mut first = true;
+      for arg in args {
+        if !first {
           out.push(' ');
+          // Special case: Infix multiplication can always be represented as
+          // juxtaposition.
+          if op.operator_name() != "*" {
+            let operator_name = self.translate_to_unicode(engine, op.operator_name());
+            out.push_str(encode_safe(operator_name).as_ref());
+            out.push(' ');
+          }
         }
+        first = false;
+        engine.write_to_html(out, arg, infix_props.precedence());
       }
-      first = false;
-      engine.write_to_html(out, arg, infix_props.precedence());
-    }
-    if needs_parens {
-      out.push(')');
-    }
+    });
   }
 
   fn try_prefix_op_to_html(
@@ -151,17 +164,12 @@ impl BasicLanguageMode {
     if args.len() != 1 {
       return false;
     }
-    let needs_parens = prefix_props.precedence() < prec;
-    if needs_parens {
-      out.push('(');
-    }
-    let operator_name = self.translate_to_unicode(engine, op.operator_name());
-    out.push_str(operator_name);
-    out.push(' ');
-    engine.write_to_html(out, &args[0], prefix_props.precedence());
-    if needs_parens {
-      out.push(')');
-    }
+    fancy_parens(self.uses_fancy_parens).write_bracketed_if_ok(out, prec > prefix_props.precedence(), |out| {
+      let operator_name = self.translate_to_unicode(engine, op.operator_name());
+      out.push_str(encode_safe(operator_name).as_ref());
+      out.push(' ');
+      engine.write_to_html(out, &args[0], prefix_props.precedence());
+    });
     true
   }
 
@@ -175,17 +183,12 @@ impl BasicLanguageMode {
     if args.len() != 1 {
       return false;
     }
-    let needs_parens = postfix_props.precedence() < prec;
-    if needs_parens {
-      out.push('(');
-    }
-    engine.write_to_html(out, &args[0], postfix_props.precedence());
-    out.push(' ');
-    let operator_name = self.translate_to_unicode(engine, op.operator_name());
-    out.push_str(operator_name);
-    if needs_parens {
-      out.push(')');
-    }
+    fancy_parens(self.uses_fancy_parens).write_bracketed_if_ok(out, prec > postfix_props.precedence(), |out| {
+      engine.write_to_html(out, &args[0], postfix_props.precedence());
+      out.push(' ');
+      let operator_name = self.translate_to_unicode(engine, op.operator_name());
+      out.push_str(encode_safe(operator_name).as_ref());
+    });
     true
   }
 
@@ -227,31 +230,31 @@ impl BasicLanguageMode {
   }
 
   fn vector_to_html(&self, engine: &LanguageModeEngine, out: &mut String, elems: &[Expr]) {
-    out.push('[');
-    output_sep_by(out, elems.iter(), ", ", |out, e| engine.write_to_html(out, e, Precedence::MIN));
-    out.push(']');
+    fancy_square_brackets(self.uses_fancy_parens).write_bracketed_if_ok(out, true, |out| {
+      output_sep_by(out, elems.iter(), ", ", |out, e| engine.write_to_html(out, e, Precedence::MIN));
+    });
   }
 
   fn complex_to_html(&self, engine: &LanguageModeEngine, out: &mut String, args: &[Expr]) {
     assert_eq!(args.len(), 2, "Expecting slice of two Exprs, got {:?}", args);
-    out.push('(');
-    engine.write_to_html(out, &args[0], Precedence::MIN);
-    out.push_str(", ");
-    engine.write_to_html(out, &args[1], Precedence::MIN);
-    out.push(')');
+    fancy_parens(self.uses_fancy_parens).write_bracketed_if_ok(out, true, |out| {
+      engine.write_to_html(out, &args[0], Precedence::MIN);
+      out.push_str(", ");
+      engine.write_to_html(out, &args[1], Precedence::MIN);
+    });
   }
 
   fn quat_to_html(&self, engine: &LanguageModeEngine, out: &mut String, args: &[Expr]) {
     assert_eq!(args.len(), 4, "Expecting slice of four Exprs, got {:?}", args);
-    out.push('(');
-    engine.write_to_html(out, &args[0], Precedence::MIN);
-    out.push_str(", ");
-    engine.write_to_html(out, &args[1], Precedence::MIN);
-    out.push_str(", ");
-    engine.write_to_html(out, &args[2], Precedence::MIN);
-    out.push_str(", ");
-    engine.write_to_html(out, &args[3], Precedence::MIN);
-    out.push(')');
+    fancy_parens(self.uses_fancy_parens).write_bracketed_if_ok(out, true, |out| {
+      engine.write_to_html(out, &args[0], Precedence::MIN);
+      out.push_str(", ");
+      engine.write_to_html(out, &args[1], Precedence::MIN);
+      out.push_str(", ");
+      engine.write_to_html(out, &args[2], Precedence::MIN);
+      out.push_str(", ");
+      engine.write_to_html(out, &args[3], Precedence::MIN);
+    });
   }
 
   fn incomplete_object_to_html(&self, engine: &LanguageModeEngine, out: &mut String, args: &[Expr]) {
@@ -271,18 +274,13 @@ impl LanguageMode for BasicLanguageMode {
   fn write_to_html(&self, engine: &LanguageModeEngine, out: &mut String, expr: &Expr, prec: Precedence) {
     match expr {
       Expr::Atom(Atom::Number(n)) => {
-        let needs_parens = self.number_needs_parens(n, prec);
-        if needs_parens {
-          out.push('(');
-        }
-        out.push_str(&n.to_string_radix(engine.language_settings().preferred_radix));
-        if needs_parens {
-          out.push(')');
-        }
+        fancy_parens(self.uses_fancy_parens).write_bracketed_if_ok(out, self.number_needs_parens(n, prec), |out| {
+          out.push_str(&n.to_string_radix(engine.language_settings().preferred_radix));
+        });
       }
       Expr::Atom(Atom::Var(v)) => {
         let var = self.translate_to_unicode(engine, v.as_str());
-        out.push_str(var);
+        out.push_str(encode_safe(var).as_ref());
       }
       Expr::Atom(Atom::String(s)) => {
         write_escaped_str(out, s).unwrap(); // unwrap: impl Write for String doesn't fail.
@@ -319,6 +317,7 @@ impl LanguageMode for BasicLanguageMode {
     } else {
       let mut language_mode = self.clone();
       language_mode.uses_reversible_output = true;
+      language_mode.uses_fancy_parens = false;
       CowDyn::Owned(Box::new(language_mode))
     }
   }
@@ -328,26 +327,18 @@ impl LanguageMode for BasicLanguageMode {
     let expr = parser.tokenize_and_parse(text)?;
     Ok(expr)
   }
+
+  fn language_mode_name(&self) -> String {
+    String::from("Basic")
+  }
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
   use crate::mode::display::language::LanguageSettings;
+  use crate::mode::display::language::test_utils::{to_html, to_html_no_unicode};
   use crate::mode::display::unicode::{UnicodeAlias, UnicodeAliasTable};
-
-  fn to_html<M>(mode: &M, expr: &Expr) -> String
-  where M: LanguageMode + ?Sized {
-    let settings = LanguageSettings::default();
-    mode.to_html(expr, &settings)
-  }
-
-  fn to_html_no_unicode<M>(mode: &M, expr: &Expr) -> String
-  where M: LanguageMode + ?Sized {
-    let mut settings = LanguageSettings::default();
-    settings.prefers_unicode_output = false;
-    mode.to_html(expr, &settings)
-  }
 
   fn sample_unicode_table() -> UnicodeAliasTable {
     UnicodeAliasTable::new(vec![
@@ -381,6 +372,15 @@ mod tests {
   }
 
   #[test]
+  fn test_complex_numbers_with_fancy_parens() {
+    let mode = BasicLanguageMode::default().with_fancy_parens();
+    assert_eq!(
+      to_html(&mode, &Expr::from(ComplexNumber::new(2, -2))),
+      r#"<span class="bracketed bracketed--parens">2, -2</span>"#,
+    );
+  }
+
+  #[test]
   fn test_simple_function_call() {
     let mode = BasicLanguageMode::default();
     let expr = Expr::call("foo", vec![Expr::from(9), Expr::from(8), Expr::from(7)]);
@@ -389,6 +389,13 @@ mod tests {
     assert_eq!(to_html(&mode, &expr), "foo(9)");
     let expr = Expr::call("foo", vec![]);
     assert_eq!(to_html(&mode, &expr), "foo()");
+  }
+
+  #[test]
+  fn test_simple_function_call_with_html_special_chars() {
+    let mode = BasicLanguageMode::default();
+    let expr = Expr::call("<span>", vec![Expr::from(9), Expr::from(8), Expr::from(7)]);
+    assert_eq!(to_html(&mode, &expr), "&lt;span&gt;(9, 8, 7)");
   }
 
   #[test]
@@ -546,6 +553,13 @@ mod tests {
   }
 
   #[test]
+  fn test_op_with_unicode() {
+    let mode = BasicLanguageMode::from_common_operators();
+    let expr = Expr::call("<", vec![Expr::from(1), Expr::from(2)]);
+    assert_eq!(to_html(&mode, &expr), "1 &lt; 2");
+  }
+
+  #[test]
   fn test_power_with_negative_base() {
     let mode = BasicLanguageMode::from_common_operators();
     let expr = Expr::call("^", vec![Expr::from(-1), Expr::from(2)]);
@@ -599,6 +613,19 @@ mod tests {
   }
 
   #[test]
+  fn test_singleton_vector_with_fancy_parens_output() {
+    let mode = BasicLanguageMode::from_common_operators().with_fancy_parens();
+    let expr = Expr::call(
+      "vector",
+      vec![Expr::from(-99)],
+    );
+    assert_eq!(
+      to_html(&mode, &expr),
+      r#"<span class="bracketed bracketed--square">-99</span>"#,
+    );
+  }
+
+  #[test]
   fn test_incomplete_object() {
     let mode = BasicLanguageMode::from_common_operators();
     let expr = Expr::call(
@@ -613,7 +640,7 @@ mod tests {
     let mode = BasicLanguageMode::from_common_operators();
     let expr = Expr::call("<=", vec![Expr::from(100), Expr::from(200)]);
     assert_eq!(to_html(&mode, &expr), "100 ≤ 200");
-    assert_eq!(to_html_no_unicode(&mode, &expr), "100 <= 200");
+    assert_eq!(to_html_no_unicode(&mode, &expr), "100 &lt;= 200");
   }
 
   #[test]
@@ -621,8 +648,8 @@ mod tests {
     let mode = BasicLanguageMode::from_common_operators();
     let mode = mode.to_reversible_language_mode();
     let expr = Expr::call("<=", vec![Expr::from(100), Expr::from(200)]);
-    assert_eq!(to_html(mode.as_ref(), &expr), "100 <= 200");
-    assert_eq!(to_html_no_unicode(mode.as_ref(), &expr), "100 <= 200");
+    assert_eq!(to_html(mode.as_ref(), &expr), "100 &lt;= 200");
+    assert_eq!(to_html_no_unicode(mode.as_ref(), &expr), "100 &lt;= 200");
   }
 
   #[test]

@@ -165,9 +165,13 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("plot".to_string(), Box::new(graphics::PlotCommand::new()));
   map.insert("contourplot".to_string(), Box::new(graphics::ContourPlotCommand::new()));
   map.insert("xy".to_string(), Box::new(BinaryFunctionCommand::named("xy")));
+
+  // Mode commands
   map.insert("toggle_graphics".to_string(), Box::new(modes::toggle_graphics_command()));
   map.insert("toggle_unicode".to_string(), Box::new(modes::toggle_unicode_command()));
   map.insert("toggle_infinity".to_string(), Box::new(modes::toggle_infinity_command()));
+  map.insert("set_basic_language_mode".to_string(), Box::new(modes::SetLanguageModeCommand::basic_language_mode()));
+  map.insert("set_fancy_language_mode".to_string(), Box::new(modes::SetLanguageModeCommand::fancy_language_mode()));
 
   // Unit conversion
   map.insert("simplify_units".to_string(), Box::new(units::simplify_units_command()));

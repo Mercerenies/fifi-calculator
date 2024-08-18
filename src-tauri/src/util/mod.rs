@@ -2,12 +2,14 @@
 //! Various utility functions.
 
 pub mod angles;
+pub mod brackets;
 pub mod cow_dyn;
 pub mod matrix;
 pub mod point;
 pub mod prism;
 pub mod radix;
 pub mod stricteq;
+pub mod write;
 
 use regex::{Regex, escape};
 use either::Either;
@@ -19,6 +21,7 @@ use std::convert::Infallible;
 use std::cmp::{Reverse, Ordering};
 use std::iter::{self, Extend};
 use std::ops::{Mul, Neg};
+use std::borrow::Cow;
 
 /// A singleton object whose output under the [`Debug`] trait is
 /// `"..."`. Used in debug output of some objects.
@@ -153,6 +156,16 @@ impl Neg for Sign {
 }
 
 pub fn unwrap_infallible<T>(res: Result<T, Infallible>) -> T {
+  match res {
+    Ok(res) => res,
+    Err(_) => unreachable!(),
+  }
+}
+
+pub fn unwrap_infallible_like<T, E>(res: Result<T, E>) -> T
+where E: Into<Infallible> {
+  // No sense in calling the Into impl; we know it exists so save the
+  // effort.
   match res {
     Ok(res) => res,
     Err(_) => unreachable!(),
@@ -407,6 +420,20 @@ pub fn transpose<T>(elems: Vec<Vec<T>>) -> Vec<Vec<T>> {
     }
   }
   result
+}
+
+/// Truncates a string to a maximum length.
+pub fn truncate_str(s: &str, max_len: usize) -> Cow<str> {
+  if s.len() <= max_len {
+    // Clearly, a string whose byte length is smaller than max_len is
+    // short enough.
+    Cow::Borrowed(s)
+  } else if s.chars().count() <= max_len {
+    // Exact count of char length.
+    Cow::Borrowed(s)
+  } else {
+    Cow::Owned(s.chars().take(max_len).collect::<String>())
+  }
 }
 
 #[cfg(test)]
@@ -697,5 +724,23 @@ mod tests {
       vec![3, 7],
       vec![8],
     ]);
+  }
+
+  #[test]
+  fn test_truncate_str() {
+    assert_eq!(truncate_str("abc", 2), "ab");
+    assert_eq!(truncate_str("abc", 3), "abc");
+    assert_eq!(truncate_str("abcd", 3), "abc");
+    assert_eq!(truncate_str("abcdef", 3), "abc");
+    assert_eq!(truncate_str("", 9), "");
+  }
+
+  #[test]
+  fn test_truncate_unicode() {
+    assert_eq!(truncate_str("😀😀😀", 4), "😀😀😀");
+    assert_eq!(truncate_str("😀😀😀", 3), "😀😀😀");
+    assert_eq!(truncate_str("😀😀😀", 2), "😀😀");
+    assert_eq!(truncate_str("😀😀😀", 1), "😀");
+    assert_eq!(truncate_str("😀😀😀", 0), "");
   }
 }

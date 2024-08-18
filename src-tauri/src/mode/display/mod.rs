@@ -7,8 +7,13 @@ use language::{LanguageMode, LanguageSettings};
 use language::basic::BasicLanguageMode;
 use language::graphics::GraphicsLanguageMode;
 
+use std::sync::Arc;
+
 pub struct DisplaySettings {
-  pub base_language_mode: Box<dyn LanguageMode + Send + Sync>,
+  /// The current language mode. We store this as an [`Arc`] rather
+  /// than a simple [`Box`] so that the language mode can be cheaply
+  /// copied onto the undo stack.
+  pub base_language_mode: Arc<dyn LanguageMode + Send + Sync>,
   pub is_graphics_enabled: bool,
   pub language_settings: LanguageSettings,
 }
@@ -16,7 +21,7 @@ pub struct DisplaySettings {
 impl DisplaySettings {
   pub fn new(language_mode: impl LanguageMode + Send + Sync + 'static, language_settings: LanguageSettings) -> Self {
     DisplaySettings {
-      base_language_mode: Box::new(language_mode),
+      base_language_mode: Arc::new(language_mode),
       is_graphics_enabled: true,
       language_settings,
     }

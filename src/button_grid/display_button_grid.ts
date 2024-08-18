@@ -24,7 +24,10 @@ export class DisplayButtonGrid extends ButtonGrid {
 
   private initRows(): GridCell[][] {
     return [
-      [],
+      [
+        new DispatchButton("N", "set_basic_language_mode", "N"),
+        new DispatchButton("ℬ", "set_fancy_language_mode", "B"),
+      ],
       [
         new SetDisplayRadixButton("0", "0", 10),
         new SetDisplayRadixButton("0x", "6", 16),

@@ -1,5 +1,6 @@
 
 pub mod basic;
+pub mod fancy;
 pub mod graphics;
 
 use crate::util::cow_dyn::CowDyn;
@@ -47,6 +48,9 @@ pub trait LanguageMode {
     self.write_to_html(&engine, &mut out, expr, Precedence::MIN);
     out
   }
+
+  /// A short, user-friendly name for this language mode.
+  fn language_mode_name(&self) -> String;
 }
 
 /// Helper struct passed to [`LanguageMode`] methods. Any recursive
@@ -108,6 +112,10 @@ impl<'a, T: LanguageMode + ?Sized> LanguageMode for &'a T {
   fn to_reversible_language_mode(&self) -> CowDyn<dyn LanguageMode> {
     (**self).to_reversible_language_mode()
   }
+
+  fn language_mode_name(&self) -> String {
+    (**self).language_mode_name()
+  }
 }
 
 impl<T: LanguageMode + ?Sized> LanguageMode for Box<T> {
@@ -125,6 +133,10 @@ impl<T: LanguageMode + ?Sized> LanguageMode for Box<T> {
 
   fn to_reversible_language_mode(&self) -> CowDyn<dyn LanguageMode> {
     (**self).to_reversible_language_mode()
+  }
+
+  fn language_mode_name(&self) -> String {
+    (**self).language_mode_name()
   }
 }
 
@@ -145,5 +157,23 @@ where I: IntoIterator<Item = T>,
       out.push_str(delimiter);
       printer(out, elem);
     }
+  }
+}
+
+#[cfg(test)]
+pub(crate) mod test_utils {
+  use super::*;
+
+  pub fn to_html<M>(mode: &M, expr: &Expr) -> String
+  where M: LanguageMode + ?Sized {
+    let settings = LanguageSettings::default();
+    mode.to_html(expr, &settings)
+  }
+
+  pub fn to_html_no_unicode<M>(mode: &M, expr: &Expr) -> String
+  where M: LanguageMode + ?Sized {
+    let mut settings = LanguageSettings::default();
+    settings.prefers_unicode_output = false;
+    mode.to_html(expr, &settings)
   }
 }

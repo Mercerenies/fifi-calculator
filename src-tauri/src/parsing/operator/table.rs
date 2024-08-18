@@ -21,6 +21,31 @@ pub struct OperatorAmbiguity<'a> {
   right: Vec<&'a Operator>,
 }
 
+/// Precedence used for the caret `^` infix operator. This is provided
+/// as a top-level constant, since some language modes render
+/// exponents in a special way (such as using superscripts).
+pub const EXPONENT_PRECEDENCE: Precedence = Precedence::new(200);
+
+/// Precedence used for all of the interval constructor infix
+/// operators. Like [`EXPONENT_PRECEDENCE`], these operators are
+/// treated specially by some language modes.
+pub const INTERVAL_PRECEDENCE: Precedence = Precedence::new(197);
+
+/// Precedence used for the division infix operator. Like
+/// [`EXPONENT_PRECEDENCE`], this operator is treated specially by
+/// some language modes.
+pub const DIVISION_PRECEDENCE: Precedence = Precedence::new(190);
+
+/// Precedence level of prefix function calls. If a language mode
+/// decides to write a function call such as `sin(x)` as though it was
+/// a prefix operator (i.e. `sin x`), this is the precedence of that
+/// synthetic operator.
+///
+/// This precedence level does NOT appear in the
+/// [`common_operators`](OperatorTable::common_operators) table and is
+/// only used for certain language modes.
+pub const PREFIX_FUNCTION_CALL_PRECEDENCE: Precedence = Precedence::new(196);
+
 impl OperatorTable {
   pub fn new() -> OperatorTable {
     OperatorTable::default()
@@ -65,14 +90,14 @@ impl OperatorTable {
     // when it makes sense to do so. See
     // https://www.gnu.org/software/emacs/manual/html_mono/calc.html#Composition-Basics
     vec![
-      Operator::new("..", Fixity::new().with_infix("..", Associativity::NONE, Precedence::new(196))),
-      Operator::new("..^", Fixity::new().with_infix("..^", Associativity::NONE, Precedence::new(196))),
-      Operator::new("^..", Fixity::new().with_infix("^..", Associativity::NONE, Precedence::new(196))),
-      Operator::new("^..^", Fixity::new().with_infix("^..^", Associativity::NONE, Precedence::new(196))),
-      Operator::new("^", Fixity::new().with_infix("^", Associativity::RIGHT, Precedence::new(200))),
+      Operator::new("^", Fixity::new().with_infix("^", Associativity::RIGHT, EXPONENT_PRECEDENCE)),
+      Operator::new("..", Fixity::new().with_infix("..", Associativity::NONE, INTERVAL_PRECEDENCE)),
+      Operator::new("..^", Fixity::new().with_infix("..^", Associativity::NONE, INTERVAL_PRECEDENCE)),
+      Operator::new("^..", Fixity::new().with_infix("^..", Associativity::NONE, INTERVAL_PRECEDENCE)),
+      Operator::new("^..^", Fixity::new().with_infix("^..^", Associativity::NONE, INTERVAL_PRECEDENCE)),
       multiplication_operator(),
       Operator::new("@", Fixity::new().with_infix("@", Associativity::LEFT, Precedence::new(195))), // Matrix mul
-      Operator::new("/", Fixity::new().with_infix("/", Associativity::LEFT, Precedence::new(190))),
+      Operator::new("/", Fixity::new().with_infix("/", Associativity::LEFT, DIVISION_PRECEDENCE)),
       Operator::new("%", Fixity::new().with_infix("%", Associativity::NONE, Precedence::new(190))),
       Operator::new("+", Fixity::new()
                            .with_infix("+", Associativity::FULL, Precedence::new(180))
