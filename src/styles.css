@@ -475,6 +475,15 @@ input, button {
     border-right: 1px solid var(--main-text-color);
 }
 
+.matrix-table {
+    padding-bottom: 2px;
+    padding-top: 2px;
+}
+
+.matrix-table td {
+    padding: 3px;
+}
+
 /* "Small screen" mode for mobile devices */
 @media (max-width: 840px) {
     .value-stack {

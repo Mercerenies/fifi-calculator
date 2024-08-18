@@ -7,6 +7,7 @@ use crate::mode::display::unicode::{UnicodeAliasTable, common_unicode_aliases};
 use crate::util::cow_dyn::CowDyn;
 use crate::expr::Expr;
 use crate::expr::number::Number;
+use crate::expr::vector::matrix::borrowed::BorrowedMatrix;
 use crate::expr::var::Var;
 use crate::expr::atom::Atom;
 use crate::expr::interval::IntervalType;
@@ -198,6 +199,24 @@ impl<L: LanguageMode> FancyLanguageMode<L> {
       engine.write_to_html(out, arg, PREFIX_FUNCTION_CALL_PRECEDENCE);
     });
   }
+
+  fn write_matrix(&self, engine: &LanguageModeEngine, out: &mut String, matrix: &BorrowedMatrix) {
+    out.push_str("<span>");
+    fancy_square_brackets(true).write_bracketed_if_ok(out, true, |out| {
+      out.push_str(r#"<table class="matrix-table">"#);
+      for row in matrix.rows() {
+        out.push_str("<tr>");
+        for elem in row {
+          out.push_str("<td>");
+          engine.write_to_html(out, elem, Precedence::MIN);
+          out.push_str("</td>");
+        }
+        out.push_str("</tr>");
+      }
+      out.push_str("</table>");
+    });
+    out.push_str("</span>");
+  }
 }
 
 impl<L: LanguageMode + Default> Default for FancyLanguageMode<L> {
@@ -208,32 +227,36 @@ impl<L: LanguageMode + Default> Default for FancyLanguageMode<L> {
 
 impl<L: LanguageMode> LanguageMode for FancyLanguageMode<L> {
   fn write_to_html(&self, engine: &LanguageModeEngine, out: &mut String, expr: &Expr, prec: Precedence) {
-    match expr {
-      Expr::Atom(Atom::Number(_) | Atom::String(_)) => {
-        self.inner_mode.write_to_html(engine, out, expr, prec)
-      }
-      Expr::Atom(Atom::Var(v)) => {
-        self.write_var(engine, out, v)
-      }
-      Expr::Call(f, args) => {
-        if f == "^" && args.len() == 2 {
-          self.write_exponent(engine, out, args, prec)
-        } else if f == "exp" && args.len() == 1 {
-          self.write_e_to_exponent(engine, out, args, prec)
-        } else if f == "abs" && args.len() == 1 {
-          let [arg] = args.as_slice() else { unreachable!() };
-          self.write_abs_value_bars(engine, out, arg, None)
-        } else if f == "norm" && args.len() == 2 {
-          let [arg, k] = args.as_slice() else { unreachable!() };
-          self.write_abs_value_bars(engine, out, arg, Some(k))
-        } else if IntervalType::is_interval_type(f) && args.len() == 2 {
-          self.write_interval(engine, out, f, args)
-        } else if PREFIX_PROMOTION_FUNCTIONS.contains(f) && args.len() == 1 && can_prefix_promote_arg(&args[0]) {
-          self.write_with_prefix_promotion(engine, out, f, &args[0], prec)
-        } else if f == "log" && args.len() == 2 && can_prefix_promote_arg(&args[0]) {
-          self.write_logarithm_with_prefix_promotion(engine, out, &args[0], &args[1], prec)
-        } else {
+    if let Ok(matrix) = BorrowedMatrix::parse(expr) {
+      self.write_matrix(engine, out, &matrix)
+    } else {
+      match expr {
+        Expr::Atom(Atom::Number(_) | Atom::String(_)) => {
           self.inner_mode.write_to_html(engine, out, expr, prec)
+        }
+        Expr::Atom(Atom::Var(v)) => {
+          self.write_var(engine, out, v)
+        }
+        Expr::Call(f, args) => {
+          if f == "^" && args.len() == 2 {
+            self.write_exponent(engine, out, args, prec)
+          } else if f == "exp" && args.len() == 1 {
+            self.write_e_to_exponent(engine, out, args, prec)
+          } else if f == "abs" && args.len() == 1 {
+            let [arg] = args.as_slice() else { unreachable!() };
+            self.write_abs_value_bars(engine, out, arg, None)
+          } else if f == "norm" && args.len() == 2 {
+            let [arg, k] = args.as_slice() else { unreachable!() };
+            self.write_abs_value_bars(engine, out, arg, Some(k))
+          } else if IntervalType::is_interval_type(f) && args.len() == 2 {
+            self.write_interval(engine, out, f, args)
+          } else if PREFIX_PROMOTION_FUNCTIONS.contains(f) && args.len() == 1 && can_prefix_promote_arg(&args[0]) {
+            self.write_with_prefix_promotion(engine, out, f, &args[0], prec)
+          } else if f == "log" && args.len() == 2 && can_prefix_promote_arg(&args[0]) {
+            self.write_logarithm_with_prefix_promotion(engine, out, &args[0], &args[1], prec)
+          } else {
+            self.inner_mode.write_to_html(engine, out, expr, prec)
+          }
         }
       }
     }
