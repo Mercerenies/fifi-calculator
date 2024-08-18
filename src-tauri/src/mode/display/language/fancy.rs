@@ -535,4 +535,71 @@ mod tests {
       r#"log<sub>100</sub> 10"#,
     );
   }
+
+  #[test]
+  fn test_vector() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("vector", vec![Expr::from(10), Expr::from(20)]);
+    assert_eq!(
+      to_html(&mode, &expr),
+      r#"<span class="bracketed bracketed--square">10, 20</span>"#,
+    );
+  }
+
+  #[test]
+  fn test_jagged_vector() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("vector", vec![
+      Expr::call("vector", vec![Expr::from(10), Expr::from(20)]),
+      Expr::call("vector", vec![Expr::from(30)]),
+    ]);
+    assert_eq!(to_html(&mode, &expr), concat!{
+      "<span class=\"bracketed bracketed--square\">",
+        "<span class=\"bracketed bracketed--square\">10, 20</span>, ",
+        "<span class=\"bracketed bracketed--square\">30</span>",
+      "</span>",
+    });
+  }
+
+  #[test]
+  fn test_matrix() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("vector", vec![
+      Expr::call("vector", vec![Expr::from(10), Expr::from(20)]),
+      Expr::call("vector", vec![Expr::from(30), Expr::from(40)]),
+    ]);
+    assert_eq!(to_html(&mode, &expr), concat!{
+      "<span>",
+        "<span class=\"bracketed bracketed--square\">",
+          "<table class=\"matrix-table\">",
+            "<tr>",
+              "<td>10</td>",
+              "<td>20</td>",
+            "</tr>",
+            "<tr>",
+              "<td>30</td>",
+              "<td>40</td>",
+            "</tr>",
+          "</table>",
+        "</span>",
+      "</span>",
+    });
+  }
+
+  #[test]
+  fn test_empty_matrix() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("vector", vec![]);
+    assert_eq!(to_html(&mode, &expr), concat!{
+      "<span>",
+        "<span class=\"bracketed bracketed--square\">",
+          "<table class=\"matrix-table\">",
+            "<tr>",
+              "<td>&nbsp;</td>",
+            "</tr>",
+          "</table>",
+        "</span>",
+      "</span>",
+    });
+  }
 }
