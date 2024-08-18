@@ -625,4 +625,60 @@ mod tests {
       "</span>",
     });
   }
+
+  #[test]
+  fn test_fraction() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("/", vec![
+      Expr::from(10),
+      Expr::from(30),
+    ]);
+    assert_eq!(to_html(&mode, &expr), concat!{
+      r#"<table class="fraction-table">"#,
+        "<tr>",
+          r#"<td class="fraction-table-numerator">"#,
+          10,
+          "</td>",
+        "</tr>",
+        "<tr>",
+          r#"<td class="fraction-table-denominator">"#,
+          30,
+          "</td>",
+        "</tr>",
+      "</table>",
+    });
+  }
+
+  #[test]
+  fn test_fraction_composed_with_exponent() {
+    let mode = sample_language_mode();
+    let expr = Expr::call("^", vec![
+      Expr::call("/", vec![
+        Expr::from(10),
+        Expr::from(30),
+      ]),
+      Expr::from(2),
+    ]);
+    assert_eq!(to_html(&mode, &expr), concat!{
+      r#"<span class="grouping-span">"#,
+        r#"<span class="grouping-span">"#,
+          r#"<span class="bracketed bracketed--parens">"#,
+            r#"<table class="fraction-table">"#,
+              "<tr>",
+                r#"<td class="fraction-table-numerator">"#,
+                  10,
+                "</td>",
+              "</tr>",
+              "<tr>",
+                r#"<td class="fraction-table-denominator">"#,
+                  30,
+                "</td>",
+              "</tr>",
+            "</table>",
+          "</span>",
+        "</span>",
+        "<sup>2</sup>",
+      "</span>",
+    });
+  }
 }
