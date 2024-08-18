@@ -14,7 +14,10 @@ pub struct CalculationMode {
 bitflags! {
   #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
   struct CalculationModeBits: u8 {
+    /// See [`CalculationMode::has_infinity_flag`].
     const INFINITY = 0b0001;
+    /// See [`CalculationMode::has_fractional_flag`].
+    const FRACTIONAL = 0b0010;
   }
 }
 
@@ -41,9 +44,28 @@ impl CalculationMode {
     self.inner.contains(CalculationModeBits::INFINITY)
   }
 
+  /// The fractional flag is off by default. If this flag is set, then
+  /// expressions on integers which do NOT result in integer results
+  /// will attempt to produce an exact rational number as a result. If
+  /// this flag is not set, then such calculations will produce a
+  /// floating-point result.
+  ///
+  /// This flag has no effect on expressions which already contain
+  /// rational numbers, nor on those which contain floating-point
+  /// values.
+  pub fn has_fractional_flag(&self) -> bool {
+    self.inner.contains(CalculationModeBits::FRACTIONAL)
+  }
+
   /// Sets the infinity flag. See
   /// [`CalculationMode::has_infinity_flag`].
   pub fn set_infinity_flag(&mut self, mode: bool) {
     self.inner.set(CalculationModeBits::INFINITY, mode);
+  }
+
+  /// Sets the fractional flag. See
+  /// [`CalculationMode::has_fractional_flag`].
+  pub fn set_fractional_flag(&mut self, mode: bool) {
+    self.inner.set(CalculationModeBits::FRACTIONAL, mode);
   }
 }
