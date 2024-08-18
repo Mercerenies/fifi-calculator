@@ -31,6 +31,11 @@ pub const EXPONENT_PRECEDENCE: Precedence = Precedence::new(200);
 /// treated specially by some language modes.
 pub const INTERVAL_PRECEDENCE: Precedence = Precedence::new(197);
 
+/// Precedence used for the division infix operator. Like
+/// [`EXPONENT_PRECEDENCE`], this operator is treated specially by
+/// some language modes.
+pub const DIVISION_PRECEDENCE: Precedence = Precedence::new(190);
+
 /// Precedence level of prefix function calls. If a language mode
 /// decides to write a function call such as `sin(x)` as though it was
 /// a prefix operator (i.e. `sin x`), this is the precedence of that
@@ -92,7 +97,7 @@ impl OperatorTable {
       Operator::new("^..^", Fixity::new().with_infix("^..^", Associativity::NONE, INTERVAL_PRECEDENCE)),
       multiplication_operator(),
       Operator::new("@", Fixity::new().with_infix("@", Associativity::LEFT, Precedence::new(195))), // Matrix mul
-      Operator::new("/", Fixity::new().with_infix("/", Associativity::LEFT, Precedence::new(190))),
+      Operator::new("/", Fixity::new().with_infix("/", Associativity::LEFT, DIVISION_PRECEDENCE)),
       Operator::new("%", Fixity::new().with_infix("%", Associativity::NONE, Precedence::new(190))),
       Operator::new("+", Fixity::new()
                            .with_infix("+", Associativity::FULL, Precedence::new(180))

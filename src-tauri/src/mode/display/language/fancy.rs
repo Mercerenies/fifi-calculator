@@ -2,6 +2,7 @@
 use super::{LanguageMode, LanguageModeEngine};
 use crate::parsing::operator::Precedence;
 use crate::parsing::operator::table::{EXPONENT_PRECEDENCE, INTERVAL_PRECEDENCE,
+                                      DIVISION_PRECEDENCE,
                                       PREFIX_FUNCTION_CALL_PRECEDENCE};
 use crate::mode::display::unicode::{UnicodeAliasTable, common_unicode_aliases};
 use crate::util::cow_dyn::CowDyn;
@@ -106,9 +107,9 @@ impl<L: LanguageMode> FancyLanguageMode<L> {
     assert!(args.len() == 2);
     let [base, exp] = args else { unreachable!() };
 
-    out.push_str("<span>");
+    out.push_str("<span class=\"grouping-span\">");
     fancy_parens(true).write_bracketed_if_ok(out, prec > EXPONENT_PRECEDENCE, |out| {
-      out.push_str("<span>");
+      out.push_str("<span class=\"grouping-span\">");
       engine.write_to_html(out, base, EXPONENT_PRECEDENCE.incremented());
       out.push_str("</span>");
       out.push_str("<sup>");
@@ -122,7 +123,7 @@ impl<L: LanguageMode> FancyLanguageMode<L> {
     assert!(args.len() == 1);
     let [exp] = args else { unreachable!() };
 
-    out.push_str("<span>");
+    out.push_str("<span class=\"grouping-span\">");
     fancy_parens(true).write_bracketed_if_ok(out, prec > EXPONENT_PRECEDENCE, |out| {
       out.push_str("<span>𝕖</span>");
       out.push_str("<sup>");
@@ -141,7 +142,7 @@ impl<L: LanguageMode> FancyLanguageMode<L> {
   ) {
     let abs_value_bars = HtmlBrackets::new(HtmlBracketsType::VerticalBars);
 
-    out.push_str("<span>");
+    out.push_str("<span class=\"grouping-span\">");
     abs_value_bars.write_bracketed_if_ok(out, true, |out| {
       engine.write_to_html(out, inner_arg, Precedence::MIN);
     });
@@ -160,7 +161,7 @@ impl<L: LanguageMode> FancyLanguageMode<L> {
     let brackets = interval_type.html_brackets();
     let prec = INTERVAL_PRECEDENCE.incremented();
 
-    out.push_str("<span>");
+    out.push_str("<span class=\"grouping-span\">");
     brackets.write_bracketed_if_ok(out, true, |out| {
       engine.write_to_html(out, left, prec);
       out.push_str(" .. ");
@@ -201,7 +202,7 @@ impl<L: LanguageMode> FancyLanguageMode<L> {
   }
 
   fn write_matrix(&self, engine: &LanguageModeEngine, out: &mut String, matrix: &BorrowedMatrix) {
-    out.push_str("<span>");
+    out.push_str("<span class=\"grouping-span\">");
     fancy_square_brackets(true).write_bracketed_if_ok(out, true, |out| {
       out.push_str(r#"<table class="matrix-table">"#);
       for row in matrix.rows() {
@@ -219,11 +220,31 @@ impl<L: LanguageMode> FancyLanguageMode<L> {
   }
 
   fn write_empty_matrix(&self, out: &mut String) {
-    out.push_str("<span>");
+    out.push_str("<span class=\"grouping-span\">");
     fancy_square_brackets(true).write_bracketed_if_ok(out, true, |out| {
       out.push_str(r#"<table class="matrix-table"><tr><td>&nbsp;</td></tr></table>"#);
     });
     out.push_str("</span>");
+  }
+
+  fn write_fraction(&self, engine: &LanguageModeEngine, out: &mut String, args: &[Expr], prec: Precedence) {
+    assert!(args.len() == 2);
+    let [numer, denom] = args else { unreachable!() };
+
+    fancy_parens(true).write_bracketed_if_ok(out, prec > DIVISION_PRECEDENCE, |out| {
+      out.push_str(r#"<table class="fraction-table">"#);
+      out.push_str("<tr>");
+      out.push_str(r#"<td class="fraction-table-numerator">"#);
+      engine.write_to_html(out, numer, Precedence::MIN);
+      out.push_str("</td>");
+      out.push_str("</tr>");
+      out.push_str("<tr>");
+      out.push_str(r#"<td class="fraction-table-denominator">"#);
+      engine.write_to_html(out, denom, Precedence::MIN);
+      out.push_str("</td>");
+      out.push_str("</tr>");
+      out.push_str("</table>");
+    });
   }
 }
 
@@ -252,6 +273,8 @@ impl<L: LanguageMode> LanguageMode for FancyLanguageMode<L> {
         Expr::Call(f, args) => {
           if f == "^" && args.len() == 2 {
             self.write_exponent(engine, out, args, prec)
+          } else if f == "/" && args.len() == 2 {
+            self.write_fraction(engine, out, args, prec)
           } else if f == "exp" && args.len() == 1 {
             self.write_e_to_exponent(engine, out, args, prec)
           } else if f == "abs" && args.len() == 1 {

@@ -339,6 +339,10 @@ input, button {
     background-color: #f6f6f6;
 }
 
+.grouping-span {
+    display: inline-block;
+}
+
 /* Fancy brackets */
 .bracketed {
     display: inline-block;
@@ -482,6 +486,19 @@ input, button {
 
 .matrix-table td {
     padding: 3px;
+}
+
+.fraction-table {
+    display: inline-table;
+    padding: 2px;
+}
+
+.fraction-table-numerator {
+    border-bottom: 1px solid var(--main-text-color);
+}
+
+.fraction-table-numerator, .fraction-table-denominator {
+    text-align: center;
 }
 
 /* "Small screen" mode for mobile devices */
