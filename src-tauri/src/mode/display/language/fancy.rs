@@ -217,6 +217,14 @@ impl<L: LanguageMode> FancyLanguageMode<L> {
     });
     out.push_str("</span>");
   }
+
+  fn write_empty_matrix(&self, out: &mut String) {
+    out.push_str("<span>");
+    fancy_square_brackets(true).write_bracketed_if_ok(out, true, |out| {
+      out.push_str(r#"<table class="matrix-table"><tr><td>&nbsp;</td></tr></table>"#);
+    });
+    out.push_str("</span>");
+  }
 }
 
 impl<L: LanguageMode + Default> Default for FancyLanguageMode<L> {
@@ -228,7 +236,11 @@ impl<L: LanguageMode + Default> Default for FancyLanguageMode<L> {
 impl<L: LanguageMode> LanguageMode for FancyLanguageMode<L> {
   fn write_to_html(&self, engine: &LanguageModeEngine, out: &mut String, expr: &Expr, prec: Precedence) {
     if let Ok(matrix) = BorrowedMatrix::parse(expr) {
-      self.write_matrix(engine, out, &matrix)
+      if matrix.is_empty() {
+        self.write_empty_matrix(out)
+      } else {
+        self.write_matrix(engine, out, &matrix)
+      }
     } else {
       match expr {
         Expr::Atom(Atom::Number(_) | Atom::String(_)) => {

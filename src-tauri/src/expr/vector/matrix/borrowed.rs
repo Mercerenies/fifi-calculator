@@ -25,6 +25,10 @@ impl<'a> BorrowedMatrix<'a> {
     Self { body: Vec::new() }
   }
 
+  pub fn is_empty(&self) -> bool {
+    self.height() == 0 || self.width() == 0
+  }
+
   pub fn parse(expr: &'a Expr) -> Result<Self, ParseBorrowedMatrixError<'a>> {
     let Expr::Call(name, args) = expr else {
       return Err(ParseBorrowedMatrixError { original_expr: expr, _priv: () });
