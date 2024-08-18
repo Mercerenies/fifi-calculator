@@ -402,7 +402,7 @@ mod tests {
     let expr = Expr::call("exp", vec![Expr::from(9)]);
     assert_eq!(
       to_html(&mode, &expr),
-      r#"<span><span>𝕖</span><sup>9</sup></span>"#,
+      r#"<span class="grouping-span"><span>𝕖</span><sup>9</sup></span>"#,
     );
   }
 
@@ -412,7 +412,7 @@ mod tests {
     let expr = Expr::call("^", vec![Expr::from(2), Expr::from(10)]);
     assert_eq!(
       to_html(&mode, &expr),
-      r#"<span><span>2</span><sup>10</sup></span>"#,
+      r#"<span class="grouping-span"><span class="grouping-span">2</span><sup>10</sup></span>"#,
     );
   }
 
@@ -425,7 +425,7 @@ mod tests {
     ]);
     assert_eq!(
       to_html(&mode, &expr),
-      r#"<span><span>2</span><sup><span><span>3</span><sup>10</sup></span></sup></span>"#,
+      r#"<span class="grouping-span"><span class="grouping-span">2</span><sup><span class="grouping-span"><span class="grouping-span">3</span><sup>10</sup></span></sup></span>"#,
     );
   }
 
@@ -438,7 +438,7 @@ mod tests {
     ]);
     assert_eq!(
       to_html(&mode, &expr),
-      r#"<span><span><span><span class="bracketed bracketed--parens"><span>2</span><sup>3</sup></span></span></span><sup>10</sup></span>"#,
+      r#"<span class="grouping-span"><span class="grouping-span"><span class="grouping-span"><span class="bracketed bracketed--parens"><span class="grouping-span">2</span><sup>3</sup></span></span></span><sup>10</sup></span>"#,
     );
   }
 
@@ -451,7 +451,7 @@ mod tests {
     ]);
     assert_eq!(
       to_html(&mode, &expr),
-      r#"<span><span><span><span class="bracketed bracketed--parens"><span>𝕖</span><sup>3</sup></span></span></span><sup>10</sup></span>"#,
+      r#"<span class="grouping-span"><span class="grouping-span"><span class="grouping-span"><span class="bracketed bracketed--parens"><span>𝕖</span><sup>3</sup></span></span></span><sup>10</sup></span>"#,
     );
   }
 
@@ -475,7 +475,7 @@ mod tests {
     let expr = Expr::call("abs", vec![Expr::from(-1)]);
     assert_eq!(
       to_html(&mode, &expr),
-      r#"<span><span class="bracketed bracketed--vert">-1</span></span>"#,
+      r#"<span class="grouping-span"><span class="bracketed bracketed--vert">-1</span></span>"#,
     );
   }
 
@@ -505,7 +505,7 @@ mod tests {
     let expr = Expr::call("^..", vec![Expr::from(1), Expr::from(10)]);
     assert_eq!(
       to_html(&mode, &expr),
-      r#"<span><span class="bracketed bracketed--parens-left bracketed--square-right">1 .. 10</span></span>"#,
+      r#"<span class="grouping-span"><span class="bracketed bracketed--parens-left bracketed--square-right">1 .. 10</span></span>"#,
     );
   }
 
@@ -592,7 +592,7 @@ mod tests {
       Expr::call("vector", vec![Expr::from(30), Expr::from(40)]),
     ]);
     assert_eq!(to_html(&mode, &expr), concat!{
-      "<span>",
+      r#"<span class="grouping-span">"#,
         "<span class=\"bracketed bracketed--square\">",
           "<table class=\"matrix-table\">",
             "<tr>",
@@ -614,7 +614,7 @@ mod tests {
     let mode = sample_language_mode();
     let expr = Expr::call("vector", vec![]);
     assert_eq!(to_html(&mode, &expr), concat!{
-      "<span>",
+      "<span class=\"grouping-span\">",
         "<span class=\"bracketed bracketed--square\">",
           "<table class=\"matrix-table\">",
             "<tr>",
