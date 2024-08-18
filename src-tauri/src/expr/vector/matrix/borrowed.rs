@@ -40,7 +40,7 @@ impl<'a> BorrowedMatrix<'a> {
       return Ok(Self::empty());
     }
 
-    let args = args.into_iter()
+    let args = args.iter()
       .map(|arg| {
         let vec = BorrowedVector::parse(arg)?;
         Ok(vec.as_slice())

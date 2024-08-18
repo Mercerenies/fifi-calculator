@@ -162,15 +162,15 @@ impl<B1, B2> ChoiceBrackets<B1, B2> {
 
 impl<'a, W: SafeWrite> BracketConstruct<W> for ConstBrackets<'a> {
   fn write_open(&self, w: &mut W) -> Result<(), W::Error> {
-    w.write_str(&self.start_bracket)
+    w.write_str(self.start_bracket)
   }
 
   fn write_close(&self, w: &mut W) -> Result<(), W::Error> {
-    w.write_str(&self.end_bracket)
+    w.write_str(self.end_bracket)
   }
 }
 
-impl<'a, W: SafeWrite> BracketConstruct<W> for HtmlBrackets {
+impl<W: SafeWrite> BracketConstruct<W> for HtmlBrackets {
   fn write_open(&self, w: &mut W) -> Result<(), W::Error> {
     write!(w, r#"<span class="{}">"#, self.css_classes())
   }
