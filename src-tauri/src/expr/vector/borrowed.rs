@@ -56,6 +56,10 @@ impl<'a> BorrowedVector<'a> {
   pub fn is_empty(&self) -> bool {
     self.data.is_empty()
   }
+
+  pub fn to_owned(&self) -> Vector {
+    Vector::from(self.data.to_owned())
+  }
 }
 
 impl<'a> IntoIterator for BorrowedVector<'a> {
