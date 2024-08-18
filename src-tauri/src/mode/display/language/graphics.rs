@@ -62,4 +62,8 @@ impl<'a, L: LanguageMode + ?Sized> LanguageMode for GraphicsLanguageMode<'a, L> 
   fn to_reversible_language_mode(&self) -> CowDyn<dyn LanguageMode> {
     self.inner.to_reversible_language_mode()
   }
+
+  fn language_mode_name(&self) -> String {
+    String::from("Graphics")
+  }
 }

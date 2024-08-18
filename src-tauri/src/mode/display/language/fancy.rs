@@ -308,6 +308,10 @@ impl<L: LanguageMode> LanguageMode for FancyLanguageMode<L> {
   fn parse(&self, text: &str) -> anyhow::Result<Expr> {
     self.inner_mode.parse(text)
   }
+
+  fn language_mode_name(&self) -> String {
+    String::from("Fancy")
+  }
 }
 
 #[cfg(test)]

@@ -327,6 +327,10 @@ impl LanguageMode for BasicLanguageMode {
     let expr = parser.tokenize_and_parse(text)?;
     Ok(expr)
   }
+
+  fn language_mode_name(&self) -> String {
+    String::from("Basic")
+  }
 }
 
 #[cfg(test)]

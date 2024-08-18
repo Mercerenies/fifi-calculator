@@ -24,6 +24,7 @@ use crate::mode::display::DisplaySettings;
 use crate::mode::calculation::CalculationMode;
 use crate::undo::{UndoStack, UndoError};
 use crate::units::parsing::{UnitParser, default_parser};
+use crate::util::truncate_str;
 use crate::util::radix::Radix;
 
 use serde::{Serialize, Deserialize};
@@ -132,6 +133,9 @@ impl ApplicationState {
     } else {
       modeline.push_str("-  ");
     }
+    modeline.push_str(
+      &format!("{:3}", truncate_str(&self.display_settings().base_language_mode.language_mode_name(), 3).as_ref()),
+    );
     if self.display_settings().language_settings.prefers_unicode_output {
       modeline.push('U');
     } else {

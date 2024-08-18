@@ -48,6 +48,9 @@ pub trait LanguageMode {
     self.write_to_html(&engine, &mut out, expr, Precedence::MIN);
     out
   }
+
+  /// A short, user-friendly name for this language mode.
+  fn language_mode_name(&self) -> String;
 }
 
 /// Helper struct passed to [`LanguageMode`] methods. Any recursive
@@ -109,6 +112,10 @@ impl<'a, T: LanguageMode + ?Sized> LanguageMode for &'a T {
   fn to_reversible_language_mode(&self) -> CowDyn<dyn LanguageMode> {
     (**self).to_reversible_language_mode()
   }
+
+  fn language_mode_name(&self) -> String {
+    (**self).language_mode_name()
+  }
 }
 
 impl<T: LanguageMode + ?Sized> LanguageMode for Box<T> {
@@ -126,6 +133,10 @@ impl<T: LanguageMode + ?Sized> LanguageMode for Box<T> {
 
   fn to_reversible_language_mode(&self) -> CowDyn<dyn LanguageMode> {
     (**self).to_reversible_language_mode()
+  }
+
+  fn language_mode_name(&self) -> String {
+    (**self).language_mode_name()
   }
 }
 
