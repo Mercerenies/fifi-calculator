@@ -11,6 +11,7 @@ pub mod validation;
 
 use events::{RefreshStackPayload, UndoAvailabilityPayload, ModelinePayload};
 use delegate::UndoingDelegate;
+use modeline::{ModelineBuilder, boolean_flag};
 use crate::stack::{Stack, DelegatingStack};
 use crate::expr::Expr;
 use crate::expr::function::table::FunctionTable;
@@ -26,7 +27,6 @@ use crate::mode::calculation::CalculationMode;
 use crate::undo::{UndoStack, UndoError};
 use crate::units::parsing::{UnitParser, default_parser};
 use crate::util::truncate_str;
-use crate::util::radix::Radix;
 
 use serde::{Serialize, Deserialize};
 
@@ -127,27 +127,13 @@ impl ApplicationState {
   /// the screen and indicates the current values of various
   /// user-specified flags.
   pub fn modeline(&self) -> String {
-    let mut modeline = String::new();
-    modeline.push_str(&modeline_str_for_radix(self.display_settings().language_settings.preferred_radix));
-    if self.calculation_mode().has_infinity_flag() {
-      modeline.push_str("Inf");
-    } else {
-      modeline.push_str("-  ");
-    }
-    modeline.push_str(
-      &format!("{:3}", truncate_str(&self.display_settings().base_language_mode.language_mode_name(), 3).as_ref()),
-    );
-    if self.display_settings().language_settings.prefers_unicode_output {
-      modeline.push('U');
-    } else {
-      modeline.push('-');
-    }
-    if self.display_settings().is_graphics_enabled {
-      modeline.push_str("Gr");
-    } else {
-      modeline.push_str("- ");
-    }
-    modeline
+    ModelineBuilder::new()
+      .append(self.display_settings().language_settings.preferred_radix)
+      .append(boolean_flag("Inf", self.calculation_mode().has_infinity_flag()))
+      .append(format!("{:3}", truncate_str(&self.display_settings().base_language_mode.language_mode_name(), 3).as_ref())) // TODO Clean this one up :)
+      .append(boolean_flag("U", self.display_settings().language_settings.prefers_unicode_output))
+      .append(boolean_flag("Gr", self.display_settings().is_graphics_enabled))
+      .build()
   }
 
   pub fn display_settings(&self) -> &DisplaySettings {
@@ -215,18 +201,6 @@ impl ApplicationState {
   pub fn redo(&mut self) -> Result<(), UndoError> {
     self.undo_stack.redo(&mut self.undoable_state)
   }
-}
-
-fn modeline_str_for_radix(radix: Radix) -> String {
-  let s = match u8::from(radix) {
-    2 => String::from("Bin"),
-    8 => String::from("Oct"),
-    10 => String::from("Dec"),
-    16 => String::from("Hex"),
-    n if n < 10 => format!("R={}", n),
-    n => format!("R{}", n),
-  };
-  format!("{:3}", s)
 }
 
 impl UndoableState {

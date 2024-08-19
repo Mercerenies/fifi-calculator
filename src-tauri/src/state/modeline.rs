@@ -49,7 +49,7 @@ impl ModelineValue for String {
   }
 }
 
-impl<'a> ModelineValue for &'a str {
+impl ModelineValue for str {
   fn contribute(&self, buf: &mut String) {
     buf.push_str(self);
   }
@@ -59,6 +59,12 @@ impl<'a, B> ModelineValue for Cow<'a, B>
 where B: 'a + ToOwned + ModelineValue + ?Sized {
   fn contribute(&self, buf: &mut String) {
     self.as_ref().contribute(buf);
+  }
+}
+
+impl<'a, V: ModelineValue + ?Sized> ModelineValue for &'a V {
+  fn contribute(&self, buf: &mut String) {
+    (**self).contribute(buf);
   }
 }
 
@@ -81,7 +87,7 @@ impl ModelineValue for Radix {
 ///
 /// If the string is `""`, then `""` is returned, regardless of the
 /// flag value.
-pub fn boolean_flag(flag: bool, s: &str) -> Cow<'_, str> {
+pub fn boolean_flag(s: &str, flag: bool) -> Cow<'_, str> {
   if s.is_empty() {
     return Cow::Borrowed("");
   }
@@ -129,21 +135,21 @@ mod tests {
 
   #[test]
   fn test_boolean_flag() {
-    assert_eq!(boolean_flag(true, ""), "");
-    assert_eq!(boolean_flag(false, ""), "");
-    assert_eq!(boolean_flag(true, "A"), "A");
-    assert_eq!(boolean_flag(false, "A"), "-");
-    assert_eq!(boolean_flag(true, "Xyz"), "Xyz");
-    assert_eq!(boolean_flag(false, "Xyz"), "-  ");
+    assert_eq!(boolean_flag("", true), "");
+    assert_eq!(boolean_flag("", false), "");
+    assert_eq!(boolean_flag("A", true), "A");
+    assert_eq!(boolean_flag("A", false), "-");
+    assert_eq!(boolean_flag("Xyz", true), "Xyz");
+    assert_eq!(boolean_flag("Xyz", false), "-  ");
   }
 
   #[test]
   fn test_boolean_flag_ownership() {
-    assert!(matches!(boolean_flag(true, ""), Cow::Borrowed(_)));
-    assert!(matches!(boolean_flag(false, ""), Cow::Borrowed(_)));
-    assert!(matches!(boolean_flag(true, "A"), Cow::Borrowed(_)));
-    assert!(matches!(boolean_flag(false, "A"), Cow::Owned(_)));
-    assert!(matches!(boolean_flag(true, "Xyz"), Cow::Borrowed(_)));
-    assert!(matches!(boolean_flag(false, "Xyz"), Cow::Owned(_)));
+    assert!(matches!(boolean_flag("", true), Cow::Borrowed(_)));
+    assert!(matches!(boolean_flag("", false), Cow::Borrowed(_)));
+    assert!(matches!(boolean_flag("A", true), Cow::Borrowed(_)));
+    assert!(matches!(boolean_flag("A", false), Cow::Owned(_)));
+    assert!(matches!(boolean_flag("Xyz", true), Cow::Borrowed(_)));
+    assert!(matches!(boolean_flag("Xyz", false), Cow::Owned(_)));
   }
 }
