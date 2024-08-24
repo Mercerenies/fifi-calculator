@@ -131,6 +131,14 @@ impl ComplexNumber {
     )
   }
 
+  pub fn recip_inexact(&self) -> ComplexNumber {
+    let abs_sqr = self.abs_sqr();
+    ComplexNumber::new(
+      self.real.div_inexact(&abs_sqr),
+      - self.imag.div_inexact(&abs_sqr),
+    )
+  }
+
   pub fn powi(&self, exp: BigInt) -> ComplexNumber {
     match exp.cmp(&BigInt::zero()) {
       Ordering::Equal => {

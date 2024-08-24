@@ -113,6 +113,10 @@ impl Number {
     &Number::one() / self
   }
 
+  pub fn recip_inexact(&self) -> Number {
+    Number::one().div_inexact(self)
+  }
+
   pub fn min(self, other: Number) -> Number {
     if self < other {
       self
