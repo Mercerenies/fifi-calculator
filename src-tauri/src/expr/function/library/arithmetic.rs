@@ -2,7 +2,8 @@
 //! Basic arithmetic function evaluation rules.
 
 use crate::expr::Expr;
-use crate::expr::interval::{Interval, interval_div, interval_recip, includes_infinity};
+use crate::expr::interval::{Interval, interval_div, interval_div_inexact,
+                            interval_recip, includes_infinity};
 use crate::expr::function::{Function, FunctionContext};
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
@@ -426,7 +427,12 @@ pub fn division() -> Function {
 
         let inputs_have_infinity = includes_infinity(&arg1_interval) || includes_infinity(&arg2_interval);
 
-        match interval_div(arg1_interval, arg2_interval) {
+        let quotient = if ctx.calculation_mode.has_fractional_flag() {
+          interval_div(arg1_interval, arg2_interval)
+        } else {
+          interval_div_inexact(arg1_interval, arg2_interval)
+        };
+        match quotient {
           Err(err) => {
             ctx.errors.push(SimplifierError::new("/", err));
             Err((arg1, arg2))

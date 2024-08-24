@@ -48,6 +48,15 @@ pub fn includes_infinity(interval: &Interval<UnboundedNumber>) -> bool {
 }
 
 pub fn interval_recip(interval: Interval<UnboundedNumber>) -> Interval<UnboundedNumber> {
+  interval_recip_impl(interval, Number::recip)
+}
+
+pub fn interval_recip_inexact(interval: Interval<UnboundedNumber>) -> Interval<UnboundedNumber> {
+  interval_recip_impl(interval, Number::recip_inexact)
+}
+
+fn interval_recip_impl<F>(interval: Interval<UnboundedNumber>, recip: F) -> Interval<UnboundedNumber>
+where F: Fn(&Number) -> Number {
   // Follows the algorithm at
   // https://en.wikipedia.org/wiki/Interval_arithmetic#Interval_operators,
   // with extensions for infinite bounds.
@@ -68,7 +77,7 @@ pub fn interval_recip(interval: Interval<UnboundedNumber>) -> Interval<Unbounded
         }
         Ordering::Less => {
           Interval::from_bounds(
-            Bounded::new(Finite(b.recip()), right.bound_type),
+            Bounded::new(Finite(recip(&b)), right.bound_type),
             Bounded::new(Finite(Number::zero()), left.bound_type),
           )
         }
@@ -87,7 +96,7 @@ pub fn interval_recip(interval: Interval<UnboundedNumber>) -> Interval<Unbounded
         Ordering::Greater => {
           Interval::from_bounds(
             Bounded::new(Finite(Number::zero()), right.bound_type),
-            Bounded::new(Finite(a.recip()), left.bound_type),
+            Bounded::new(Finite(recip(&a)), left.bound_type),
           )
         }
         Ordering::Equal => {
@@ -105,20 +114,20 @@ pub fn interval_recip(interval: Interval<UnboundedNumber>) -> Interval<Unbounded
         Interval::singleton(Infinite(PosInfinity))
       } else if a.is_zero() {
         Interval::from_bounds(
-          Bounded::new(Finite(b.recip()), right.bound_type),
+          Bounded::new(Finite(recip(&b)), right.bound_type),
           Bounded::new(Infinite(PosInfinity), left.bound_type),
         )
       } else if b.is_zero() {
         Interval::from_bounds(
           Bounded::new(Infinite(NegInfinity), right.bound_type),
-          Bounded::new(Finite(a.recip()), left.bound_type),
+          Bounded::new(Finite(recip(&a)), left.bound_type),
         )
       } else if a < Number::zero() && Number::zero() < b {
         all_real_numbers(IntervalType::Closed)
       } else {
         Interval::from_bounds(
-          Bounded::new(Finite(b.recip()), right.bound_type),
-          Bounded::new(Finite(a.recip()), left.bound_type),
+          Bounded::new(Finite(recip(&b)), right.bound_type),
+          Bounded::new(Finite(recip(&a)), left.bound_type),
         )
       }
     }
@@ -129,12 +138,18 @@ fn all_real_numbers(interval_type: IntervalType) -> Interval<UnboundedNumber> {
   Interval::new(UnboundedNumber::NEG_INFINITY, interval_type, UnboundedNumber::POS_INFINITY)
 }
 
-/// Returns a union of intervals.
 pub fn interval_div(
   left: Interval<UnboundedNumber>,
   right: Interval<UnboundedNumber>,
 ) -> Result<Interval<UnboundedNumber>, IndeterminateFormError> {
   left.try_mul(interval_recip(right))
+}
+
+pub fn interval_div_inexact(
+  left: Interval<UnboundedNumber>,
+  right: Interval<UnboundedNumber>,
+) -> Result<Interval<UnboundedNumber>, IndeterminateFormError> {
+  left.try_mul(interval_recip_inexact(right))
 }
 
 #[cfg(test)]
