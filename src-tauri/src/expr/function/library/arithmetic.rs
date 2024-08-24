@@ -344,7 +344,11 @@ pub fn division() -> Function {
         if arg2.is_zero() {
           return division_by_zero(context, "/", (arg1, arg2));
         }
-        let quotient = arg1 / arg2;
+        let quotient = if context.calculation_mode.has_fractional_flag() {
+          arg1 / arg2
+        } else {
+          arg1.div_inexact(&arg2)
+        };
         Ok(Expr::from(quotient))
       })
     )
@@ -354,7 +358,13 @@ pub fn division() -> Function {
         if arg2.is_zero() {
           return division_by_zero(context, "/", (arg1, arg2));
         }
-        let quotient = ComplexNumber::from(arg1) / ComplexNumber::from(arg2);
+        let arg1 = ComplexNumber::from(arg1);
+        let arg2 = ComplexNumber::from(arg2);
+        let quotient = if context.calculation_mode.has_fractional_flag() {
+          arg1 / arg2
+        } else {
+          arg1.div_inexact(&arg2)
+        };
         Ok(Expr::from(quotient))
       })
     )

@@ -161,6 +161,16 @@ impl ComplexNumber {
     ComplexNumber::from_polar_inexact(self.abs().powf(exp), self.angle() * exp)
   }
 
+  /// Division, but avoids producing (proper) rational values if none
+  /// of the inputs are (proper) rationals. See
+  /// [`Number::div_inexact`] for details on how this works. Note that
+  /// [`ComplexNumber::div_inexact`] considers the real and imaginary
+  /// components separately when determining whether to make a value
+  /// inexact.
+  pub fn div_inexact(&self, other: &ComplexNumber) -> ComplexNumber {
+    div_impl(self, other, Number::div_inexact)
+  }
+
   pub fn sin(&self) -> ComplexNumber {
     ComplexNumber::new(
       self.real.sin() * self.imag.cosh(),
@@ -222,6 +232,20 @@ impl ComplexNumber {
 
   pub fn atanh(&self) -> ComplexNumber {
     ((Self::one() + self) / (Self::one() - self)).ln() * Self::from_real(Number::ratio(1, 2))
+  }
+}
+
+/// Division for complex numbers, with the real number division
+/// function taken as a parameter. This allows us to write the
+/// division algorithm once and use it for both exact division
+/// ([`Div::div`]) and inexact division
+/// ([`ComplexNumber::div_inexact`]).
+fn div_impl<F>(left: &ComplexNumber, right: &ComplexNumber, div: F) -> ComplexNumber
+where F: Fn(&Number, &Number) -> Number {
+  let denominator = &right.real * &right.real + &right.imag * &right.imag;
+  ComplexNumber {
+    real: div(&(&left.real * &right.real + &left.imag * &right.imag), &denominator),
+    imag: div(&(&left.imag * &right.real - &left.real * &right.imag), &denominator),
   }
 }
 
@@ -338,11 +362,7 @@ impl ops::Div for ComplexNumber {
   type Output = ComplexNumber;
 
   fn div(self, other: ComplexNumber) -> ComplexNumber {
-    let denominator = &other.real * &other.real + &other.imag * &other.imag;
-    ComplexNumber {
-      real: (&self.real * &other.real + &self.imag * &other.imag) / denominator.clone(),
-      imag: (&self.imag * &other.real - &self.real * &other.imag) / denominator,
-    }
+    div_impl(&self, &other, |x, y| x / y)
   }
 }
 

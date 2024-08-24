@@ -210,6 +210,11 @@ impl Number {
     self < &Number::zero()
   }
 
+  /// Returns true if `self` is a non-integer rational number.
+  pub fn is_proper_ratio(&self) -> bool {
+    self.repr() == NumberRepr::Ratio
+  }
+
   /// Returns the natural logarithm of `self`. This always returns an
   /// inexact floating result. Panics if `self <= 0`.
   pub fn ln(&self) -> Number {
@@ -340,6 +345,24 @@ impl Number {
       NumberImpl::Float(f) => {
         digits_to_string_radix(f.to_digits(radix), true, radix)
       }
+    }
+  }
+
+  /// Divides `self` by `other`, but avoids producing rational
+  /// numbers. Specifically, if `self` and `other` are integers and
+  /// `other` does not divide `self`, this method will produce a
+  /// floating-point value, whereas "regular" division via the [`Div`]
+  /// trait would produce a rational number.
+  ///
+  /// The behavior of this function is identical to [`Div::div`] if
+  /// either of the arguments is already a proper (non-integer)
+  /// rational number.
+  pub fn div_inexact(&self, other: &Number) -> Number {
+    let quotient = self / other;
+    if quotient.is_proper_ratio() && !self.is_proper_ratio() && !other.is_proper_ratio() {
+      quotient.to_inexact()
+    } else {
+      quotient
     }
   }
 }
