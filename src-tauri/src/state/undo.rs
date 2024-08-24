@@ -47,11 +47,13 @@ pub struct UpdateVarChange {
 }
 
 /// `UndoableChange` that toggles the value of the given Boolean flag
-/// on the state object.
-#[derive(Clone)]
-pub struct ToggleFlagChange<F> {
+/// on the state object. A `ToggleFlagChange` shall be its own
+/// inverse. That is, since such flags are simply toggling a Boolean
+/// value, applying this change forward is equivalent to applying it
+/// backward.
+pub struct ToggleFlagChange {
   flag_name: String,
-  accessor: F,
+  toggle_function: Box<dyn Fn(&mut UndoableState) + Send + Sync>,
 }
 
 impl PushExprChange {
@@ -90,13 +92,34 @@ impl UpdateVarChange {
   }
 }
 
-impl<F> ToggleFlagChange<F>
-where F: Fn(&mut UndoableState) -> &mut bool {
-  pub fn new(flag_name: impl Into<String>, accessor: F) -> Self {
+impl ToggleFlagChange {
+  pub fn new<F>(flag_name: impl Into<String>, toggle_function: F) -> Self
+  where F: Fn(&mut UndoableState) + Send + Sync + 'static {
     Self {
       flag_name: flag_name.into(),
-      accessor,
+      toggle_function: Box::new(toggle_function),
     }
+  }
+
+  pub fn from_accessor<F>(flag_name: impl Into<String>, accessor: F) -> Self
+  where F: Fn(&mut UndoableState) -> &mut bool + Send + Sync + 'static {
+    Self::new(flag_name, move |state| {
+      let value = accessor(state);
+      *value = !*value;
+    })
+  }
+
+  pub fn from_getter_setter<F, G>(
+    flag_name: impl Into<String>,
+    getter: F,
+    setter: G,
+  ) -> Self
+  where F: Fn(&UndoableState) -> bool + Send + Sync + 'static,
+        G: Fn(&mut UndoableState, bool) + Send + Sync + 'static {
+    Self::new(flag_name, move |state| {
+      let value = getter(state);
+      setter(state, !value);
+    })
   }
 
   /// The name of the flag being toggled. This name has no effect on
@@ -178,25 +201,22 @@ impl UndoableChange<UndoableState> for UpdateVarChange {
   }
 }
 
-impl<F> Debug for ToggleFlagChange<F> {
+impl Debug for ToggleFlagChange {
   fn fmt(&self, f: &mut Formatter) -> fmt::Result {
     f.debug_struct("ToggleFlagChange")
       .field("flag_name", &self.flag_name)
-      .field("accessor", &Ellipsis)
+      .field("toggle_function", &Ellipsis)
       .finish()
   }
 }
 
-impl<F> UndoableChange<UndoableState> for ToggleFlagChange<F>
-where F: Fn(&mut UndoableState) -> &mut bool {
+impl UndoableChange<UndoableState> for ToggleFlagChange {
   fn play_forward(&self, state: &mut UndoableState) {
-    let accessor = (self.accessor)(state);
-    *accessor = !*accessor;
+    (self.toggle_function)(state)
   }
 
   fn play_backward(&self, state: &mut UndoableState) {
-    let accessor = (self.accessor)(state);
-    *accessor = !*accessor;
+    (self.toggle_function)(state)
   }
 
   fn undo_summary(&self) -> String {

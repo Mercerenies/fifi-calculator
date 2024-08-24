@@ -20,15 +20,6 @@ use crate::mode::display::language::fancy::FancyLanguageMode;
 
 use std::sync::Arc;
 
-/// [`UndoableChange`] which toggles the infinity mode.
-///
-/// Note that this *cannot* be written in terms of
-/// [`ToggleFlagChange`], as `ToggleInfinityChange` references an
-/// individual bit on a bitmask, and `ToggleFlagChange` requires a
-/// `&mut bool`.
-#[derive(Clone, Debug)]
-pub struct ToggleInfinityChange;
-
 /// [`UndoableChange`] which changes the display settings' preferred
 /// radix to a given value.
 #[derive(Clone, Debug)]
@@ -92,8 +83,8 @@ impl SetLanguageModeCommand {
 }
 
 pub fn toggle_graphics_command() -> impl Command + Send + Sync {
-  fn toggle_flag_change() -> ToggleFlagChange<fn(&mut UndoableState) -> &mut bool> {
-    ToggleFlagChange::new("is_graphics_enabled", |state| &mut state.display_settings_mut().is_graphics_enabled)
+  fn toggle_flag_change() -> ToggleFlagChange {
+    ToggleFlagChange::from_accessor("is_graphics_enabled", |state| &mut state.display_settings_mut().is_graphics_enabled)
   }
 
   GeneralCommand::new(|state, args, _| {
@@ -107,8 +98,8 @@ pub fn toggle_graphics_command() -> impl Command + Send + Sync {
 }
 
 pub fn toggle_unicode_command() -> impl Command + Send + Sync {
-  fn toggle_flag_change() -> ToggleFlagChange<fn(&mut UndoableState) -> &mut bool> {
-    ToggleFlagChange::new("prefers_unicode_output", |state| {
+  fn toggle_flag_change() -> ToggleFlagChange {
+    ToggleFlagChange::from_accessor("prefers_unicode_output", |state| {
       &mut state.display_settings_mut().language_settings.prefers_unicode_output
     })
   }
@@ -124,10 +115,18 @@ pub fn toggle_unicode_command() -> impl Command + Send + Sync {
 }
 
 pub fn toggle_infinity_command() -> impl Command + Send + Sync {
+  fn toggle_flag_change() -> ToggleFlagChange {
+    ToggleFlagChange::from_getter_setter(
+      "infinity_flag",
+      |state| state.calculation_mode().has_infinity_flag(),
+      |state, v| state.calculation_mode_mut().set_infinity_flag(v),
+    )
+  }
+
   GeneralCommand::new(|state, args, _| {
     validate_schema(&NullaryArgumentSchema::new(), args)?;
     state.undo_stack_mut().push_cut();
-    state.undo_stack_mut().push_change(ToggleInfinityChange);
+    state.undo_stack_mut().push_change(toggle_flag_change());
     let calc = state.calculation_mode_mut();
     calc.set_infinity_flag(!calc.has_infinity_flag());
     Ok(CommandOutput::success())
@@ -182,22 +181,6 @@ impl Command for SetLanguageModeCommand {
 
   fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
     None
-  }
-}
-
-impl UndoableChange<UndoableState> for ToggleInfinityChange {
-  fn play_forward(&self, state: &mut UndoableState) {
-    let calc = state.calculation_mode_mut();
-    calc.set_infinity_flag(!calc.has_infinity_flag());
-  }
-
-  fn play_backward(&self, state: &mut UndoableState) {
-    let calc = state.calculation_mode_mut();
-    calc.set_infinity_flag(!calc.has_infinity_flag());
-  }
-
-  fn undo_summary(&self) -> String {
-    format!("{:?}", self)
   }
 }
 
