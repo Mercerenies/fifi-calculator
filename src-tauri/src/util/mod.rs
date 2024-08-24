@@ -440,7 +440,7 @@ pub fn truncate_str(s: &str, max_len: usize) -> Cow<str> {
 /// left-aligned and will be padded with spaces.
 pub fn pad_or_trunc_str(s: &str, len: usize) -> Cow<str> {
   let s = truncate_str(s, len);
-  if s.len() < len {
+  if s.chars().count() < len {
     Cow::Owned(format!("{s: <len$}"))
   } else {
     s
