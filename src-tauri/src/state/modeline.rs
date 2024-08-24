@@ -3,10 +3,13 @@
 //! text, usually at the bottom of the screen, which indicates various
 //! configuration parameters about the current state of the program.
 
+use crate::util::pad_or_trunc_str;
 use crate::util::radix::Radix;
+use crate::mode::display::language::LanguageMode;
 
 use std::fmt::Write;
 use std::borrow::Cow;
+use std::convert::AsRef;
 
 /// A value that contributes text to a modeline.
 pub trait ModelineValue {
@@ -18,6 +21,13 @@ pub trait ModelineValue {
 #[derive(Debug)]
 pub struct ModelineBuilder {
   result_str: String,
+}
+
+/// A [`ModelineValue`] which prints the user-friendly name of a
+/// language mode.
+pub struct LanguageModeValue<'a> {
+  language_mode: &'a dyn LanguageMode,
+  desired_length: usize,
 }
 
 impl ModelineBuilder {
@@ -37,11 +47,37 @@ impl ModelineBuilder {
   }
 }
 
+impl<'a> LanguageModeValue<'a> {
+  pub const DEFAULT_LENGTH: usize = 3;
+
+  pub fn new(language_mode: &'a dyn LanguageMode) -> Self {
+    LanguageModeValue {
+      language_mode,
+      desired_length: Self::DEFAULT_LENGTH,
+    }
+  }
+
+  pub fn with_length(language_mode: &'a dyn LanguageMode, desired_length: usize) -> Self {
+    LanguageModeValue {
+      language_mode,
+      desired_length,
+    }
+  }
+}
+
+impl<'a> AsRef<dyn LanguageMode + 'a> for LanguageModeValue<'a> {
+  fn as_ref(&self) -> &(dyn LanguageMode + 'a) {
+    self.language_mode
+  }
+}
+
 impl Default for ModelineBuilder {
   fn default() -> Self {
     ModelineBuilder::new()
   }
 }
+
+
 
 impl ModelineValue for String {
   fn contribute(&self, buf: &mut String) {
@@ -78,6 +114,14 @@ impl ModelineValue for Radix {
       n if n < 10 => write!(buf, "R={}", n).unwrap(),
       n => write!(buf, "R{}", n).unwrap(),
     }
+  }
+}
+
+impl<'a> ModelineValue for LanguageModeValue<'a> {
+  fn contribute(&self, buf: &mut String) {
+    let name = self.language_mode.language_mode_name();
+    let name = pad_or_trunc_str(&name, self.desired_length);
+    buf.push_str(name.as_ref());
   }
 }
 

@@ -436,6 +436,17 @@ pub fn truncate_str(s: &str, max_len: usize) -> Cow<str> {
   }
 }
 
+/// Truncates or pads a string. In the latter case, the string is
+/// left-aligned and will be padded with spaces.
+pub fn pad_or_trunc_str(s: &str, len: usize) -> Cow<str> {
+  let s = truncate_str(s, len);
+  if s.len() < len {
+    Cow::Owned(format!("{s: <len$}"))
+  } else {
+    s
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -742,5 +753,25 @@ mod tests {
     assert_eq!(truncate_str("😀😀😀", 2), "😀😀");
     assert_eq!(truncate_str("😀😀😀", 1), "😀");
     assert_eq!(truncate_str("😀😀😀", 0), "");
+  }
+
+  #[test]
+  fn test_pad_or_trunc_str() {
+    assert_eq!(pad_or_trunc_str("abc", 2), "ab");
+    assert_eq!(pad_or_trunc_str("ab", 3), "ab ");
+    assert_eq!(pad_or_trunc_str("abc", 3), "abc");
+    assert_eq!(pad_or_trunc_str("abcd", 3), "abc");
+    assert_eq!(pad_or_trunc_str("abcdef", 3), "abc");
+    assert_eq!(pad_or_trunc_str("", 9), "         ");
+  }
+
+  #[test]
+  fn test_pad_or_trunc_unicode() {
+    assert_eq!(pad_or_trunc_str("😀😀😀", 5), "😀😀😀  ");
+    assert_eq!(pad_or_trunc_str("😀😀😀", 4), "😀😀😀 ");
+    assert_eq!(pad_or_trunc_str("😀😀😀", 3), "😀😀😀");
+    assert_eq!(pad_or_trunc_str("😀😀😀", 2), "😀😀");
+    assert_eq!(pad_or_trunc_str("😀😀😀", 1), "😀");
+    assert_eq!(pad_or_trunc_str("😀😀😀", 0), "");
   }
 }
