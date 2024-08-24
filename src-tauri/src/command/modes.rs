@@ -133,6 +133,25 @@ pub fn toggle_infinity_command() -> impl Command + Send + Sync {
   })
 }
 
+pub fn toggle_fractional_command() -> impl Command + Send + Sync {
+  fn toggle_flag_change() -> ToggleFlagChange {
+    ToggleFlagChange::from_getter_setter(
+      "fractional_flag",
+      |state| state.calculation_mode().has_fractional_flag(),
+      |state, v| state.calculation_mode_mut().set_fractional_flag(v),
+    )
+  }
+
+  GeneralCommand::new(|state, args, _| {
+    validate_schema(&NullaryArgumentSchema::new(), args)?;
+    state.undo_stack_mut().push_cut();
+    state.undo_stack_mut().push_change(toggle_flag_change());
+    let calc = state.calculation_mode_mut();
+    calc.set_fractional_flag(!calc.has_fractional_flag());
+    Ok(CommandOutput::success())
+  })
+}
+
 impl Command for SetDisplayRadixCommand {
   fn run_command(
     &self,

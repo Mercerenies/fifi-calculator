@@ -170,6 +170,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("toggle_graphics".to_string(), Box::new(modes::toggle_graphics_command()));
   map.insert("toggle_unicode".to_string(), Box::new(modes::toggle_unicode_command()));
   map.insert("toggle_infinity".to_string(), Box::new(modes::toggle_infinity_command()));
+  map.insert("toggle_fractional".to_string(), Box::new(modes::toggle_fractional_command()));
   map.insert("set_basic_language_mode".to_string(), Box::new(modes::SetLanguageModeCommand::basic_language_mode()));
   map.insert("set_fancy_language_mode".to_string(), Box::new(modes::SetLanguageModeCommand::fancy_language_mode()));
 

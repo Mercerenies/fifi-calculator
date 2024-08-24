@@ -17,6 +17,7 @@ export class ModesButtonGrid extends ButtonGrid {
     return [
       [
         new DispatchButton("∞", "toggle_infinity", "i"),
+        new DispatchButton("&divide;", "toggle_fractional", "f"),
       ],
       [],
       [],

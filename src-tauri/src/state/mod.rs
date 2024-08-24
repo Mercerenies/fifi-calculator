@@ -129,6 +129,7 @@ impl ApplicationState {
     ModelineBuilder::new()
       .append(self.display_settings().language_settings.preferred_radix)
       .append(boolean_flag("Inf", self.calculation_mode().has_infinity_flag()))
+      .append(boolean_flag("Fr", self.calculation_mode().has_fractional_flag()))
       .append(LanguageModeValue::new(self.display_settings().base_language_mode.as_ref()))
       .append(boolean_flag("U", self.display_settings().language_settings.prefers_unicode_output))
       .append(boolean_flag("Gr", self.display_settings().is_graphics_enabled))
