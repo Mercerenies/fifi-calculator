@@ -495,13 +495,7 @@ mod tests {
       (setup, vec!["m"]),
       input_stack,
     ).unwrap();
-    assert_eq!(output_stack, stack_of(vec![
-      Expr::call("*", vec![
-        Expr::from(100),
-        Expr::from(Number::ratio(1, 100)),
-        Expr::var("m").unwrap(),
-      ]),
-    ]));
+    assert_eq!(output_stack, stack_of(vec![Expr::var("m").unwrap()]));
   }
 
   #[test]
@@ -523,11 +517,7 @@ mod tests {
         Expr::from(100),
         Expr::var("cm").unwrap(),
       ]),
-      Expr::call("*", vec![
-        Expr::from(100),
-        Expr::from(Number::ratio(1, 100)),
-        Expr::var("m").unwrap(),
-      ]),
+      Expr::var("m").unwrap(),
     ]));
   }
 
@@ -550,11 +540,7 @@ mod tests {
     ).unwrap();
     assert_eq!(output_stack, stack_of(vec![
       Expr::call("/", vec![
-        Expr::call("*", vec![
-          Expr::from(100),
-          Expr::from(Number::ratio(1, 100)),
-          Expr::var("m").unwrap(),
-        ]),
+        Expr::var("m").unwrap(),
         Expr::var("s").unwrap(),
       ]),
     ]));
