@@ -7,6 +7,7 @@ use crate::expr::function::Function;
 use crate::expr::function::builder::{self, FunctionBuilder};
 use crate::expr::function::table::FunctionTable;
 use crate::expr::algebra::infinity::UnboundedNumber;
+use crate::expr::predicates;
 use crate::expr::prisms;
 
 pub fn append_formula_functions(table: &mut FunctionTable) {
@@ -156,6 +157,7 @@ pub fn min_function() -> Function {
   FunctionBuilder::new("min")
     .permit_flattening()
     .permit_reordering()
+    .add_partial_eval_rule(Box::new(predicates::is_unbounded_number))
     .add_case(
       // Unbounded real number comparison
       builder::any_arity().of_type(prisms::expr_to_unbounded_number()).and_then(|args, _| {
@@ -179,6 +181,7 @@ pub fn max_function() -> Function {
   FunctionBuilder::new("max")
     .permit_flattening()
     .permit_reordering()
+    .add_partial_eval_rule(Box::new(predicates::is_unbounded_number))
     .add_case(
       // Unbounded real number comparison
       builder::any_arity().of_type(prisms::expr_to_unbounded_number()).and_then(|args, _| {

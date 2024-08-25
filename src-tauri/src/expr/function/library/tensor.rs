@@ -10,6 +10,7 @@ use crate::expr::vector::{Vector, vector_shape};
 use crate::expr::vector::tensor::Tensor;
 use crate::expr::vector::matrix::Matrix;
 use crate::expr::prisms;
+use crate::expr::predicates;
 use crate::expr::ordering::cmp_expr;
 use crate::expr::simplifier::error::SimplifierError;
 use crate::expr::algebra::infinity::InfiniteConstant;
@@ -67,6 +68,8 @@ pub fn vconcat() -> Function {
   FunctionBuilder::new("vconcat")
     .permit_flattening()
     .set_identity(is_empty_vector)
+    .add_partial_eval_rule(Box::new(predicates::is_tensor))
+    .add_partial_eval_rule(Box::new(predicates::is_string))
     .add_case(
       // Vector concatenation
       builder::any_arity().of_type(prisms::ExprToTensor).and_then(|args, _| {

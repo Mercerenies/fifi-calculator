@@ -9,6 +9,7 @@ pub mod interval;
 pub mod literal;
 pub mod number;
 pub mod ordering;
+pub mod predicates;
 pub mod prisms;
 pub mod simplifier;
 pub mod tokenizer;

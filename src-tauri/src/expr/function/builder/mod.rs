@@ -6,8 +6,9 @@ pub mod matcher;
 pub use matcher::{arity_one, arity_two, arity_three, arity_four, any_arity,
                   arity_one_deriv, arity_two_deriv};
 
-use super::{Function, FunctionContext, FunctionDeriv};
+use super::{Function, FunctionContext, FunctionDeriv, FunctionImpl, no_identity_value};
 use super::flags::FunctionFlags;
+use super::partial::{simplify_sequences, simplify_sequences_with_reordering};
 use crate::graphics::response::GraphicsDirective;
 use crate::expr::Expr;
 use crate::expr::calculus::{DerivativeEngine, DifferentiationFailure};
@@ -28,10 +29,20 @@ pub struct FunctionBuilder {
   /// Cases for evaluation of this function as part of the graphics
   /// subsystem.
   graphics_cases: Vec<Box<FunctionCase<GraphicsDirective>>>,
+  /// Conditions on arguments which will trigger partial evaluation.
+  /// If the function is marked as
+  /// [`PERMITS_REORDERING`](FunctionFlags::PERMITS_REORDERING) then
+  /// the arguments matched against these conditions need not be
+  /// consecutive. If the function is NOT marked as
+  /// [`PERMITS_FLATTENING`](FunctionFlags::PERMITS_FLATTENING), then
+  /// this field is never used.
+  partial_eval_predicates: Vec<Box<PartialEvalPredicate>>,
 }
 
 pub type FunctionCase<T> =
   dyn Fn(Vec<Expr>, &mut FunctionContext) -> FunctionCaseResult<T> + Send + Sync;
+
+type PartialEvalPredicate = dyn Fn(&Expr) -> bool + Send + Sync;
 
 /// Result of attempting to apply a function match case.
 pub enum FunctionCaseResult<T> {
@@ -57,10 +68,11 @@ impl FunctionBuilder {
     Self {
       name: name.into(),
       flags: FunctionFlags::default(),
-      identity_predicate: Box::new(super::no_identity_value),
+      identity_predicate: Box::new(no_identity_value),
       derivative_rule: None,
       cases: Vec::new(),
       graphics_cases: Vec::new(),
+      partial_eval_predicates: Vec::new(),
     }
   }
 
@@ -77,6 +89,14 @@ impl FunctionBuilder {
   /// after modifications.
   pub fn add_graphics_case(mut self, case: Box<FunctionCase<GraphicsDirective>>) -> Self {
     self.graphics_cases.push(case);
+    self
+  }
+
+  /// Adds a partial evaluation condition to `self`. This function
+  /// is intended to be called in fluent style, and it returns
+  /// `self` after modifications.
+  pub fn add_partial_eval_rule(mut self, predicate: Box<PartialEvalPredicate>) -> Self {
+    self.partial_eval_predicates.push(predicate);
     self
   }
 
@@ -123,18 +143,33 @@ impl FunctionBuilder {
   /// Consumes `self` and builds it into a completed [`Function`]
   /// value.
   pub fn build(self) -> Function {
+    let function_body = build_function_body(self.cases);
+    let function_body =
+      if self.flags.contains(FunctionFlags::PERMITS_FLATTENING) && !self.partial_eval_predicates.is_empty() {
+        let name = self.name.clone();
+        let flags = self.flags;
+        let predicates = self.partial_eval_predicates;
+        Box::new(move |args, context: &mut FunctionContext| {
+          function_body(args, context).or_else(|args| {
+            partial_eval(&name, args, flags, predicates.as_slice(), &function_body, context)
+          })
+        })
+      } else {
+        function_body
+      };
+
     Function {
       name: self.name,
       flags: self.flags,
       identity_predicate: self.identity_predicate,
       derivative_rule: self.derivative_rule,
-      body: build_function_body(self.cases),
+      body: function_body,
       graphics_body: build_function_body(self.graphics_cases),
     }
   }
 }
 
-fn build_function_body<T: 'static>(cases: Vec<Box<FunctionCase<T>>>) -> Box<super::FunctionImpl<T>> {
+fn build_function_body<T: 'static>(cases: Vec<Box<FunctionCase<T>>>) -> Box<FunctionImpl<T>> {
   if cases.is_empty() {
     // If there are no cases (for instance, `graphics_body` for a
     // function which is not used in graphics), return a much simpler
@@ -159,6 +194,37 @@ fn build_function_body<T: 'static>(cases: Vec<Box<FunctionCase<T>>>) -> Box<supe
     // No cases matched, so we refuse to evaluate the function.
     Err(args)
   })
+}
+
+fn partial_eval(
+  function_name: &str,
+  mut args: Vec<Expr>,
+  flags: FunctionFlags,
+  predicates: &[Box<PartialEvalPredicate>],
+  function_body: &FunctionImpl<Expr>,
+  context: &mut FunctionContext,
+) -> Result<Expr, Vec<Expr>> {
+  assert!(flags.contains(FunctionFlags::PERMITS_FLATTENING));
+  let mut body = |args| {
+    match function_body(args, context) {
+      Ok(res) => vec![res],
+      Err(args) => args,
+    }
+  };
+
+  for pred in predicates {
+    args = if flags.contains(FunctionFlags::PERMITS_REORDERING) {
+      simplify_sequences_with_reordering(args, pred, &mut body)
+    } else {
+      simplify_sequences(args, pred, &mut body)
+    };
+  }
+  if args.len() == 1 {
+    let [arg] = args.try_into().unwrap();
+    Ok(arg)
+  } else {
+    Ok(Expr::call(function_name, args))
+  }
 }
 
 impl<T> FunctionCaseResult<T> {
