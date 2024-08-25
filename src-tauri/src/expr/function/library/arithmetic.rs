@@ -3,7 +3,7 @@
 
 use crate::expr::Expr;
 use crate::expr::interval::{Interval, interval_div, interval_div_inexact,
-                            interval_recip, includes_infinity};
+                            interval_recip, interval_recip_inexact, includes_infinity};
 use crate::expr::function::{Function, FunctionContext};
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
@@ -484,7 +484,15 @@ pub fn power() -> Function {
         if arg1.is_zero() && arg2 < Number::zero() {
           return division_by_zero(context, "^", (arg1, arg2));
         }
+        let has_input_ratios = arg1.is_proper_ratio() || arg2.is_proper_ratio();
         let power = pow_real(arg1, arg2);
+        let power = if context.calculation_mode.has_fractional_flag() {
+          power
+        } else if power.has_proper_ratio() && !has_input_ratios {
+          power.to_inexact()
+        } else {
+          power
+        };
         Ok(Expr::from(power))
       })
     )
@@ -498,7 +506,15 @@ pub fn power() -> Function {
         if arg1.is_zero() && arg2 < Number::zero() {
           return division_by_zero(context, "^", (arg1, arg2));
         }
+        let has_input_ratios = arg1.has_proper_ratio() || arg2.is_proper_ratio();
         let power = pow_complex_to_real(arg1.into(), arg2);
+        let power = if context.calculation_mode.has_fractional_flag() {
+          power
+        } else if power.has_proper_ratio() && !has_input_ratios {
+          power.to_inexact()
+        } else {
+          power
+        };
         Ok(Expr::from(power))
       })
     )
@@ -517,7 +533,15 @@ pub fn power() -> Function {
           context.errors.push(SimplifierError::division_by_zero("^"));
           return Err((arg1, arg2));
         }
+        let has_input_ratios = arg1.has_proper_ratio() || arg2.has_proper_ratio();
         let power = pow_complex(arg1.into(), arg2.into());
+        let power = if context.calculation_mode.has_fractional_flag() {
+          power
+        } else if power.has_proper_ratio() && !has_input_ratios {
+          power.to_inexact()
+        } else {
+          power
+        };
         Ok(Expr::from(power))
       })
     )
@@ -531,7 +555,15 @@ pub fn power() -> Function {
             return Err((arg1, original_arg2));
           }
         };
+        let has_input_ratio = arg1.has_proper_ratio(); // Note: arg2 is BigInt and thus never rational.
         let result = Quaternion::from(arg1).powi(arg2);
+        let result = if context.calculation_mode.has_fractional_flag() {
+          result
+        } else if result.has_proper_ratio() && !has_input_ratio {
+          result.to_inexact()
+        } else {
+          result
+        };
         Ok(result.into())
       })
     )
@@ -551,7 +583,12 @@ pub fn power() -> Function {
         let arg1_interval = Interval::from(arg1.clone());
         let input_has_infinity = includes_infinity(&arg1_interval);
         let result = if arg2 < 0 {
-          interval_recip(arg1_interval).try_pow(- arg2)
+          let recip = if ctx.calculation_mode.has_fractional_flag() {
+            interval_recip(arg1_interval)
+          } else {
+            interval_recip_inexact(arg1_interval)
+          };
+          recip.try_pow(- arg2)
         } else {
           arg1_interval.try_pow(arg2)
         };
@@ -849,7 +886,12 @@ pub fn reciprocal() -> Function {
         if arg.is_zero() {
           return division_by_zero(ctx, "recip", arg);
         }
-        Ok(Expr::from(arg.map(|r| r.recip(), |c| c.recip())))
+        let result = if ctx.calculation_mode.has_fractional_flag() {
+          arg.map(|r| r.recip(), |c| c.recip())
+        } else {
+          arg.map(|r| r.recip_inexact(), |c| c.recip_inexact())
+        };
+        Ok(Expr::from(result))
       })
     )
     .add_case(
@@ -859,7 +901,11 @@ pub fn reciprocal() -> Function {
           return division_by_zero(ctx, "recip", arg);
         }
         let arg = Quaternion::from(arg);
-        Ok(Expr::from(arg.recip()))
+        if ctx.calculation_mode.has_fractional_flag() {
+          Ok(Expr::from(arg.recip()))
+        } else {
+          Ok(Expr::from(arg.recip_inexact()))
+        }
       })
     )
     .add_case(

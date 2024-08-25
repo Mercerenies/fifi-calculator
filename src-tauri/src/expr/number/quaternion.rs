@@ -90,6 +90,22 @@ impl Quaternion {
     Self::new(r / &abs_sqr, i / &abs_sqr, j / &abs_sqr, k / &abs_sqr)
   }
 
+  /// The multiplicative inverse of this quaternion. Panics if
+  /// `self.is_zero()`. Uses inexact division, so division of integers
+  /// which does NOT produce an integer will fall back to
+  /// floating-point rather than rational numbers.
+  pub fn recip_inexact(self) -> Self {
+    assert!(!self.is_zero(), "Attempted to take reciprocal of zero quaternion");
+    let abs_sqr = self.abs_sqr();
+    let (r, i, j, k) = self.conj().into_parts();
+    Self::new(
+      r.div_inexact(&abs_sqr),
+      i.div_inexact(&abs_sqr),
+      j.div_inexact(&abs_sqr),
+      k.div_inexact(&abs_sqr),
+    )
+  }
+
   pub fn powi(&self, exp: BigInt) -> Quaternion {
     match exp.cmp(&BigInt::zero()) {
       Ordering::Equal => {
@@ -115,6 +131,13 @@ impl Quaternion {
       self.clone() / magnitude
     }
   }
+
+  /// True if any of the components of this quaternion are a proper
+  /// (non-integer) ratio.
+  pub fn has_proper_ratio(&self) -> bool {
+    self.r.is_proper_ratio() || self.i.is_proper_ratio() || self.j.is_proper_ratio() || self.k.is_proper_ratio()
+  }
+
 }
 
 impl StrictEq for Quaternion {

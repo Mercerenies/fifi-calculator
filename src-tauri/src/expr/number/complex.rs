@@ -139,6 +139,12 @@ impl ComplexNumber {
     )
   }
 
+  /// True if either the real or complex part of this number (in
+  /// rectangular form) is a proper (non-integer) ratio.
+  pub fn has_proper_ratio(&self) -> bool {
+    self.real().is_proper_ratio() || self.imag().is_proper_ratio()
+  }
+
   pub fn powi(&self, exp: BigInt) -> ComplexNumber {
     match exp.cmp(&BigInt::zero()) {
       Ordering::Equal => {

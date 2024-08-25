@@ -98,6 +98,18 @@ impl ComplexLike {
       ComplexLike::Complex(z) => ComplexLike::Complex(complex_fn(z)),
     }
   }
+
+  /// Returns true if this complex-like quantity contains a proper
+  /// (i.e. non-integer) rational value. If `self` is a real number,
+  /// this is equivalent to calling [`Number::is_proper_ratio`] on it.
+  /// If `self` is a complex number, then both the real and complex
+  /// parts are checked.
+  pub fn has_proper_ratio(&self) -> bool {
+    match self {
+      ComplexLike::Real(r) => r.is_proper_ratio(),
+      ComplexLike::Complex(z) => z.has_proper_ratio(),
+    }
+  }
 }
 
 impl QuaternionLike {
@@ -121,6 +133,14 @@ impl QuaternionLike {
       QuaternionLike::Real(r) => QuaternionLike::Real(real_fn(r)),
       QuaternionLike::Complex(z) => QuaternionLike::Complex(complex_fn(z)),
       QuaternionLike::Quaternion(q) => QuaternionLike::Quaternion(quat_fn(q)),
+    }
+  }
+
+  pub fn has_proper_ratio(&self) -> bool {
+    match self {
+      QuaternionLike::Real(r) => r.is_proper_ratio(),
+      QuaternionLike::Complex(z) => z.has_proper_ratio(),
+      QuaternionLike::Quaternion(q) => q.has_proper_ratio(),
     }
   }
 }
