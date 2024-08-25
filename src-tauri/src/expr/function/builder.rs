@@ -12,11 +12,20 @@ use crate::expr::calculus::{DerivativeEngine, DifferentiationFailure, Differenti
 use std::marker::PhantomData;
 
 pub struct FunctionBuilder {
+  /// The name of the function.
   name: String,
+  /// Flags indicating miscellaneous properties about the function
+  /// being built.
   flags: FunctionFlags,
+  /// A predicate identifying the identity element of the function.
+  /// See [`FunctionBuilder::set_identity`] for more details.
   identity_predicate: Box<dyn Fn(&Expr) -> bool + Send + Sync + 'static>,
+  /// The rule for calculating the derivative of the function.
   derivative_rule: Option<Box<FunctionDeriv>>,
+  /// Cases for ordinary, full evaluation of this function.
   cases: Vec<Box<FunctionCase<Expr>>>,
+  /// Cases for evaluation of this function as part of the graphics
+  /// subsystem.
   graphics_cases: Vec<Box<FunctionCase<GraphicsDirective>>>,
 }
 
@@ -131,6 +140,11 @@ impl FunctionBuilder {
   /// Sets the predicate for recognizing identity values for the
   /// function being built. Modifies and returns `self`, to permit
   /// fluent-style calling.
+  ///
+  /// If `e` is an expression satisfying this predicate and `f` is the
+  /// function being built, then `e` shall satisfy the following
+  /// property: For all `x0...xi, y0...yj`, `f(x0, ..., xi, e, y0,
+  /// ..., yj) = f(x0, ..., xi, y0, ..., yj)`.
   pub fn set_identity(mut self, predicate: impl Fn(&Expr) -> bool + Send + Sync + 'static) -> Self {
     self.identity_predicate = Box::new(predicate);
     self
