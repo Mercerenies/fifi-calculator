@@ -2,6 +2,7 @@
 pub mod builder;
 pub mod flags;
 pub mod library;
+pub mod partial;
 pub mod table;
 
 use flags::FunctionFlags;
