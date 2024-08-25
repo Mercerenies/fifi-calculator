@@ -11,6 +11,7 @@ use crate::expr::vector::Vector;
 use crate::expr::vector::matrix::Matrix;
 use crate::expr::vector::tensor::Tensor;
 use crate::expr::prisms::{self, expr_to_number, ExprToComplex, ExprToQuaternion};
+use crate::expr::predicates;
 use crate::expr::number::{Number, ComplexNumber, Quaternion, QuaternionLike,
                           pow_real, pow_complex, pow_complex_to_real};
 use crate::expr::number::inexact::{DivInexact, WithInexactDiv};
@@ -48,6 +49,11 @@ pub fn addition() -> Function {
     .permit_flattening()
     .permit_reordering()
     .set_identity(Expr::is_zero)
+    .add_partial_eval_rule(Box::new(predicates::is_quaternion))
+    .add_partial_eval_rule(Box::new(predicates::is_vector))
+    .add_partial_eval_rule(Box::new(predicates::is_string))
+    .add_partial_eval_rule(Box::new(predicates::is_complex_or_inf))
+    .add_partial_eval_rule(Box::new(predicates::is_unbounded_interval_like))
     .add_case(
       // Unary simplification
       builder::arity_one().and_then(|arg, _| {

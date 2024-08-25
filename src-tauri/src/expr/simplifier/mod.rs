@@ -34,8 +34,8 @@ impl<'a> Simplifier for DefaultSimplifier<'a> {
   fn simplify_expr_part(&self, mut expr: Expr, ctx: &mut SimplifierContext) -> Expr {
     expr = self.unicode_simplifier.simplify_expr_part(expr, ctx);
     expr = partial::IdentityRemover::new(self.function_table).simplify_expr_part(expr, ctx);
-    expr = evaluator::FunctionEvaluator::new(self.function_table).simplify_expr_part(expr, ctx);
     expr = flattener::FunctionFlattener::new(self.function_table).simplify_expr_part(expr, ctx);
+    expr = evaluator::FunctionEvaluator::new(self.function_table).simplify_expr_part(expr, ctx);
     expr = interval::IntervalNormalizer::new().simplify_expr_part(expr, ctx);
     expr
   }

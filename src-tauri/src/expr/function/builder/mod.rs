@@ -95,7 +95,7 @@ impl FunctionBuilder {
   /// Adds a partial evaluation condition to `self`. This function
   /// is intended to be called in fluent style, and it returns
   /// `self` after modifications.
-  pub fn add_partial_eval_predicate(mut self, predicate: Box<PartialEvalPredicate>) -> Self {
+  pub fn add_partial_eval_rule(mut self, predicate: Box<PartialEvalPredicate>) -> Self {
     self.partial_eval_predicates.push(predicate);
     self
   }
