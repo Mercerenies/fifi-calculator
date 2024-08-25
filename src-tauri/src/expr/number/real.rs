@@ -1,6 +1,7 @@
 
 use super::visitor::NumberPair;
 use super::repr::NumberRepr;
+use super::inexact::DivInexact;
 use super::powi_by_repeated_square;
 use crate::util::Sign;
 use crate::util::stricteq::StrictEq;
@@ -349,24 +350,6 @@ impl Number {
       NumberImpl::Float(f) => {
         digits_to_string_radix(f.to_digits(radix), true, radix)
       }
-    }
-  }
-
-  /// Divides `self` by `other`, but avoids producing rational
-  /// numbers. Specifically, if `self` and `other` are integers and
-  /// `other` does not divide `self`, this method will produce a
-  /// floating-point value, whereas "regular" division via the [`Div`]
-  /// trait would produce a rational number.
-  ///
-  /// The behavior of this function is identical to [`Div::div`] if
-  /// either of the arguments is already a proper (non-integer)
-  /// rational number.
-  pub fn div_inexact(&self, other: &Number) -> Number {
-    let quotient = self / other;
-    if quotient.is_proper_ratio() && !self.is_proper_ratio() && !other.is_proper_ratio() {
-      quotient.to_inexact()
-    } else {
-      quotient
     }
   }
 }
@@ -746,6 +729,28 @@ impl ops::Div<i64> for Number {
   }
 }
 
+impl DivInexact for Number {
+  type Output = Number;
+
+  /// Divides `self` by `other`, but avoids producing rational
+  /// numbers. Specifically, if `self` and `other` are integers and
+  /// `other` does not divide `self`, this method will produce a
+  /// floating-point value, whereas "regular" division via the [`Div`]
+  /// trait would produce a rational number.
+  ///
+  /// The behavior of this function is identical to [`Div::div`] if
+  /// either of the arguments is already a proper (non-integer)
+  /// rational number.
+  fn div_inexact(&self, other: &Number) -> Number {
+    let quotient = self / other;
+    if quotient.is_proper_ratio() && !self.is_proper_ratio() && !other.is_proper_ratio() {
+      quotient.to_inexact()
+    } else {
+      quotient
+    }
+  }
+}
+
 /// We implement the Euclidean remainder here, for simplicitly in
 /// interacting with the calculator functions (all of which use the
 /// Euclidean remainder).
@@ -1031,6 +1036,18 @@ mod tests {
     assert_strict_eq!(Number::ratio(1, 2) / Number::from(2.0), Number::from(0.25));
     assert_strict_eq!(Number::from(0) / Number::from(9.9), Number::from(0.0));
     assert_strict_eq!(Number::from(0) / Number::from(9), Number::from(0));
+  }
+
+  #[test]
+  fn test_div_inexact() {
+    assert_strict_eq!(Number::from(3).div_inexact(&Number::from(3)), Number::from(1));
+    assert_strict_eq!(Number::from(3).div_inexact(&Number::from(2)), Number::from(1.5));
+    assert_strict_eq!(Number::from(3).div_inexact(&Number::ratio(1, 2)), Number::from(6));
+    assert_strict_eq!(Number::ratio(1, 2).div_inexact(&Number::ratio(1, 2)), Number::from(1));
+    assert_strict_eq!(Number::from(3).div_inexact(&Number::from(3.0)), Number::from(1.0));
+    assert_strict_eq!(Number::ratio(1, 2).div_inexact(&Number::from(2.0)), Number::from(0.25));
+    assert_strict_eq!(Number::from(0).div_inexact(&Number::from(9.9)), Number::from(0.0));
+    assert_strict_eq!(Number::from(0).div_inexact(&Number::from(9)), Number::from(0));
   }
 
   #[test]

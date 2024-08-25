@@ -1,6 +1,7 @@
 
 mod complex;
 mod grouped;
+pub mod inexact;
 mod power;
 mod quaternion;
 mod real;

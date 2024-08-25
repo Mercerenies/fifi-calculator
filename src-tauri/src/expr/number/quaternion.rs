@@ -1,5 +1,6 @@
 
 use super::{Number, ComplexNumber, powi_by_repeated_square};
+use super::inexact::DivInexact;
 use crate::util::stricteq::StrictEq;
 
 use serde::{Serialize, Deserialize};

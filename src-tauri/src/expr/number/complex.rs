@@ -1,5 +1,6 @@
 
 use super::{Number, NumberRepr, powi_by_repeated_square};
+use super::inexact::DivInexact;
 use crate::util::stricteq::StrictEq;
 use crate::util::angles::Radians;
 
@@ -173,16 +174,6 @@ impl ComplexNumber {
 
   pub fn powf(&self, exp: f64) -> ComplexNumber {
     ComplexNumber::from_polar_inexact(self.abs().powf(exp), self.angle() * exp)
-  }
-
-  /// Division, but avoids producing (proper) rational values if none
-  /// of the inputs are (proper) rationals. See
-  /// [`Number::div_inexact`] for details on how this works. Note that
-  /// [`ComplexNumber::div_inexact`] considers the real and imaginary
-  /// components separately when determining whether to make a value
-  /// inexact.
-  pub fn div_inexact(&self, other: &ComplexNumber) -> ComplexNumber {
-    div_impl(self, other, Number::div_inexact)
   }
 
   pub fn sin(&self) -> ComplexNumber {
@@ -401,6 +392,20 @@ impl ops::Div<i64> for ComplexNumber {
 
   fn div(self, other: i64) -> ComplexNumber {
     self / ComplexNumber::from_real(other)
+  }
+}
+
+impl DivInexact for ComplexNumber {
+  type Output = ComplexNumber;
+
+  /// Division, but avoids producing (proper) rational values if none
+  /// of the inputs are (proper) rationals. See
+  /// [`Number::div_inexact`] for details on how this works. Note that
+  /// [`ComplexNumber::div_inexact`] considers the real and imaginary
+  /// components separately when determining whether to make a value
+  /// inexact.
+  fn div_inexact(&self, other: &ComplexNumber) -> ComplexNumber {
+    div_impl(self, other, Number::div_inexact)
   }
 }
 

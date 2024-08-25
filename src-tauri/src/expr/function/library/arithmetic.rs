@@ -13,6 +13,7 @@ use crate::expr::vector::tensor::Tensor;
 use crate::expr::prisms::{self, expr_to_number, ExprToComplex, ExprToQuaternion};
 use crate::expr::number::{Number, ComplexNumber, Quaternion, QuaternionLike,
                           pow_real, pow_complex, pow_complex_to_real};
+use crate::expr::number::inexact::DivInexact;
 use crate::expr::simplifier::error::{SimplifierError, DomainError};
 use crate::expr::calculus::DifferentiationError;
 use crate::expr::algebra::infinity::{InfiniteConstant, UnboundedNumber, is_infinite_constant,
