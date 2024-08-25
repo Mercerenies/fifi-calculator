@@ -447,6 +447,25 @@ pub fn pad_or_trunc_str(s: &str, len: usize) -> Cow<str> {
   }
 }
 
+/// Counts the longest subsequence which satisfies the predicate.
+/// Returns the length of the sequence.
+pub fn count_longest_subseq<I, P>(iter: I, mut pred: P) -> usize
+where I: IntoIterator,
+      P: FnMut(&I::Item) -> bool {
+  let iter = iter.into_iter();
+  let mut longest = 0;
+  let mut curr = 0;
+  for item in iter {
+    if pred(&item) {
+      curr += 1;
+    } else {
+      curr = 0;
+    }
+    longest = longest.max(curr);
+  }
+  longest
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -773,5 +792,21 @@ mod tests {
     assert_eq!(pad_or_trunc_str("😀😀😀", 2), "😀😀");
     assert_eq!(pad_or_trunc_str("😀😀😀", 1), "😀");
     assert_eq!(pad_or_trunc_str("😀😀😀", 0), "");
+  }
+
+  #[test]
+  fn test_count_longest_subseq() {
+    let seq = [1, 2, 3, 4, 5, 5, 5, 6];
+    assert_eq!(count_longest_subseq(seq, |x| *x == 5), 3);
+    let seq = [1, 2, 5, 5, 3, 4, 5, 5, 5, 6, 5];
+    assert_eq!(count_longest_subseq(seq, |x| *x == 5), 3);
+    let seq = [1, 2, 5, 5, 3, 4, 5, 5, 5, 6, 5, 5, 5, 5];
+    assert_eq!(count_longest_subseq(seq, |x| *x == 5), 4);
+    let seq = [1, 2, 5, 5, 3, 4, 5, 5, 5, 6, 5, 5, 5, 5];
+    assert_eq!(count_longest_subseq(seq, |_| true), 14);
+    let seq = [1, 2, 5, 5, 3, 4, 5, 5, 5, 6, 5, 5, 5, 5];
+    assert_eq!(count_longest_subseq(seq, |_| false), 0);
+    let seq = Vec::<i64>::new();
+    assert_eq!(count_longest_subseq(seq, |_| true), 0);
   }
 }
