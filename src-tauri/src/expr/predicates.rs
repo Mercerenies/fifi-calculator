@@ -57,6 +57,10 @@ pub fn is_vector(expr: &Expr) -> bool {
   BorrowedVector::parse(expr).is_ok()
 }
 
+pub fn is_tensor(expr: &Expr) -> bool {
+  is_complex(expr) || is_vector(expr)
+}
+
 /// Returns true if `expr` is a string atom.
 pub fn is_string(expr: &Expr) -> bool {
   matches!(expr, Expr::Atom(Atom::String(_)))

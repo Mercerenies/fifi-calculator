@@ -2,6 +2,7 @@
 use crate::expr::function::Function;
 use crate::expr::function::builder::{self, FunctionBuilder};
 use crate::expr::function::table::FunctionTable;
+use crate::expr::predicates;
 use crate::expr::prisms;
 use crate::expr::number::ComplexLike;
 
@@ -34,6 +35,7 @@ pub fn or_function() -> Function {
   // TODO: Consider allowing this to short-circuit somehow. Right now
   // it only simplifies if all quantities are known.
   FunctionBuilder::new("||")
+    .add_partial_eval_rule(Box::new(predicates::is_complex))
     .add_case(
       builder::any_arity().of_type(prisms::ExprToComplex).and_then(|args, _| {
         let first_nonzero_value = args.into_iter()
@@ -52,6 +54,7 @@ pub fn and_function() -> Function {
   // TODO: Consider allowing this to short-circuit somehow. Right now
   // it only simplifies if all quantities are known.
   FunctionBuilder::new("&&")
+    .add_partial_eval_rule(Box::new(predicates::is_complex))
     .add_case(
       builder::any_arity().of_type(prisms::ExprToComplex).and_then(|args, _| {
         let first_zero_value = args.into_iter()
