@@ -986,6 +986,9 @@ pub fn abs() -> Function {
       // Complex number abs
       builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {
         let arg = ComplexNumber::from(arg);
+        // TODO If and when we make complex abs() exact, this will
+        // need to be calibrated for the calculation mode's fractional
+        // flag.
         Ok(Expr::from(arg.abs()))
       })
     )
@@ -993,6 +996,9 @@ pub fn abs() -> Function {
       // Quaternion length
       builder::arity_one().of_type(ExprToQuaternion).and_then(|arg, _| {
         let arg = Quaternion::from(arg);
+        // TODO If and when we make quaternion abs() exact, this will
+        // need to be calibrated for the calculation mode's fractional
+        // flag.
         Ok(Expr::from(arg.abs()))
       })
     )
