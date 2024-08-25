@@ -13,7 +13,7 @@ use crate::expr::vector::tensor::Tensor;
 use crate::expr::prisms::{self, expr_to_number, ExprToComplex, ExprToQuaternion};
 use crate::expr::number::{Number, ComplexNumber, Quaternion, QuaternionLike,
                           pow_real, pow_complex, pow_complex_to_real};
-use crate::expr::number::inexact::DivInexact;
+use crate::expr::number::inexact::{DivInexact, WithInexactDiv};
 use crate::expr::simplifier::error::{SimplifierError, DomainError};
 use crate::expr::calculus::DifferentiationError;
 use crate::expr::algebra::infinity::{InfiniteConstant, UnboundedNumber, is_infinite_constant,
@@ -21,6 +21,7 @@ use crate::expr::algebra::infinity::{InfiniteConstant, UnboundedNumber, is_infin
 use crate::graphics::GRAPHICS_NAME;
 use crate::util::{repeated, TryPow};
 use crate::util::prism::Identity;
+use crate::util::matrix::{Matrix as UtilMatrix, SingularMatrixError};
 
 use num::{Zero, One, BigInt};
 use either::Either;
@@ -918,7 +919,7 @@ pub fn reciprocal() -> Function {
         }
         let original_mat = mat.clone();
         let mat = mat.map(ComplexNumber::from);
-        match mat.inverse_matrix() {
+        match inverse_matrix(mat, ctx) {
           Ok(mat) => Ok(Expr::from(Matrix::from(mat.map(Expr::from)))),
           Err(err) => {
             ctx.errors.push(SimplifierError::new("recip", err));
@@ -959,6 +960,18 @@ pub fn reciprocal() -> Function {
       })
     )
     .build()
+}
+
+fn inverse_matrix(
+  mat: UtilMatrix<ComplexNumber>,
+  ctx: &FunctionContext,
+) -> Result<UtilMatrix<ComplexNumber>, SingularMatrixError> {
+  if ctx.calculation_mode.has_fractional_flag() {
+    mat.inverse_matrix()
+  } else {
+    let res = mat.map(WithInexactDiv).inverse_matrix()?;
+    Ok(res.map(|x| x.0))
+  }
 }
 
 pub fn abs() -> Function {
