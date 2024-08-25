@@ -64,10 +64,10 @@ impl From<bool> for SequenceKey {
 /// any order and may call them multiple times.
 pub fn simplify_sequences<T, F, G>(
   args: Vec<T>,
-  mut predicate: F,
+  predicate: F,
   mut evaluator: G,
 ) -> Vec<T>
-where F: FnMut(&T) -> bool,
+where F: Fn(&T) -> bool,
       G: FnMut(Vec<T>) -> Vec<T> {
   // Fast track: Check if there's even anything to simplify. If not,
   // don't bother making a new vector. If there are no subsequences,
@@ -109,10 +109,10 @@ where F: FnMut(&T) -> bool,
 /// and may call it multiple times on the same argument, if needed.
 pub fn simplify_sequences_with_reordering<T, F, G>(
   args: Vec<T>,
-  mut predicate: F,
+  predicate: F,
   evaluator: G,
 ) -> Vec<T>
-where F: FnMut(&T) -> bool,
+where F: Fn(&T) -> bool,
       G: FnOnce(Vec<T>) -> Vec<T> {
   // Fast track: Check if there's even anything to simplify. If not,
   // don't bother making a new vector. If there are fewer than two
@@ -138,7 +138,7 @@ mod tests {
 
   #[test]
   fn test_simplify_sequences_fast_track() {
-    fn assert_eq_input(args: Vec<i64>, predicate: impl FnMut(&i64) -> bool) {
+    fn assert_eq_input(args: Vec<i64>, predicate: impl Fn(&i64) -> bool) {
       assert_eq!(simplify_sequences(args.clone(), predicate, uncalled_evaluator), args);
     }
 
@@ -176,7 +176,7 @@ mod tests {
 
   #[test]
   fn test_simplify_sequences_with_reordering_fast_track() {
-    fn assert_eq_input(args: Vec<i64>, predicate: impl FnMut(&i64) -> bool) {
+    fn assert_eq_input(args: Vec<i64>, predicate: impl Fn(&i64) -> bool) {
       assert_eq!(simplify_sequences_with_reordering(args.clone(), predicate, uncalled_evaluator), args);
     }
 
