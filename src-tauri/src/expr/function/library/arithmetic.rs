@@ -230,6 +230,9 @@ pub fn multiplication() -> Function {
     .permit_flattening()
     .permit_reordering()
     .set_identity(Expr::is_one)
+    .add_partial_eval_rule(Box::new(predicates::is_vector))
+    .add_partial_eval_rule(Box::new(predicates::is_complex_or_inf))
+    .add_partial_eval_rule(Box::new(predicates::is_unbounded_interval_like))
     .add_case(
       // Unary simplification
       builder::arity_one().and_then(|arg, _| {
