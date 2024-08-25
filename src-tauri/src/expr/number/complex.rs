@@ -409,6 +409,14 @@ impl DivInexact for ComplexNumber {
   }
 }
 
+impl DivInexact<i64> for ComplexNumber {
+  type Output = ComplexNumber;
+
+  fn div_inexact(&self, other: &i64) -> ComplexNumber {
+    self.div_inexact(&ComplexNumber::from_real(*other))
+  }
+}
+
 impl ops::Neg for ComplexNumber {
   type Output = ComplexNumber;
 

@@ -751,6 +751,14 @@ impl DivInexact for Number {
   }
 }
 
+impl DivInexact<i64> for Number {
+  type Output = Number;
+
+  fn div_inexact(&self, other: &i64) -> Number {
+    self.div_inexact(&Number::from(*other))
+  }
+}
+
 /// We implement the Euclidean remainder here, for simplicitly in
 /// interacting with the calculator functions (all of which use the
 /// Euclidean remainder).

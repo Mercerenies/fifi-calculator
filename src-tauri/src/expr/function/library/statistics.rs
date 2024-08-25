@@ -1,6 +1,7 @@
 
 use crate::expr::Expr;
 use crate::expr::number::{Number, ComplexNumber, pow_real};
+use crate::expr::number::inexact::DivInexact;
 use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
 use crate::expr::function::builder::{self, FunctionBuilder};
@@ -57,7 +58,11 @@ pub fn median() -> Function {
           if len % 2 == 0 {
             let b = vec.swap_remove(len / 2);
             let a = vec.swap_remove(len / 2 - 1);
-            Ok(Expr::from((a + b) / Number::from(2)))
+            if ctx.calculation_mode.has_fractional_flag() {
+              Ok(Expr::from((a + b) / Number::from(2)))
+            } else {
+              Ok(Expr::from((a + b).div_inexact(&Number::from(2))))
+            }
           } else {
             Ok(Expr::from(vec.swap_remove(len / 2)))
           }
@@ -227,7 +232,11 @@ pub fn sample_variance() -> Function {
         let sum_of_differences: Number = vec.into_iter()
           .map(|x| (x - &mean).abs_sqr())
           .sum();
-        Ok(Expr::from(sum_of_differences / (len - 1)))
+        if ctx.calculation_mode.has_fractional_flag() {
+          Ok(Expr::from(sum_of_differences / (len - 1)))
+        } else {
+          Ok(Expr::from(sum_of_differences.div_inexact(&(len - 1))))
+        }
       })
     )
     .build()
@@ -248,7 +257,11 @@ pub fn pop_variance() -> Function {
         let sum_of_differences: Number = vec.into_iter()
           .map(|x| (x - &mean).abs_sqr())
           .sum();
-        Ok(Expr::from(sum_of_differences / len))
+        if ctx.calculation_mode.has_fractional_flag() {
+          Ok(Expr::from(sum_of_differences / len))
+        } else {
+          Ok(Expr::from(sum_of_differences.div_inexact(&len)))
+        }
       })
     )
     .build()
