@@ -38,7 +38,7 @@ pub struct FunctionContext<'a, 'b, 'c> {
 }
 
 type FunctionImpl<T> =
-  dyn Fn(Vec<Expr>, FunctionContext) -> Result<T, Vec<Expr>> + Send + Sync;
+  dyn Fn(Vec<Expr>, &mut FunctionContext) -> Result<T, Vec<Expr>> + Send + Sync;
 
 type FunctionDeriv =
   dyn Fn(Vec<Expr>, &DerivativeEngine) -> Result<Expr, DifferentiationFailure> + Send + Sync;
@@ -75,8 +75,8 @@ impl Function {
     function_table: &FunctionTable,
     calculation_mode: CalculationMode,
   ) -> Result<Expr, Vec<Expr>> {
-    let context = FunctionContext { errors, simplifier, function_table, calculation_mode, _private: () };
-    (self.body)(args, context)
+    let mut context = FunctionContext { errors, simplifier, function_table, calculation_mode, _private: () };
+    (self.body)(args, &mut context)
   }
 
   /// Calls the function as part of the graphics subsystem.
@@ -88,8 +88,8 @@ impl Function {
     function_table: &FunctionTable,
     calculation_mode: CalculationMode,
   ) -> Result<GraphicsDirective, Vec<Expr>> {
-    let context = FunctionContext { errors, simplifier, function_table, calculation_mode, _private: () };
-    (self.graphics_body)(args, context)
+    let mut context = FunctionContext { errors, simplifier, function_table, calculation_mode, _private: () };
+    (self.graphics_body)(args, &mut context)
   }
 
   pub fn differentiate(

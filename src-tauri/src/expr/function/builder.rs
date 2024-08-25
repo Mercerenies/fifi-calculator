@@ -185,9 +185,9 @@ fn build_function_body<T: 'static>(cases: Vec<Box<FunctionCase<T>>>) -> Box<supe
     return Box::new(|args, _| Err(args));
   }
 
-  Box::new(move |mut args, mut context: FunctionContext| {
+  Box::new(move |mut args, context: &mut FunctionContext| {
     for case in &cases {
-      match case(args, &mut context) {
+      match case(args, context) {
         FunctionCaseResult::Success(output) => {
           return Ok(output);
         }
