@@ -156,6 +156,13 @@ impl FunctionBuilder {
     self
   }
 
+  /// Enables the [`PERMITS_REORDERING`]( consequat::PERMITS_REORDERING)
+  /// flag for `self`.
+  pub fn permit_reordering(mut self) -> Self {
+    self.flags |= FunctionFlags::PERMITS_REORDERING;
+    self
+  }
+
   /// Consumes `self` and builds it into a completed [`Function`]
   /// value.
   pub fn build(self) -> Function {

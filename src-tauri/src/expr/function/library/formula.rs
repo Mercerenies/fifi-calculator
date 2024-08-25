@@ -155,6 +155,7 @@ pub fn greater_than_or_equal() -> Function {
 pub fn min_function() -> Function {
   FunctionBuilder::new("min")
     .permit_flattening()
+    .permit_reordering()
     .add_case(
       // Unbounded real number comparison
       builder::any_arity().of_type(prisms::expr_to_unbounded_number()).and_then(|args, _| {
@@ -177,6 +178,7 @@ pub fn min_function() -> Function {
 pub fn max_function() -> Function {
   FunctionBuilder::new("max")
     .permit_flattening()
+    .permit_reordering()
     .add_case(
       // Unbounded real number comparison
       builder::any_arity().of_type(prisms::expr_to_unbounded_number()).and_then(|args, _| {
