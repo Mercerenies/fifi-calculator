@@ -74,7 +74,7 @@ pub fn is_unbounded_interval(expr: &Expr) -> bool {
   if !IntervalType::is_interval_type(f) {
     return false;
   }
-  args.len() == 2 && args.iter().all(|x| is_unbounded_number(x))
+  args.len() == 2 && args.iter().all(is_unbounded_number)
 }
 
 /// Returns true if `expr` is either an unbounded interval (per
