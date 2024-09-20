@@ -1,5 +1,6 @@
 
 pub mod builder;
+pub mod distributive;
 pub mod flags;
 pub mod library;
 pub mod partial;
