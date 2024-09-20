@@ -9,6 +9,7 @@ pub mod identity;
 pub mod interval;
 pub mod partial;
 pub mod repeated;
+pub mod term;
 pub mod unicode;
 
 pub use base::{Simplifier, SimplifierContext};
@@ -35,6 +36,7 @@ impl<'a> Simplifier for DefaultSimplifier<'a> {
     expr = self.unicode_simplifier.simplify_expr_part(expr, ctx);
     expr = partial::IdentityRemover::new(self.function_table).simplify_expr_part(expr, ctx);
     expr = flattener::FunctionFlattener::new(self.function_table).simplify_expr_part(expr, ctx);
+    expr = term::TermPartialEvaluator::new().simplify_expr_part(expr, ctx);
     expr = evaluator::FunctionEvaluator::new(self.function_table).simplify_expr_part(expr, ctx);
     expr = interval::IntervalNormalizer::new().simplify_expr_part(expr, ctx);
     expr

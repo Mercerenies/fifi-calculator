@@ -4,14 +4,15 @@ use crate::expr::Expr;
 
 use num::One;
 
+// TODO Having a structure for this is kind of silly now. It was
+// originally meant to provide parameterization over whether or not
+// `*` was commutative (such as for quaternions or matrices). But now
+// that we have a separate operator (`@`) for non-commutative
+// multiplication, `TermParser` is simply a singleton struct and
+// likely always will be.
+
 /// A parser which takes an [`Expr`] and produces a [`Term`]. Such a
 /// parser must always succeed.
-///
-/// Note also that, for the purposes of this parser, multiplication is
-/// assumed to be commutative. That is, this structure does NOT make
-/// sense if matrices, quaternions, or other non-commutative rings may
-/// be involved. We may add a parameter to this structure to permit
-/// such customization in the future.
 #[derive(Debug, Clone)]
 pub struct TermParser {
   _priv: (),
