@@ -32,6 +32,7 @@ impl Simplifier for TermPartialSplitter {
   fn simplify_expr_part(&self, expr: Expr, _ctx: &mut SimplifierContext) -> Expr {
     let term = TermParser::new().parse(expr);
     let (literals, others) = term.partition_factors(is_valid_multiplicand);
+    let literals = literals.remove_ones();
     if literals.is_one() {
       others.into()
     } else if others.is_one() {

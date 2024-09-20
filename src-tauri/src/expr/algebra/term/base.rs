@@ -83,6 +83,18 @@ impl Term {
       denominator: self.numerator,
     }
   }
+
+  pub fn is_empty(&self) -> bool {
+    self.numerator.is_empty() && self.denominator.is_empty()
+  }
+
+  /// Removes any literal 1 values from the term. Specifically,
+  /// removes any value for which [`Expr::is_one`] is true.
+  pub fn remove_ones(mut self) -> Self {
+    self.numerator.retain(|e| !e.is_one());
+    self.denominator.retain(|e| !e.is_one());
+    self
+  }
 }
 
 impl From<Term> for Expr {
@@ -215,7 +227,8 @@ impl One for Term {
   }
 
   fn is_one(&self) -> bool {
-    self.numerator().is_empty() && self.denominator().is_empty()
+    self.numerator().iter().all(Expr::is_one) &&
+      self.denominator().iter().all(Expr::is_one)
   }
 }
 

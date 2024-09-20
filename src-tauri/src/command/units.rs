@@ -471,10 +471,10 @@ mod tests {
       vec![3],
     ).unwrap();
     assert_eq!(output_stack, stack_of(vec![
-      Expr::call("/", vec![
-        Expr::from(3),
-        Expr::call("*", vec![
-          Expr::from(1_000),
+      Expr::call("*", vec![
+        Expr::from(0.003),
+        Expr::call("/", vec![
+          Expr::from(1),
           Expr::var("s").unwrap(),
         ]),
       ]),
