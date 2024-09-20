@@ -182,3 +182,184 @@ impl ErrorWithPayload<Expr> for DistributiveRuleNotApplicable {
     self.original_expr
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn sample_always_rule() -> DistributiveRule {
+    DistributiveRule::new("*", "+", Side::Any)
+      .with_arg_rule(DistributiveArgRule::complex_number_rule())
+  }
+
+  fn sample_left_rule() -> DistributiveRule {
+    DistributiveRule::new("*", "+", Side::Left)
+      .with_arg_rule(DistributiveArgRule::complex_number_rule())
+  }
+
+  fn sample_right_rule() -> DistributiveRule {
+    DistributiveRule::new("*", "+", Side::Right)
+      .with_arg_rule(DistributiveArgRule::complex_number_rule())
+  }
+
+  #[test]
+  fn test_apply_index_zero() {
+    let expr = Expr::call("*", vec![
+      Expr::call("+", vec![Expr::from(10), Expr::from(20)]),
+      Expr::from(30),
+      Expr::from(40),
+    ]);
+    let new_expr = sample_always_rule().apply(0, expr).unwrap();
+    assert_eq!(new_expr, Expr::call("+", vec![
+      Expr::call("*", vec![Expr::from(10), Expr::from(30), Expr::from(40)]),
+      Expr::call("*", vec![Expr::from(20), Expr::from(30), Expr::from(40)]),
+    ]));
+  }
+
+  #[test]
+  fn test_apply_index_one() {
+    let expr = Expr::call("*", vec![
+      Expr::from(30),
+      Expr::call("+", vec![Expr::from(10), Expr::from(20)]),
+      Expr::from(40),
+    ]);
+    let new_expr = sample_always_rule().apply(1, expr).unwrap();
+    assert_eq!(new_expr, Expr::call("+", vec![
+      Expr::call("*", vec![Expr::from(30), Expr::from(10), Expr::from(40)]),
+      Expr::call("*", vec![Expr::from(30), Expr::from(20), Expr::from(40)]),
+    ]));
+  }
+
+  #[test]
+  fn test_apply_index_out_of_bounds() {
+    let expr = Expr::call("*", vec![
+      Expr::from(30),
+      Expr::call("+", vec![Expr::from(10), Expr::from(20)]),
+      Expr::from(40),
+    ]);
+    sample_always_rule().apply(3, expr).unwrap_err();
+  }
+
+  #[test]
+  fn test_apply_to_wrong_call_operator() {
+    let expr = Expr::call("+", vec![
+      Expr::from(30),
+      Expr::call("*", vec![Expr::from(10), Expr::from(20)]),
+      Expr::from(40),
+    ]);
+    sample_always_rule().apply(1, expr).unwrap_err();
+    let expr = Expr::call("*", vec![
+      Expr::from(30),
+      Expr::call("*", vec![Expr::from(10), Expr::from(20)]),
+      Expr::from(40),
+    ]);
+    sample_always_rule().apply(1, expr).unwrap_err();
+  }
+
+  #[test]
+  fn test_apply_with_other_argument_invalid() {
+    let expr = Expr::call("*", vec![
+      Expr::from(30),
+      Expr::call("+", vec![Expr::from(10), Expr::from(20)]),
+      Expr::var("x").unwrap(), // This shouldn't distribute, because it's not a constant.
+    ]);
+    sample_always_rule().apply(0, expr.clone()).unwrap_err();
+    sample_always_rule().apply(1, expr.clone()).unwrap_err();
+    sample_always_rule().apply(2, expr).unwrap_err();
+  }
+
+  #[test]
+  fn test_apply_index_to_atoms() {
+    let expr = Expr::call("*", vec![Expr::from(10), Expr::from(20), Expr::from(30)]);
+    sample_always_rule().apply(0, expr.clone()).unwrap_err();
+    sample_always_rule().apply(1, expr.clone()).unwrap_err();
+    sample_always_rule().apply(2, expr).unwrap_err();
+    let expr = Expr::from(10);
+    sample_always_rule().apply(0, expr).unwrap_err();
+  }
+
+  #[test]
+  fn test_apply_left_side_rule() {
+    let expr = Expr::call("*", vec![
+      Expr::from(99),
+      Expr::call("+", vec![Expr::from(10), Expr::from(20)]),
+    ]);
+    let new_expr = sample_left_rule().apply(1, expr).unwrap();
+    assert_eq!(new_expr, Expr::call("+", vec![
+      Expr::call("*", vec![Expr::from(99), Expr::from(10)]),
+      Expr::call("*", vec![Expr::from(99), Expr::from(20)]),
+    ]));
+  }
+
+  #[test]
+  fn test_apply_left_side_rule_to_wrong_side() {
+    let expr = Expr::call("*", vec![
+      Expr::call("+", vec![Expr::from(10), Expr::from(20)]),
+      Expr::from(99),
+    ]);
+    sample_left_rule().apply(0, expr).unwrap_err();
+  }
+
+  #[test]
+  fn test_apply_right_side_rule() {
+    let expr = Expr::call("*", vec![
+      Expr::call("+", vec![Expr::from(10), Expr::from(20)]),
+      Expr::from(99),
+    ]);
+    let new_expr = sample_right_rule().apply(0, expr).unwrap();
+    assert_eq!(new_expr, Expr::call("+", vec![
+      Expr::call("*", vec![Expr::from(10), Expr::from(99)]),
+      Expr::call("*", vec![Expr::from(20), Expr::from(99)]),
+    ]));
+  }
+
+  #[test]
+  fn test_apply_right_side_rule_to_wrong_side() {
+    let expr = Expr::call("*", vec![
+      Expr::from(99),
+      Expr::call("+", vec![Expr::from(10), Expr::from(20)]),
+    ]);
+    sample_right_rule().apply(1, expr).unwrap_err();
+  }
+
+  #[test]
+  fn test_apply_right_side_rule_to_arity_one() {
+    let expr = Expr::call("*", vec![
+      Expr::call("+", vec![]),
+    ]);
+    sample_right_rule().apply(0, expr.clone()).unwrap_err();
+    sample_right_rule().apply(1, expr).unwrap_err();
+  }
+
+  #[test]
+  fn test_apply_right_side_rule_to_arity_zero() {
+    let expr = Expr::call("*", vec![]);
+    sample_right_rule().apply(0, expr).unwrap_err();
+  }
+
+  #[test]
+  fn test_apply_left_side_rule_to_arity_three() {
+    let expr = Expr::call("*", vec![
+      Expr::from(99),
+      Expr::call("+", vec![Expr::from(10), Expr::from(20)]),
+      Expr::from(100),
+    ]);
+    sample_left_rule().apply(0, expr.clone()).unwrap_err();
+    sample_left_rule().apply(1, expr.clone()).unwrap_err();
+    sample_left_rule().apply(2, expr.clone()).unwrap_err();
+    sample_left_rule().apply(3, expr).unwrap_err();
+  }
+
+  #[test]
+  fn test_apply_right_side_rule_to_arity_three() {
+    let expr = Expr::call("*", vec![
+      Expr::from(99),
+      Expr::call("+", vec![Expr::from(10), Expr::from(20)]),
+      Expr::from(100),
+    ]);
+    sample_right_rule().apply(0, expr.clone()).unwrap_err();
+    sample_right_rule().apply(1, expr.clone()).unwrap_err();
+    sample_right_rule().apply(2, expr.clone()).unwrap_err();
+    sample_right_rule().apply(3, expr).unwrap_err();
+  }
+}
