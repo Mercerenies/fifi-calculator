@@ -167,6 +167,22 @@ impl Expr {
     });
     result
   }
+
+  pub fn as_call(&self) -> Option<(&str, &[Expr])> {
+    match self {
+      Expr::Call(name, args) => Some((name.as_str(), args.as_slice())),
+      _ => None,
+    }
+  }
+
+  /// The number of arguments this expression takes. An atom takes no
+  /// arguments.
+  pub fn arity(&self) -> usize {
+    match self {
+      Expr::Atom(_) => 0,
+      Expr::Call(_, args) => args.len(),
+    }
+  }
 }
 
 impl TryFromExprError {

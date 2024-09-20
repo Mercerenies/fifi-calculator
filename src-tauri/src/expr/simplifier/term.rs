@@ -17,7 +17,7 @@ use num::One;
 ///
 /// Translation into a `Term` has the immediate side benefit of
 /// simplifying nested fractions such as `1 / (1 / x)`.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct TermPartialSplitter {
   _priv: (),
 }
