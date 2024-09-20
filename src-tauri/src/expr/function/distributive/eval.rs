@@ -4,6 +4,7 @@
 
 use crate::expr::Expr;
 use crate::expr::atom::Atom;
+use crate::util::prism::ErrorWithPayload;
 
 use thiserror::Error;
 
@@ -43,6 +44,12 @@ impl DistributivePropertyError {
 
   pub fn not_a_compound_expr(atom: Atom, original_expr: Expr) -> Self {
     Self::new(DistributivePropertyErrorDetails::NotACompoundExpression(atom), original_expr)
+  }
+}
+
+impl ErrorWithPayload<Expr> for DistributivePropertyError {
+  fn recover_payload(self) -> Expr {
+    self.original_expr
   }
 }
 
