@@ -16,7 +16,6 @@ use crate::mode::display::language::LanguageMode;
 use crate::util::radix::{Radix, StringToRadix};
 use crate::util::prism::Prism;
 
-use num::One;
 use serde::{Serialize, Deserialize};
 
 /// Types of validations that can be requested of the backend.
@@ -107,7 +106,7 @@ pub fn validate_is_all_units(
 ) -> Result<CompositeUnit<Number>, anyhow::Error> {
   let expr = context.language_mode.parse(expr)?;
   let tagged_expr = parse_composite_unit_expr(context.units_parser, context.term_parser, expr);
-  anyhow::ensure!(tagged_expr.value.is_one(), "Could not parse {} as a unit", tagged_expr.value);
+  anyhow::ensure!(tagged_expr.value.is_empty(), "Could not parse {} as a unit", tagged_expr.value);
   Ok(tagged_expr.unit)
 }
 
