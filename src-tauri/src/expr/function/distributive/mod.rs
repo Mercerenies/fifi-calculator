@@ -1,4 +1,4 @@
 
 mod eval;
 
-pub use eval::{DistributivePropertyError, distribute_over};
+pub use eval::{DistributivePropertyError, DistributivePropertyErrorDetails, distribute_over};

@@ -10,8 +10,15 @@ use thiserror::Error;
 /// Errors that can occur during attempted application of the
 /// distributive property.
 #[derive(Debug, Clone, Error, PartialEq, Eq)]
+#[error("{details}")]
+pub struct DistributivePropertyError {
+  pub details: DistributivePropertyErrorDetails,
+  pub original_expr: Expr,
+}
+
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
 #[non_exhaustive]
-pub enum DistributivePropertyError {
+pub enum DistributivePropertyErrorDetails {
   /// An argument index was provided, but the function does not have
   /// enough arguments.
   #[error("Argument index {0} is out of bounds")]
@@ -20,6 +27,23 @@ pub enum DistributivePropertyError {
   /// was required, was an atom rather than a compound expression.
   #[error("Expected a compound expression, but found {0:?}")]
   NotACompoundExpression(Atom),
+}
+
+impl DistributivePropertyError {
+  pub fn new(details: DistributivePropertyErrorDetails, original_expr: Expr) -> Self {
+    Self {
+      details,
+      original_expr,
+    }
+  }
+
+  pub fn argument_out_of_bounds(index: usize, original_expr: Expr) -> Self {
+    Self::new(DistributivePropertyErrorDetails::ArgumentOutOfBounds(index), original_expr)
+  }
+
+  pub fn not_a_compound_expr(atom: Atom, original_expr: Expr) -> Self {
+    Self::new(DistributivePropertyErrorDetails::NotACompoundExpression(atom), original_expr)
+  }
 }
 
 /// Applies the distributive property to the given expression,
@@ -31,9 +55,24 @@ pub enum DistributivePropertyError {
 /// transposes the outermost expression into its `index`th argument
 /// without regard for the arithmetic validity of the result.
 pub fn distribute_over(expr: Expr, index: usize) -> Result<Expr, DistributivePropertyError> {
-  let (f, args) = as_compound_expr(expr)?;
-  let target_arg = args.get(index).ok_or_else(|| DistributivePropertyError::ArgumentOutOfBounds(index))?;
-  let (inner_f, inner_args) = as_compound_expr(target_arg.clone())?;
+  let (f, args) = match expr {
+    Expr::Call(f, args) => (f, args),
+    Expr::Atom(atom) => {
+      return Err(DistributivePropertyError::not_a_compound_expr(atom.clone(), Expr::from(atom)));
+    },
+  };
+  let target_arg = match args.get(index) {
+    Some(target_arg) => target_arg,
+    None => {
+      return Err(DistributivePropertyError::argument_out_of_bounds(index, Expr::call(f, args)));
+    },
+  };
+  let (inner_f, inner_args) = match target_arg.clone() {
+    Expr::Call(inner_f, inner_args) => (inner_f, inner_args),
+    Expr::Atom(inner_atom) => {
+      return Err(DistributivePropertyError::not_a_compound_expr(inner_atom, Expr::Call(f, args)));
+    },
+  };
   Ok(Expr::call(
     inner_f,
     inner_args
@@ -48,17 +87,9 @@ fn substitute_nth_arg<T>(mut args: Vec<T>, index: usize, new_arg: T) -> Vec<T> {
   args
 }
 
-fn as_compound_expr(expr: Expr) -> Result<(String, Vec<Expr>), DistributivePropertyError> {
-  match expr {
-    Expr::Atom(atom) => Err(DistributivePropertyError::NotACompoundExpression(atom)),
-    Expr::Call(f, args) => Ok((f, args)),
-  }
-}
-
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::expr::var::Var;
 
   #[test]
   fn test_substitute_nth() {
@@ -74,29 +105,6 @@ mod tests {
   fn test_substitute_nth_out_of_bounds() {
     let args = vec![10, 20, 30, 40, 50];
     substitute_nth_arg(args, 5, 100);
-  }
-
-  #[test]
-  fn test_as_compound_expr() {
-    let (f, args) = as_compound_expr(Expr::call("f", vec![Expr::from(0), Expr::from(1)])).unwrap();
-    assert_eq!(f, "f");
-    assert_eq!(args, vec![Expr::from(0), Expr::from(1)]);
-  }
-
-  #[test]
-  fn test_as_compound_expr_on_atoms() {
-    assert_eq!(
-      as_compound_expr(Expr::from(0)).unwrap_err(),
-      DistributivePropertyError::NotACompoundExpression(Atom::from(0)),
-    );
-    assert_eq!(
-      as_compound_expr(Expr::string("abc")).unwrap_err(),
-      DistributivePropertyError::NotACompoundExpression(Atom::String(String::from("abc"))),
-    );
-    assert_eq!(
-      as_compound_expr(Expr::var("x").unwrap()).unwrap_err(),
-      DistributivePropertyError::NotACompoundExpression(Atom::Var(Var::new("x").unwrap())),
-    );
   }
 
   #[test]
@@ -118,8 +126,8 @@ mod tests {
   fn test_distribute_over_on_atomic_expression() {
     let expr = Expr::from(9);
     assert_eq!(
-      distribute_over(expr, 0).unwrap_err(),
-      DistributivePropertyError::NotACompoundExpression(Atom::from(9)),
+      distribute_over(expr.clone(), 0).unwrap_err(),
+      DistributivePropertyError::not_a_compound_expr(Atom::from(9), expr),
     );
   }
 
@@ -130,8 +138,8 @@ mod tests {
       Expr::call("+", vec![Expr::var("x").unwrap(), Expr::var("y").unwrap()]),
     ]);
     assert_eq!(
-      distribute_over(expr, 0).unwrap_err(),
-      DistributivePropertyError::NotACompoundExpression(Atom::from(10)),
+      distribute_over(expr.clone(), 0).unwrap_err(),
+      DistributivePropertyError::not_a_compound_expr(Atom::from(10), expr),
     );
   }
 
@@ -142,8 +150,8 @@ mod tests {
       Expr::call("+", vec![Expr::var("x").unwrap(), Expr::var("y").unwrap()]),
     ]);
     assert_eq!(
-      distribute_over(expr, 2).unwrap_err(),
-      DistributivePropertyError::ArgumentOutOfBounds(2),
+      distribute_over(expr.clone(), 2).unwrap_err(),
+      DistributivePropertyError::argument_out_of_bounds(2, expr),
     );
   }
 }
