@@ -72,11 +72,11 @@ mod tests {
 
   #[test]
   fn test_simple_product() {
-    let expr = Expr::call("*", vec![Expr::from(1), Expr::from(2), var("x"), Expr::from(3)]);
+    let expr = Expr::call("*", vec![Expr::from(3), Expr::from(4), var("x"), Expr::from(5)]);
     let (new_expr, errors) = run_simplifier(&TermPartialSplitter::new(), expr);
     assert!(errors.is_empty());
     assert_eq!(new_expr, Expr::call("*", vec![
-      Expr::call("*", vec![Expr::from(1), Expr::from(2), Expr::from(3)]),
+      Expr::call("*", vec![Expr::from(3), Expr::from(4), Expr::from(5)]),
       var("x"),
     ]));
   }
@@ -93,7 +93,28 @@ mod tests {
     let (new_expr, errors) = run_simplifier(&TermPartialSplitter::new(), expr);
     assert!(errors.is_empty());
     assert_eq!(new_expr, Expr::call("*", vec![
-      Expr::call("*", vec![Expr::from(1), Expr::from(2), Expr::from(3)]),
+      Expr::call("*", vec![Expr::from(2), Expr::from(3)]), // Note: The 1 is eliminated from the numerator.
+      Expr::call("*", vec![var("x"), var("y")]),
+    ]));
+  }
+
+  #[test]
+  fn test_product_of_several_terms_with_a_one_in_denominator() {
+    let expr = Expr::call("/", vec![
+      Expr::call("*", vec![
+        Expr::from(1),
+        Expr::from(2),
+        var("x"),
+        Expr::from(3),
+        var("y"),
+      ]),
+      Expr::call("*", vec![Expr::from(1), Expr::from(1)]),
+    ]);
+    let (new_expr, errors) = run_simplifier(&TermPartialSplitter::new(), expr);
+    assert!(errors.is_empty());
+    // Note: All '1's are eliminated.
+    assert_eq!(new_expr, Expr::call("*", vec![
+      Expr::call("*", vec![Expr::from(2), Expr::from(3)]),
       Expr::call("*", vec![var("x"), var("y")]),
     ]));
   }
@@ -120,7 +141,7 @@ mod tests {
     assert!(errors.is_empty());
     assert_eq!(new_expr, Expr::call("*", vec![
       Expr::call("/", vec![
-        Expr::call("*", vec![Expr::from(1), Expr::from(2), Expr::from(3)]),
+        Expr::call("*", vec![Expr::from(2), Expr::from(3)]), // Note: The 1 is eliminated from the numerator.
         Expr::call("*", vec![Expr::from(4), Expr::from(5), Expr::from(6)]),
       ]),
       Expr::call("/", vec![
@@ -134,14 +155,14 @@ mod tests {
   fn test_fraction_with_all_terms_scalar() {
     let expr = Expr::call("/", vec![
       Expr::call("*", vec![
-        Expr::from(1),
         Expr::from(2),
         Expr::from(3),
+        Expr::from(4),
       ]),
       Expr::call("*", vec![
-        Expr::from(4),
         Expr::from(5),
         Expr::from(6),
+        Expr::from(7),
       ]),
     ]);
     let (new_expr, errors) = run_simplifier(&TermPartialSplitter::new(), expr.clone());
