@@ -2,7 +2,7 @@
 //! Defines a simplifier which uses the [`Term`] abstraction to
 //! perform simplification.
 //!
-//! See [`TermPartialEvaluator`] for more details.
+//! See [`TermPartialSplitter`] for more details.
 
 use crate::expr::algebra::term::TermParser;
 use crate::expr::predicates;
@@ -11,24 +11,24 @@ use super::base::{Simplifier, SimplifierContext};
 
 use num::One;
 
-/// `TermPartialEvaluator` is a [`Simplifier`] that translates the
+/// `TermPartialSplitter` is a [`Simplifier`] that translates the
 /// target expression into a [`Term`] and then tries to partially
 /// evaluate any numerical constants in the term.
 ///
 /// Translation into a `Term` has the immediate side benefit of
 /// simplifying nested fractions such as `1 / (1 / x)`.
 #[derive(Debug)]
-pub struct TermPartialEvaluator {
+pub struct TermPartialSplitter {
   _priv: (),
 }
 
-impl TermPartialEvaluator {
+impl TermPartialSplitter {
   pub fn new() -> Self {
     Self { _priv: () }
   }
 }
 
-impl Simplifier for TermPartialEvaluator {
+impl Simplifier for TermPartialSplitter {
   fn simplify_expr_part(&self, expr: Expr, _ctx: &mut SimplifierContext) -> Expr {
     let term = TermParser::new().parse(expr);
     let (literals, others) = term.partition_factors(is_valid_multiplicand);
@@ -64,7 +64,7 @@ mod tests {
   #[test]
   fn test_sum_doesnt_simplify() {
     let expr = Expr::call("+", vec![Expr::from(1), Expr::from(2)]);
-    let (new_expr, errors) = run_simplifier(&TermPartialEvaluator::new(), expr.clone());
+    let (new_expr, errors) = run_simplifier(&TermPartialSplitter::new(), expr.clone());
     assert!(errors.is_empty());
     assert_eq!(new_expr, expr);
   }
@@ -72,7 +72,7 @@ mod tests {
   #[test]
   fn test_simple_product() {
     let expr = Expr::call("*", vec![Expr::from(1), Expr::from(2), var("x"), Expr::from(3)]);
-    let (new_expr, errors) = run_simplifier(&TermPartialEvaluator::new(), expr);
+    let (new_expr, errors) = run_simplifier(&TermPartialSplitter::new(), expr);
     assert!(errors.is_empty());
     assert_eq!(new_expr, Expr::call("*", vec![
       Expr::call("*", vec![Expr::from(1), Expr::from(2), Expr::from(3)]),
@@ -89,7 +89,7 @@ mod tests {
       Expr::from(3),
       var("y"),
     ]);
-    let (new_expr, errors) = run_simplifier(&TermPartialEvaluator::new(), expr);
+    let (new_expr, errors) = run_simplifier(&TermPartialSplitter::new(), expr);
     assert!(errors.is_empty());
     assert_eq!(new_expr, Expr::call("*", vec![
       Expr::call("*", vec![Expr::from(1), Expr::from(2), Expr::from(3)]),
@@ -115,7 +115,7 @@ mod tests {
         var("t"),
       ]),
     ]);
-    let (new_expr, errors) = run_simplifier(&TermPartialEvaluator::new(), expr);
+    let (new_expr, errors) = run_simplifier(&TermPartialSplitter::new(), expr);
     assert!(errors.is_empty());
     assert_eq!(new_expr, Expr::call("*", vec![
       Expr::call("/", vec![
@@ -143,7 +143,7 @@ mod tests {
         Expr::from(6),
       ]),
     ]);
-    let (new_expr, errors) = run_simplifier(&TermPartialEvaluator::new(), expr.clone());
+    let (new_expr, errors) = run_simplifier(&TermPartialSplitter::new(), expr.clone());
     assert!(errors.is_empty());
     assert_eq!(new_expr, expr);
   }
@@ -157,7 +157,7 @@ mod tests {
       ]),
       var("y"),
     ]);
-    let (new_expr, errors) = run_simplifier(&TermPartialEvaluator::new(), expr.clone());
+    let (new_expr, errors) = run_simplifier(&TermPartialSplitter::new(), expr.clone());
     assert!(errors.is_empty());
     assert_eq!(new_expr, expr);
   }
