@@ -37,6 +37,10 @@ pub struct SimplifierContext<'a, 'b> {
 
 impl<'a, S> Simplifier for &'a S
 where S: Simplifier + ?Sized {
+  fn simplify_expr(&self, expr: Expr, ctx: &mut SimplifierContext) -> Expr {
+    (**self).simplify_expr(expr, ctx)
+  }
+
   fn simplify_expr_part(&self, expr: Expr, ctx: &mut SimplifierContext) -> Expr {
     (**self).simplify_expr_part(expr, ctx)
   }

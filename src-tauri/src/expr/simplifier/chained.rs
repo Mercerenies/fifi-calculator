@@ -26,8 +26,13 @@ impl ChainedSimplifier<'static, 'static> {
 }
 
 impl<'a, 'b> Simplifier for ChainedSimplifier<'a, 'b> {
-  fn simplify_expr_part(&self, expr: Expr, ctx: &mut SimplifierContext) -> Expr {
+  fn simplify_expr(&self, expr: Expr, ctx: &mut SimplifierContext) -> Expr {
     let expr = self.left.simplify_expr(expr, ctx);
     self.right.simplify_expr(expr, ctx)
+  }
+
+  fn simplify_expr_part(&self, expr: Expr, ctx: &mut SimplifierContext) -> Expr {
+    let expr = self.left.simplify_expr_part(expr, ctx);
+    self.right.simplify_expr_part(expr, ctx)
   }
 }
