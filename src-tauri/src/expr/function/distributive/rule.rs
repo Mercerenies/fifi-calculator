@@ -61,6 +61,18 @@ impl DistributiveRule {
     self
   }
 
+  pub fn outer_operator(&self) -> &str {
+    &self.outer_operator
+  }
+
+  pub fn inner_operator(&self) -> &str {
+    &self.inner_operator
+  }
+
+  pub fn side(&self) -> Side {
+    self.side
+  }
+
   /// Returns true if this distributive rule can be applied to the
   /// outermost call in the given expression, at the given index.
   ///

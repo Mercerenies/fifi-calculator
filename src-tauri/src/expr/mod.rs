@@ -183,6 +183,15 @@ impl Expr {
       Expr::Call(_, args) => args.len(),
     }
   }
+
+  /// The head of this expression. If this expression is an atom, then
+  /// this method returns `None`.
+  pub fn head(&self) -> Option<&str> {
+    match self {
+      Expr::Atom(_) => None,
+      Expr::Call(name, _) => Some(name.as_str()),
+    }
+  }
 }
 
 impl TryFromExprError {

@@ -16,14 +16,17 @@ pub use base::{Simplifier, SimplifierContext};
 
 use crate::expr::Expr;
 use crate::expr::function::table::FunctionTable;
+use crate::expr::function::distributive::{DistributiveRuleSimplifier, DistributiveRuleset};
 use repeated::RepeatedSimplifier;
 use unicode::UnicodeSimplifier;
 
-#[derive(Debug)]
 struct DefaultSimplifier<'a> {
   function_table: &'a FunctionTable,
-  // We store this one in advance since it's nontrivial to construct.
+  // We store these in advance since they're nontrivial to construct.
+  // The others all have trivial constructors, so we create them
+  // during `simplify_expr_part`'s body.
   unicode_simplifier: UnicodeSimplifier,
+  distributive_rule_simplifier: DistributiveRuleSimplifier,
 }
 
 // This could technically be built up as a ChainedSimplifier, but
@@ -36,6 +39,7 @@ impl<'a> Simplifier for DefaultSimplifier<'a> {
     expr = self.unicode_simplifier.simplify_expr_part(expr, ctx);
     expr = partial::IdentityRemover::new(self.function_table).simplify_expr_part(expr, ctx);
     expr = flattener::FunctionFlattener::new(self.function_table).simplify_expr_part(expr, ctx);
+    expr = self.distributive_rule_simplifier.simplify_expr_part(expr, ctx);
     expr = term::TermPartialSplitter::new().simplify_expr_part(expr, ctx);
     expr = evaluator::FunctionEvaluator::new(self.function_table).simplify_expr_part(expr, ctx);
     expr = interval::IntervalNormalizer::new().simplify_expr_part(expr, ctx);
@@ -50,6 +54,7 @@ pub fn default_simplifier(function_table: &FunctionTable) -> Box<dyn Simplifier 
   let default_simplifier = DefaultSimplifier {
     function_table,
     unicode_simplifier: UnicodeSimplifier::from_common_aliases(),
+    distributive_rule_simplifier: DistributiveRuleSimplifier::new(DistributiveRuleset::from_common_rules()),
   };
   Box::new(RepeatedSimplifier::new(default_simplifier, 5))
 }
