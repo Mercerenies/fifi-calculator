@@ -21,6 +21,7 @@ use std::fmt::{self, Write, Display, Formatter};
 use std::str::FromStr;
 use std::{ops, iter};
 use std::cmp::Ordering;
+use std::hash::{Hash, Hasher};
 use std::convert::TryFrom;
 
 /// General-purpose real number type, capable of automatically
@@ -556,6 +557,30 @@ impl UlpsEq for Number {
   }
 }
 
+impl Hash for Number {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    if let Some(f) = self.to_f64() {
+      // If it's possible to represent as an f64, use that
+      // representation.
+      f.to_bits().hash(state);
+    } else {
+      // Otherwise, it's always possible to treat the number as
+      // rational, so use that.
+      match &self.inner {
+        NumberImpl::Integer(i) => {
+          i.hash(state);
+          BigInt::one().hash(state);
+        }
+        NumberImpl::Ratio(r) => {
+          r.numer().hash(state);
+          r.denom().hash(state);
+        }
+        NumberImpl::Float(_) => unreachable!()
+      }
+    }
+  }
+}
+
 impl PartialOrd for Number {
   fn partial_cmp(&self, other: &Number) -> Option<Ordering> {
     Some(self.cmp(other))
@@ -892,10 +917,17 @@ mod tests {
   use crate::{assert_strict_eq, assert_strict_ne};
 
   use approx::assert_abs_diff_eq;
-
   use num::bigint::Sign;
 
+  use std::collections::hash_map::DefaultHasher;
+
   // TODO Missing tests: PartialOrd, to_f64, Signed
+
+  fn hash(number: Number) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    number.hash(&mut hasher);
+    hasher.finish()
+  }
 
   fn roundtrip_display(number: Number) -> Number {
     Number::from_str(&number.to_string()).unwrap()
@@ -1203,5 +1235,35 @@ mod tests {
     assert_eq!(Number::from(1.25).to_string_radix(Radix::BINARY), "2#1.01");
     assert_eq!(Number::from(0.25).to_string_radix(Radix::BINARY), "2#0.01");
     assert_eq!(Number::from(-0.25).to_string_radix(Radix::BINARY), "-2#0.01");
+  }
+
+  #[test]
+  fn test_hash_reprs() {
+    // Test that `Hash` respects `PartialEq` for things that should
+    // promote.
+
+    // Zeroes
+    assert_eq!(hash(Number::from(0)), hash(Number::ratio(0, 1)));
+    assert_eq!(hash(Number::from(0)), hash(Number::ratio(0, 2)));
+    assert_eq!(hash(Number::from(0)), hash(Number::from(0.0)));
+
+    // Small integers
+    assert_eq!(hash(Number::from(3)), hash(Number::ratio(3, 1)));
+    assert_eq!(hash(Number::from(3)), hash(Number::ratio(-3, -1)));
+    assert_eq!(hash(Number::from(3)), hash(Number::from(3.0)));
+    assert_eq!(hash(Number::from(-3)), hash(Number::ratio(-3, 1)));
+    assert_eq!(hash(Number::from(-3)), hash(Number::ratio(3, -1)));
+    assert_eq!(hash(Number::from(-3)), hash(Number::from(-3.0)));
+
+    // Small rationals
+    assert_eq!(hash(Number::ratio(7, 2)), hash(Number::from(3.5)));
+    assert_eq!(hash(Number::ratio(-1, 2)), hash(Number::from(-0.5)));
+
+    // Large integers
+    let big_int = BigInt::parse_bytes(b"12345678901234567890123456789012345678901234567890", 10).unwrap();
+    assert_eq!(
+      hash(Number::from(big_int.clone())),
+      hash(Number::ratio(big_int, 1)),
+    );
   }
 }
