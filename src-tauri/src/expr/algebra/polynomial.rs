@@ -185,7 +185,7 @@ mod tests {
     assert_eq!(
       parse_polynomial(&term_parser, expr),
       Polynomial { terms: vec![
-        SignedTerm::new(Sign::Positive, term_parser.from_parts([Expr::from(99)], [])),
+        SignedTerm::new(Sign::Positive, term_parser.from_numerator([Expr::from(99)])),
       ] },
     );
   }
@@ -197,7 +197,7 @@ mod tests {
     assert_eq!(
       parse_polynomial(&term_parser, expr),
       Polynomial { terms: vec![
-        SignedTerm::new(Sign::Negative, term_parser.from_parts([Expr::from(99)], [])),
+        SignedTerm::new(Sign::Negative, term_parser.from_numerator([Expr::from(99)])),
       ] },
     );
   }
@@ -209,9 +209,9 @@ mod tests {
     assert_eq!(
       parse_polynomial(&term_parser, expr),
       Polynomial { terms: vec![
-        SignedTerm::new(Sign::Positive, term_parser.from_parts([Expr::from(10)], [])),
-        SignedTerm::new(Sign::Positive, term_parser.from_parts([Expr::from(20)], [])),
-        SignedTerm::new(Sign::Positive, term_parser.from_parts([Expr::from(30)], [])),
+        SignedTerm::new(Sign::Positive, term_parser.from_numerator([Expr::from(10)])),
+        SignedTerm::new(Sign::Positive, term_parser.from_numerator([Expr::from(20)])),
+        SignedTerm::new(Sign::Positive, term_parser.from_numerator([Expr::from(30)])),
       ] },
     );
   }
@@ -223,8 +223,8 @@ mod tests {
     assert_eq!(
       parse_polynomial(&term_parser, expr),
       Polynomial { terms: vec![
-        SignedTerm::new(Sign::Positive, term_parser.from_parts([Expr::from(10)], [])),
-        SignedTerm::new(Sign::Negative, term_parser.from_parts([Expr::from(20)], [])),
+        SignedTerm::new(Sign::Positive, term_parser.from_numerator([Expr::from(10)])),
+        SignedTerm::new(Sign::Negative, term_parser.from_numerator([Expr::from(20)])),
       ] },
     );
   }
@@ -245,14 +245,14 @@ mod tests {
     assert_eq!(
       parse_polynomial(&term_parser, expr),
       Polynomial { terms: vec![
-        SignedTerm::new(Sign::Positive, term_parser.from_parts([Expr::from(10)], [])),
-        SignedTerm::new(Sign::Positive, term_parser.from_parts([Expr::from(20)], [])),
-        SignedTerm::new(Sign::Positive, term_parser.from_parts([Expr::from(30)], [])),
-        SignedTerm::new(Sign::Negative, term_parser.from_parts([Expr::from(40)], [])),
-        SignedTerm::new(Sign::Positive, term_parser.from_parts([Expr::from(50)], [])),
-        SignedTerm::new(Sign::Positive, term_parser.from_parts([Expr::from(60)], [])),
-        SignedTerm::new(Sign::Negative, term_parser.from_parts([Expr::from(70)], [])),
-        SignedTerm::new(Sign::Negative, term_parser.from_parts([Expr::from(80)], [])),
+        SignedTerm::new(Sign::Positive, term_parser.from_numerator([Expr::from(10)])),
+        SignedTerm::new(Sign::Positive, term_parser.from_numerator([Expr::from(20)])),
+        SignedTerm::new(Sign::Positive, term_parser.from_numerator([Expr::from(30)])),
+        SignedTerm::new(Sign::Negative, term_parser.from_numerator([Expr::from(40)])),
+        SignedTerm::new(Sign::Positive, term_parser.from_numerator([Expr::from(50)])),
+        SignedTerm::new(Sign::Positive, term_parser.from_numerator([Expr::from(60)])),
+        SignedTerm::new(Sign::Negative, term_parser.from_numerator([Expr::from(70)])),
+        SignedTerm::new(Sign::Negative, term_parser.from_numerator([Expr::from(80)])),
       ] },
     );
   }

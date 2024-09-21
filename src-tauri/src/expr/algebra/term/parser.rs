@@ -60,15 +60,29 @@ impl TermParser {
   }
 
   pub fn from_parts<I1, I2>(&self, numerator: I1, denominator: I2) -> Term
-  where I1: IntoIterator<Item=Expr>,
-        I2: IntoIterator<Item=Expr> {
+  where I1: IntoIterator,
+        I2: IntoIterator,
+        I1::Item: Into<Expr>,
+        I2::Item: Into<Expr> {
     let numerator = numerator.into_iter()
-      .map(|expr| self.parse(expr))
+      .map(|expr| self.parse(expr.into()))
       .fold(Term::one(), |acc, x| acc * x);
     let denominator = denominator.into_iter()
-      .map(|expr| self.parse(expr))
+      .map(|expr| self.parse(expr.into()))
       .fold(Term::one(), |acc, x| acc * x);
     numerator / denominator
+  }
+
+  pub fn from_numerator<I1>(&self, numerator: I1) -> Term
+  where I1: IntoIterator,
+        I1::Item: Into<Expr> {
+    self.from_parts(numerator, Vec::<Expr>::new())
+  }
+
+  pub fn from_denominator<I2>(&self, denominator: I2) -> Term
+  where I2: IntoIterator,
+        I2::Item: Into<Expr> {
+    self.from_parts(Vec::<Expr>::new(), denominator)
   }
 }
 
