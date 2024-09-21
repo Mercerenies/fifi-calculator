@@ -18,6 +18,9 @@
 //!
 //! * Variables which do NOT represent infinity constants are sorted
 //! alphabetically.
+//!
+//! * Variables which do NOT represent infinity constants are greater
+//! than any real number or infinity constant.
 
 use super::Expr;
 use super::var::Var;

@@ -88,21 +88,22 @@ fn group_and_sort_factors(factors: Vec<Factor>) -> Vec<Factor> {
     .into_group_map();
   let mut factors: Vec<_> = grouped_factors.into_iter()
     .map(|(base, exponents)| {
-      // flatten() out the nested `Option`s, removing any case where
-      // the factor lacked an exponent.
-      let exponents = exponents.into_iter().flatten().collect();
-      Factor::from_parts(base, product(exponents))
+      let exponents = exponents.into_iter()
+        .map(|e| e.unwrap_or_else(Expr::one))
+        .collect();
+      Factor::from_parts(base, sum(exponents))
+        .simplify_trivial_powers()
     })
     .collect();
   factors.sort_by(|a, b| cmp_expr(a.base(), b.base()));
   factors
 }
 
-fn product(mut exprs: Vec<Expr>) -> Option<Expr> {
+fn sum(mut exprs: Vec<Expr>) -> Option<Expr> {
   match exprs.len() {
     0 => None,
     1 => Some(exprs.swap_remove(0)),
-    _ => Some(Expr::call("*", exprs)),
+    _ => Some(Expr::call("+", exprs)),
   }
 }
 
@@ -117,7 +118,7 @@ mod tests {
   }
 
   #[test]
-  fn test_sum_doesnt_simplify() {
+  fn test_sum_doesnt_simplify_with_splitter() {
     let expr = Expr::call("+", vec![Expr::from(1), Expr::from(2)]);
     let (new_expr, errors) = run_simplifier(&TermPartialSplitter::new(), expr.clone());
     assert!(errors.is_empty());
@@ -125,7 +126,7 @@ mod tests {
   }
 
   #[test]
-  fn test_simple_product() {
+  fn test_partial_splitter_on_simple_product() {
     let expr = Expr::call("*", vec![Expr::from(3), Expr::from(4), var("x"), Expr::from(5)]);
     let (new_expr, errors) = run_simplifier(&TermPartialSplitter::new(), expr);
     assert!(errors.is_empty());
@@ -136,7 +137,7 @@ mod tests {
   }
 
   #[test]
-  fn test_product_of_several_terms() {
+  fn test_partial_splitter_on_product_of_several_terms() {
     let expr = Expr::call("*", vec![
       Expr::from(1),
       Expr::from(2),
@@ -153,7 +154,7 @@ mod tests {
   }
 
   #[test]
-  fn test_product_of_several_terms_with_a_one_in_denominator() {
+  fn test_split_on_product_of_several_terms_with_a_one_in_denominator() {
     let expr = Expr::call("/", vec![
       Expr::call("*", vec![
         Expr::from(1),
@@ -174,7 +175,7 @@ mod tests {
   }
 
   #[test]
-  fn test_fraction_partial_evaluation() {
+  fn test_fraction_partial_split_evaluation() {
     let expr = Expr::call("/", vec![
       Expr::call("*", vec![
         Expr::from(1),
@@ -206,7 +207,7 @@ mod tests {
   }
 
   #[test]
-  fn test_fraction_with_all_terms_scalar() {
+  fn test_fraction_partial_split_with_all_terms_scalar() {
     let expr = Expr::call("/", vec![
       Expr::call("*", vec![
         Expr::from(2),
@@ -225,7 +226,7 @@ mod tests {
   }
 
   #[test]
-  fn test_fraction_with_all_terms_non_scalar() {
+  fn test_fraction_partial_split_with_all_terms_non_scalar() {
     let expr = Expr::call("/", vec![
       Expr::call("*", vec![
         var("x"),
@@ -236,5 +237,26 @@ mod tests {
     let (new_expr, errors) = run_simplifier(&TermPartialSplitter::new(), expr.clone());
     assert!(errors.is_empty());
     assert_eq!(new_expr, expr);
+  }
+
+  #[test]
+  fn test_factor_sorter_on_product() {
+    let expr = Expr::call("*", vec![
+      Expr::call("^", vec![var("x"), Expr::from(2)]),
+      var("y"),
+      var("x"),
+      var("y"),
+      var("z"),
+      Expr::call("^", vec![var("x"), Expr::from(2)]),
+      Expr::call("^", vec![var("t"), Expr::from(1)]),
+    ]);
+    let (new_expr, errors) = run_simplifier(&FactorSorter::new(), expr);
+    assert!(errors.is_empty());
+    assert_eq!(new_expr, Expr::call("*", vec![
+      var("t"),
+      Expr::call("^", vec![var("x"), Expr::call("+", vec![Expr::from(2), Expr::from(1), Expr::from(2)])]),
+      Expr::call("^", vec![var("y"), Expr::call("+", vec![Expr::from(1), Expr::from(1)])]),
+      var("z"),
+    ]));
   }
 }
