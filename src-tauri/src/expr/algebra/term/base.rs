@@ -2,6 +2,7 @@
 use crate::expr::Expr;
 use crate::expr::number::Number;
 use crate::units::convertible::TemperatureConvertible;
+use crate::expr::algebra::factor::Factor;
 use super::parser::TermParser;
 
 use num::One;
@@ -50,6 +51,12 @@ impl Term {
 
   pub fn into_parts(self) -> (Vec<Expr>, Vec<Expr>) {
     (self.numerator, self.denominator)
+  }
+
+  pub fn into_parts_as_factors(self) -> (Vec<Factor>, Vec<Factor>) {
+    let numerator = self.numerator.into_iter().map(Factor::parse).collect();
+    let denominator = self.denominator.into_iter().map(Factor::parse).collect();
+    (numerator, denominator)
   }
 
   pub fn into_numerator(self) -> Vec<Expr> {

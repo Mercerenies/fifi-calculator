@@ -1,6 +1,7 @@
 
 //! Helpers for manipulating expressions algebraically.
 
+pub mod factor;
 pub mod formula;
 pub mod infinity;
 pub mod root_finding;

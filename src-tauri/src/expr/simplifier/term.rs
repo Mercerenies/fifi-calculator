@@ -1,15 +1,18 @@
 
-//! Defines a simplifier which uses the [`Term`] abstraction to
-//! perform simplification.
+//! Defines simplifiers which use the [`Term`] abstraction to perform
+//! simplification.
 //!
-//! See [`TermPartialSplitter`] for more details.
+//! See [`TermPartialSplitter`] and [`FactorSorter`] for more details.
 
 use crate::expr::algebra::term::TermParser;
+use crate::expr::algebra::factor::Factor;
 use crate::expr::predicates;
 use crate::expr::Expr;
+use crate::expr::ordering::cmp_expr;
 use super::base::{Simplifier, SimplifierContext};
 
 use num::One;
+use itertools::Itertools;
 
 /// `TermPartialSplitter` is a [`Simplifier`] that translates the
 /// target expression into a [`Term`] and then tries to partially
@@ -22,7 +25,22 @@ pub struct TermPartialSplitter {
   _priv: (),
 }
 
+/// `FactorSorter` is a [`Simplifier`] that orders the factors in the
+/// numerator and denominator of a term according to a sensible and
+/// canonical ordering. This simplifier also groups factors with the
+/// same exponential base.
+#[derive(Debug, Default)]
+pub struct FactorSorter {
+  _priv: (),
+}
+
 impl TermPartialSplitter {
+  pub fn new() -> Self {
+    Self { _priv: () }
+  }
+}
+
+impl FactorSorter {
   pub fn new() -> Self {
     Self { _priv: () }
   }
@@ -43,6 +61,18 @@ impl Simplifier for TermPartialSplitter {
   }
 }
 
+impl Simplifier for FactorSorter {
+  fn simplify_expr_part(&self, expr: Expr, _ctx: &mut SimplifierContext) -> Expr {
+    let term_parser = TermParser::new();
+    let term = term_parser.parse(expr);
+    let (numer, denom) = term.into_parts_as_factors();
+    let numer = group_and_sort_factors(numer);
+    let denom = group_and_sort_factors(denom);
+    // TODO Resolve common factors in the numer and denom.
+    term_parser.from_parts(numer, denom).into()
+  }
+}
+
 /// Returns true if the expression can be simplified by multiplication
 /// and division. This function corresponds exactly to the partial
 /// evaluation rules on the multiplication operator.
@@ -50,6 +80,30 @@ fn is_valid_multiplicand(expr: &Expr) -> bool {
   predicates::is_tensor(expr) ||
     predicates::is_complex_or_inf(expr) ||
     predicates::is_unbounded_interval_like(expr)
+}
+
+fn group_and_sort_factors(factors: Vec<Factor>) -> Vec<Factor> {
+  let grouped_factors = factors.into_iter()
+    .map(Factor::into_parts)
+    .into_group_map();
+  let mut factors: Vec<_> = grouped_factors.into_iter()
+    .map(|(base, exponents)| {
+      // flatten() out the nested `Option`s, removing any case where
+      // the factor lacked an exponent.
+      let exponents = exponents.into_iter().flatten().collect();
+      Factor::from_parts(base, product(exponents))
+    })
+    .collect();
+  factors.sort_by(|a, b| cmp_expr(a.base(), b.base()));
+  factors
+}
+
+fn product(mut exprs: Vec<Expr>) -> Option<Expr> {
+  match exprs.len() {
+    0 => None,
+    1 => Some(exprs.swap_remove(0)),
+    _ => Some(Expr::call("*", exprs)),
+  }
 }
 
 #[cfg(test)]
