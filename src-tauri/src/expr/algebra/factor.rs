@@ -30,6 +30,14 @@ impl Factor {
     self.exponent.as_ref()
   }
 
+  pub fn exponent_mut(&mut self) -> &mut Option<Expr> {
+    &mut self.exponent
+  }
+
+  pub fn exponent_or_one(&self) -> Expr {
+    self.exponent.clone().unwrap_or_else(Expr::one)
+  }
+
   pub fn has_exponent(&self) -> bool {
     self.exponent.is_some()
   }
