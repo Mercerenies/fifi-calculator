@@ -7,7 +7,7 @@ use serde::{Serialize, Deserialize};
 use num::{Zero, One};
 use num::pow::Pow;
 
-use std::ops::{Add, Sub, Mul, Div};
+use std::ops::{Add, Sub, Mul, Div, Neg};
 
 /// This struct forms a thin wrapper around [`Expr`] and can be used
 /// in arithmetic expressions, such as `+` and `*`.
@@ -231,6 +231,18 @@ impl Pow<Number> for ArithExpr {
 
   fn pow(self, rhs: Number) -> Self::Output {
     self.pow(ArithExpr::from(rhs))
+  }
+}
+
+impl Neg for ArithExpr {
+  type Output = ArithExpr;
+
+  fn neg(self) -> Self::Output {
+    if self.is_real() {
+      ArithExpr::from(- self.unwrap_real())
+    } else {
+      ArithExpr::call("negate", vec![self])
+    }
   }
 }
 
