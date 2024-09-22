@@ -843,6 +843,7 @@ pub fn floor_division() -> Function {
 
 pub fn arithmetic_negate() -> Function {
   FunctionBuilder::new("negate")
+    .mark_as_involution()
     .add_case(
       // Real number negation
       builder::arity_one().of_type(expr_to_number()).and_then(|arg, _| {
@@ -893,6 +894,7 @@ pub fn arithmetic_negate() -> Function {
 
 pub fn reciprocal() -> Function {
   FunctionBuilder::new("recip")
+    .mark_as_involution()
     .add_case(
       // Real / Complex number reciprocal
       builder::arity_one().of_type(ExprToComplex).and_then(|arg, ctx| {

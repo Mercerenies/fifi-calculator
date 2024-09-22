@@ -25,6 +25,7 @@ pub fn append_complex_functions(table: &mut FunctionTable) {
 
 pub fn conjugate() -> Function {
   FunctionBuilder::new("conj")
+    .mark_as_involution()
     .add_case(
       // Conjugate of a real number (identity function)
       builder::arity_one().of_type(prisms::expr_to_number()).and_then(|arg, _| {

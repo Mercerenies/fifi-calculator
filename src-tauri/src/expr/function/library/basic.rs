@@ -16,6 +16,7 @@ pub fn append_basic_functions(table: &mut FunctionTable) {
 
 pub fn identity_function() -> Function {
   FunctionBuilder::new("identity")
+    .mark_as_involution()
     .add_case(
       builder::arity_one().and_then(|arg, _| Ok(arg))
     )

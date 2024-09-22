@@ -485,7 +485,14 @@ pub fn grade_vector_reversed() -> Function {
 }
 
 pub fn transpose() -> Function {
+  // Note: Technically, the double transpose of a vector will produce
+  // a 1xN matrix, not the original vector. But the transpose
+  // operation is mathematically an involution (on appropriate
+  // domains) and is close enough in spirit to one here, so we mark it
+  // as an involution. If you write `transpose(transpose(X))`, you
+  // almost certainly meant for it to be equal to `X`.
   FunctionBuilder::new("transpose")
+    .mark_as_involution()
     .add_case(
       // Matrix transpose
       builder::arity_one().of_type(prisms::expr_to_matrix()).and_then(|mat, _| {
@@ -503,6 +510,7 @@ pub fn transpose() -> Function {
 
 pub fn reverse() -> Function {
   FunctionBuilder::new("reverse")
+    .mark_as_involution()
     .add_case(
       // Vector reverse
       builder::arity_one().of_type(prisms::ExprToVector).and_then(|mut vec, _| {
