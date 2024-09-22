@@ -22,5 +22,11 @@ bitflags! {
     /// This is a generalization of the binary commutativity property,
     /// but this flag applies to functions of any arity.
     const PERMITS_REORDERING = 0b0010;
+    /// Functions with this flag are known to be involutions.
+    /// Specifically, if `f` is a function with this flag, then
+    /// `f(f(x))` can simplify to `x`, regardless of the value of `x`.
+    /// This flag will only be used to simplify unary applications of
+    /// the function.
+    const IS_INVOLUTION = 0b0100;
   }
 }

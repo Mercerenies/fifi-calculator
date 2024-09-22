@@ -126,17 +126,26 @@ impl FunctionBuilder {
     self
   }
 
-  /// Enables the [`PERMITS_FLATTENING`](FunctionFlags::PERMITS_FLATTENING)
-  /// flag for `self`.
+  /// Enables the
+  /// [`PERMITS_FLATTENING`](FunctionFlags::PERMITS_FLATTENING) flag
+  /// for `self`.
   pub fn permit_flattening(mut self) -> Self {
     self.flags |= FunctionFlags::PERMITS_FLATTENING;
     self
   }
 
-  /// Enables the [`PERMITS_REORDERING`]( consequat::PERMITS_REORDERING)
-  /// flag for `self`.
+  /// Enables the
+  /// [`PERMITS_REORDERING`](FunctionFlags::PERMITS_REORDERING) flag
+  /// for `self`.
   pub fn permit_reordering(mut self) -> Self {
     self.flags |= FunctionFlags::PERMITS_REORDERING;
+    self
+  }
+
+  /// Enables the [`IS_INVOLUTION`](FunctionFlags::IS_INVOLUTION) flag
+  /// for `self`.
+  pub fn mark_as_involution(mut self) -> Self {
+    self.flags |= FunctionFlags::IS_INVOLUTION;
     self
   }
 
