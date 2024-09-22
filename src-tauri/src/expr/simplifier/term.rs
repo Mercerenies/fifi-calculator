@@ -112,7 +112,7 @@ fn sum(mut exprs: Vec<Expr>) -> Option<Expr> {
 // Assumes numer and denom are sorted according to `cmp_factor`.
 // Searches for terms with a common base and combines them into the
 // numerator.
-fn move_common_terms_to_numer(numer: &mut Vec<Factor>, denom: &mut Vec<Factor>) {
+fn move_common_terms_to_numer(numer: &mut [Factor], denom: &mut Vec<Factor>) {
   let mut i = 0;
   let mut j = 0;
   while i < numer.len() && j < denom.len() {
