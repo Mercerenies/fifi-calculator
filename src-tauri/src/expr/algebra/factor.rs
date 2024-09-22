@@ -69,10 +69,10 @@ impl Factor {
   /// Constructs a [`Factor`] from its constituent parts. Note that if
   /// `base` is itself a binary application of the `^` operator, then
   /// this method will parse that expression as part of the factor.
-  pub fn from_parts(base: Expr, exponent: Option<Expr>) -> Self {
+  pub fn from_parts(base: Expr, exponent: Option<impl Into<Expr>>) -> Self {
     let mut result = Self::parse(base);
     if let Some(e) = exponent {
-      result = result.pow(e);
+      result = result.pow(e.into());
     }
     result
   }

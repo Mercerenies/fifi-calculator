@@ -6,6 +6,7 @@
 
 use crate::expr::algebra::term::TermParser;
 use crate::expr::algebra::factor::Factor;
+use crate::expr::arithmetic::ArithExpr;
 use crate::expr::predicates;
 use crate::expr::Expr;
 use crate::expr::ordering::cmp_expr;
@@ -93,20 +94,12 @@ fn group_and_sort_factors(factors: Vec<Factor>) -> Vec<Factor> {
       let exponents = exponents.into_iter()
         .map(|e| e.unwrap_or_else(Expr::one))
         .collect();
-      Factor::from_parts(base, sum(exponents))
+      Factor::from_parts(base, Some(ArithExpr::sum(exponents)))
         .simplify_trivial_powers()
     })
     .collect();
   factors.sort_by(cmp_factor);
   factors
-}
-
-fn sum(mut exprs: Vec<Expr>) -> Option<Expr> {
-  match exprs.len() {
-    0 => None,
-    1 => Some(exprs.swap_remove(0)),
-    _ => Some(Expr::call("+", exprs)),
-  }
 }
 
 // Assumes numer and denom are sorted according to `cmp_factor`.
