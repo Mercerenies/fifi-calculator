@@ -1,5 +1,6 @@
 
 use crate::expr::Expr;
+use crate::expr::arithmetic::ArithExpr;
 
 use num::pow::Pow;
 
@@ -100,15 +101,23 @@ impl From<Expr> for Factor {
   }
 }
 
+impl Pow<ArithExpr> for Factor {
+  type Output = Factor;
+
+  fn pow(mut self, rhs: ArithExpr) -> Self {
+    self.exponent = match self.exponent {
+      None => Some(rhs.into()),
+      Some(e) => Some((e * rhs).into()),
+    };
+    self
+  }
+}
+
 impl Pow<Expr> for Factor {
   type Output = Factor;
 
-  fn pow(mut self, rhs: Expr) -> Self {
-    self.exponent = match self.exponent {
-      None => Some(rhs),
-      Some(e) => Some(Expr::call("*", vec![e, rhs])),
-    };
-    self
+  fn pow(self, rhs: Expr) -> Self {
+    self.pow(ArithExpr::from(rhs))
   }
 }
 
@@ -153,10 +162,20 @@ mod tests {
   fn test_factor_from_expr_with_nested_power() {
     let factor = Factor::from(Expr::call("^", vec![
       Expr::call("^", vec![Expr::from(10), Expr::from(20)]),
+      Expr::var("x").unwrap(),
+    ]));
+    assert_eq!(factor.base, Expr::from(10));
+    assert_eq!(factor.exponent, Some(Expr::call("*", vec![Expr::from(20), Expr::var("x").unwrap()])));
+  }
+
+  #[test]
+  fn test_factor_from_expr_with_nested_power_and_all_powers_numerical() {
+    let factor = Factor::from(Expr::call("^", vec![
+      Expr::call("^", vec![Expr::from(10), Expr::from(20)]),
       Expr::from(30),
     ]));
     assert_eq!(factor.base, Expr::from(10));
-    assert_eq!(factor.exponent, Some(Expr::call("*", vec![Expr::from(20), Expr::from(30)])));
+    assert_eq!(factor.exponent, Some(Expr::from(600)));
   }
 
   #[test]

@@ -200,6 +200,31 @@ impl Div for ArithExpr {
   }
 }
 
+macro_rules! impl_mixed_arith {
+  (impl $trait: ident for ArithExpr { fn $method: ident };) => {
+    impl $trait<Expr> for ArithExpr {
+      type Output = ArithExpr;
+
+      fn $method(self, rhs: Expr) -> Self::Output {
+        ArithExpr::$method(self, ArithExpr::from(rhs))
+      }
+    }
+
+    impl $trait<ArithExpr> for Expr {
+      type Output = ArithExpr;
+
+      fn $method(self, rhs: ArithExpr) -> Self::Output {
+        ArithExpr::$method(ArithExpr::from(self), rhs)
+      }
+    }
+  }
+}
+
+impl_mixed_arith! { impl Add for ArithExpr { fn add }; }
+impl_mixed_arith! { impl Sub for ArithExpr { fn sub }; }
+impl_mixed_arith! { impl Mul for ArithExpr { fn mul }; }
+impl_mixed_arith! { impl Div for ArithExpr { fn div }; }
+
 #[cfg(test)]
 mod tests {
   use super::*;
