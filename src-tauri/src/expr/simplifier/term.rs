@@ -14,6 +14,8 @@ use super::base::{Simplifier, SimplifierContext};
 use num::One;
 use itertools::Itertools;
 
+use std::cmp::Ordering;
+
 /// `TermPartialSplitter` is a [`Simplifier`] that translates the
 /// target expression into a [`Term`] and then tries to partially
 /// evaluate any numerical constants in the term.
@@ -66,9 +68,9 @@ impl Simplifier for FactorSorter {
     let term_parser = TermParser::new();
     let term = term_parser.parse(expr);
     let (numer, denom) = term.into_parts_as_factors();
-    let numer = group_and_sort_factors(numer);
-    let denom = group_and_sort_factors(denom);
-    // TODO Resolve common factors in the numer and denom.
+    let mut numer = group_and_sort_factors(numer);
+    let mut denom = group_and_sort_factors(denom);
+    move_common_terms_to_numer(&mut numer, &mut denom);
     term_parser.from_parts(numer, denom).into()
   }
 }
@@ -95,7 +97,7 @@ fn group_and_sort_factors(factors: Vec<Factor>) -> Vec<Factor> {
         .simplify_trivial_powers()
     })
     .collect();
-  factors.sort_by(|a, b| cmp_expr(a.base(), b.base()));
+  factors.sort_by(cmp_factor);
   factors
 }
 
@@ -105,6 +107,39 @@ fn sum(mut exprs: Vec<Expr>) -> Option<Expr> {
     1 => Some(exprs.swap_remove(0)),
     _ => Some(Expr::call("+", exprs)),
   }
+}
+
+// Assumes numer and denom are sorted according to `cmp_factor`.
+// Searches for terms with a common base and combines them into the
+// numerator.
+fn move_common_terms_to_numer(numer: &mut Vec<Factor>, denom: &mut Vec<Factor>) {
+  let mut i = 0;
+  let mut j = 0;
+  while i < numer.len() && j < denom.len() {
+    match cmp_factor(&numer[i], &denom[j]) {
+      Ordering::Less => {
+        i += 1;
+      }
+      Ordering::Greater => {
+        j += 1;
+      }
+      Ordering::Equal => {
+        // We found two factors with the same base. Move them to the
+        // numerator and group the exponents.
+        let numer_exp = numer[i].exponent_mut();
+        *numer_exp = Some(Expr::call("-", vec![
+          numer_exp.clone().unwrap_or_else(Expr::one),
+          denom[j].exponent_or_one(),
+        ]));
+        i += 1;
+        denom.remove(j);
+      }
+    }
+  }
+}
+
+fn cmp_factor(a: &Factor, b: &Factor) -> std::cmp::Ordering {
+  cmp_expr(a.base(), b.base())
 }
 
 #[cfg(test)]
@@ -257,6 +292,53 @@ mod tests {
       Expr::call("^", vec![var("x"), Expr::call("+", vec![Expr::from(2), Expr::from(1), Expr::from(2)])]),
       Expr::call("^", vec![var("y"), Expr::call("+", vec![Expr::from(1), Expr::from(1)])]),
       var("z"),
+    ]));
+  }
+
+  #[test]
+  fn test_factor_sorter_on_quotient_with_no_common_terms() {
+    let expr = Expr::call("/", vec![
+      Expr::call("*", vec![
+        Expr::call("^", vec![var("x"), Expr::from(2)]),
+        var("y"),
+        var("z"),
+      ]),
+      Expr::call("*", vec![
+        Expr::call("^", vec![var("a"), Expr::from(2)]),
+        var("t"),
+      ]),
+    ]);
+    let (new_expr, errors) = run_simplifier(&FactorSorter::new(), expr.clone());
+    assert!(errors.is_empty());
+    assert_eq!(new_expr, expr);
+  }
+
+  #[test]
+  fn test_factor_sorter_on_quotient_with_common_terms() {
+    let expr = Expr::call("/", vec![
+      Expr::call("*", vec![
+        Expr::call("^", vec![var("x"), Expr::from(2)]),
+        var("z"),
+        var("y"),
+        var("a"),
+      ]),
+      Expr::call("*", vec![
+        Expr::call("^", vec![var("z"), Expr::from(3)]),
+        Expr::call("^", vec![var("y"), Expr::from(2)]),
+        Expr::call("^", vec![var("x"), Expr::from(1)]),
+        var("b"),
+      ]),
+    ]);
+    let (new_expr, errors) = run_simplifier(&FactorSorter::new(), expr);
+    assert!(errors.is_empty());
+    assert_eq!(new_expr, Expr::call("/", vec![
+      Expr::call("*", vec![
+        var("a"),
+        Expr::call("^", vec![var("x"), Expr::call("-", vec![Expr::from(2), Expr::from(1)])]),
+        Expr::call("^", vec![var("y"), Expr::call("-", vec![Expr::from(1), Expr::from(2)])]),
+        Expr::call("^", vec![var("z"), Expr::call("-", vec![Expr::from(1), Expr::from(3)])]),
+      ]),
+      var("b"),
     ]));
   }
 }
