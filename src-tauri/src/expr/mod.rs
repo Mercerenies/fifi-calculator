@@ -1,5 +1,6 @@
 
 pub mod algebra;
+pub mod arithmetic;
 pub mod atom;
 pub mod basic_parser;
 pub mod calculus;
@@ -52,6 +53,10 @@ impl Expr {
 
   pub fn one() -> Expr {
     Expr::Atom(Number::one().into())
+  }
+
+  pub fn is_real(&self) -> bool {
+    matches!(self, Expr::Atom(Atom::Number(_)))
   }
 
   /// Returns true if this expression is literally equal to zero. This
@@ -109,6 +114,28 @@ impl Expr {
   /// Convenience constructor for [Expr::Call].
   pub fn call(name: impl Into<String>, args: Vec<Expr>) -> Expr {
     Expr::Call(name.into(), args)
+  }
+
+  /// Acts like [`Expr::call`] on vectors of at least two arguments.
+  /// If the vector has a single argument, then that argument is
+  /// returned unmodified. If the vector has no arguments, then the
+  /// `zero_case` expression is returned.
+  ///
+  /// This is useful for effectively folding a variadic operation over
+  /// a list whose arity is unknown. For example, summing a list can
+  /// be done with `Expr::call_on_several("+", args, Expr::zero)`. If
+  /// there are at least two arguments, then this invokes the `+`
+  /// operator, but in the degenerate cases of zero or one arguments,
+  /// spurious expressions and calls are not generated, and we simply
+  /// get the right answer immediately.
+  pub fn call_on_several<S, F>(name: S, mut args: Vec<Expr>, zero_case: F) -> Expr
+  where S: Into<String>,
+        F: FnOnce() -> Expr {
+    match args.len() {
+      0 => zero_case(),
+      1 => args.remove(0),
+      _ => Expr::Call(name.into(), args),
+    }
   }
 
   pub fn mutate<F>(&mut self, f: F)
@@ -443,6 +470,26 @@ mod tests {
         Expr::call("+", vec![var("x"), Expr::from(2)]),
         Expr::call("+", vec![var("y"), Expr::from(1)]),
       ]),
+    );
+  }
+
+  #[test]
+  fn test_call_on_several() {
+    assert_eq!(
+      Expr::call_on_several("+", vec![], || Expr::from(9)),
+      Expr::from(9),
+    );
+    assert_eq!(
+      Expr::call_on_several("+", vec![Expr::from(10)], || unreachable!()),
+      Expr::from(10),
+    );
+    assert_eq!(
+      Expr::call_on_several("+", vec![Expr::from(10), Expr::from(11)], || unreachable!()),
+      Expr::call("+", vec![Expr::from(10), Expr::from(11)]),
+    );
+    assert_eq!(
+      Expr::call_on_several("+", vec![Expr::from(10), Expr::from(11), Expr::from(12)], || unreachable!()),
+      Expr::call("+", vec![Expr::from(10), Expr::from(11), Expr::from(12)]),
     );
   }
 }
