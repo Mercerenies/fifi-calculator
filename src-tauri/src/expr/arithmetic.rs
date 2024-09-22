@@ -5,6 +5,7 @@ use super::number::Number;
 
 use serde::{Serialize, Deserialize};
 use num::{Zero, One};
+use num::pow::Pow;
 
 use std::ops::{Add, Sub, Mul, Div};
 
@@ -41,6 +42,13 @@ impl ArithExpr {
   /// aid in type inference in some situations.
   pub fn into_expr(self) -> Expr {
     self.into()
+  }
+
+  /// Convenience wrapper around [`Expr::call`] that works on
+  /// `ArithExpr`.
+  pub fn call(name: &str, args: Vec<impl Into<Expr>>) -> Self {
+    let expr = Expr::call(name, args.into_iter().map(|e| e.into()).collect());
+    ArithExpr::from(expr)
   }
 
   /// Sums a vector of `ArithExpr` values. If all of the values are
@@ -200,6 +208,32 @@ impl Div for ArithExpr {
   }
 }
 
+impl Pow<ArithExpr> for ArithExpr {
+  type Output = ArithExpr;
+
+  fn pow(self, rhs: Self) -> Self::Output {
+    // We may expand this later and simplify positive constants. But
+    // `^` has a lot of corner cases to be cognizant of (anything that
+    // doesn't produce a real result), so for now we keep it simple
+    // and just eliminate exponents of 0 and 1.
+    if rhs.is_zero() {
+      ArithExpr::one()
+    } else if rhs.is_one() {
+      self
+    } else {
+      ArithExpr::from(Expr::call("^", vec![self.into(), rhs.into()]))
+    }
+  }
+}
+
+impl Pow<Number> for ArithExpr {
+  type Output = ArithExpr;
+
+  fn pow(self, rhs: Number) -> Self::Output {
+    self.pow(ArithExpr::from(rhs))
+  }
+}
+
 macro_rules! impl_mixed_arith {
   (impl $trait: ident for ArithExpr { fn $method: ident };) => {
     impl $trait<Expr> for ArithExpr {
@@ -224,6 +258,7 @@ impl_mixed_arith! { impl Add for ArithExpr { fn add }; }
 impl_mixed_arith! { impl Sub for ArithExpr { fn sub }; }
 impl_mixed_arith! { impl Mul for ArithExpr { fn mul }; }
 impl_mixed_arith! { impl Div for ArithExpr { fn div }; }
+impl_mixed_arith! { impl Pow for ArithExpr { fn pow }; }
 
 #[cfg(test)]
 mod tests {

@@ -6,11 +6,13 @@ pub mod tensor;
 use matrix::Matrix;
 use borrowed::BorrowedVector;
 use super::Expr;
+use super::arithmetic::ArithExpr;
 use super::number::Number;
 use crate::util::uniq_element;
 use crate::util::prism::Prism;
 
 use thiserror::Error;
+use num::pow::Pow;
 
 use std::ops::{Index, IndexMut};
 use std::convert::TryFrom;
@@ -195,26 +197,16 @@ impl Vector {
 
   /// Produces an expression which computes the k-norm of the vector.
   pub fn norm(self, k: usize) -> Expr {
-    fn abs(x: Expr) -> Expr {
-      Expr::call("abs", vec![x])
-    }
-    fn pow(x: Expr, numer: usize, denom: usize) -> Expr {
-      if numer == 1 && denom == 1 {
-        x
-      } else {
-        Expr::call("^", vec![
-          x,
-          Expr::from(Number::ratio(numer, denom)),
-        ])
-      }
+    fn abs(x: impl Into<Expr>) -> ArithExpr {
+      ArithExpr::call("abs", vec![x])
     }
 
     assert!(k > 0, "k-norm must be positive");
     if self.is_empty() {
       return Expr::zero();
     }
-    let addends = self.into_iter().map(|x| pow(abs(x), k, 1)).collect();
-    pow(Expr::call("+", addends), 1, k)
+    let addends = self.into_iter().map(|x| abs(x).pow(Number::from(k))).collect();
+    ArithExpr::sum(addends).pow(Number::ratio(1, k)).into()
   }
 
   /// Produces and expression to compute the infinity-norm of the

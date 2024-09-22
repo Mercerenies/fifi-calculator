@@ -279,8 +279,8 @@ mod tests {
     assert!(errors.is_empty());
     assert_eq!(new_expr, Expr::call("*", vec![
       var("t"),
-      Expr::call("^", vec![var("x"), Expr::call("+", vec![Expr::from(2), Expr::from(1), Expr::from(2)])]),
-      Expr::call("^", vec![var("y"), Expr::call("+", vec![Expr::from(1), Expr::from(1)])]),
+      Expr::call("^", vec![var("x"), Expr::from(5)]),
+      Expr::call("^", vec![var("y"), Expr::from(2)]),
       var("z"),
     ]));
   }
