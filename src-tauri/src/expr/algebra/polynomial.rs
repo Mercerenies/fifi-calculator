@@ -83,6 +83,7 @@ impl Display for Polynomial {
 
 impl From<Polynomial> for Expr {
   fn from(p: Polynomial) -> Self {
+    // TODO: Improve this with ArithExpr?
     fn plus(a: Expr, b: Expr) -> Expr {
       match a {
         Expr::Call(name, mut args) if name == "+" => {
