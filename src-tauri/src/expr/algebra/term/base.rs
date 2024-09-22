@@ -1,8 +1,9 @@
 
 use crate::expr::Expr;
 use crate::expr::number::Number;
-use crate::units::convertible::TemperatureConvertible;
 use crate::expr::algebra::factor::Factor;
+use crate::expr::arithmetic::ArithExpr;
+use crate::units::convertible::TemperatureConvertible;
 use super::parser::TermParser;
 
 use num::One;
@@ -105,21 +106,13 @@ impl Term {
 }
 
 impl From<Term> for Expr {
-  fn from(mut t: Term) -> Expr {
-    let numerator =
-      if t.numerator.is_empty() {
-        Expr::one()
-      } else if t.numerator.len() == 1 {
-        t.numerator.swap_remove(0)
-      } else {
-        Expr::call("*", t.numerator)
-      };
+  fn from(t: Term) -> Expr {
+    let numerator = ArithExpr::product(t.numerator.into_iter().map(ArithExpr::from).collect());
     if t.denominator.is_empty() {
-      numerator
-    } else if t.denominator.len() == 1 {
-      Expr::call("/", vec![numerator, t.denominator.swap_remove(0)])
+      numerator.into()
     } else {
-      Expr::call("/", vec![numerator, Expr::call("*", t.denominator)])
+      let denominator = ArithExpr::product(t.denominator.into_iter().map(ArithExpr::from).collect());
+      (numerator / denominator).into()
     }
   }
 }

@@ -50,13 +50,16 @@ impl ArithExpr {
   ///
   /// A vector of one value will always result in that value, not an
   /// addition expression containing it.
-  pub fn sum(arith_exprs: Vec<ArithExpr>) -> Self {
-    if arith_exprs.iter().all(ArithExpr::is_real) {
-      let sum = arith_exprs.into_iter().fold(Number::zero(), |acc, expr| acc + expr.unwrap_real());
+  pub fn sum(exprs: Vec<impl Into<Expr>>) -> Self {
+    let exprs: Vec<_> = exprs.into_iter().map(|e| e.into()).collect();
+    if exprs.iter().all(Expr::is_real) {
+      let sum = exprs.into_iter().fold(Number::zero(), |acc, expr| {
+        acc + ArithExpr::from(expr).unwrap_real()
+      });
       sum.into()
     } else {
       ArithExpr::from(
-        Expr::call_on_several("+", arith_exprs.into_iter().map(|e| e.into()).collect(), Expr::zero),
+        Expr::call_on_several("+", exprs, Expr::zero),
       )
     }
   }
@@ -68,13 +71,16 @@ impl ArithExpr {
   ///
   /// A vector of one value will always result in that value, not a
   /// multiplication expression containing it.
-  pub fn product(arith_exprs: Vec<ArithExpr>) -> Self {
-    if arith_exprs.iter().all(ArithExpr::is_real) {
-      let product = arith_exprs.into_iter().fold(Number::one(), |acc, expr| acc * expr.unwrap_real());
+  pub fn product(exprs: Vec<impl Into<Expr>>) -> Self {
+    let exprs: Vec<_> = exprs.into_iter().map(|e| e.into()).collect();
+    if exprs.iter().all(Expr::is_real) {
+      let product = exprs.into_iter().fold(Number::one(), |acc, expr| {
+        acc * ArithExpr::from(expr).unwrap_real()
+      });
       product.into()
     } else {
       ArithExpr::from(
-        Expr::call_on_several("*", arith_exprs.into_iter().map(|e| e.into()).collect(), Expr::one),
+        Expr::call_on_several("*", exprs, Expr::one),
       )
     }
   }

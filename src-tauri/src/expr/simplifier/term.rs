@@ -166,7 +166,7 @@ mod tests {
     let (new_expr, errors) = run_simplifier(&TermPartialSplitter::new(), expr);
     assert!(errors.is_empty());
     assert_eq!(new_expr, Expr::call("*", vec![
-      Expr::call("*", vec![Expr::from(3), Expr::from(4), Expr::from(5)]),
+      Expr::from(60),
       var("x"),
     ]));
   }
@@ -183,7 +183,7 @@ mod tests {
     let (new_expr, errors) = run_simplifier(&TermPartialSplitter::new(), expr);
     assert!(errors.is_empty());
     assert_eq!(new_expr, Expr::call("*", vec![
-      Expr::call("*", vec![Expr::from(2), Expr::from(3)]), // Note: The 1 is eliminated from the numerator.
+      Expr::from(6),
       Expr::call("*", vec![var("x"), var("y")]),
     ]));
   }
@@ -202,9 +202,8 @@ mod tests {
     ]);
     let (new_expr, errors) = run_simplifier(&TermPartialSplitter::new(), expr);
     assert!(errors.is_empty());
-    // Note: All '1's are eliminated.
     assert_eq!(new_expr, Expr::call("*", vec![
-      Expr::call("*", vec![Expr::from(2), Expr::from(3)]),
+      Expr::from(6),
       Expr::call("*", vec![var("x"), var("y")]),
     ]));
   }
@@ -213,27 +212,24 @@ mod tests {
   fn test_fraction_partial_split_evaluation() {
     let expr = Expr::call("/", vec![
       Expr::call("*", vec![
-        Expr::from(1),
-        Expr::from(2),
+        Expr::from(4),
+        Expr::from(5),
         var("x"),
-        Expr::from(3),
+        Expr::from(6),
         var("y"),
       ]),
       Expr::call("*", vec![
-        Expr::from(4),
-        Expr::from(5),
+        Expr::from(1),
+        Expr::from(2),
         var("z"),
-        Expr::from(6),
+        Expr::from(3),
         var("t"),
       ]),
     ]);
     let (new_expr, errors) = run_simplifier(&TermPartialSplitter::new(), expr);
     assert!(errors.is_empty());
     assert_eq!(new_expr, Expr::call("*", vec![
-      Expr::call("/", vec![
-        Expr::call("*", vec![Expr::from(2), Expr::from(3)]), // Note: The 1 is eliminated from the numerator.
-        Expr::call("*", vec![Expr::from(4), Expr::from(5), Expr::from(6)]),
-      ]),
+      Expr::from(20),
       Expr::call("/", vec![
         Expr::call("*", vec![var("x"), var("y")]),
         Expr::call("*", vec![var("z"), var("t")]),
@@ -245,19 +241,20 @@ mod tests {
   fn test_fraction_partial_split_with_all_terms_scalar() {
     let expr = Expr::call("/", vec![
       Expr::call("*", vec![
+        Expr::from(5),
+        Expr::from(6),
+        Expr::from(7),
+        Expr::from(8),
+      ]),
+      Expr::call("*", vec![
         Expr::from(2),
         Expr::from(3),
         Expr::from(4),
       ]),
-      Expr::call("*", vec![
-        Expr::from(5),
-        Expr::from(6),
-        Expr::from(7),
-      ]),
     ]);
     let (new_expr, errors) = run_simplifier(&TermPartialSplitter::new(), expr.clone());
     assert!(errors.is_empty());
-    assert_eq!(new_expr, expr);
+    assert_eq!(new_expr, Expr::from(70));
   }
 
   #[test]
