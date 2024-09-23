@@ -97,6 +97,10 @@ impl ArithExpr {
     self.inner.is_real()
   }
 
+  pub fn as_real_ref(&self) -> Option<&Number> {
+    self.inner.as_real_ref()
+  }
+
   /// Unwraps the real numbered value contained immediately inside of
   /// this expression. Panics if [`ArithExpr::is_real`] is false.
   pub fn unwrap_real(self) -> Number {

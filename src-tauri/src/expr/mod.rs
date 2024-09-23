@@ -59,6 +59,14 @@ impl Expr {
     matches!(self, Expr::Atom(Atom::Number(_)))
   }
 
+  pub fn as_real_ref(&self) -> Option<&Number> {
+    if let Expr::Atom(Atom::Number(n)) = self {
+      Some(n)
+    } else {
+      None
+    }
+  }
+
   /// Returns true if this expression is literally equal to zero. This
   /// returns true for all representations of zero, including integer,
   /// floating, and complex representations.
