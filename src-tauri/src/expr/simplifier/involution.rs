@@ -31,13 +31,15 @@ impl<'a> Simplifier for InvolutionSimplifier<'a> {
         let Some(known_function) = self.function_table.get(&function_name) else {
           return Expr::Call(function_name, args);
         };
-        if known_function.flags().contains(FunctionFlags::IS_INVOLUTION) {
-          if args.len() == 1 && args[0].head() == Some(&function_name) && args[0].arity() == 1 {
+        if known_function.flags().contains(FunctionFlags::IS_INVOLUTION) &&
+          args.len() == 1 &&
+          args[0].head() == Some(&function_name) &&
+          args[0].arity() == 1 {
             let Expr::Call(_, mut inner_args) = args.remove(0) else { unreachable!() };
-            return inner_args.remove(0);
+            inner_args.remove(0)
+          } else {
+            Expr::Call(function_name, args)
           }
-        }
-        Expr::Call(function_name, args)
       }
       expr => {
         // Pass through
