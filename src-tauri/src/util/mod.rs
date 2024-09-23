@@ -22,6 +22,7 @@ use std::cmp::{Reverse, Ordering};
 use std::iter::{self, Extend};
 use std::ops::{Mul, Neg};
 use std::borrow::Cow;
+use std::mem::take;
 
 /// A singleton object whose output under the [`Debug`] trait is
 /// `"..."`. Used in debug output of some objects.
@@ -498,6 +499,21 @@ where I: IntoIterator,
   longest
 }
 
+/// Removes all of the elements which fail to satisfy the predicate
+/// from the vector, returning a new vector containing the removed
+/// elements.
+///
+/// This is similar to [`Vec::retain`], but it also returns the
+/// removed values.
+pub fn retain_into<T, F>(vector: &mut Vec<T>, keep_condition: F) -> Vec<T>
+where F: FnMut(&T) -> bool {
+  let (true_cases, false_cases) = take(vector)
+    .into_iter()
+    .partition(keep_condition);
+  *vector = true_cases;
+  false_cases
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -865,5 +881,13 @@ mod tests {
     let mut v = vec![50, 40, 30, 20, 10];
     insert_sorted_by(&mut v, 15, |a, b| b.cmp(a));
     assert_eq!(v, vec![50, 40, 30, 20, 15, 10]);
+  }
+
+  #[test]
+  fn test_retain_into() {
+    let mut v = vec![10, 20, 30, 40, 50, 60];
+    let u = retain_into(&mut v, |x| x % 20 == 0);
+    assert_eq!(u, vec![10, 30, 50]);
+    assert_eq!(v, vec![20, 40, 60]);
   }
 }
