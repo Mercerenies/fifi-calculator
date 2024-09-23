@@ -162,15 +162,6 @@ pub fn unwrap_infallible<T>(res: Result<T, Infallible>) -> T {
   }
 }
 
-/// Unwraps the value from a `Result` whose two branches are of the
-/// same type.
-pub fn unwrap_merged<T>(res: Result<T, T>) -> T {
-  match res {
-    Ok(res) => res,
-    Err(res) => res,
-  }
-}
-
 pub fn unwrap_infallible_like<T, E>(res: Result<T, E>) -> T
 where E: Into<Infallible> {
   // No sense in calling the Into impl; we know it exists so save the
@@ -178,6 +169,15 @@ where E: Into<Infallible> {
   match res {
     Ok(res) => res,
     Err(_) => unreachable!(),
+  }
+}
+
+/// Unwraps the value from a `Result` whose two branches are of the
+/// same type.
+pub fn unwrap_merged<T>(res: Result<T, T>) -> T {
+  match res {
+    Ok(res) => res,
+    Err(res) => res,
   }
 }
 
