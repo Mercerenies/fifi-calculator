@@ -244,6 +244,10 @@ impl Neg for ArithExpr {
   fn neg(self) -> Self::Output {
     if self.is_real() {
       ArithExpr::from(- self.unwrap_real())
+    } else if self.as_ref().head() == Some("negate") && self.as_ref().arity() == 1 {
+      let Expr::Call(_, mut args) = Expr::from(self) else { unreachable!() };
+      assert!(args.len() == 1);
+      ArithExpr::from(args.remove(0))
     } else {
       ArithExpr::call("negate", vec![self])
     }
@@ -371,6 +375,16 @@ mod tests {
       ArithExpr::from(1) / ArithExpr::from(0),
       ArithExpr::from(Expr::call("/", vec![Expr::from(1), Expr::from(0)])),
     );
+  }
+
+  #[test]
+  fn test_negate() {
+    assert_eq!(- ArithExpr::from(0), ArithExpr::from(0));
+    assert_eq!(- ArithExpr::from(0.0), ArithExpr::from(-0.0));
+    assert_eq!(- ArithExpr::from(1), ArithExpr::from(-1));
+    assert_eq!(- ArithExpr::from(-1), ArithExpr::from(1));
+    assert_eq!(- avar("x"), ArithExpr::call("negate", vec![avar("x")]));
+    assert_eq!(- ArithExpr::call("negate", vec![avar("x")]), avar("x"));
   }
 
   #[test]
