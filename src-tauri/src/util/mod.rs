@@ -162,6 +162,15 @@ pub fn unwrap_infallible<T>(res: Result<T, Infallible>) -> T {
   }
 }
 
+/// Unwraps the value from a `Result` whose two branches are of the
+/// same type.
+pub fn unwrap_merged<T>(res: Result<T, T>) -> T {
+  match res {
+    Ok(res) => res,
+    Err(res) => res,
+  }
+}
+
 pub fn unwrap_infallible_like<T, E>(res: Result<T, E>) -> T
 where E: Into<Infallible> {
   // No sense in calling the Into impl; we know it exists so save the
@@ -300,6 +309,29 @@ where I::Item: Ord {
   let mut res = iter.into_iter().collect::<Vec<_>>();
   res.sort();
   res
+}
+
+/// Assuming the input vector is sorted, inserts the element at the
+/// correct position in the input vector to maintain the sort order.
+///
+/// If value(s) equal to the element are already in the vector, the
+/// new value will be inserted somewhere among them, but the exact
+/// position is unspecified (this is consistent with
+/// [`Vec::binary_search`].
+///
+/// It is an unchecked precondition of this function that the input
+/// vector is sorted. If the input vector is not sorted, then `elem`
+/// will be inserted somewhere in the vector, but the exact position
+/// is unspecified and subject to change.
+pub fn insert_sorted<T: Ord>(vec: &mut Vec<T>, elem: T) {
+  insert_sorted_by(vec, elem, |a, b| a.cmp(b));
+}
+
+/// As [`insert_sorted_by`] but with a custom comparator function.
+pub fn insert_sorted_by<T, F>(vec: &mut Vec<T>, elem: T, mut cmp: F)
+where F: FnMut(&T, &T) -> Ordering {
+  let index = unwrap_merged(vec.binary_search_by(|x| cmp(x, &elem)));
+  vec.insert(index, elem);
 }
 
 /// Zips two arrays of the same length together, using the given
@@ -808,5 +840,30 @@ mod tests {
     assert_eq!(count_longest_subseq(seq, |_| false), 0);
     let seq = Vec::<i64>::new();
     assert_eq!(count_longest_subseq(seq, |_| true), 0);
+  }
+
+  #[test]
+  fn test_insert_sorted() {
+    let mut v = vec![10, 20, 30, 40, 50];
+    insert_sorted(&mut v, 15);
+    assert_eq!(v, vec![10, 15, 20, 30, 40, 50]);
+    insert_sorted(&mut v, 99);
+    assert_eq!(v, vec![10, 15, 20, 30, 40, 50, 99]);
+    insert_sorted(&mut v, 5);
+    assert_eq!(v, vec![5, 10, 15, 20, 30, 40, 50, 99]);
+  }
+
+  #[test]
+  fn test_insert_sorted_on_existing_element() {
+    let mut v = vec![10, 20, 30, 40, 50];
+    insert_sorted(&mut v, 20);
+    assert_eq!(v, vec![10, 20, 20, 30, 40, 50]);
+  }
+
+  #[test]
+  fn test_insert_sorted_by() {
+    let mut v = vec![50, 40, 30, 20, 10];
+    insert_sorted_by(&mut v, 15, |a, b| b.cmp(a));
+    assert_eq!(v, vec![50, 40, 30, 20, 15, 10]);
   }
 }
