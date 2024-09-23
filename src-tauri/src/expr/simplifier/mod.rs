@@ -7,6 +7,7 @@ pub mod flattener;
 pub mod error;
 pub mod identity;
 pub mod interval;
+pub mod involution;
 pub mod partial;
 pub mod repeated;
 pub mod term;
@@ -39,6 +40,7 @@ impl<'a> Simplifier for DefaultSimplifier<'a> {
     expr = self.unicode_simplifier.simplify_expr_part(expr, ctx);
     expr = partial::IdentityRemover::new(self.function_table).simplify_expr_part(expr, ctx);
     expr = flattener::FunctionFlattener::new(self.function_table).simplify_expr_part(expr, ctx);
+    expr = involution::InvolutionSimplifier::new(self.function_table).simplify_expr_part(expr, ctx);
     expr = self.distributive_rule_simplifier.simplify_expr_part(expr, ctx);
     expr = term::FactorSorter::new().simplify_expr_part(expr, ctx);
     expr = term::TermPartialSplitter::new().simplify_expr_part(expr, ctx);
