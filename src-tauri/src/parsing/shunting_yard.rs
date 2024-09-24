@@ -192,6 +192,8 @@ mod tests {
   enum TestExpr {
     Scalar(i64),
     InfixOp(Box<TestExpr>, String, Box<TestExpr>),
+    PrefixOp(String, Box<TestExpr>),
+    PostfixOp(Box<TestExpr>, String),
   }
 
   #[derive(Clone, Debug)]
@@ -200,6 +202,14 @@ mod tests {
   impl TestExpr {
     fn infix_op(left: TestExpr, op: impl Into<String>, right: TestExpr) -> Self {
       Self::InfixOp(Box::new(left), op.into(), Box::new(right))
+    }
+
+    fn prefix_op(op: impl Into<String>, right: TestExpr) -> Self {
+      Self::PrefixOp(op.into(), Box::new(right))
+    }
+
+    fn postfix_op(left: TestExpr, op: impl Into<String>) -> Self {
+      Self::PostfixOp(Box::new(left), op.into())
     }
   }
 
@@ -222,18 +232,18 @@ mod tests {
 
     fn compile_prefix_op(
       &mut self,
-      _op: &PrefixProperties,
-      _right: Self::Output,
+      op: &PrefixProperties,
+      right: Self::Output,
     ) -> Result<Self::Output, Self::Error> {
-      panic!("Unused in tests, currently");
+      Ok(TestExpr::prefix_op(op.function_name(), right))
     }
 
     fn compile_postfix_op(
       &mut self,
-      _left: Self::Output,
-      _op: &PostfixProperties,
+      left: Self::Output,
+      op: &PostfixProperties,
     ) -> Result<Self::Output, Self::Error> {
-      panic!("Unused in tests, currently");
+      Ok(TestExpr::postfix_op(left, op.function_name()))
     }
   }
 
@@ -253,6 +263,22 @@ mod tests {
     Operator::new("^", Fixity::new().with_infix("pow", Associativity::RIGHT, Precedence::new(30)))
   }
 
+  fn high_prefix() -> Operator {
+    Operator::new("-!", Fixity::new().with_prefix("-!", Precedence::new(100)))
+  }
+
+  fn low_prefix() -> Operator {
+    Operator::new("-~", Fixity::new().with_prefix("-!", Precedence::new(0)))
+  }
+
+  fn high_postfix() -> Operator {
+    Operator::new("!-", Fixity::new().with_postfix("!-", Precedence::new(100)))
+  }
+
+  fn low_postfix() -> Operator {
+    Operator::new("~-", Fixity::new().with_postfix("~-", Precedence::new(0)))
+  }
+
   fn span(start: usize, end: usize) -> Span {
     Span::new(SourceOffset(start), SourceOffset(end))
   }
@@ -263,6 +289,14 @@ mod tests {
 
   fn infix_operator(op: Operator, span: Span) -> Spanned<TaggedToken<i64>> {
     Spanned::new(TaggedToken::Operator(TaggedOperator::infix(op)), span)
+  }
+
+  fn prefix_operator(op: Operator, span: Span) -> Spanned<TaggedToken<i64>> {
+    Spanned::new(TaggedToken::Operator(TaggedOperator::prefix(op)), span)
+  }
+
+  fn postfix_operator(op: Operator, span: Span) -> Spanned<TaggedToken<i64>> {
+    Spanned::new(TaggedToken::Operator(TaggedOperator::postfix(op)), span)
   }
 
   #[test]
@@ -276,6 +310,7 @@ mod tests {
     ];
     let result = parse(&mut TestDriver, tokens).unwrap();
     assert_eq!(
+      result,
       TestExpr::infix_op(
         TestExpr::infix_op(
           TestExpr::Scalar(1),
@@ -285,7 +320,6 @@ mod tests {
         "plus",
         TestExpr::Scalar(3),
       ),
-      result,
     );
   }
 
@@ -300,6 +334,7 @@ mod tests {
     ];
     let result = parse(&mut TestDriver, tokens).unwrap();
     assert_eq!(
+      result,
       TestExpr::infix_op(
         TestExpr::infix_op(
           TestExpr::Scalar(1),
@@ -309,7 +344,6 @@ mod tests {
         "minus",
         TestExpr::Scalar(3),
       ),
-      result,
     );
   }
 
@@ -324,6 +358,7 @@ mod tests {
     ];
     let result = parse(&mut TestDriver, tokens).unwrap();
     assert_eq!(
+      result,
       TestExpr::infix_op(
         TestExpr::Scalar(1),
         "pow",
@@ -333,7 +368,6 @@ mod tests {
           TestExpr::Scalar(3),
         ),
       ),
-      result,
     );
   }
 
@@ -348,6 +382,7 @@ mod tests {
     ];
     let result = parse(&mut TestDriver, tokens).unwrap();
     assert_eq!(
+      result,
       TestExpr::infix_op(
         TestExpr::Scalar(1),
         "plus",
@@ -357,7 +392,6 @@ mod tests {
           TestExpr::Scalar(3),
         ),
       ),
-      result,
     );
   }
 
@@ -372,6 +406,7 @@ mod tests {
     ];
     let result = parse(&mut TestDriver, tokens).unwrap();
     assert_eq!(
+      result,
       TestExpr::infix_op(
         TestExpr::infix_op(
           TestExpr::Scalar(1),
@@ -381,7 +416,82 @@ mod tests {
         "plus",
         TestExpr::Scalar(3),
       ),
+    );
+  }
+
+  #[test]
+  fn test_infix_prefix_with_infix_of_higher_prec() {
+    let tokens = vec![
+      scalar(1, span(0, 1)),
+      infix_operator(times(), span(1, 2)),
+      prefix_operator(low_prefix(), span(2, 4)),
+      scalar(2, span(4, 5)),
+    ];
+    let result = parse(&mut TestDriver, tokens).unwrap();
+    assert_eq!(
       result,
+      TestExpr::infix_op(
+        TestExpr::Scalar(1),
+        "times",
+        TestExpr::prefix_op("-~", TestExpr::Scalar(2)),
+      ),
+    );
+  }
+
+  #[test]
+  fn test_infix_prefix_with_infix_of_lower_prec() {
+    let tokens = vec![
+      scalar(1, span(0, 1)),
+      infix_operator(times(), span(1, 2)),
+      prefix_operator(high_prefix(), span(2, 4)),
+      scalar(2, span(4, 5)),
+    ];
+    let result = parse(&mut TestDriver, tokens).unwrap();
+    assert_eq!(
+      result,
+      TestExpr::infix_op(
+        TestExpr::Scalar(1),
+        "times",
+        TestExpr::prefix_op("-!", TestExpr::Scalar(2)),
+      ),
+    );
+  }
+
+  #[test]
+  fn test_postfix_infix_with_infix_of_higher_prec() {
+    let tokens = vec![
+      scalar(1, span(0, 1)),
+      postfix_operator(low_postfix(), span(1, 3)),
+      infix_operator(times(), span(3, 4)),
+      scalar(2, span(4, 5)),
+    ];
+    let result = parse(&mut TestDriver, tokens).unwrap();
+    assert_eq!(
+      result,
+      TestExpr::infix_op(
+        TestExpr::postfix_op(TestExpr::Scalar(1), "~-"),
+        "times",
+        TestExpr::Scalar(2),
+      ),
+    );
+  }
+
+  #[test]
+  fn test_postfix_infix_with_infix_of_lower_prec() {
+    let tokens = vec![
+      scalar(1, span(0, 1)),
+      postfix_operator(high_postfix(), span(1, 3)),
+      infix_operator(times(), span(3, 4)),
+      scalar(2, span(4, 5)),
+    ];
+    let result = parse(&mut TestDriver, tokens).unwrap();
+    assert_eq!(
+      result,
+      TestExpr::infix_op(
+        TestExpr::postfix_op(TestExpr::Scalar(1), "!-"),
+        "times",
+        TestExpr::Scalar(2),
+      ),
     );
   }
 }

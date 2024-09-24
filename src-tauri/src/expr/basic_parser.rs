@@ -508,4 +508,22 @@ mod tests {
       },
     )
   }
+
+  #[test]
+  fn test_negative_exponent_parse() {
+    let table = OperatorTable::common_operators();
+    let parser = ExprParser::new(&table);
+
+    let expr = parser.tokenize_and_parse("x y^-1").unwrap();
+    assert_eq!(
+      expr,
+      Expr::call("*", vec![
+        Expr::var("x").unwrap(),
+        Expr::call("^", vec![
+          Expr::var("y").unwrap(),
+          Expr::call("negate", vec![Expr::from(1)]),
+        ]),
+      ]),
+    );
+  }
 }
