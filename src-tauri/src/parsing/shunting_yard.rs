@@ -118,8 +118,26 @@ where T: Clone,
 }
 
 fn compare_precedence(stack_value: &TaggedOperator, current_value: &TaggedOperator) -> bool {
-  stack_value.precedence() > current_value.precedence() ||
-    (stack_value.precedence() == current_value.precedence() && current_value.is_left_assoc())
+  match current_value.fixity_type() {
+    FixityType::Postfix => {
+      // For postfix operators, pop until we hit an operator of
+      // strictly lower precedence.
+      stack_value.precedence() >= current_value.precedence()
+    }
+    FixityType::Infix => {
+      // For infix operators, pop all postfix operators (since they
+      // have to apply before this infix one), then pop until we hit
+      // something of lower precedence.
+      stack_value.fixity_type() == FixityType::Postfix ||
+        stack_value.precedence() > current_value.precedence() ||
+        (stack_value.precedence() == current_value.precedence() && current_value.is_left_assoc())
+    }
+    FixityType::Prefix => {
+      // For prefix operators, NEVER pop anything, because we haven't
+      // even seen our own sole argument yet.
+      false
+    }
+  }
 }
 
 fn pop_and_simplify_while<F, T, D>(
@@ -268,7 +286,7 @@ mod tests {
   }
 
   fn low_prefix() -> Operator {
-    Operator::new("-~", Fixity::new().with_prefix("-!", Precedence::new(0)))
+    Operator::new("-~", Fixity::new().with_prefix("-~", Precedence::new(0)))
   }
 
   fn high_postfix() -> Operator {
