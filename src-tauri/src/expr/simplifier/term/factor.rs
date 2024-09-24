@@ -3,10 +3,14 @@ use crate::expr::algebra::term::TermParser;
 use crate::expr::algebra::factor::Factor;
 use crate::expr::arithmetic::ArithExpr;
 use crate::expr::Expr;
+use crate::expr::atom::Atom;
+use crate::expr::number::Number;
 use crate::expr::ordering::cmp_expr;
 use crate::expr::simplifier::base::{Simplifier, SimplifierContext};
+use crate::util::{retain_into, insert_sorted_by, Recip};
 
 use itertools::Itertools;
+use num::Zero;
 
 use std::cmp::Ordering;
 
@@ -33,6 +37,13 @@ impl Simplifier for FactorSorter {
     let mut numer = group_and_sort_factors(numer);
     let mut denom = group_and_sort_factors(denom);
     move_common_terms_to_numer(&mut numer, &mut denom);
+    flip_negative_terms_to(&mut denom, &mut numer);
+    // Do not create a denominator if there isn't already one.
+    if !denom.is_empty() {
+      flip_negative_terms_to(&mut numer, &mut denom);
+    }
+    let numer = numer.into_iter().map(Factor::simplify_trivial_powers);
+    let denom = denom.into_iter().map(Factor::simplify_trivial_powers);
     term_parser.from_parts(numer, denom).into()
   }
 }
@@ -72,10 +83,10 @@ fn move_common_terms_to_numer(numer: &mut [Factor], denom: &mut Vec<Factor>) {
         // We found two factors with the same base. Move them to the
         // numerator and group the exponents.
         let numer_exp = numer[i].exponent_mut();
-        *numer_exp = Some(Expr::call("-", vec![
-          numer_exp.clone().unwrap_or_else(Expr::one),
-          denom[j].exponent_or_one(),
-        ]));
+        *numer_exp = Some(
+          (ArithExpr::from(numer_exp.clone().unwrap_or_else(Expr::one)) -
+           ArithExpr::from(denom[j].exponent_or_one())).into()
+        );
         i += 1;
         denom.remove(j);
       }
@@ -85,6 +96,37 @@ fn move_common_terms_to_numer(numer: &mut [Factor], denom: &mut Vec<Factor>) {
 
 fn cmp_factor(a: &Factor, b: &Factor) -> std::cmp::Ordering {
   cmp_expr(a.base(), b.base())
+}
+
+/// Assuming that both `source` and `dest` are sorted according to
+/// [`cmp_factor`], this function moves all terms from `source` whose
+/// exponents are nontrivial and satisfy [`is_obviously_negative`]
+/// into `dest`, at the appropriate position to keep the terms in
+/// `dest` sorted. All moved terms are reciprocated via the [`Recip`]
+/// implementation on `Factor`.
+///
+/// Runs in `O(N + KlogM)`, where `N` is the length of `source`, `K`
+/// is the number of `is_obviously_negative` exponents in `source`,
+/// and `M` is the length of `dest`.
+fn flip_negative_terms_to(source: &mut Vec<Factor>, dest: &mut Vec<Factor>) {
+  let negative_factors = retain_into(source, |factor| {
+    factor.exponent().map_or(true, |e| !is_obviously_negative(e))
+  });
+  for factor in negative_factors {
+    insert_sorted_by(dest, factor.recip(), cmp_factor);
+  }
+}
+
+/// Returns true if the expression appears negative to a casual
+/// viewer. An expression appears negative if it is literally a
+/// negative real-numbered constant, or if it is a unary application
+/// of the `negate` function.
+fn is_obviously_negative(expr: &Expr) -> bool {
+  match expr {
+    Expr::Atom(Atom::Number(n)) => *n < Number::zero(),
+    Expr::Atom(_) => false,
+    Expr::Call(f, args) => f == "negate" && args.len() == 1,
+  }
 }
 
 #[cfg(test)]
@@ -157,11 +199,42 @@ mod tests {
     assert_eq!(new_expr, Expr::call("/", vec![
       Expr::call("*", vec![
         var("a"),
-        Expr::call("^", vec![var("x"), Expr::call("-", vec![Expr::from(2), Expr::from(1)])]),
-        Expr::call("^", vec![var("y"), Expr::call("-", vec![Expr::from(1), Expr::from(2)])]),
-        Expr::call("^", vec![var("z"), Expr::call("-", vec![Expr::from(1), Expr::from(3)])]),
+        var("x")
       ]),
-      var("b"),
+      Expr::call("*", vec![
+        var("b"),
+        var("y"),
+        Expr::call("^", vec![var("z"), Expr::from(2)]),
+      ]),
+    ]));
+  }
+
+  #[test]
+  fn test_factor_sorter_with_some_negatives() {
+    let expr = Expr::call("/", vec![
+      Expr::call("*", vec![
+        Expr::call("^", vec![var("x"), Expr::from(2)]),
+        var("z"),
+        var("y"),
+        var("a"),
+      ]),
+      Expr::call("*", vec![
+        Expr::call("^", vec![var("z"), Expr::from(3)]),
+        Expr::call("^", vec![var("y"), Expr::from(2)]),
+        Expr::call("^", vec![var("x"), Expr::from(3)]),
+        var("b"),
+      ]),
+    ]);
+    let (new_expr, errors) = run_simplifier(&FactorSorter::new(), expr);
+    assert!(errors.is_empty());
+    assert_eq!(new_expr, Expr::call("/", vec![
+      var("a"),
+      Expr::call("*", vec![
+        var("b"),
+        var("x"),
+        var("y"),
+        Expr::call("^", vec![var("z"), Expr::from(2)]),
+      ]),
     ]));
   }
 }

@@ -1,6 +1,7 @@
 
 use crate::expr::Expr;
 use crate::expr::arithmetic::ArithExpr;
+use crate::util::Recip;
 
 use num::pow::Pow;
 
@@ -121,6 +122,14 @@ impl Pow<Expr> for Factor {
   }
 }
 
+impl Recip for Factor {
+  type Output = Factor;
+
+  fn recip(self) -> Self {
+    self.pow(Expr::from(-1))
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -191,5 +200,14 @@ mod tests {
 
     let factor = Factor { base: Expr::var("x").unwrap(), exponent: Some(Expr::from(0)) };
     assert_eq!(factor.simplify_trivial_powers(), Factor { base: Expr::from(1), exponent: None });
+  }
+
+  #[test]
+  fn test_recip() {
+    let factor = Factor { base: Expr::from(10), exponent: Some(Expr::from(20)) };
+    assert_eq!(factor.recip(), Factor { base: Expr::from(10), exponent: Some(Expr::from(-20)) });
+
+    let factor = Factor { base: Expr::from(10), exponent: None };
+    assert_eq!(factor.recip(), Factor { base: Expr::from(10), exponent: Some(Expr::from(-1)) });
   }
 }
