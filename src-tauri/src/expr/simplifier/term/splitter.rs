@@ -2,6 +2,7 @@
 use crate::expr::Expr;
 use crate::expr::predicates;
 use crate::expr::algebra::term::Term;
+use crate::expr::algebra::factor::Factor;
 use crate::expr::simplifier::base::{Simplifier, SimplifierContext};
 
 use num::One;
@@ -38,10 +39,18 @@ impl Simplifier for TermPartialSplitter {
   }
 }
 
-/// Returns true if the expression can be simplified by multiplication
-/// and division. This function corresponds exactly to the partial
-/// evaluation rules on the multiplication operator.
-fn is_valid_multiplicand(expr: &Expr) -> bool {
+/// Returns true if the expression represented by the argument
+/// [`Factor`] can be simplified by multiplication and division. This
+/// function corresponds exactly to the partial evaluation rules on
+/// the multiplication operator.
+///
+/// Factors with a nontrivial exponent will always fail this
+/// predicate.
+fn is_valid_multiplicand(factor: &Factor) -> bool {
+  if factor.exponent().is_some() {
+    return false;
+  }
+  let expr = factor.base();
   predicates::is_tensor(expr) ||
     predicates::is_complex_or_inf(expr) ||
     predicates::is_unbounded_interval_like(expr)

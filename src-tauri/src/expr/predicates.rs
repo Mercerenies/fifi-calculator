@@ -9,6 +9,11 @@ use super::interval::IntervalType;
 
 pub use super::algebra::infinity::{is_infinite_constant, is_signed_infinite_constant};
 
+/// Returns true if the expression is a variable.
+pub fn is_variable(expr: &Expr) -> bool {
+  matches!(expr, Expr::Atom(Atom::Var(_)))
+}
+
 /// Returns true if `expr` is a real [`Number`](super::number::Number)
 /// value.
 pub fn is_real(expr: &Expr) -> bool {

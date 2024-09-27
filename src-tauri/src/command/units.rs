@@ -190,11 +190,9 @@ pub fn simplify_units_command() -> UnaryFunctionCommand {
 /// element(s).
 pub fn remove_units_command() -> UnaryFunctionCommand {
   UnaryFunctionCommand::with_context(|arg, ctx| {
-    // TODO: Evaluate if this is still valid if we add a mode that
-    // treats multiplication as non-commutative.
     let term = Term::parse(arg);
-    let term = term.filter_factors(|expr| {
-      try_parse_unit(ctx.units_parser, expr.to_owned()).is_err() // TODO: Excessive cloning
+    let term = term.filter_factors(|factor| {
+      try_parse_unit(ctx.units_parser, factor).is_err() // TODO: Excessive cloning
     });
     term.into()
   })
@@ -204,11 +202,9 @@ pub fn remove_units_command() -> UnaryFunctionCommand {
 /// element(s).
 pub fn extract_units_command() -> UnaryFunctionCommand {
   UnaryFunctionCommand::with_context(|arg, ctx| {
-    // TODO: Evaluate if this is still valid if we add a mode that
-    // treats multiplication as non-commutative.
     let term = Term::parse(arg);
-    let term = term.filter_factors(|expr| {
-      try_parse_unit(ctx.units_parser, expr.to_owned()).is_ok() // TODO: Excessive cloning
+    let term = term.filter_factors(|factor| {
+      try_parse_unit(ctx.units_parser, factor).is_ok() // TODO: Excessive cloning
     });
     term.into()
   })

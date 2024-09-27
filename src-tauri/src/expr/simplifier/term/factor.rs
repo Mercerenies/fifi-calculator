@@ -32,7 +32,7 @@ impl FactorSorter {
 impl Simplifier for FactorSorter {
   fn simplify_expr_part(&self, expr: Expr, _ctx: &mut SimplifierContext) -> Expr {
     let term = Term::parse(expr);
-    let (numer, denom) = term.into_parts_as_factors();
+    let (numer, denom) = term.into_parts();
     let mut numer = group_and_sort_factors(numer);
     let mut denom = group_and_sort_factors(denom);
     move_common_terms_to_numer(&mut numer, &mut denom);

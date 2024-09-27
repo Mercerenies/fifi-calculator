@@ -4,6 +4,7 @@ use crate::expr::number::Number;
 use crate::expr::algebra::factor::Factor;
 use crate::expr::arithmetic::ArithExpr;
 use crate::units::convertible::TemperatureConvertible;
+use crate::util::PreOne;
 
 use num::One;
 
@@ -29,46 +30,40 @@ use std::fmt::{self, Display, Formatter};
 /// rational expressions.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Term {
-  numerator: Vec<Expr>,
-  denominator: Vec<Expr>,
+  numerator: Vec<Factor>,
+  denominator: Vec<Factor>,
 }
 
 impl Term {
-  pub fn numerator(&self) -> &[Expr] {
+  pub fn numerator(&self) -> &[Factor] {
     &self.numerator
   }
 
-  pub fn denominator(&self) -> &[Expr] {
+  pub fn denominator(&self) -> &[Factor] {
     &self.denominator
   }
 
-  pub fn into_parts(self) -> (Vec<Expr>, Vec<Expr>) {
+  pub fn into_parts(self) -> (Vec<Factor>, Vec<Factor>) {
     (self.numerator, self.denominator)
   }
 
-  pub fn into_parts_as_factors(self) -> (Vec<Factor>, Vec<Factor>) {
-    let numerator = self.numerator.into_iter().map(Factor::parse).collect();
-    let denominator = self.denominator.into_iter().map(Factor::parse).collect();
-    (numerator, denominator)
-  }
-
-  pub fn into_numerator(self) -> Vec<Expr> {
+  pub fn into_numerator(self) -> Vec<Factor> {
     self.numerator
   }
 
-  pub fn into_denominator(self) -> Vec<Expr> {
+  pub fn into_denominator(self) -> Vec<Factor> {
     self.denominator
   }
 
   pub fn filter_factors<F>(mut self, mut f: F) -> Self
-  where F: FnMut(&Expr) -> bool {
+  where F: FnMut(&Factor) -> bool {
     self.numerator.retain(&mut f);
     self.denominator.retain(&mut f);
     self
   }
 
   pub fn partition_factors<F>(self, mut f: F) -> (Self, Self)
-  where F: FnMut(&Expr) -> bool {
+  where F: FnMut(&Factor) -> bool {
     let (num1, num2) = self.numerator.into_iter().partition(&mut f);
     let (den1, den2) = self.denominator.into_iter().partition(&mut f);
     (
@@ -90,10 +85,8 @@ impl Term {
 
   /// Removes any literal 1 values from the term. Specifically,
   /// removes any value for which [`Expr::is_one`] is true.
-  pub fn remove_ones(mut self) -> Self {
-    self.numerator.retain(|e| !e.is_one());
-    self.denominator.retain(|e| !e.is_one());
-    self
+  pub fn remove_ones(self) -> Self {
+    self.filter_factors(Factor::is_pre_one)
   }
 
   pub fn from_parts<I1, I2>(numerator: I1, denominator: I2) -> Term
@@ -140,7 +133,7 @@ impl Term {
           _ => {
             // Unknown function application, return a trivial Term.
             Term {
-              numerator: vec![Expr::Call(function_name, args)],
+              numerator: vec![Factor::parse(Expr::Call(function_name, args))],
               denominator: Vec::new(),
             }
           }
@@ -149,7 +142,7 @@ impl Term {
       expr => {
         // Atomic expression, return a trivial Term.
         Term {
-          numerator: vec![expr],
+          numerator: vec![Factor::parse(expr)],
           denominator: Vec::new(),
         }
       }
@@ -180,19 +173,19 @@ impl Display for Term {
   }
 }
 
-fn fmt_product(f: &mut Formatter, exprs: &[Expr]) -> fmt::Result {
-  if exprs.is_empty() {
+fn fmt_product(f: &mut Formatter, factors: &[Factor]) -> fmt::Result {
+  if factors.is_empty() {
     write!(f, "1")?;
     return Ok(());
   }
   let mut first = true;
-  for expr in exprs {
+  for factor in factors {
     if !first {
       write!(f, " ")?;
     } else {
       first = false;
     }
-    write!(f, "{}", expr)?;
+    write!(f, "{}", factor)?;
   }
   Ok(())
 }
@@ -276,8 +269,8 @@ impl One for Term {
   }
 
   fn is_one(&self) -> bool {
-    self.numerator().iter().all(Expr::is_one) &&
-      self.denominator().iter().all(Expr::is_one)
+    self.numerator().iter().all(Factor::is_pre_one) &&
+      self.denominator().iter().all(Factor::is_pre_one)
   }
 }
 
@@ -306,12 +299,12 @@ mod tests {
   #[test]
   fn test_recip() {
     let term = Term {
-      numerator: vec![Expr::from(0), Expr::from(1)],
-      denominator: vec![Expr::from(2), Expr::from(3)],
+      numerator: vec![Factor::from(0), Factor::from(1)],
+      denominator: vec![Factor::from(2), Factor::from(3)],
     };
     assert_eq!(term.recip(), Term {
-      numerator: vec![Expr::from(2), Expr::from(3)],
-      denominator: vec![Expr::from(0), Expr::from(1)],
+      numerator: vec![Factor::from(2), Factor::from(3)],
+      denominator: vec![Factor::from(0), Factor::from(1)],
     });
   }
 
@@ -320,22 +313,22 @@ mod tests {
     let expr = Expr::call("+", vec![Expr::from(0), Expr::from(10)]);
     let term = Term::parse(expr);
     assert_eq!(term, Term {
-      numerator: vec![Expr::call("+", vec![Expr::from(0), Expr::from(10)])],
+      numerator: vec![Factor::parse(Expr::call("+", vec![Expr::from(0), Expr::from(10)]))],
       denominator: Vec::new(),
     });
 
     let expr = Expr::call("*", vec![Expr::from(0), Expr::from(10)]);
     let term = Term::parse(expr);
     assert_eq!(term, Term {
-      numerator: vec![Expr::from(0), Expr::from(10)],
+      numerator: vec![Factor::from(0), Factor::from(10)],
       denominator: Vec::new(),
     });
 
     let expr = Expr::call("/", vec![Expr::from(0), Expr::from(10)]);
     let term = Term::parse(expr);
     assert_eq!(term, Term {
-      numerator: vec![Expr::from(0)],
-      denominator: vec![Expr::from(10)],
+      numerator: vec![Factor::from(0)],
+      denominator: vec![Factor::from(10)],
     });
   }
 
@@ -344,7 +337,7 @@ mod tests {
     let expr = Expr::call("/", vec![Expr::from(0), Expr::from(10), Expr::from(15)]);
     let term = Term::parse(expr);
     assert_eq!(term, Term {
-      numerator: vec![Expr::call("/", vec![Expr::from(0), Expr::from(10), Expr::from(15)])],
+      numerator: vec![Factor::parse(Expr::call("/", vec![Expr::from(0), Expr::from(10), Expr::from(15)]))],
       denominator: Vec::new(),
     });
   }
@@ -357,8 +350,8 @@ mod tests {
     ]);
     let term = Term::parse(expr);
     assert_eq!(term, Term {
-      numerator: vec![Expr::from(0), Expr::from(110)],
-      denominator: vec![Expr::from(10), Expr::from(100)],
+      numerator: vec![Factor::from(0), Factor::from(110)],
+      denominator: vec![Factor::from(10), Factor::from(100)],
     });
   }
 
@@ -370,7 +363,7 @@ mod tests {
     ]);
     let term = Term::parse(expr);
     assert_eq!(term, Term {
-      numerator: vec![Expr::from(0), Expr::from(10), Expr::from(100), Expr::from(110)],
+      numerator: vec![Factor::from(0), Factor::from(10), Factor::from(100), Factor::from(110)],
       denominator: Vec::new(),
     });
   }
@@ -383,8 +376,8 @@ mod tests {
     ]);
     let term = Term::parse(expr);
     assert_eq!(term, Term {
-      numerator: vec![Expr::from(0), Expr::from(10)],
-      denominator: vec![Expr::from(100), Expr::from(110)],
+      numerator: vec![Factor::from(0), Factor::from(10)],
+      denominator: vec![Factor::from(100), Factor::from(110)],
     });
   }
 
@@ -396,8 +389,8 @@ mod tests {
     ]);
     let term = Term::parse(expr);
     assert_eq!(term, Term {
-      numerator: vec![Expr::from(0), Expr::from(100)],
-      denominator: vec![Expr::from(10), Expr::from(110)],
+      numerator: vec![Factor::from(0), Factor::from(100)],
+      denominator: vec![Factor::from(10), Factor::from(110)],
     });
   }
 }

@@ -2,6 +2,7 @@
 use super::Expr;
 use super::atom::Atom;
 use super::number::Number;
+use super::algebra::factor::Factor;
 
 use serde::{Serialize, Deserialize};
 use num::{Zero, One};
@@ -123,6 +124,12 @@ impl ArithExpr {
 impl From<Expr> for ArithExpr {
   fn from(inner: Expr) -> Self {
     Self { inner }
+  }
+}
+
+impl From<Factor> for ArithExpr {
+  fn from(inner: Factor) -> Self {
+    ArithExpr::from(Expr::from(inner))
   }
 }
 
