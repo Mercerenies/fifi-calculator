@@ -262,9 +262,9 @@ mod tests {
     assert!(Factor { base: Expr::from(1), exponent: Some(Expr::from(3)) }.is_pre_one());
     assert!(Factor { base: Expr::from(2), exponent: Some(Expr::from(0)) }.is_pre_one());
     // False cases
-    assert!(Factor { base: Expr::from(2), exponent: Some(Expr::from(1)) }.is_pre_one());
-    assert!(Factor { base: Expr::from(2), exponent: Some(Expr::from(2)) }.is_pre_one());
-    assert!(Factor { base: Expr::from(2), exponent: None }.is_pre_one());
-    assert!(Factor { base: Expr::var("x").unwrap(), exponent: None }.is_pre_one());
+    assert!(!Factor { base: Expr::from(2), exponent: Some(Expr::from(1)) }.is_pre_one());
+    assert!(!Factor { base: Expr::from(2), exponent: Some(Expr::from(2)) }.is_pre_one());
+    assert!(!Factor { base: Expr::from(2), exponent: None }.is_pre_one());
+    assert!(!Factor { base: Expr::var("x").unwrap(), exponent: None }.is_pre_one());
   }
 }
