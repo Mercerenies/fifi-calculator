@@ -78,43 +78,40 @@ impl Neg for SignedTerm {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::expr::algebra::term::parser::TermParser;
   use crate::expr::Expr;
 
   #[test]
   fn test_recip() {
-    let term_parser = TermParser::new();
-    let signed_term = SignedTerm::new(Sign::Positive, term_parser.from_parts([Expr::from(10)], [Expr::from(20)]));
+    let signed_term = SignedTerm::new(Sign::Positive, Term::from_parts([Expr::from(10)], [Expr::from(20)]));
     assert_eq!(
       signed_term.recip(),
-      SignedTerm::new(Sign::Positive, term_parser.from_parts([Expr::from(20)], [Expr::from(10)])),
+      SignedTerm::new(Sign::Positive, Term::from_parts([Expr::from(20)], [Expr::from(10)])),
     );
-    let signed_term = SignedTerm::new(Sign::Negative, term_parser.from_parts([Expr::from(10)], [Expr::from(20)]));
+    let signed_term = SignedTerm::new(Sign::Negative, Term::from_parts([Expr::from(10)], [Expr::from(20)]));
     assert_eq!(
       signed_term.recip(),
-      SignedTerm::new(Sign::Negative, term_parser.from_parts([Expr::from(20)], [Expr::from(10)])),
+      SignedTerm::new(Sign::Negative, Term::from_parts([Expr::from(20)], [Expr::from(10)])),
     );
   }
 
   #[test]
   fn test_mul() {
-    let term_parser = TermParser::new();
 
-    let term1 = SignedTerm::new(Sign::Positive, term_parser.from_parts([Expr::from(10)], [Expr::from(20)]));
-    let term2 = SignedTerm::new(Sign::Negative, term_parser.from_parts([Expr::from(30)], [Expr::from(40)]));
+    let term1 = SignedTerm::new(Sign::Positive, Term::from_parts([Expr::from(10)], [Expr::from(20)]));
+    let term2 = SignedTerm::new(Sign::Negative, Term::from_parts([Expr::from(30)], [Expr::from(40)]));
     assert_eq!(
       term1 * term2,
-      SignedTerm::new(Sign::Negative, term_parser.from_parts(
+      SignedTerm::new(Sign::Negative, Term::from_parts(
         [Expr::from(10), Expr::from(30)],
         [Expr::from(20), Expr::from(40)],
       )),
     );
 
-    let term1 = SignedTerm::new(Sign::Negative, term_parser.from_parts([Expr::from(10)], [Expr::from(20)]));
-    let term2 = SignedTerm::new(Sign::Negative, term_parser.from_parts([Expr::from(30)], [Expr::from(40)]));
+    let term1 = SignedTerm::new(Sign::Negative, Term::from_parts([Expr::from(10)], [Expr::from(20)]));
+    let term2 = SignedTerm::new(Sign::Negative, Term::from_parts([Expr::from(30)], [Expr::from(40)]));
     assert_eq!(
       term1 * term2,
-      SignedTerm::new(Sign::Positive, term_parser.from_parts(
+      SignedTerm::new(Sign::Positive, Term::from_parts(
         [Expr::from(10), Expr::from(30)],
         [Expr::from(20), Expr::from(40)],
       )),
@@ -123,23 +120,21 @@ mod tests {
 
   #[test]
   fn test_div() {
-    let term_parser = TermParser::new();
-
-    let term1 = SignedTerm::new(Sign::Positive, term_parser.from_parts([Expr::from(10)], [Expr::from(20)]));
-    let term2 = SignedTerm::new(Sign::Negative, term_parser.from_parts([Expr::from(30)], [Expr::from(40)]));
+    let term1 = SignedTerm::new(Sign::Positive, Term::from_parts([Expr::from(10)], [Expr::from(20)]));
+    let term2 = SignedTerm::new(Sign::Negative, Term::from_parts([Expr::from(30)], [Expr::from(40)]));
     assert_eq!(
       term1 / term2,
-      SignedTerm::new(Sign::Negative, term_parser.from_parts(
+      SignedTerm::new(Sign::Negative, Term::from_parts(
         [Expr::from(10), Expr::from(40)],
         [Expr::from(20), Expr::from(30)],
       )),
     );
 
-    let term1 = SignedTerm::new(Sign::Negative, term_parser.from_parts([Expr::from(10)], [Expr::from(20)]));
-    let term2 = SignedTerm::new(Sign::Negative, term_parser.from_parts([Expr::from(30)], [Expr::from(40)]));
+    let term1 = SignedTerm::new(Sign::Negative, Term::from_parts([Expr::from(10)], [Expr::from(20)]));
+    let term2 = SignedTerm::new(Sign::Negative, Term::from_parts([Expr::from(30)], [Expr::from(40)]));
     assert_eq!(
       term1 / term2,
-      SignedTerm::new(Sign::Positive, term_parser.from_parts(
+      SignedTerm::new(Sign::Positive, Term::from_parts(
         [Expr::from(10), Expr::from(40)],
         [Expr::from(20), Expr::from(30)],
       )),

@@ -12,10 +12,10 @@ use crate::stack::base::StackLike;
 use crate::stack::keepable::KeepableStack;
 use crate::mode::display::language::LanguageMode;
 use crate::expr::Expr;
-use crate::expr::algebra::term::TermParser;
 use crate::expr::number::Number;
 use crate::expr::simplifier::{Simplifier, SimplifierContext};
 use crate::expr::simplifier::chained::ChainedSimplifier;
+use crate::expr::algebra::term::Term;
 use crate::expr::units::{parse_composite_unit_expr, try_parse_unit,
                          unit_into_term, tagged_into_expr_lossy,
                          UnitPrism, ParsedCompositeUnit,
@@ -94,12 +94,11 @@ impl ConvertUnitsCommand {
     state: &'m ApplicationState,
     context: &CommandContext<'_, 'p, '_>,
   ) -> BinaryArgumentSchema<ConcreteUnitPrism<'p, 'm>, ParsedCompositeUnit<Number>, ConcreteUnitPrism<'p, 'm>, ParsedCompositeUnit<Number>> {
-    let term_parser = state.term_parser();
     BinaryArgumentSchema::new(
       "valid unit expression".to_owned(),
-      UnitPrism::new(term_parser.clone(), context.units_parser, state.display_settings().language_mode()),
+      UnitPrism::new(context.units_parser, state.display_settings().language_mode()),
       "valid unit expression".to_owned(),
-      UnitPrism::new(term_parser, context.units_parser, state.display_settings().language_mode()),
+      UnitPrism::new(context.units_parser, state.display_settings().language_mode()),
     )
   }
 }
@@ -115,7 +114,7 @@ impl ContextualConvertUnitsCommand {
   ) -> UnaryArgumentSchema<ConcreteUnitPrism<'p, 'm>, ParsedCompositeUnit<Number>> {
     UnaryArgumentSchema::new(
       "valid unit expression".to_owned(),
-      UnitPrism::new(state.term_parser(), context.units_parser, state.display_settings().language_mode()),
+      UnitPrism::new(context.units_parser, state.display_settings().language_mode()),
     )
   }
 }
@@ -129,12 +128,11 @@ impl ConvertTemperatureCommand {
     state: &'m ApplicationState,
     context: &CommandContext<'_, 'p, '_>,
   ) -> BinaryArgumentSchema<ConcreteUnitPrism<'p, 'm>, ParsedCompositeUnit<Number>, ConcreteUnitPrism<'p, 'm>, ParsedCompositeUnit<Number>> {
-    let term_parser = state.term_parser();
     BinaryArgumentSchema::new(
       "valid unit expression".to_owned(),
-      UnitPrism::new(term_parser.clone(), context.units_parser, state.display_settings().language_mode()),
+      UnitPrism::new(context.units_parser, state.display_settings().language_mode()),
       "valid unit expression".to_owned(),
-      UnitPrism::new(term_parser, context.units_parser, state.display_settings().language_mode()),
+      UnitPrism::new(context.units_parser, state.display_settings().language_mode()),
     )
   }
 }
@@ -150,7 +148,7 @@ impl ContextualConvertTemperatureCommand {
   ) -> UnaryArgumentSchema<ConcreteUnitPrism<'p, 'm>, ParsedCompositeUnit<Number>> {
     UnaryArgumentSchema::new(
       "valid unit expression".to_owned(),
-      UnitPrism::new(state.term_parser(), context.units_parser, state.display_settings().language_mode()),
+      UnitPrism::new(context.units_parser, state.display_settings().language_mode()),
     )
   }
 }
@@ -165,11 +163,11 @@ where P: UnitParser<Number> + ?Sized {
 
 /// Simplifier which runs a unit simplification step after the usual
 /// simplification step.
-fn unit_simplifier<'a>(term_parser: &'a TermParser, ctx: &'a CommandContext) -> Box<dyn Simplifier + 'a> {
+fn unit_simplifier<'a>(ctx: &'a CommandContext) -> Box<dyn Simplifier + 'a> {
   let simplifiers: [Box<dyn Simplifier + 'a>; 3] = [
     Box::new(ctx.simplifier.as_ref()),
-    Box::new(UnitTermSimplifier::new(term_parser, ctx.units_parser)),
-    Box::new(UnitPolynomialSimplifier::new(term_parser, ctx.units_parser)),
+    Box::new(UnitTermSimplifier::new(ctx.units_parser)),
+    Box::new(UnitPolynomialSimplifier::new(ctx.units_parser)),
   ];
   ChainedSimplifier::several(simplifiers)
 }
@@ -178,8 +176,7 @@ fn unit_simplifier<'a>(term_parser: &'a TermParser, ctx: &'a CommandContext) -> 
 /// element(s).
 pub fn simplify_units_command() -> UnaryFunctionCommand {
   UnaryFunctionCommand::with_all(|arg, state, ctx, errors| {
-    let term_parser = state.term_parser();
-    let simplifier = unit_simplifier(&term_parser, ctx);
+    let simplifier = unit_simplifier(ctx);
     let mut simplifier_ctx = SimplifierContext {
       base_simplifier: simplifier.as_ref(),
       calculation_mode: state.calculation_mode().clone(),
@@ -192,10 +189,10 @@ pub fn simplify_units_command() -> UnaryFunctionCommand {
 /// Unary command which removes units from the targeted stack
 /// element(s).
 pub fn remove_units_command() -> UnaryFunctionCommand {
-  UnaryFunctionCommand::with_all(|arg, state, ctx, _errors| {
+  UnaryFunctionCommand::with_context(|arg, ctx| {
     // TODO: Evaluate if this is still valid if we add a mode that
     // treats multiplication as non-commutative.
-    let term = state.term_parser().parse(arg);
+    let term = Term::parse(arg);
     let term = term.filter_factors(|expr| {
       try_parse_unit(ctx.units_parser, expr.to_owned()).is_err() // TODO: Excessive cloning
     });
@@ -206,10 +203,10 @@ pub fn remove_units_command() -> UnaryFunctionCommand {
 /// Unary command which keeps only the units from the targeted stack
 /// element(s).
 pub fn extract_units_command() -> UnaryFunctionCommand {
-  UnaryFunctionCommand::with_all(|arg, state, ctx, _errors| {
+  UnaryFunctionCommand::with_context(|arg, ctx| {
     // TODO: Evaluate if this is still valid if we add a mode that
     // treats multiplication as non-commutative.
-    let term = state.term_parser().parse(arg);
+    let term = Term::parse(arg);
     let term = term.filter_factors(|expr| {
       try_parse_unit(ctx.units_parser, expr.to_owned()).is_ok() // TODO: Excessive cloning
     });
@@ -227,7 +224,6 @@ impl Command for ConvertUnitsCommand {
     let (source_unit, target_unit) = validate_schema(&Self::argument_schema(state, ctx), args)?;
     let source_unit = CompositeUnit::from(source_unit);
     let target_unit = CompositeUnit::from(target_unit);
-    let term_parser = state.term_parser();
 
     let calculation_mode = state.calculation_mode().clone();
 
@@ -241,7 +237,7 @@ impl Command for ConvertUnitsCommand {
 
     state.undo_stack_mut().push_cut();
     let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
-    let term = term_parser.parse(stack.pop()?);
+    let term = Term::parse(stack.pop()?);
     let term = Tagged::new(term, source_unit);
 
     // convert_or_panic safety: We already forced the dimensions to
@@ -269,13 +265,12 @@ impl Command for ContextualConvertUnitsCommand {
   ) -> anyhow::Result<CommandOutput> {
     let calculation_mode = state.calculation_mode().clone();
 
-    let term_parser = state.term_parser();
     let target_unit = validate_schema(&Self::argument_schema(state, ctx), args)?;
     let target_unit = CompositeUnit::from(target_unit);
 
     state.undo_stack_mut().push_cut();
     let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
-    let tagged_term = parse_composite_unit_expr(ctx.units_parser, &term_parser, stack.pop()?);
+    let tagged_term = parse_composite_unit_expr(ctx.units_parser, stack.pop()?);
 
     let remainder_unit = calculate_remainder_unit(
       ctx.units_parser,
@@ -310,11 +305,10 @@ impl Command for ConvertTemperatureCommand {
     let (source_unit, target_unit) = validate_schema(&Self::argument_schema(state, ctx), args)?;
     let source_unit = try_into_basic_temperature_unit(CompositeUnit::from(source_unit))?;
     let target_unit = try_into_basic_temperature_unit(CompositeUnit::from(target_unit))?;
-    let term_parser = state.term_parser();
 
     state.undo_stack_mut().push_cut();
     let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
-    let term = term_parser.parse(stack.pop()?);
+    let term = Term::parse(stack.pop()?);
     let term = TemperatureTagged::new(term, source_unit);
 
     // convert safety: We already checked that everything was a basic
@@ -341,13 +335,12 @@ impl Command for ContextualConvertTemperatureCommand {
   ) -> anyhow::Result<CommandOutput> {
     let calculation_mode = state.calculation_mode().clone();
 
-    let term_parser = state.term_parser();
     let target_unit = validate_schema(&Self::argument_schema(state, ctx), args)?;
     let target_unit = try_into_basic_temperature_unit(CompositeUnit::from(target_unit))?;
 
     state.undo_stack_mut().push_cut();
     let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
-    let tagged_term = parse_composite_unit_expr(ctx.units_parser, &term_parser, stack.pop()?);
+    let tagged_term = parse_composite_unit_expr(ctx.units_parser, stack.pop()?);
 
     let temperature_term = match TemperatureTagged::try_from(tagged_term) {
       Ok(temperature_term) => temperature_term,

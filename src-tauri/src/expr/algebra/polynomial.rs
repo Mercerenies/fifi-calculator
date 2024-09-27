@@ -1,5 +1,5 @@
 
-use super::term::{TermParser, Sign, SignedTerm};
+use super::term::{Term, Sign, SignedTerm};
 use crate::expr::Expr;
 
 use num::Zero;
@@ -35,35 +35,35 @@ impl Polynomial {
   }
 }
 
-pub fn parse_polynomial(term_parser: &TermParser, expr: Expr) -> Polynomial {
+pub fn parse_polynomial(expr: Expr) -> Polynomial {
   match expr {
     Expr::Call(function_name, args) => {
       match function_name.as_ref() {
         "+" => {
           args.into_iter()
-            .map(|arg| parse_polynomial(term_parser, arg))
+            .map(|arg| parse_polynomial(arg))
             .fold(Polynomial::zero(), |a, b| a + b)
         }
         "-" if args.len() == 2 => {
           let [left, right] = args.try_into().unwrap();
-          let left = parse_polynomial(term_parser, left);
-          let right = parse_polynomial(term_parser, right);
+          let left = parse_polynomial(left);
+          let right = parse_polynomial(right);
           left - right
         }
         "negate" if args.len() == 1 => {
           let [arg] = args.try_into().unwrap();
-          - parse_polynomial(term_parser, arg)
+          - parse_polynomial(arg)
         }
         _ => {
           // Unknown function application, parse as Term
-          let term = term_parser.parse(Expr::Call(function_name, args));
+          let term = Term::parse(Expr::Call(function_name, args));
           Polynomial { terms: vec![SignedTerm::new(Sign::Positive, term)] }
         }
       }
     }
     expr => {
       // Atomic expression, parse as Term.
-      let term = term_parser.parse(expr);
+      let term = Term::parse(expr);
       Polynomial { terms: vec![SignedTerm::new(Sign::Positive, term)] }
     }
   }
@@ -181,58 +181,53 @@ mod tests {
 
   #[test]
   fn test_atom_parse() {
-    let term_parser = TermParser::new();
     let expr = Expr::from(99);
     assert_eq!(
-      parse_polynomial(&term_parser, expr),
+      parse_polynomial(expr),
       Polynomial { terms: vec![
-        SignedTerm::new(Sign::Positive, term_parser.from_numerator([Expr::from(99)])),
+        SignedTerm::new(Sign::Positive, Term::from_numerator([Expr::from(99)])),
       ] },
     );
   }
 
   #[test]
   fn test_negation_parse() {
-    let term_parser = TermParser::new();
     let expr = Expr::call("negate", vec![Expr::from(99)]);
     assert_eq!(
-      parse_polynomial(&term_parser, expr),
+      parse_polynomial(expr),
       Polynomial { terms: vec![
-        SignedTerm::new(Sign::Negative, term_parser.from_numerator([Expr::from(99)])),
+        SignedTerm::new(Sign::Negative, Term::from_numerator([Expr::from(99)])),
       ] },
     );
   }
 
   #[test]
   fn test_sum_parse() {
-    let term_parser = TermParser::new();
     let expr = Expr::call("+", vec![Expr::from(10), Expr::from(20), Expr::from(30)]);
     assert_eq!(
-      parse_polynomial(&term_parser, expr),
+      parse_polynomial(expr),
       Polynomial { terms: vec![
-        SignedTerm::new(Sign::Positive, term_parser.from_numerator([Expr::from(10)])),
-        SignedTerm::new(Sign::Positive, term_parser.from_numerator([Expr::from(20)])),
-        SignedTerm::new(Sign::Positive, term_parser.from_numerator([Expr::from(30)])),
+        SignedTerm::new(Sign::Positive, Term::from_numerator([Expr::from(10)])),
+        SignedTerm::new(Sign::Positive, Term::from_numerator([Expr::from(20)])),
+        SignedTerm::new(Sign::Positive, Term::from_numerator([Expr::from(30)])),
       ] },
     );
   }
 
   #[test]
   fn test_difference_parse() {
-    let term_parser = TermParser::new();
     let expr = Expr::call("-", vec![Expr::from(10), Expr::from(20)]);
     assert_eq!(
-      parse_polynomial(&term_parser, expr),
+      parse_polynomial(expr),
       Polynomial { terms: vec![
-        SignedTerm::new(Sign::Positive, term_parser.from_numerator([Expr::from(10)])),
-        SignedTerm::new(Sign::Negative, term_parser.from_numerator([Expr::from(20)])),
+        SignedTerm::new(Sign::Positive, Term::from_numerator([Expr::from(10)])),
+        SignedTerm::new(Sign::Negative, Term::from_numerator([Expr::from(20)])),
       ] },
     );
   }
 
   #[test]
   fn test_mixed_parse() {
-    let term_parser = TermParser::new();
     let expr = Expr::call("+", vec![
       Expr::from(10),
       Expr::from(20),
@@ -244,23 +239,22 @@ mod tests {
       ]),
     ]);
     assert_eq!(
-      parse_polynomial(&term_parser, expr),
+      parse_polynomial(expr),
       Polynomial { terms: vec![
-        SignedTerm::new(Sign::Positive, term_parser.from_numerator([Expr::from(10)])),
-        SignedTerm::new(Sign::Positive, term_parser.from_numerator([Expr::from(20)])),
-        SignedTerm::new(Sign::Positive, term_parser.from_numerator([Expr::from(30)])),
-        SignedTerm::new(Sign::Negative, term_parser.from_numerator([Expr::from(40)])),
-        SignedTerm::new(Sign::Positive, term_parser.from_numerator([Expr::from(50)])),
-        SignedTerm::new(Sign::Positive, term_parser.from_numerator([Expr::from(60)])),
-        SignedTerm::new(Sign::Negative, term_parser.from_numerator([Expr::from(70)])),
-        SignedTerm::new(Sign::Negative, term_parser.from_numerator([Expr::from(80)])),
+        SignedTerm::new(Sign::Positive, Term::from_numerator([Expr::from(10)])),
+        SignedTerm::new(Sign::Positive, Term::from_numerator([Expr::from(20)])),
+        SignedTerm::new(Sign::Positive, Term::from_numerator([Expr::from(30)])),
+        SignedTerm::new(Sign::Negative, Term::from_numerator([Expr::from(40)])),
+        SignedTerm::new(Sign::Positive, Term::from_numerator([Expr::from(50)])),
+        SignedTerm::new(Sign::Positive, Term::from_numerator([Expr::from(60)])),
+        SignedTerm::new(Sign::Negative, Term::from_numerator([Expr::from(70)])),
+        SignedTerm::new(Sign::Negative, Term::from_numerator([Expr::from(80)])),
       ] },
     );
   }
 
   #[test]
   fn test_mixed_parse_back_into_expr() {
-    let term_parser = TermParser::new();
     let expr = Expr::call("+", vec![
       Expr::from(10),
       Expr::from(20),
@@ -272,7 +266,7 @@ mod tests {
       ]),
     ]);
     assert_eq!(
-      Expr::from(parse_polynomial(&term_parser, expr)),
+      Expr::from(parse_polynomial(expr)),
       Expr::call("-", vec![
         Expr::call("-", vec![
           Expr::call("+", vec![

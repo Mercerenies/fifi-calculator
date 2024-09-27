@@ -4,7 +4,6 @@ use crate::expr::number::Number;
 use crate::expr::algebra::factor::Factor;
 use crate::expr::arithmetic::ArithExpr;
 use crate::units::convertible::TemperatureConvertible;
-use super::parser::TermParser;
 
 use num::One;
 
@@ -21,13 +20,12 @@ use std::fmt::{self, Display, Formatter};
 ///
 /// Every expression can be interpreted as a `Term`, even if such an
 /// interpretation is trivial (i.e. the denominator is empty and the
-/// numerator contains one term). This interpretation is realized with
-/// the [`TermParser`][super::parser::TermParser] struct. The opposite
-/// mapping (from `Term` back to `Expr`) is realized by a `From<Term>
-/// for Expr` impl. Note that the two are NOT inverses of each other,
-/// as `Term::parse_expr` can lose information about nested
-/// denominators as it attempts to automatically simplify rational
-/// expressions.
+/// numerator contains one term). This interpretation is realized via
+/// [`Term::parse`]. The opposite mapping (from `Term` back to `Expr`)
+/// is realized by a `From<Term> for Expr` impl. Note that the two are
+/// NOT inverses of each other, as `Term::parse_expr` can lose
+/// information about nested denominators as it attempts to
+/// automatically simplify rational expressions.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Term {
   pub(super) numerator: Vec<Expr>,
@@ -103,6 +101,66 @@ impl Term {
     self.denominator.retain(|e| !e.is_one());
     self
   }
+
+  pub fn from_parts<I1, I2>(numerator: I1, denominator: I2) -> Term
+  where I1: IntoIterator,
+        I2: IntoIterator,
+        I1::Item: Into<Expr>,
+        I2::Item: Into<Expr> {
+    let numerator = numerator.into_iter()
+      .map(|expr| Self::parse(expr.into()))
+      .fold(Term::one(), |acc, x| acc * x);
+    let denominator = denominator.into_iter()
+      .map(|expr| Self::parse(expr.into()))
+      .fold(Term::one(), |acc, x| acc * x);
+    numerator / denominator
+  }
+
+  pub fn from_numerator<I1>(numerator: I1) -> Term
+  where I1: IntoIterator,
+        I1::Item: Into<Expr> {
+    Self::from_parts(numerator, Vec::<Expr>::new())
+  }
+
+  pub fn from_denominator<I2>(denominator: I2) -> Term
+  where I2: IntoIterator,
+        I2::Item: Into<Expr> {
+    Self::from_parts(Vec::<Expr>::new(), denominator)
+  }
+
+  pub fn parse(expr: Expr) -> Term {
+    match expr {
+      Expr::Call(function_name, args) => {
+        match function_name.as_ref() {
+          "*" => {
+            args.into_iter()
+              .map(|arg| Self::parse(arg))
+              .fold(Term::one(), |acc, x| acc * x)
+          }
+          "/" if args.len() == 2 => {
+            let [numerator, denominator] = args.try_into().unwrap();
+            let numerator = Self::parse(numerator);
+            let denominator = Self::parse(denominator);
+            numerator / denominator
+          }
+          _ => {
+            // Unknown function application, return a trivial Term.
+            Term {
+              numerator: vec![Expr::Call(function_name, args)],
+              denominator: Vec::new(),
+            }
+          }
+        }
+      }
+      expr => {
+        // Atomic expression, return a trivial Term.
+        Term {
+          numerator: vec![expr],
+          denominator: Vec::new(),
+        }
+      }
+    }
+  }
 }
 
 impl From<Term> for Expr {
@@ -147,10 +205,7 @@ fn fmt_product(f: &mut Formatter, exprs: &[Expr]) -> fmt::Result {
 
 impl From<Number> for Term {
   fn from(n: Number) -> Self {
-    // We use the default parser here. Numbers are clearly atomic, so
-    // the parser type doesn't matter.
-    let parser = TermParser::new();
-    parser.parse(Expr::from(n))
+    Term::parse(Expr::from(n))
   }
 }
 
@@ -263,6 +318,92 @@ mod tests {
     assert_eq!(term.recip(), Term {
       numerator: vec![Expr::from(2), Expr::from(3)],
       denominator: vec![Expr::from(0), Expr::from(1)],
+    });
+  }
+
+  #[test]
+  fn test_parse_simple_expr() {
+    let expr = Expr::call("+", vec![Expr::from(0), Expr::from(10)]);
+    let term = Term::parse(expr);
+    assert_eq!(term, Term {
+      numerator: vec![Expr::call("+", vec![Expr::from(0), Expr::from(10)])],
+      denominator: Vec::new(),
+    });
+
+    let expr = Expr::call("*", vec![Expr::from(0), Expr::from(10)]);
+    let term = Term::parse(expr);
+    assert_eq!(term, Term {
+      numerator: vec![Expr::from(0), Expr::from(10)],
+      denominator: Vec::new(),
+    });
+
+    let expr = Expr::call("/", vec![Expr::from(0), Expr::from(10)]);
+    let term = Term::parse(expr);
+    assert_eq!(term, Term {
+      numerator: vec![Expr::from(0)],
+      denominator: vec![Expr::from(10)],
+    });
+  }
+
+  #[test]
+  fn test_parse_expr_with_bad_division_arity() {
+    let expr = Expr::call("/", vec![Expr::from(0), Expr::from(10), Expr::from(15)]);
+    let term = Term::parse(expr);
+    assert_eq!(term, Term {
+      numerator: vec![Expr::call("/", vec![Expr::from(0), Expr::from(10), Expr::from(15)])],
+      denominator: Vec::new(),
+    });
+  }
+
+  #[test]
+  fn test_parse_nested_division() {
+    let expr = Expr::call("/", vec![
+      Expr::call("/", vec![Expr::from(0), Expr::from(10)]),
+      Expr::call("/", vec![Expr::from(100), Expr::from(110)]),
+    ]);
+    let term = Term::parse(expr);
+    assert_eq!(term, Term {
+      numerator: vec![Expr::from(0), Expr::from(110)],
+      denominator: vec![Expr::from(10), Expr::from(100)],
+    });
+  }
+
+  #[test]
+  fn test_parse_nested_multiplication() {
+    let expr = Expr::call("*", vec![
+      Expr::call("*", vec![Expr::from(0), Expr::from(10)]),
+      Expr::call("*", vec![Expr::from(100), Expr::from(110)]),
+    ]);
+    let term = Term::parse(expr);
+    assert_eq!(term, Term {
+      numerator: vec![Expr::from(0), Expr::from(10), Expr::from(100), Expr::from(110)],
+      denominator: Vec::new(),
+    });
+  }
+
+  #[test]
+  fn test_parse_nested_mixed_ops_1() {
+    let expr = Expr::call("/", vec![
+      Expr::call("*", vec![Expr::from(0), Expr::from(10)]),
+      Expr::call("*", vec![Expr::from(100), Expr::from(110)]),
+    ]);
+    let term = Term::parse(expr);
+    assert_eq!(term, Term {
+      numerator: vec![Expr::from(0), Expr::from(10)],
+      denominator: vec![Expr::from(100), Expr::from(110)],
+    });
+  }
+
+  #[test]
+  fn test_parse_nested_mixed_ops_2() {
+    let expr = Expr::call("*", vec![
+      Expr::call("/", vec![Expr::from(0), Expr::from(10)]),
+      Expr::call("/", vec![Expr::from(100), Expr::from(110)]),
+    ]);
+    let term = Term::parse(expr);
+    assert_eq!(term, Term {
+      numerator: vec![Expr::from(0), Expr::from(100)],
+      denominator: vec![Expr::from(10), Expr::from(110)],
     });
   }
 }

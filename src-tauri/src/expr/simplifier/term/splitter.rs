@@ -1,7 +1,7 @@
 
 use crate::expr::Expr;
 use crate::expr::predicates;
-use crate::expr::algebra::term::TermParser;
+use crate::expr::algebra::term::Term;
 use crate::expr::simplifier::base::{Simplifier, SimplifierContext};
 
 use num::One;
@@ -25,7 +25,7 @@ impl TermPartialSplitter {
 
 impl Simplifier for TermPartialSplitter {
   fn simplify_expr_part(&self, expr: Expr, _ctx: &mut SimplifierContext) -> Expr {
-    let term = TermParser::new().parse(expr);
+    let term = Term::parse(expr);
     let (literals, others) = term.partition_factors(is_valid_multiplicand);
     let literals = literals.remove_ones();
     if literals.is_one() {

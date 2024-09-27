@@ -1,7 +1,7 @@
 
 use crate::expr::Expr;
 use crate::expr::var::Var;
-use crate::expr::algebra::term::{Term, TermParser};
+use crate::expr::algebra::term::Term;
 use crate::expr::prisms;
 use crate::units::{UnitWithPower, CompositeUnit};
 use crate::units::parsing::UnitParser;
@@ -14,7 +14,7 @@ use either::Either;
 #[derive(Debug)]
 struct PowerExprPrism;
 
-pub fn parse_composite_unit_term<P, T>(unit_parser: &P, term_parser: &TermParser, term: Term) -> Tagged<Term, T>
+pub fn parse_composite_unit_term<P, T>(unit_parser: &P, term: Term) -> Tagged<Term, T>
 where P: UnitParser<T> + ?Sized {
   let (numerator, denominator) = term.into_parts();
   let (term_numerator, unit_numerator): (Vec<_>, Vec<_>) =
@@ -24,15 +24,15 @@ where P: UnitParser<T> + ?Sized {
 
   let unit = CompositeUnit::new(unit_numerator) / CompositeUnit::new(unit_denominator);
   Tagged {
-    value: term_parser.from_parts(term_numerator, term_denominator),
+    value: Term::from_parts(term_numerator, term_denominator),
     unit,
   }
 }
 
-pub fn parse_composite_unit_expr<P, T>(unit_parser: &P, term_parser: &TermParser, expr: Expr) -> Tagged<Term, T>
+pub fn parse_composite_unit_expr<P, T>(unit_parser: &P, expr: Expr) -> Tagged<Term, T>
 where P: UnitParser<T> + ?Sized {
-  let term = term_parser.parse(expr);
-  parse_composite_unit_term(unit_parser, term_parser, term)
+  let term = Term::parse(expr);
+  parse_composite_unit_term(unit_parser, term)
 }
 
 fn unit_like_expr_prism() -> impl Prism<Expr, Either<(Var, i64), Var>> {
@@ -108,7 +108,6 @@ mod tests {
   #[test]
   fn test_parse_composite_unit() {
     let table_parser = sample_table();
-    let term_parser = TermParser::new();
     let expr = Expr::call("/", vec![
       Expr::call("*", vec![
         var("m"),
@@ -123,8 +122,8 @@ mod tests {
         Expr::call("^", vec![var("degC"), Expr::from(2)]),
       ]),
     ]);
-    let Tagged { value, unit } = parse_composite_unit_expr(&table_parser, &term_parser, expr);
-    assert_eq!(value, term_parser.from_parts(
+    let Tagged { value, unit } = parse_composite_unit_expr(&table_parser, expr);
+    assert_eq!(value, Term::from_parts(
       vec![Expr::from(100), var("xxx")],
       vec![Expr::call("^", vec![var("yyy"), Expr::from(2)]), Expr::from(200)],
     ));
