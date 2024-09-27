@@ -28,8 +28,8 @@ use std::fmt::{self, Display, Formatter};
 /// automatically simplify rational expressions.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Term {
-  pub(super) numerator: Vec<Expr>,
-  pub(super) denominator: Vec<Expr>,
+  numerator: Vec<Expr>,
+  denominator: Vec<Expr>,
 }
 
 impl Term {
