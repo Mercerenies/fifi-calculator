@@ -41,7 +41,7 @@ pub fn parse_polynomial(expr: Expr) -> Polynomial {
       match function_name.as_ref() {
         "+" => {
           args.into_iter()
-            .map(|arg| parse_polynomial(arg))
+            .map(parse_polynomial)
             .fold(Polynomial::zero(), |a, b| a + b)
         }
         "-" if args.len() == 2 => {

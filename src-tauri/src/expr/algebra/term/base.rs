@@ -134,7 +134,7 @@ impl Term {
         match function_name.as_ref() {
           "*" => {
             args.into_iter()
-              .map(|arg| Self::parse(arg))
+              .map(Self::parse)
               .fold(Term::one(), |acc, x| acc * x)
           }
           "/" if args.len() == 2 => {
