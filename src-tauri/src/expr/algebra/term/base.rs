@@ -11,21 +11,22 @@ use std::ops::{Mul, Div, MulAssign, DivAssign};
 use std::fmt::{self, Display, Formatter};
 
 /// A `Term` is an [`Expr`], represented as a numerator and a
-/// denominator, both of which are products of expressions. The
-/// expressions in the products shall NOT be applications of the `*`
-/// operator and shall NOT be 2-arity applications of the `/`
-/// operator. (For the purposes of completeness, applications of `/`
-/// with argument count not equal to 2 are permitted, though such
+/// denominator, both of which are products of [`Factor`]s. The
+/// expressions in the products shall NOT themselves be applications
+/// of the `*` operator and shall NOT be 2-arity applications of the
+/// `/` operator. (For the purposes of completeness, applications of
+/// `/` with argument count not equal to 2 are permitted, though such
 /// applications make little sense in practice)
 ///
 /// Every expression can be interpreted as a `Term`, even if such an
 /// interpretation is trivial (i.e. the denominator is empty and the
-/// numerator contains one term). This interpretation is realized via
-/// [`Term::parse`]. The opposite mapping (from `Term` back to `Expr`)
-/// is realized by a `From<Term> for Expr` impl. Note that the two are
-/// NOT inverses of each other, as `Term::parse_expr` can lose
-/// information about nested denominators as it attempts to
-/// automatically simplify rational expressions.
+/// numerator contains one factor with no exponential part). This
+/// interpretation is realized via [`Term::parse`]. The opposite
+/// mapping (from a `Term` back to an `Expr`) is realized by a
+/// `From<Term> for Expr` impl. Note that the two are NOT inverses of
+/// each other, as `Term::parse_expr` can lose information about
+/// nested denominators as it attempts to automatically simplify
+/// rational expressions.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Term {
   numerator: Vec<Expr>,
@@ -33,13 +34,6 @@ pub struct Term {
 }
 
 impl Term {
-  pub fn singleton(expr: Expr) -> Self {
-    Self {
-      numerator: vec![expr],
-      denominator: Vec::new(),
-    }
-  }
-
   pub fn numerator(&self) -> &[Expr] {
     &self.numerator
   }
@@ -299,8 +293,8 @@ impl TemperatureConvertible<Number> for Term {
 
   fn unoffset(input: Expr, offset: Option<&Number>) -> Term {
     match offset {
-      None => Term::singleton(input),
-      Some(number) => Term::singleton(Expr::call("-", vec![input, Expr::from(number.clone())])),
+      None => Term::parse(input),
+      Some(number) => Term::parse(Expr::call("-", vec![input, Expr::from(number.clone())])),
     }
   }
 }

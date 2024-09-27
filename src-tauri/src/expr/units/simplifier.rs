@@ -100,7 +100,7 @@ where P: UnitParser<Number> + ?Sized {
         let tagged_polynomial = simplify_sum(terms);
         SignedTerm::new(
           Sign::Positive,
-          Term::singleton(tagged_polynomial.value.into()) * unit_into_term_lossy(tagged_polynomial.unit),
+          Term::parse(tagged_polynomial.value.into()) * unit_into_term_lossy(tagged_polynomial.unit),
         )
       });
     Polynomial::new(polynomial_terms).into()
