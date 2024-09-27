@@ -4,7 +4,6 @@
 
 use crate::expr::Expr;
 use crate::expr::number::Number;
-use crate::expr::algebra::term::TermParser;
 use crate::expr::units::parse_composite_unit_expr;
 use crate::stack::StackError;
 use crate::stack::base::RandomAccessStackLike;
@@ -47,9 +46,8 @@ pub enum QueryError {
 }
 
 #[derive(Clone)]
-pub struct QueryContext<'a, 'b> {
+pub struct QueryContext<'a> {
   pub units_parser: &'a dyn UnitParser<Number>,
-  pub term_parser: &'b TermParser,
 }
 
 pub fn run_query<S>(query: &Query, context: &QueryContext, stack: &S) -> Result<bool, QueryError>
@@ -66,12 +64,12 @@ where S: RandomAccessStackLike<Elem = Expr> {
 }
 
 pub fn has_any_units(context: &QueryContext, expr: Expr) -> bool {
-  let tagged_expr = parse_composite_unit_expr(context.units_parser, context.term_parser, expr);
+  let tagged_expr = parse_composite_unit_expr(context.units_parser, expr);
   !tagged_expr.unit.is_empty()
 }
 
 pub fn has_basic_temperature_units(context: &QueryContext, expr: Expr) -> bool {
-  let tagged_expr = parse_composite_unit_expr(context.units_parser, context.term_parser, expr);
+  let tagged_expr = parse_composite_unit_expr(context.units_parser, expr);
   TemperatureTagged::try_from(tagged_expr).is_ok()
 }
 
@@ -88,8 +86,7 @@ mod tests {
   #[test]
   fn test_has_any_units() {
     let unit_parser = default_parser();
-    let term_parser = TermParser::new();
-    let context = QueryContext { units_parser: &unit_parser, term_parser: &term_parser };
+    let context = QueryContext { units_parser: &unit_parser };
     assert!(has_any_units(&context, var("m")));
     assert!(has_any_units(&context, var("km")));
     assert!(!has_any_units(&context, var("eggsalad")));
@@ -108,8 +105,7 @@ mod tests {
   #[test]
   fn test_run_query_on_stack() {
     let unit_parser = default_parser();
-    let term_parser = TermParser::new();
-    let context = QueryContext { units_parser: &unit_parser, term_parser: &term_parser };
+    let context = QueryContext { units_parser: &unit_parser };
     let stack = stack_of(vec![Expr::from(100), Expr::from(200), var("km")]);
     assert_eq!(
       run_query(&Query { stack_index: 0, query_type: QueryType::HasUnits }, &context, &stack),

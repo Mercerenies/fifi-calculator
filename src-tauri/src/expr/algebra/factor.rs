@@ -1,9 +1,11 @@
 
 use crate::expr::Expr;
 use crate::expr::arithmetic::ArithExpr;
-use crate::util::Recip;
+use crate::util::{Recip, PreOne};
 
 use num::pow::Pow;
+
+use std::fmt::{self, Display};
 
 /// A factor consists of a base and an exponent, both of which are
 /// expressions.
@@ -46,6 +48,13 @@ impl Factor {
 
   pub fn into_parts(self) -> (Expr, Option<Expr>) {
     (self.base, self.exponent)
+  }
+
+  /// Equivalent to [`Factor::into_parts`], except that in the case
+  /// where the exponent is absent, this method fills it in with the
+  /// literal number [one](Expr::one).
+  pub fn into_parts_with_exp(self) -> (Expr, Expr) {
+    (self.base, self.exponent.unwrap_or_else(Expr::one))
   }
 
   /// Simplifies trivial exponents. An exponent which is exactly equal
@@ -102,6 +111,12 @@ impl From<Expr> for Factor {
   }
 }
 
+impl From<i64> for Factor {
+  fn from(n: i64) -> Factor {
+    Factor { base: Expr::from(n), exponent: None }
+  }
+}
+
 impl Pow<ArithExpr> for Factor {
   type Output = Factor;
 
@@ -127,6 +142,26 @@ impl Recip for Factor {
 
   fn recip(self) -> Self {
     self.pow(Expr::from(-1))
+  }
+}
+
+impl PreOne for Factor {
+  fn pre_one() -> Self {
+    Factor::parse(Expr::one())
+  }
+
+  fn is_pre_one(&self) -> bool {
+    self.base().is_one() ||
+      self.exponent_or_one().is_zero()
+  }
+}
+
+impl Display for Factor {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match &self.exponent {
+      None => write!(f, "{}", self.base),
+      Some(e) => write!(f, "{}^{}", self.base, e),
+    }
   }
 }
 
@@ -209,5 +244,27 @@ mod tests {
 
     let factor = Factor { base: Expr::from(10), exponent: None };
     assert_eq!(factor.recip(), Factor { base: Expr::from(10), exponent: Some(Expr::from(-1)) });
+  }
+
+  #[test]
+  fn test_pre_one() {
+    let one = Factor::pre_one();
+    assert_eq!(one.base(), &Expr::from(1));
+    assert_eq!(one.exponent(), None);
+  }
+
+  #[test]
+  fn test_is_pre_one() {
+    // True cases
+    assert!(Factor::pre_one().is_pre_one());
+    assert!(Factor { base: Expr::from(1), exponent: None }.is_pre_one());
+    assert!(Factor { base: Expr::from(1), exponent: Some(Expr::var("x").unwrap()) }.is_pre_one());
+    assert!(Factor { base: Expr::from(1), exponent: Some(Expr::from(3)) }.is_pre_one());
+    assert!(Factor { base: Expr::from(2), exponent: Some(Expr::from(0)) }.is_pre_one());
+    // False cases
+    assert!(!Factor { base: Expr::from(2), exponent: Some(Expr::from(1)) }.is_pre_one());
+    assert!(!Factor { base: Expr::from(2), exponent: Some(Expr::from(2)) }.is_pre_one());
+    assert!(!Factor { base: Expr::from(2), exponent: None }.is_pre_one());
+    assert!(!Factor { base: Expr::var("x").unwrap(), exponent: None }.is_pre_one());
   }
 }

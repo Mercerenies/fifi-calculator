@@ -1,7 +1,7 @@
 
 use crate::expr::simplifier::{Simplifier, SimplifierContext};
 use crate::expr::Expr;
-use crate::expr::algebra::term::{TermParser, Term, Sign, SignedTerm};
+use crate::expr::algebra::term::{Term, Sign, SignedTerm};
 use crate::expr::algebra::polynomial::{Polynomial, parse_polynomial};
 use crate::units::CompositeUnit;
 use crate::units::tagged::Tagged;
@@ -17,51 +17,49 @@ use itertools::Itertools;
 /// Simplifier which cancels off compatible units in unit-like
 /// expressions.
 #[derive(Debug)]
-pub struct UnitTermSimplifier<'a, 'b, P: ?Sized> {
-  term_parser: &'a TermParser,
-  unit_parser: &'b P,
+pub struct UnitTermSimplifier<'a, P: ?Sized> {
+  unit_parser: &'a P,
 }
 
 /// Simplifier which combines terms of the same dimension in a
 /// summation.
 #[derive(Debug)]
-pub struct UnitPolynomialSimplifier<'a, 'b, P: ?Sized> {
-  term_parser: &'a TermParser,
-  unit_parser: &'b P,
+pub struct UnitPolynomialSimplifier<'a, P: ?Sized> {
+  unit_parser: &'a P,
 }
 
-impl<'a, 'b, P> UnitTermSimplifier<'a, 'b, P>
+impl<'a, P> UnitTermSimplifier<'a, P>
 where P: UnitParser<Number> + ?Sized {
-  pub fn new(term_parser: &'a TermParser, unit_parser: &'b P) -> Self {
-    Self { term_parser, unit_parser }
+  pub fn new(unit_parser: &'a P) -> Self {
+    Self { unit_parser }
   }
 }
 
-impl<'a, 'b, P> UnitPolynomialSimplifier<'a, 'b, P>
+impl<'a, P> UnitPolynomialSimplifier<'a, P>
 where P: UnitParser<Number> + ?Sized {
-  pub fn new(term_parser: &'a TermParser, unit_parser: &'b P) -> Self {
-    Self { term_parser, unit_parser }
+  pub fn new(unit_parser: &'a P) -> Self {
+    Self { unit_parser }
   }
 }
 
-impl<'a, 'b, P> Clone for UnitTermSimplifier<'a, 'b, P>
+impl<'a, P> Clone for UnitTermSimplifier<'a, P>
 where P: ?Sized {
   fn clone(&self) -> Self {
-    Self { term_parser: self.term_parser, unit_parser: self.unit_parser }
+    Self { unit_parser: self.unit_parser }
   }
 }
 
-impl<'a, 'b, P> Clone for UnitPolynomialSimplifier<'a, 'b, P>
+impl<'a, P> Clone for UnitPolynomialSimplifier<'a, P>
 where P: ?Sized {
   fn clone(&self) -> Self {
-    Self { term_parser: self.term_parser, unit_parser: self.unit_parser }
+    Self { unit_parser: self.unit_parser }
   }
 }
 
-impl<'a, 'b, P> Simplifier for UnitTermSimplifier<'a, 'b, P>
+impl<'a, P> Simplifier for UnitTermSimplifier<'a, P>
 where P: UnitParser<Number> + ?Sized {
   fn simplify_expr_part(&self, expr: Expr, _: &mut SimplifierContext) -> Expr {
-    let tagged = parse_composite_unit_expr(self.unit_parser, self.term_parser, expr);
+    let tagged = parse_composite_unit_expr(self.unit_parser, expr);
     if tagged.unit.is_one() {
       // No units, so nothing to simplify
       return tagged_into_expr_lossy(tagged);
@@ -81,10 +79,10 @@ where P: UnitParser<Number> + ?Sized {
   }
 }
 
-impl<'a, 'b, P> Simplifier for UnitPolynomialSimplifier<'a, 'b, P>
+impl<'a, P> Simplifier for UnitPolynomialSimplifier<'a, P>
 where P: UnitParser<Number> + ?Sized {
   fn simplify_expr_part(&self, expr: Expr, _: &mut SimplifierContext) -> Expr {
-    let polynomial = parse_polynomial(self.term_parser, expr);
+    let polynomial = parse_polynomial(expr);
     if polynomial.len() == 1 {
       return polynomial.into();
     }
@@ -92,7 +90,7 @@ where P: UnitParser<Number> + ?Sized {
       .into_terms()
       .into_iter()
       .map(|signed_term| {
-        (signed_term.sign, parse_composite_unit_term(self.unit_parser, self.term_parser, signed_term.term))
+        (signed_term.sign, parse_composite_unit_term(self.unit_parser, signed_term.term))
       })
       .into_group_map_by(|(_sign, tagged)| tagged.unit.dimension());
     // TODO Once we decide how we're sorting polynomials, do it here
@@ -102,7 +100,7 @@ where P: UnitParser<Number> + ?Sized {
         let tagged_polynomial = simplify_sum(terms);
         SignedTerm::new(
           Sign::Positive,
-          Term::singleton(tagged_polynomial.value.into()) * unit_into_term_lossy(tagged_polynomial.unit),
+          Term::parse(tagged_polynomial.value.into()) * unit_into_term_lossy(tagged_polynomial.unit),
         )
       });
     Polynomial::new(polynomial_terms).into()

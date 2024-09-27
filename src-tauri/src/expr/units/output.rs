@@ -1,6 +1,6 @@
 
 use crate::expr::Expr;
-use crate::expr::algebra::term::{Term, TermParser};
+use crate::expr::algebra::term::Term;
 use crate::units::tagged::Tagged;
 use crate::units::{Unit, CompositeUnit};
 
@@ -79,12 +79,7 @@ fn unit_into_term_impl<S>(composite_unit: CompositeUnit<S>, lossy: bool) -> Resu
       }
     }
   }
-  // NOTE: Using the default TermParser here is safe, since our
-  // numerator and denominator both consist only of powers and
-  // variables, NOT of any nested fractions. So the scalar/matrix mode
-  // of the engine doesn't matter in this case.
-  let term_parser = TermParser::new();
-  Ok(term_parser.from_parts(numerator, denominator))
+  Ok(Term::from_parts(numerator, denominator))
 }
 
 fn parse_var<S>(unit: &Unit<S>) -> Result<Expr, UnitIntoTermError> {
@@ -126,7 +121,7 @@ mod tests {
       UnitWithPower { unit: Unit::new("cd", BaseDimension::LuminousIntensity, 1), exponent: 1 },
       UnitWithPower { unit: Unit::new("mol", BaseDimension::AmountOfSubstance, 1), exponent: -1 },
     ]);
-    let expected_output = TermParser::new().from_parts(
+    let expected_output = Term::from_parts(
       [var("cd"), pow(var("km"), 2)],
       [var("mol"), pow(var("sec"), 3)],
     );
@@ -154,7 +149,7 @@ mod tests {
     ]);
     assert_eq!(
       unit_into_term_lossy(composite_unit),
-      TermParser::new().from_parts(
+      Term::from_parts(
         [pow(var("km"), 2)],
         [var("mol"), pow(var("sec"), 3)],
       ),
@@ -163,8 +158,7 @@ mod tests {
 
   #[test]
   fn test_tagged_into_term() {
-    let term_parser = TermParser::new();
-    let term = term_parser.from_parts([Expr::from(100)], [Expr::from(101)]);
+    let term = Term::from_parts([Expr::from(100)], [Expr::from(101)]);
     let composite_unit = CompositeUnit::new(vec![
       UnitWithPower { unit: Unit::new("km", BaseDimension::Length, 1_000), exponent: 2 },
       UnitWithPower { unit: Unit::new("sec", BaseDimension::Time, 1), exponent: -3 },
@@ -174,7 +168,7 @@ mod tests {
     let tagged_term = Tagged::new(term, composite_unit);
     assert_eq!(
       tagged_into_term(tagged_term),
-      Ok(term_parser.from_parts(
+      Ok(Term::from_parts(
         [Expr::from(100), var("cd"), pow(var("km"), 2)],
         [Expr::from(101), var("mol"), pow(var("sec"), 3)],
       )),
@@ -183,8 +177,7 @@ mod tests {
 
   #[test]
   fn test_tagged_into_expr() {
-    let term_parser = TermParser::new();
-    let term = term_parser.from_parts([Expr::from(100)], [Expr::from(101)]);
+    let term = Term::from_parts([Expr::from(100)], [Expr::from(101)]);
     let composite_unit = CompositeUnit::new(vec![
       UnitWithPower { unit: Unit::new("km", BaseDimension::Length, 1_000), exponent: 2 },
       UnitWithPower { unit: Unit::new("sec", BaseDimension::Time, 1), exponent: -3 },
