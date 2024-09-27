@@ -86,7 +86,7 @@ impl Term {
   /// Removes any literal 1 values from the term. Specifically,
   /// removes any value for which [`Expr::is_one`] is true.
   pub fn remove_ones(self) -> Self {
-    self.filter_factors(Factor::is_pre_one)
+    self.filter_factors(|f| !f.is_pre_one())
   }
 
   pub fn from_parts<I1, I2>(numerator: I1, denominator: I2) -> Term
