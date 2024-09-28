@@ -7,5 +7,5 @@
 mod splitter;
 mod factor;
 
-pub use splitter::TermPartialSplitter;
+pub use splitter::{TermPartialSplitter, PartitionedTerm, split_term};
 pub use factor::FactorSorter;

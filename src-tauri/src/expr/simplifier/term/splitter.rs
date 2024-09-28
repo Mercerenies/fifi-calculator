@@ -18,6 +18,12 @@ pub struct TermPartialSplitter {
   _priv: (),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PartitionedTerm {
+  pub literals: Term,
+  pub others: Term,
+}
+
 impl TermPartialSplitter {
   pub fn new() -> Self {
     Self { _priv: () }
@@ -27,8 +33,7 @@ impl TermPartialSplitter {
 impl Simplifier for TermPartialSplitter {
   fn simplify_expr_part(&self, expr: Expr, _ctx: &mut SimplifierContext) -> Expr {
     let term = Term::parse(expr);
-    let (literals, others) = term.partition_factors(is_valid_multiplicand);
-    let literals = literals.remove_ones();
+    let PartitionedTerm { literals, others } = split_term(term);
     if literals.is_one() {
       others.into()
     } else if others.is_one() {
@@ -37,6 +42,16 @@ impl Simplifier for TermPartialSplitter {
       Expr::call("*", vec![literals.into(), others.into()])
     }
   }
+}
+
+/// Partitions a [`Term`] into two subterms. The first consists of
+/// "literal" values, more specifically those values which are likely
+/// to be simplifiable via ordinary multiplication. The second
+/// consists of everything else.
+pub fn split_term(term: Term) -> PartitionedTerm {
+  let (literals, others) = term.partition_factors(is_valid_multiplicand);
+  let literals = literals.remove_ones();
+  PartitionedTerm { literals, others }
 }
 
 /// Returns true if the expression represented by the argument
