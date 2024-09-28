@@ -27,6 +27,7 @@ use super::var::Var;
 use super::atom::Atom;
 use super::number::Number;
 use super::algebra::infinity::InfiniteConstant;
+use super::algebra::factor::Factor;
 use crate::util::cmp_iter_by;
 
 use std::str::FromStr;
@@ -87,6 +88,13 @@ impl<'a> OrderedExpr<'a> {
     };
     OrderedExpr { data }
   }
+
+  /// Private helper to construct `OrderedExprImpl::Call` values.
+  fn call(function_name: &'a str, args: Vec<&'a Expr>) -> Self {
+    OrderedExpr {
+      data: OrderedExprImpl::Call(function_name, OrderedExprSlice::Owned { elems: args }),
+    }
+  }
 }
 
 impl<'a> OrderedExprSlice<'a> {
@@ -132,6 +140,17 @@ impl<'a> From<InfiniteConstant> for OrderedExpr<'a> {
 impl<'a> From<&'a Expr> for OrderedExpr<'a> {
   fn from(e: &'a Expr) -> Self {
     OrderedExpr::new(e)
+  }
+}
+
+impl<'a> From<&'a Factor> for OrderedExpr<'a> {
+  fn from(f: &'a Factor) -> Self {
+    match f.exponent() {
+      None => OrderedExpr::from(f.base()),
+      Some(exp) => {
+        OrderedExpr::call("^", vec![f.base(), exp])
+      }
+    }
   }
 }
 
@@ -231,5 +250,43 @@ mod tests {
       slice2.iter().collect::<Vec<_>>(),
       vec![&Expr::from(2), &Expr::from(3)],
     );
+  }
+
+  #[test]
+  fn test_factor_as_ordered_expr() {
+    let expr = Expr::from(10);
+    assert_eq!(OrderedExpr::from(&Factor::parse(expr.clone())), OrderedExpr::from(&expr));
+
+    let expr = Expr::call("+", vec![Expr::var("x").unwrap(), Expr::from(10)]);
+    assert_eq!(OrderedExpr::from(&Factor::parse(expr.clone())), OrderedExpr::from(&expr));
+
+    let expr = Expr::call("^", vec![Expr::var("x").unwrap(), Expr::from(10)]);
+    assert_eq!(OrderedExpr::from(&Factor::parse(expr.clone())), OrderedExpr::from(&expr));
+  }
+
+  #[test]
+  fn test_factor_as_ordered_expr_with_factor_that_flattens_nested_exponents() {
+    let expr = Expr::call("^", vec![
+      Expr::call("^", vec![Expr::var("x").unwrap(), Expr::var("y").unwrap()]),
+      Expr::from(10),
+    ]);
+    let result_expr = Expr::call("^", vec![
+      Expr::var("x").unwrap(),
+      Expr::call("*", vec![Expr::var("y").unwrap(), Expr::from(10)]),
+    ]);
+    assert_eq!(OrderedExpr::from(&Factor::parse(expr)), OrderedExpr::from(&result_expr));
+  }
+
+  #[test]
+  fn test_factor_as_ordered_expr_with_factor_that_flattens_nested_exponents_arithmetically() {
+    let expr = Expr::call("^", vec![
+      Expr::call("^", vec![Expr::var("x").unwrap(), Expr::from(2)]),
+      Expr::from(10),
+    ]);
+    let result_expr = Expr::call("^", vec![
+      Expr::var("x").unwrap(),
+      Expr::from(20),
+    ]);
+    assert_eq!(OrderedExpr::from(&Factor::parse(expr)), OrderedExpr::from(&result_expr));
   }
 }
