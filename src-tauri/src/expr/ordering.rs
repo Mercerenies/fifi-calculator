@@ -52,9 +52,15 @@ enum OrderedExprImpl<'a> {
 /// Type which implements ordering for a slice of `Expr` via this
 /// module, without having to clone any of the inner expressions or
 /// the vector structure.
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct OrderedExprSlice<'a> {
-  elems: &'a [Expr],
+///
+/// An `OrderedExprSlice` can either borrow the slice of expressions
+/// as a whole (`&[Expr]`) or can own a vector of borrowed expressions
+/// (`Vec<&Expr>`). Both representations are treated equivalently by
+/// the `Eq` and `Ord` instances.
+#[derive(Debug, Clone)]
+enum OrderedExprSlice<'a> {
+  Borrowed { elems: &'a [Expr] },
+  Owned { elems: Vec<&'a Expr> },
 }
 
 impl<'a> OrderedExpr<'a> {
@@ -75,13 +81,30 @@ impl<'a> OrderedExpr<'a> {
         if function_name == "negate" && args.len() == 1 && args[0] == Expr::var("inf").unwrap() {
           OrderedExprImpl::NegInfinity
         } else {
-          OrderedExprImpl::Call(function_name, OrderedExprSlice { elems: args })
+          OrderedExprImpl::Call(function_name, OrderedExprSlice::Borrowed { elems: args })
         }
       }
     };
     OrderedExpr { data }
   }
 }
+
+impl<'a> OrderedExprSlice<'a> {
+  fn iter(&self) -> Box<dyn Iterator<Item = &'a Expr> + '_> {
+    match self {
+      OrderedExprSlice::Borrowed { elems } => Box::new(elems.iter()),
+      OrderedExprSlice::Owned { elems } => Box::new(elems.iter().map(|e| *e)),
+    }
+  }
+}
+
+impl<'a> PartialEq for OrderedExprSlice<'a> {
+  fn eq(&self, other: &Self) -> bool {
+    cmp_iter_by(self.iter(), other.iter(), |a, b| cmp_expr(a, b)) == Ordering::Equal
+  }
+}
+
+impl<'a> Eq for OrderedExprSlice<'a> {}
 
 impl<'a> PartialOrd for OrderedExprSlice<'a> {
   fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -91,7 +114,7 @@ impl<'a> PartialOrd for OrderedExprSlice<'a> {
 
 impl<'a> Ord for OrderedExprSlice<'a> {
   fn cmp(&self, other: &Self) -> Ordering {
-    cmp_iter_by(self.elems, other.elems, |a, b| cmp_expr(a, b))
+    cmp_iter_by(self.iter(), other.iter(), |a, b| cmp_expr(a, b))
   }
 }
 
@@ -158,7 +181,55 @@ mod tests {
   fn test_parse_call() {
     let expr = Expr::call("function_name", vec![Expr::from(10), Expr::from(20)]);
     assert_eq!(OrderedExpr::new(&expr), OrderedExpr {
-      data: OrderedExprImpl::Call("function_name", OrderedExprSlice { elems: &[Expr::from(10), Expr::from(20)] }),
+      data: OrderedExprImpl::Call(
+        "function_name",
+        OrderedExprSlice::Borrowed { elems: &[Expr::from(10), Expr::from(20)] },
+      ),
     });
+  }
+
+  #[test]
+  fn test_compare_slices_for_eq() {
+    let two = Expr::from(2);
+    let three = Expr::from(3);
+    let slice1 = OrderedExprSlice::Borrowed { elems: &[Expr::from(2), Expr::from(3)] };
+    let slice2 = OrderedExprSlice::Borrowed { elems: &[Expr::from(3), Expr::from(2)] };
+    let slice3 = OrderedExprSlice::Owned { elems: vec![&two, &three] };
+    let slice4 = OrderedExprSlice::Owned { elems: vec![&three, &two] };
+
+    assert_eq!(slice1, slice1);
+    assert_eq!(slice1, slice3);
+    assert_eq!(slice3, slice1);
+    assert_eq!(slice3, slice3);
+    assert_eq!(slice2, slice2);
+    assert_eq!(slice2, slice4);
+    assert_eq!(slice4, slice2);
+    assert_eq!(slice4, slice4);
+
+    assert_ne!(slice1, slice2);
+    assert_ne!(slice2, slice1);
+    assert_ne!(slice3, slice4);
+    assert_ne!(slice4, slice3);
+    assert_ne!(slice1, slice4);
+    assert_ne!(slice4, slice1);
+    assert_ne!(slice2, slice3);
+    assert_ne!(slice3, slice2);
+  }
+
+  #[test]
+  fn test_iter_slices() {
+    let two = Expr::from(2);
+    let three = Expr::from(3);
+    let slice1 = OrderedExprSlice::Borrowed { elems: &[Expr::from(2), Expr::from(3)] };
+    let slice2 = OrderedExprSlice::Owned { elems: vec![&two, &three] };
+
+    assert_eq!(
+      slice1.iter().collect::<Vec<_>>(),
+      vec![&Expr::from(2), &Expr::from(3)],
+    );
+    assert_eq!(
+      slice2.iter().collect::<Vec<_>>(),
+      vec![&Expr::from(2), &Expr::from(3)],
+    );
   }
 }
