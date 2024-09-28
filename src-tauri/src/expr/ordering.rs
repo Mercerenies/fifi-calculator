@@ -106,6 +106,12 @@ impl<'a> From<InfiniteConstant> for OrderedExpr<'a> {
   }
 }
 
+impl<'a> From<&'a Expr> for OrderedExpr<'a> {
+  fn from(e: &'a Expr) -> Self {
+    OrderedExpr::new(e)
+  }
+}
+
 pub fn cmp_expr(a: &Expr, b: &Expr) -> Ordering {
   OrderedExpr::new(a).cmp(&OrderedExpr::new(b))
 }
