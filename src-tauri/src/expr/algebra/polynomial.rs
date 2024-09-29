@@ -33,8 +33,25 @@ impl Polynomial {
   pub fn is_empty(&self) -> bool {
     self.terms.is_empty()
   }
+
+  pub fn from_terms(terms: impl IntoIterator<Item = SignedTerm>) -> Self {
+    terms.into_iter()
+      .map(|t| parse_polynomial(Expr::from(t)))
+      .fold(Polynomial::zero(), |a, b| a + b)
+  }
 }
 
+impl IntoIterator for Polynomial {
+  type Item = SignedTerm;
+  type IntoIter = std::vec::IntoIter<Self::Item>;
+
+  fn into_iter(self) -> Self::IntoIter {
+    self.terms.into_iter()
+  }
+}
+
+// TODO Make this be Polynomial::parse, for consistency with the
+// Factor and Term interfaces.
 pub fn parse_polynomial(expr: Expr) -> Polynomial {
   match expr {
     Expr::Call(function_name, args) => {
