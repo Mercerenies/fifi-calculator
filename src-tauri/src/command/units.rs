@@ -10,6 +10,7 @@ use crate::errorlist::ErrorList;
 use crate::state::ApplicationState;
 use crate::stack::base::StackLike;
 use crate::stack::keepable::KeepableStack;
+use crate::mode::calculation::CalculationMode;
 use crate::mode::display::language::LanguageMode;
 use crate::expr::Expr;
 use crate::expr::number::Number;
@@ -218,10 +219,10 @@ impl Command for ConvertUnitsCommand {
     ctx: &CommandContext,
   ) -> anyhow::Result<CommandOutput> {
     let (source_unit, target_unit) = validate_schema(&Self::argument_schema(state, ctx), args)?;
-    let source_unit = CompositeUnit::from(source_unit);
-    let target_unit = CompositeUnit::from(target_unit);
-
     let calculation_mode = state.calculation_mode().clone();
+
+    let source_unit = correct_unit_for_exactness(CompositeUnit::from(source_unit), &calculation_mode);
+    let target_unit = correct_unit_for_exactness(CompositeUnit::from(target_unit), &calculation_mode);
 
     let remainder_unit = calculate_remainder_unit(
       ctx.units_parser,
@@ -262,11 +263,15 @@ impl Command for ContextualConvertUnitsCommand {
     let calculation_mode = state.calculation_mode().clone();
 
     let target_unit = validate_schema(&Self::argument_schema(state, ctx), args)?;
-    let target_unit = CompositeUnit::from(target_unit);
+    let target_unit = correct_unit_for_exactness(CompositeUnit::from(target_unit), &calculation_mode);
 
     state.undo_stack_mut().push_cut();
     let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
-    let tagged_term = parse_composite_unit_expr(ctx.units_parser, stack.pop()?);
+    let tagged_term = {
+      let mut tagged_term = parse_composite_unit_expr(ctx.units_parser, stack.pop()?);
+      tagged_term.unit = correct_unit_for_exactness(tagged_term.unit, &calculation_mode);
+      tagged_term
+    };
 
     let remainder_unit = calculate_remainder_unit(
       ctx.units_parser,
@@ -299,8 +304,12 @@ impl Command for ConvertTemperatureCommand {
     let calculation_mode = state.calculation_mode().clone();
 
     let (source_unit, target_unit) = validate_schema(&Self::argument_schema(state, ctx), args)?;
-    let source_unit = try_into_basic_temperature_unit(CompositeUnit::from(source_unit))?;
-    let target_unit = try_into_basic_temperature_unit(CompositeUnit::from(target_unit))?;
+    let source_unit = try_into_basic_temperature_unit(
+      correct_unit_for_exactness(CompositeUnit::from(source_unit), &calculation_mode),
+    )?;
+    let target_unit = try_into_basic_temperature_unit(
+      correct_unit_for_exactness(CompositeUnit::from(target_unit), &calculation_mode),
+    )?;
 
     state.undo_stack_mut().push_cut();
     let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
@@ -332,11 +341,17 @@ impl Command for ContextualConvertTemperatureCommand {
     let calculation_mode = state.calculation_mode().clone();
 
     let target_unit = validate_schema(&Self::argument_schema(state, ctx), args)?;
-    let target_unit = try_into_basic_temperature_unit(CompositeUnit::from(target_unit))?;
+    let target_unit = try_into_basic_temperature_unit(
+      correct_unit_for_exactness(CompositeUnit::from(target_unit), &calculation_mode),
+    )?;
 
     state.undo_stack_mut().push_cut();
     let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
-    let tagged_term = parse_composite_unit_expr(ctx.units_parser, stack.pop()?);
+    let tagged_term = {
+      let mut tagged_term = parse_composite_unit_expr(ctx.units_parser, stack.pop()?);
+      tagged_term.unit = correct_unit_for_exactness(tagged_term.unit, &calculation_mode);
+      tagged_term
+    };
 
     let temperature_term = match TemperatureTagged::try_from(tagged_term) {
       Ok(temperature_term) => temperature_term,
@@ -365,6 +380,22 @@ impl Command for ContextualConvertTemperatureCommand {
   }
 }
 
+fn correct_unit_for_exactness(unit: CompositeUnit<Number>, calc_mode: &CalculationMode) -> CompositeUnit<Number> {
+  if calc_mode.has_fractional_flag() {
+    unit
+  } else {
+    into_inexact_unit(unit)
+  }
+}
+
+fn into_inexact_unit(unit: CompositeUnit<Number>) -> CompositeUnit<Number> {
+  unit.augment_values(
+    |r| r.ratio_to_inexact(),
+    |composite_unit| Some(into_inexact_unit(composite_unit)),
+    |r| r.ratio_to_inexact(),
+  )
+}
+
 #[cfg(test)]
 pub(crate) mod test_utils {
   use super::*;
@@ -390,6 +421,12 @@ mod tests {
   use crate::command::test_utils::{act_on_stack, setup_default_simplifier};
   use crate::command::options::CommandOptions;
   use crate::stack::test_utils::stack_of;
+
+  fn fractional_mode() -> CalculationMode {
+    let mut mode = CalculationMode::default();
+    mode.set_fractional_flag(true);
+    mode
+  }
 
   #[test]
   fn test_simple_length_conversion_down() {
@@ -449,6 +486,16 @@ mod tests {
       (setup_si_units, setup_default_simplifier, vec!["m / s", "mph"]),
       vec![600],
     ).unwrap();
+    // TODO: Awfully exact floating-point computation here. If this
+    // goes south, we may have to change the test to be better suited
+    // to floating-point calculations.
+    assert_eq!(output_stack, stack_of(vec![Number::from(1342.1617752326415)]));
+
+    let output_stack = act_on_stack(
+      &ConvertUnitsCommand::new(),
+      ((setup_si_units, setup_default_simplifier, fractional_mode()), vec!["m / s", "mph"]),
+      vec![600],
+    ).unwrap();
     assert_eq!(output_stack, stack_of(vec![Number::ratio(1_875_000, 1_397)]));
   }
 
@@ -457,6 +504,21 @@ mod tests {
     let output_stack = act_on_stack(
       &ConvertUnitsCommand::new(),
       (setup_si_units, setup_default_simplifier, vec!["m / s", "km"]),
+      vec![3],
+    ).unwrap();
+    assert_eq!(output_stack, stack_of(vec![
+      Expr::call("/", vec![
+        Expr::from(Number::ratio(3, 1000)),
+        Expr::var("s").unwrap(),
+      ]),
+    ]));
+  }
+
+  #[test]
+  fn test_conversion_with_remainder_in_frac_mode() {
+    let output_stack = act_on_stack(
+      &ConvertUnitsCommand::new(),
+      ((setup_si_units, setup_default_simplifier, fractional_mode()), vec!["m / s", "km"]),
       vec![3],
     ).unwrap();
     assert_eq!(output_stack, stack_of(vec![
