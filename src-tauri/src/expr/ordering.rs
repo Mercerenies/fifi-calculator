@@ -101,7 +101,7 @@ impl<'a> OrderedExprSlice<'a> {
   fn iter(&self) -> Box<dyn Iterator<Item = &'a Expr> + '_> {
     match self {
       OrderedExprSlice::Borrowed { elems } => Box::new(elems.iter()),
-      OrderedExprSlice::Owned { elems } => Box::new(elems.iter().map(|e| *e)),
+      OrderedExprSlice::Owned { elems } => Box::new(elems.iter().copied()),
     }
   }
 }
