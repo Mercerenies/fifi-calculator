@@ -17,7 +17,7 @@ use std::fmt::{self, Display};
 /// are binary applications of the `^` operator will be treated as
 /// nontrivial factors with an explicit exponent, while any other
 /// expressions will be treated as having the trivial factor.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Factor {
   pub base: Expr,
   pub exponent: Option<Expr>,

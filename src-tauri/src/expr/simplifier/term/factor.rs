@@ -132,7 +132,6 @@ fn is_obviously_negative(expr: &Expr) -> bool {
 mod tests {
   use super::*;
   use crate::expr::simplifier::test_utils::run_simplifier;
-  use crate::expr::Expr;
 
   fn var(name: &str) -> Expr {
     Expr::var(name).unwrap()

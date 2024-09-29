@@ -28,7 +28,7 @@ use std::fmt::{self, Display, Formatter};
 /// each other, as `Term::parse_expr` can lose information about
 /// nested denominators as it attempts to automatically simplify
 /// rational expressions.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Term {
   numerator: Vec<Factor>,
   denominator: Vec<Factor>,
