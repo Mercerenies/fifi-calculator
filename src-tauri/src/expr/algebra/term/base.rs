@@ -5,8 +5,9 @@ use crate::expr::algebra::factor::Factor;
 use crate::expr::arithmetic::ArithExpr;
 use crate::units::convertible::TemperatureConvertible;
 use crate::util::PreOne;
+use crate::mode::calculation::CalculationMode;
 
-use num::One;
+use num::{Zero, One};
 
 use std::ops::{Mul, Div, MulAssign, DivAssign};
 use std::fmt::{self, Display, Formatter};
@@ -145,6 +146,26 @@ impl Term {
           numerator: vec![Factor::parse(expr)],
           denominator: Vec::new(),
         }
+      }
+    }
+  }
+
+  pub fn into_expr_with_calc_mode(self, mode: &CalculationMode) -> Expr {
+    let numerator = ArithExpr::product(self.numerator.into_iter().map(ArithExpr::from).collect());
+    if self.denominator.is_empty() {
+      numerator.into()
+    } else {
+      let denominator = ArithExpr::product(self.denominator.into_iter().map(ArithExpr::from).collect());
+      if numerator.is_real() && denominator.is_real() && !denominator.is_zero() {
+        let numerator = numerator.unwrap_real();
+        let denominator = denominator.unwrap_real();
+        if mode.has_fractional_flag() || numerator.is_proper_ratio() || denominator.is_proper_ratio() {
+          Expr::from(numerator / denominator)
+        } else {
+          Expr::from((numerator / denominator).ratio_to_inexact())
+        }
+      } else {
+        Expr::from(numerator / denominator)
       }
     }
   }

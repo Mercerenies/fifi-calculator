@@ -31,7 +31,7 @@ impl TermPartialSplitter {
 }
 
 impl Simplifier for TermPartialSplitter {
-  fn simplify_expr_part(&self, expr: Expr, _ctx: &mut SimplifierContext) -> Expr {
+  fn simplify_expr_part(&self, expr: Expr, ctx: &mut SimplifierContext) -> Expr {
     let term = Term::parse(expr);
     let PartitionedTerm { literals, others } = split_term(term);
     if literals.is_one() {
@@ -39,7 +39,10 @@ impl Simplifier for TermPartialSplitter {
     } else if others.is_one() {
       literals.into()
     } else {
-      Expr::call("*", vec![literals.into(), others.into()])
+      Expr::call("*", vec![
+        literals.into_expr_with_calc_mode(&ctx.calculation_mode),
+        others.into_expr_with_calc_mode(&ctx.calculation_mode),
+      ])
     }
   }
 }
@@ -158,10 +161,7 @@ mod tests {
     let (new_expr, errors) = run_simplifier(&TermPartialSplitter::new(), expr);
     assert!(errors.is_empty());
     assert_eq!(new_expr, Expr::call("*", vec![
-      Expr::call("/", vec![
-        Expr::from(120),
-        Expr::from(6),
-      ]),
+      Expr::from(20),
       Expr::call("/", vec![
         Expr::call("*", vec![var("x"), var("y")]),
         Expr::call("*", vec![var("z"), var("t")]),
