@@ -181,6 +181,14 @@ impl Number {
     Number::from(value)
   }
 
+  pub fn ratio_to_inexact(self) -> Self {
+    if self.is_proper_ratio() {
+      self.to_inexact()
+    } else {
+      self
+    }
+  }
+
   /// Raises a `Number` to a floating point power. The result is
   /// always a floating point, which may be NaN if the value does not,
   /// mathematically, exist as a real number.

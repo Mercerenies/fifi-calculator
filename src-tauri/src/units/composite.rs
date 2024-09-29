@@ -134,6 +134,38 @@ impl<T> CompositeUnit<T> {
       .flat_map(|unit_with_power| unit_with_power.expand_compositions().into_inner());
     Self::new(elements)
   }
+
+  /// Augments the values underlying the base units of this composite
+  /// unit.
+  ///
+  /// Note that this delegates to [`Unit::augment`] internally but
+  /// does NOT allow changing the names of units. If we allowed
+  /// changing the name, then this method would have to rebuild the
+  /// composite unit entirely (to maintain the invariants of our
+  /// storage), but as it stands the existing value can largely be
+  /// reused.
+  pub fn augment_values<F, G, H, U>(
+    self,
+    mut amount_of_base_fn: F,
+    mut composed_fn: G,
+    mut temperature_fn: H,
+  ) -> CompositeUnit<U>
+  where F: FnMut(T) -> U,
+        G: FnMut(CompositeUnit<T>) -> Option<CompositeUnit<U>>,
+        H: FnMut(T) -> U {
+    fn id(x: String) -> String {
+      x
+    }
+
+    CompositeUnit {
+      elements: self.elements.into_iter().map(|unit_with_power| {
+        UnitWithPower {
+          unit: unit_with_power.unit.augment(id, &mut amount_of_base_fn, &mut composed_fn, &mut temperature_fn),
+          exponent: unit_with_power.exponent,
+        }
+      }).collect(),
+    }
+  }
 }
 
 impl<T> From<Unit<T>> for CompositeUnit<T> {
