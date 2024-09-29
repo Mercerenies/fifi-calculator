@@ -15,6 +15,7 @@ pub fn append_string_functions(table: &mut FunctionTable) {
 
 pub fn to_lowercase() -> Function {
   FunctionBuilder::new("lowercase")
+    .mark_as_idempotent()
     .add_case(
       builder::arity_one().of_type(expr_to_string()).and_then(|arg, _| {
         Ok(Expr::from(arg.to_lowercase()))
@@ -25,6 +26,7 @@ pub fn to_lowercase() -> Function {
 
 pub fn to_uppercase() -> Function {
   FunctionBuilder::new("uppercase")
+    .mark_as_idempotent()
     .add_case(
       builder::arity_one().of_type(expr_to_string()).and_then(|arg, _| {
         Ok(Expr::from(arg.to_uppercase()))

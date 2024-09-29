@@ -92,6 +92,7 @@ pub fn arg() -> Function {
 
 pub fn re() -> Function {
   FunctionBuilder::new("re")
+    .mark_as_idempotent()
     .add_case(
       // Real part of a complex number
       builder::arity_one().of_type(ExprToComplex).and_then(|arg, _| {

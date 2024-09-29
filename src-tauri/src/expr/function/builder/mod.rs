@@ -149,6 +149,13 @@ impl FunctionBuilder {
     self
   }
 
+  /// Enables the [`IS_IDEMPOTENT`](FunctionFlags::IS_IDEMPOTENT)
+  /// flag for `self`.
+  pub fn mark_as_idempotent(mut self) -> Self {
+    self.flags |= FunctionFlags::IS_IDEMPOTENT;
+    self
+  }
+
   /// Consumes `self` and builds it into a completed [`Function`]
   /// value.
   pub fn build(self) -> Function {

@@ -28,5 +28,11 @@ bitflags! {
     /// This flag will only be used to simplify unary applications of
     /// the function.
     const IS_INVOLUTION = 0b0100;
+    /// Functions with this flag are known to be idempotent.
+    /// Specifically, if `f` is a function with this flag, then
+    /// `f(f(x))` can simplify to `f(x)`, regardless of the value of
+    /// `x`. This flag will only be used to simplify unary
+    /// applications of the function.
+    const IS_IDEMPOTENT = 0b1000;
   }
 }

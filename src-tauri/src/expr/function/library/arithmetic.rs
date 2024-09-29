@@ -989,6 +989,7 @@ fn inverse_matrix(
 
 pub fn abs() -> Function {
   FunctionBuilder::new("abs")
+    .mark_as_idempotent()
     .add_case(
       // Real number abs
       builder::arity_one().of_type(expr_to_number()).and_then(|arg, _| {
@@ -1040,6 +1041,7 @@ pub fn abs() -> Function {
 
 pub fn signum() -> Function {
   FunctionBuilder::new("signum")
+    .mark_as_idempotent()
     .add_case(
       // Real number / complex number / quaternion signum
       builder::arity_one().of_type(ExprToQuaternion).and_then(|arg, _| {

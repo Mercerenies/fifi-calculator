@@ -436,6 +436,7 @@ pub fn arrange_vector() -> Function {
 
 pub fn sort_vector() -> Function {
   FunctionBuilder::new("sort")
+    .mark_as_idempotent()
     .add_case(
       builder::arity_one().of_type(prisms::ExprToVector).and_then(|mut vec, _| {
         vec.as_mut_slice().sort_by(cmp_expr);
@@ -447,6 +448,7 @@ pub fn sort_vector() -> Function {
 
 pub fn sort_vector_reversed() -> Function {
   FunctionBuilder::new("rsort")
+    .mark_as_idempotent()
     .add_case(
       builder::arity_one().of_type(prisms::ExprToVector).and_then(|mut vec, _| {
         vec.as_mut_slice().sort_by(|a, b| cmp_expr(b, a));

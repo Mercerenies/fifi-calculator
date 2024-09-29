@@ -5,6 +5,7 @@ pub mod dollar_sign;
 pub mod evaluator;
 pub mod flattener;
 pub mod error;
+pub mod idempotent;
 pub mod identity;
 pub mod interval;
 pub mod involution;
@@ -42,6 +43,7 @@ impl<'a> Simplifier for DefaultSimplifier<'a> {
     expr = partial::IdentityRemover::new(self.function_table).simplify_expr_part(expr, ctx);
     expr = flattener::FunctionFlattener::new(self.function_table).simplify_expr_part(expr, ctx);
     expr = involution::InvolutionSimplifier::new(self.function_table).simplify_expr_part(expr, ctx);
+    expr = idempotent::IdempotenceSimplifier::new(self.function_table).simplify_expr_part(expr, ctx);
     expr = self.distributive_rule_simplifier.simplify_expr_part(expr, ctx);
     expr = term::FactorSorter::new().simplify_expr_part(expr, ctx);
     expr = term::TermPartialSplitter::new().simplify_expr_part(expr, ctx);
