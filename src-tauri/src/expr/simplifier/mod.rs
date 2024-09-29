@@ -46,6 +46,8 @@ impl<'a> Simplifier for DefaultSimplifier<'a> {
     expr = term::FactorSorter::new().simplify_expr_part(expr, ctx);
     expr = term::TermPartialSplitter::new().simplify_expr_part(expr, ctx);
     expr = evaluator::FunctionEvaluator::new(self.function_table).simplify_expr_part(expr, ctx);
+    expr = polynomial::TermSorter::new().simplify_expr_part(expr, ctx);
+    expr = evaluator::FunctionEvaluator::new(self.function_table).simplify_expr_part(expr, ctx);
     expr = interval::IntervalNormalizer::new().simplify_expr_part(expr, ctx);
     expr
   }
