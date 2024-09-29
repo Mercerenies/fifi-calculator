@@ -138,7 +138,7 @@ impl Mul<Sign> for Polynomial {
     if rhs == Sign::Positive {
       self
     } else {
-      Polynomial { terms: self.terms.into_iter().map(|t| -t).collect() }
+      - self
     }
   }
 }
@@ -160,7 +160,7 @@ impl AddAssign for Polynomial {
 
 impl SubAssign for Polynomial {
   fn sub_assign(&mut self, rhs: Self) {
-    self.terms.extend(rhs.terms.into_iter().map(|t| -t));
+    self.terms.extend((- rhs).terms);
   }
 }
 
