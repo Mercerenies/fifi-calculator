@@ -158,7 +158,10 @@ mod tests {
     let (new_expr, errors) = run_simplifier(&TermPartialSplitter::new(), expr);
     assert!(errors.is_empty());
     assert_eq!(new_expr, Expr::call("*", vec![
-      Expr::from(20),
+      Expr::call("/", vec![
+        Expr::from(120),
+        Expr::from(6),
+      ]),
       Expr::call("/", vec![
         Expr::call("*", vec![var("x"), var("y")]),
         Expr::call("*", vec![var("z"), var("t")]),
@@ -183,7 +186,7 @@ mod tests {
     ]);
     let (new_expr, errors) = run_simplifier(&TermPartialSplitter::new(), expr.clone());
     assert!(errors.is_empty());
-    assert_eq!(new_expr, Expr::from(70));
+    assert_eq!(new_expr, Expr::call("/", vec![Expr::from(1680), Expr::from(24)]));
   }
 
   #[test]

@@ -224,11 +224,11 @@ impl Div for ArithExpr {
   type Output = ArithExpr;
 
   fn div(self, rhs: Self) -> Self::Output {
-    if rhs.is_zero() {
-      ArithExpr::from(Expr::call("/", vec![self.into(), rhs.into()]))
-    } else {
-      ArithExpr::binary_op(self, rhs, "/", Number::div)
-    }
+    // TODO: Currently, we do the conservative thing here in every
+    // case, since we can't know the fractional flag at this point in
+    // the code and thus don't know if we should generate rational
+    // numbers or floating-point ones.
+    ArithExpr::from(Expr::call("/", vec![self.into(), rhs.into()]))
   }
 }
 
@@ -384,13 +384,22 @@ mod tests {
     assert_eq!(ArithExpr::from(10) + ArithExpr::from(0), ArithExpr::from(10));
     assert_eq!(ArithExpr::from(10) * ArithExpr::from(20), ArithExpr::from(200));
     assert_eq!(ArithExpr::from(10) - ArithExpr::from(20), ArithExpr::from(-10));
-    assert_eq!(ArithExpr::from(4) / ArithExpr::from(2), ArithExpr::from(2));
-    assert_eq!(ArithExpr::from(2) / ArithExpr::from(4), ArithExpr::from(0.5));
+    assert_eq!(
+      ArithExpr::from(4) / ArithExpr::from(2),
+      ArithExpr::call("/", vec![Expr::from(4), Expr::from(2)]),
+    );
+    assert_eq!(
+      ArithExpr::from(2) / ArithExpr::from(4),
+      ArithExpr::call("/", vec![Expr::from(2), Expr::from(4)]),
+    );
   }
 
   #[test]
   fn test_division_by_zero_on_arith_expr() {
-    assert_eq!(ArithExpr::from(0) / ArithExpr::from(1), ArithExpr::from(0));
+    assert_eq!(
+      ArithExpr::from(0) / ArithExpr::from(1),
+      ArithExpr::from(Expr::call("/", vec![Expr::from(0), Expr::from(1)])),
+    );
     assert_eq!(
       ArithExpr::from(1) / ArithExpr::from(0),
       ArithExpr::from(Expr::call("/", vec![Expr::from(1), Expr::from(0)])),
