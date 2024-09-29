@@ -343,6 +343,7 @@ pub(crate) mod test_utils {
   use crate::state::test_utils::state_for_stack;
   use crate::stack::test_utils::stack_of;
   use crate::stack::Stack;
+  use crate::mode::calculation::CalculationMode;
 
   use once_cell::sync::Lazy;
 
@@ -351,47 +352,53 @@ pub(crate) mod test_utils {
   /// that test helper, so that we don't have to explicitly construct
   /// a default command context all over the place.
   pub trait ActOnStackArg {
-    fn mutate_arg(self, args: &mut Vec<String>, context: &mut CommandContext);
+    fn mutate_arg(self, args: &mut Vec<String>, state: &mut ApplicationState, context: &mut CommandContext);
   }
 
   impl ActOnStackArg for () {
-    fn mutate_arg(self, _args: &mut Vec<String>, _context: &mut CommandContext) {}
+    fn mutate_arg(self, _args: &mut Vec<String>, _state: &mut ApplicationState, _context: &mut CommandContext) {}
   }
 
   impl<A: ActOnStackArg, B: ActOnStackArg> ActOnStackArg for (A, B) {
-    fn mutate_arg(self, args: &mut Vec<String>, context: &mut CommandContext) {
+    fn mutate_arg(self, args: &mut Vec<String>, state: &mut ApplicationState, context: &mut CommandContext) {
       let (a, b) = self;
-      a.mutate_arg(args, context);
-      b.mutate_arg(args, context);
+      a.mutate_arg(args, state, context);
+      b.mutate_arg(args, state, context);
     }
   }
 
   impl<A: ActOnStackArg, B: ActOnStackArg, C: ActOnStackArg> ActOnStackArg for (A, B, C) {
-    fn mutate_arg(self, args: &mut Vec<String>, context: &mut CommandContext) {
+    fn mutate_arg(self, args: &mut Vec<String>, state: &mut ApplicationState, context: &mut CommandContext) {
       let (a, b, c) = self;
-      a.mutate_arg(args, context);
-      b.mutate_arg(args, context);
-      c.mutate_arg(args, context);
+      a.mutate_arg(args, state, context);
+      b.mutate_arg(args, state, context);
+      c.mutate_arg(args, state, context);
     }
   }
 
   impl ActOnStackArg for CommandOptions {
-    fn mutate_arg(self, _args: &mut Vec<String>, context: &mut CommandContext) {
+    fn mutate_arg(self, _args: &mut Vec<String>, _state: &mut ApplicationState, context: &mut CommandContext) {
       context.opts = self;
     }
   }
 
   impl<S> ActOnStackArg for Vec<S>
   where S: Into<String> {
-    fn mutate_arg(self, args: &mut Vec<String>, _context: &mut CommandContext) {
+    fn mutate_arg(self, args: &mut Vec<String>, _state: &mut ApplicationState, _context: &mut CommandContext) {
       *args = self.into_iter().map(|s| s.into()).collect();
     }
   }
 
+  impl ActOnStackArg for CalculationMode {
+    fn mutate_arg(self, _args: &mut Vec<String>, state: &mut ApplicationState, _context: &mut CommandContext) {
+      *state.calculation_mode_mut() = self;
+    }
+  }
+
   impl<F> ActOnStackArg for F
-  where F: FnOnce(&mut Vec<String>, &mut CommandContext) {
-    fn mutate_arg(self, args: &mut Vec<String>, context: &mut CommandContext) {
-      self(args, context)
+  where F: FnOnce(&mut Vec<String>, &mut ApplicationState, &mut CommandContext) {
+    fn mutate_arg(self, args: &mut Vec<String>, state: &mut ApplicationState, context: &mut CommandContext) {
+      self(args, state, context)
     }
   }
 
@@ -438,7 +445,7 @@ pub(crate) mod test_utils {
     let mut state = state_for_stack(input_stack.clone());
     let mut args = Vec::new();
     let mut context = CommandContext::default();
-    command_modifier.mutate_arg(&mut args, &mut context);
+    command_modifier.mutate_arg(&mut args, &mut state, &mut context);
     match command.run_command(&mut state, args, &context) {
       Ok(_) => {
         Ok(state.into_main_stack())
@@ -452,7 +459,7 @@ pub(crate) mod test_utils {
 
   /// This function is an [`ActOnStackArg`] which sets up the basic
   /// simplifier. This is the simplifier used by default in the GUI.
-  pub fn setup_default_simplifier(_args: &mut Vec<String>, context: &mut CommandContext) {
+  pub fn setup_default_simplifier(_args: &mut Vec<String>, _state: &mut ApplicationState, context: &mut CommandContext) {
     static FUNCTION_TABLE: Lazy<FunctionTable> = Lazy::new(build_function_table);
     context.simplifier = default_simplifier(&FUNCTION_TABLE);
   }

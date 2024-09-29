@@ -492,7 +492,7 @@ mod tests {
   /// Compatible with the
   /// [`ActOnStackArg`](crate::command::test_utils::ActOnStackArg)
   /// interface.
-  fn setup_sample_dispatch_table(_args: &mut Vec<String>, context: &mut CommandContext) {
+  fn setup_sample_dispatch_table(_args: &mut Vec<String>, _state: &mut ApplicationState, context: &mut CommandContext) {
     static TABLE: Lazy<CommandDispatchTable> = Lazy::new(sample_dispatch_table);
     let concrete_table = Lazy::force(&TABLE);
     context.dispatch_table = concrete_table;

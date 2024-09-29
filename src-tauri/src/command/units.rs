@@ -376,7 +376,7 @@ pub(crate) mod test_utils {
   /// This function is an
   /// [`ActOnStackArg`](crate::command::test_utils::ActOnStackArg)
   /// which sets up the SI units table on the current command context.
-  pub fn setup_si_units(_args: &mut Vec<String>, context: &mut CommandContext) {
+  pub fn setup_si_units(_args: &mut Vec<String>, _state: &mut ApplicationState, context: &mut CommandContext) {
     static PARSER: Lazy<PrefixParser<TableBasedParser<Number>>> = Lazy::new(default_parser);
     let concrete_parser = Lazy::force(&PARSER);
     context.units_parser = concrete_parser;
