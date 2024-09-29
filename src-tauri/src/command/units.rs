@@ -421,6 +421,8 @@ mod tests {
   use crate::command::test_utils::{act_on_stack, setup_default_simplifier};
   use crate::command::options::CommandOptions;
   use crate::stack::test_utils::stack_of;
+  use crate::expr::atom::Atom;
+  use crate::assert_strict_eq;
 
   fn fractional_mode() -> CalculationMode {
     let mut mode = CalculationMode::default();
@@ -446,6 +448,33 @@ mod tests {
       vec![10, 20, 30, 1_000],
     ).unwrap();
     assert_eq!(output_stack, stack_of(vec![10, 20, 30, 10]));
+  }
+
+  #[test]
+  #[ignore]
+  fn test_simple_length_conversion_down_exactness() {
+    let mut output_stack = act_on_stack(
+      &ConvertUnitsCommand::new(),
+      (setup_si_units, setup_default_simplifier, vec!["m", "cm"]),
+      vec![10, 20, 30, 1_000],
+    ).unwrap();
+    let Expr::Atom(Atom::Number(top)) = output_stack.pop().unwrap() else {
+      panic!("Top of stack is not a number!");
+    };
+    assert_strict_eq!(top, Number::from(100_000));
+  }
+
+  #[test]
+  fn test_simple_length_conversion_down_exactness_with_frac_flag() {
+    let mut output_stack = act_on_stack(
+      &ConvertUnitsCommand::new(),
+      ((setup_si_units, setup_default_simplifier, fractional_mode()), vec!["m", "cm"]),
+      vec![10, 20, 30, 1_000],
+    ).unwrap();
+    let Expr::Atom(Atom::Number(top)) = output_stack.pop().unwrap() else {
+      panic!("Top of stack is not a number!");
+    };
+    assert_strict_eq!(top, Number::from(100_000));
   }
 
   #[test]
