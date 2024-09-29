@@ -30,3 +30,31 @@ where F: FnMut(Expr) -> Result<Expr, E> {
   };
   f(expr)
 }
+
+pub fn postorder_walk_borrowed<F>(expr: &Expr, mut f: F)
+where F: FnMut(&Expr) {
+  postorder_walk_borrowed_impl(expr, &mut f);
+}
+
+fn postorder_walk_borrowed_impl<F>(expr: &Expr, f: &mut F)
+where F: FnMut(&Expr) {
+  if let Expr::Call(_, args) = expr {
+    for arg in args {
+      postorder_walk_borrowed_impl(arg, f);
+    }
+  }
+  f(expr);
+}
+
+/// Returns true if any of the sub-expressions of `expr` (including
+/// `expr` itself) satisfies the predicate.
+pub fn any<F>(expr: &Expr, f: F) -> bool
+where F: Fn(&Expr) -> bool {
+  let mut result = false;
+  postorder_walk_borrowed(expr, |e| {
+    if f(e) {
+      result = true;
+    }
+  });
+  result
+}
