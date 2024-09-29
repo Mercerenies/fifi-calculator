@@ -1,6 +1,7 @@
 
 use super::base::Term;
 use crate::expr::Expr;
+use crate::expr::arithmetic::ArithExpr;
 use crate::util::Sign;
 
 use std::fmt::{self, Formatter, Display};
@@ -56,10 +57,10 @@ impl Div for SignedTerm {
 
 impl From<SignedTerm> for Expr {
   fn from(signed_term: SignedTerm) -> Self {
-    let expr = Expr::from(signed_term.term);
+    let arith_expr = ArithExpr::from(signed_term.term);
     match signed_term.sign {
-      Sign::Negative => Expr::call("negate", vec![expr]),
-      Sign::Positive => expr,
+      Sign::Negative => (- arith_expr).into(),
+      Sign::Positive => arith_expr.into(),
     }
   }
 }
@@ -139,5 +140,14 @@ mod tests {
         [Expr::from(20), Expr::from(30)],
       )),
     );
+  }
+
+  #[test]
+  fn test_signed_term_into_expr() {
+    let term = SignedTerm::new(Sign::Positive, Term::from_numerator([Expr::from(10)]));
+    assert_eq!(Expr::from(term), Expr::from(10));
+
+    let term = SignedTerm::new(Sign::Negative, Term::from_numerator([Expr::from(10)]));
+    assert_eq!(Expr::from(term), Expr::from(-10));
   }
 }
