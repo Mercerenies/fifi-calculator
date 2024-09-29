@@ -9,6 +9,7 @@ pub mod identity;
 pub mod interval;
 pub mod involution;
 pub mod partial;
+pub mod polynomial;
 pub mod repeated;
 pub mod term;
 pub mod unicode;
@@ -79,5 +80,13 @@ pub(crate) mod test_utils {
     };
     let expr = simplifier.simplify_expr(expr, &mut context);
     (expr, errors)
+  }
+
+  /// Runs the simplifier as if via [`run_simplifier`], and asserts
+  /// that the error list is empty.
+  pub fn run_simplifier_no_errors(simplifier: &impl Simplifier, expr: Expr) -> Expr {
+    let (expr, errors) = run_simplifier(simplifier, expr);
+    assert!(errors.is_empty());
+    expr
   }
 }
