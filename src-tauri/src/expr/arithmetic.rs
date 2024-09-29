@@ -3,6 +3,7 @@ use super::Expr;
 use super::atom::Atom;
 use super::number::Number;
 use super::algebra::factor::Factor;
+use super::algebra::term::{SignedTerm, Term};
 
 use serde::{Serialize, Deserialize};
 use num::{Zero, One};
@@ -129,6 +130,18 @@ impl From<Expr> for ArithExpr {
 
 impl From<Factor> for ArithExpr {
   fn from(inner: Factor) -> Self {
+    ArithExpr::from(Expr::from(inner))
+  }
+}
+
+impl From<Term> for ArithExpr {
+  fn from(inner: Term) -> Self {
+    ArithExpr::from(Expr::from(inner))
+  }
+}
+
+impl From<SignedTerm> for ArithExpr {
+  fn from(inner: SignedTerm) -> Self {
     ArithExpr::from(Expr::from(inner))
   }
 }
