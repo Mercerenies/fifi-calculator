@@ -9,6 +9,7 @@ pub mod idempotent;
 pub mod identity;
 pub mod interval;
 pub mod involution;
+pub mod numerical;
 pub mod partial;
 pub mod polynomial;
 pub mod repeated;

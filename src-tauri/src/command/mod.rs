@@ -27,6 +27,8 @@ use dispatch::CommandDispatchTable;
 use flag_dispatch::{FlagDispatchArgs, dispatch_on_flags_command,
                     dispatch_on_inverse_command, dispatch_on_hyper_command};
 use crate::expr::Expr;
+use crate::expr::simplifier::numerical::simplify_numerically;
+use crate::expr::walker::postorder_walk_ok;
 use crate::expr::number::ComplexNumber;
 use crate::expr::algebra::infinity::InfiniteConstant;
 use crate::expr::incomplete::{IncompleteObject, ObjectType};
@@ -132,6 +134,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
 
   // Other nullary
   map.insert("substitute_vars".to_string(), Box::new(UnaryFunctionCommand::with_state(substitute_vars)));
+  map.insert("substitute_numerically".to_string(), Box::new(UnaryFunctionCommand::with_state(substitute_and_numerical_simplify)));
   map.insert("pack".to_string(), Box::new(vector::PackCommand::new()));
   map.insert("unpack".to_string(), Box::new(vector::UnpackCommand::new()));
   map.insert("repeat".to_string(), Box::new(vector::RepeatCommand::new()));
@@ -330,6 +333,15 @@ fn conj_transpose(expr: Expr) -> Expr {
 fn substitute_vars(expr: Expr, state: &ApplicationState) -> Expr {
   let var_table = state.variable_table();
   expr.substitute_vars(var_table)
+}
+
+fn numerical_simplify(expr: Expr) -> Expr {
+  postorder_walk_ok(expr, simplify_numerically)
+}
+
+fn substitute_and_numerical_simplify(expr: Expr, state: &ApplicationState) -> Expr {
+  let expr = substitute_vars(numerical_simplify(expr), state);
+  numerical_simplify(expr)
 }
 
 #[cfg(test)]
