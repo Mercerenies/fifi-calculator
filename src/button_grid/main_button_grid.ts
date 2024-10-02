@@ -179,6 +179,7 @@ const SUBGRID_FORWARDING_TABLE: Record<string, keyof Subgrids> = {
   "Q": "transcendental",
   "J": "transcendental",
   "G": "transcendental",
+  "N": "transcendental",
   "M-u": "strings",
   "M-l": "strings",
   "[": "input",

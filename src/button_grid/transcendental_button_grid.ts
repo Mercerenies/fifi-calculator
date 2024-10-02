@@ -22,6 +22,7 @@ export class TranscendentalButtonGrid extends ButtonGrid {
       [
         new DispatchButton("<math><msup><mi>e</mi><mi>x</mi></msup></math>", "e^", "E"),
         new DispatchButton("<math><msqrt><mi>x</mi></msqrt></math>", "sqrt", "Q"),
+        new DispatchButton("N", "substitute_numerically", "N"),
       ],
       [
         new DispatchButton("<math><mover><mi>z</mi><mo>-</mo></mover></math>", "conj", "J"),
