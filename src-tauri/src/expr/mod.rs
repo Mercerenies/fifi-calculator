@@ -24,6 +24,7 @@ use var::Var;
 use var::table::VarTable;
 use number::{Number, ComplexNumber, Quaternion};
 use crate::util::prism::ErrorWithPayload;
+use crate::util::stricteq::StrictEq;
 
 use thiserror::Error;
 use num::{Zero, One, BigInt};
@@ -270,6 +271,16 @@ impl Display for Expr {
         }
         write!(f, ")")
       }
+    }
+  }
+}
+
+impl StrictEq for Expr {
+  fn strict_eq(&self, other: &Expr) -> bool {
+    match (self, other) {
+      (Expr::Atom(a), Expr::Atom(b)) => a.strict_eq(b),
+      (Expr::Call(a, args_a), Expr::Call(b, args_b)) => a == b && args_a.strict_eq(args_b),
+      _ => false,
     }
   }
 }

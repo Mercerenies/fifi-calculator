@@ -30,6 +30,15 @@ impl<'a, T: Debug> Debug for Strictly<'a, T> {
   }
 }
 
+impl<T: StrictEq> StrictEq for Vec<T> {
+  fn strict_eq(&self, other: &Self) -> bool {
+    if self.len() != other.len() {
+      return false;
+    }
+    self.iter().zip(other).all(|(a, b)| a.strict_eq(b))
+  }
+}
+
 #[macro_export]
 macro_rules! assert_strict_eq {
   ($left:expr, $right:expr $(,)?) => {
@@ -57,4 +66,3 @@ macro_rules! assert_strict_ne {
     }
   }
 }
-

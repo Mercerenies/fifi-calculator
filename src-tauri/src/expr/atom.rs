@@ -1,6 +1,7 @@
 
 use super::number::Number;
 use super::var::Var;
+use crate::util::stricteq::StrictEq;
 
 use serde::{Serialize, Deserialize};
 use thiserror::Error;
@@ -86,6 +87,17 @@ impl Display for Atom {
       Atom::Number(n) => write!(f, "{n}"),
       Atom::Var(v) => write!(f, "{v}"),
       Atom::String(s) => write_escaped_str(f, s),
+    }
+  }
+}
+
+impl StrictEq for Atom {
+  fn strict_eq(&self, other: &Self) -> bool {
+    match (self, other) {
+      (Atom::Number(l), Atom::Number(r)) => l.strict_eq(r),
+      (Atom::Var(l), Atom::Var(r)) => l == r,
+      (Atom::String(l), Atom::String(r)) => l == r,
+      _ => false,
     }
   }
 }
