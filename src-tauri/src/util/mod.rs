@@ -9,6 +9,7 @@ pub mod point;
 pub mod prism;
 pub mod radix;
 pub mod stricteq;
+pub mod tuple;
 pub mod write;
 
 use regex::{Regex, escape};

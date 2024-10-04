@@ -5,6 +5,7 @@ use crate::expr::Expr;
 use crate::expr::function::FunctionContext;
 use crate::expr::simplifier::error::ArityError;
 use crate::expr::calculus::{DerivativeEngine, DifferentiationFailure, DifferentiationError};
+use crate::util::tuple::binder::narrow_vec;
 
 use std::marker::PhantomData;
 
@@ -74,17 +75,13 @@ impl<Down, P: Prism<Expr, Down>> OneArgumentMatcher<P, Down> {
   pub fn and_then<T, F>(self, f: F) -> Box<FunctionCase<T>>
   where F: Fn(Down, &mut FunctionContext) -> Result<T, Down> + Send + Sync + 'static,
         P: Send + Sync + 'static {
-    Box::new(move |mut args, context| {
-      if args.len() != 1 {
-        return FunctionCaseResult::NoMatch(args);
-      }
-      let arg = args.pop().unwrap(); // unwrap: args.len() == 1
-      match self.arg_prism.narrow_type(arg) {
-        Err(original_arg) => FunctionCaseResult::NoMatch(vec![original_arg]),
-        Ok(arg) => FunctionCaseResult::from_result(
-          f(arg, context).map_err(|arg| {
-            vec![self.arg_prism.widen_type(arg)]
-          }),
+    Box::new(move |args, context| {
+      match narrow_vec((&self.arg_prism,), args) {
+        Err(original_args) => FunctionCaseResult::NoMatch(original_args),
+        Ok((arg,)) => FunctionCaseResult::from_result(
+          f(arg, context).map_err(|arg| vec![
+            self.arg_prism.widen_type(arg),
+          ]),
         ),
       }
     })
@@ -117,29 +114,17 @@ where P1: Prism<Expr, Down1>,
   where F: Fn(Down1, Down2, &mut FunctionContext) -> Result<T, (Down1, Down2)> + Send + Sync + 'static,
         P1: Send + Sync + 'static,
         P2: Send + Sync + 'static {
-    Box::new(move |mut args, context| {
-      if args.len() != 2 {
-        return FunctionCaseResult::NoMatch(args);
-      }
-      let arg2 = args.pop().unwrap(); // unwrap: args.len() == 2
-      let arg1 = args.pop().unwrap(); // unwrap: args.len() == 2
-      match self.first_arg_prism.narrow_type(arg1) {
-        Err(original_arg1) => FunctionCaseResult::NoMatch(vec![original_arg1, arg2]),
-        Ok(arg1) => {
-          match self.second_arg_prism.narrow_type(arg2) {
-            Err(original_arg2) => {
-              let original_arg1 = self.first_arg_prism.widen_type(arg1);
-              FunctionCaseResult::NoMatch(vec![original_arg1, original_arg2])
-            }
-            Ok(arg2) => {
-              FunctionCaseResult::from_result(
-                f(arg1, arg2, context).map_err(|(arg1, arg2)| {
-                  vec![self.first_arg_prism.widen_type(arg1), self.second_arg_prism.widen_type(arg2)]
-                }),
-              )
-            }
-          }
-        }
+    Box::new(move |args, context| {
+      match narrow_vec((&self.first_arg_prism, &self.second_arg_prism), args) {
+        Err(original_args) => FunctionCaseResult::NoMatch(original_args),
+        Ok((arg1, arg2)) => FunctionCaseResult::from_result(
+          f(arg1, arg2, context).map_err(|(arg1, arg2)| {
+            vec![
+              self.first_arg_prism.widen_type(arg1),
+              self.second_arg_prism.widen_type(arg2),
+            ]
+          }),
+        ),
       }
     })
   }
@@ -176,44 +161,18 @@ where P1: Prism<Expr, Down1>,
         P1: Send + Sync + 'static,
         P2: Send + Sync + 'static,
         P3: Send + Sync + 'static {
-    // TODO: Better way to avoid this pyramid of doom :(
-    Box::new(move |mut args, context| {
-      if args.len() != 3 {
-        return FunctionCaseResult::NoMatch(args);
-      }
-      let arg3 = args.pop().unwrap(); // unwrap: args.len() == 3
-      let arg2 = args.pop().unwrap(); // unwrap: args.len() == 3
-      let arg1 = args.pop().unwrap(); // unwrap: args.len() == 3
-      match self.first_arg_prism.narrow_type(arg1) {
-        Err(original_arg1) => FunctionCaseResult::NoMatch(vec![original_arg1, arg2, arg3]),
-        Ok(arg1) => {
-          match self.second_arg_prism.narrow_type(arg2) {
-            Err(original_arg2) => {
-              let original_arg1 = self.first_arg_prism.widen_type(arg1);
-              FunctionCaseResult::NoMatch(vec![original_arg1, original_arg2, arg3])
-            }
-            Ok(arg2) => {
-              match self.third_arg_prism.narrow_type(arg3) {
-                Err(original_arg_3) => {
-                  let original_arg1 = self.first_arg_prism.widen_type(arg1);
-                  let original_arg2 = self.second_arg_prism.widen_type(arg2);
-                  FunctionCaseResult::NoMatch(vec![original_arg1, original_arg2, original_arg_3])
-                }
-                Ok(arg3) => {
-                  FunctionCaseResult::from_result(
-                    f(arg1, arg2, arg3, context).map_err(|(arg1, arg2, arg3)| {
-                      vec![
-                        self.first_arg_prism.widen_type(arg1),
-                        self.second_arg_prism.widen_type(arg2),
-                        self.third_arg_prism.widen_type(arg3),
-                      ]
-                    }),
-                  )
-                }
-              }
-            }
-          }
-        }
+    Box::new(move |args, context| {
+      match narrow_vec((&self.first_arg_prism, &self.second_arg_prism, &self.third_arg_prism), args) {
+        Err(original_args) => FunctionCaseResult::NoMatch(original_args),
+        Ok((arg1, arg2, arg3)) => FunctionCaseResult::from_result(
+          f(arg1, arg2, arg3, context).map_err(|(arg1, arg2, arg3)| {
+            vec![
+              self.first_arg_prism.widen_type(arg1),
+              self.second_arg_prism.widen_type(arg2),
+              self.third_arg_prism.widen_type(arg3),
+            ]
+          }),
+        ),
       }
     })
   }
