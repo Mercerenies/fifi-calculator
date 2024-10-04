@@ -37,6 +37,7 @@ either = { version = "1.12.0", features = ["serde"] }
 itertools = "0.13.0"
 try-traits = "0.1.1"
 html-escape = "0.2.13"
+time = { version = "0.3.36", features = ["local-offset"] }
 
 [features]
 # This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!
