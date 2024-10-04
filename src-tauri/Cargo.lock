@@ -809,6 +809,7 @@ dependencies = [
  "thiserror",
  "time",
  "try-traits",
+ "tuple_list",
 ]
 
 [[package]]
@@ -3827,6 +3828,12 @@ name = "try-traits"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9373e3d7b53927daabbec34ebd9cfda454cc0888939e5e3e929c324e0645c1f8"
+
+[[package]]
+name = "tuple_list"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "141fb9f71ee586d956d7d6e4d5a9ef8e946061188520140f7591b668841d502e"
 
 [[package]]
 name = "typenum"
