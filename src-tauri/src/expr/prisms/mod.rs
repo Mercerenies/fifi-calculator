@@ -24,7 +24,7 @@ pub use super::var::StringToVar;
 pub use super::vector::ExprToVector;
 pub use super::vector::matrix::{ExprToTypedMatrix, expr_to_matrix};
 pub use super::vector::tensor::ExprToTensor;
-pub use super::number::prisms::{NumberToUsize, NumberToI64};
+pub use super::number::prisms::{number_to_usize, number_to_i64};
 pub use super::algebra::infinity::{ExprToInfinity, UnboundedNumber,
                                    infinity_to_signed_infinity,
                                    expr_to_signed_infinity, expr_to_unbounded_number};
@@ -142,13 +142,13 @@ pub fn expr_to_positive_number() -> impl Prism<Expr, PositiveNumber> + Clone {
 /// Prism which only accepts expressions containing [`Number`] values
 /// representable by a `usize`.
 pub fn expr_to_usize() -> impl Prism<Expr, usize> + Clone {
-  expr_to_number().composed(NumberToUsize)
+  expr_to_number().composed(number_to_usize())
 }
 
 /// Prism which only accepts expressions containing [`Number`] values
 /// representable by an `i64`.
 pub fn expr_to_i64() -> impl Prism<Expr, i64> + Clone {
-  expr_to_number().composed(NumberToI64)
+  expr_to_number().composed(number_to_i64())
 }
 
 /// Prism which accepts [`Literal`] values.
