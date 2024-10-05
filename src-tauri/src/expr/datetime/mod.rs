@@ -6,8 +6,15 @@ use time::{OffsetDateTime, Date, Time, UtcOffset};
 
 /// A `DateTime` is a date, possibly with a time attached to it. If a
 /// time is attached, it will contain timezone offset information.
-#[derive(Debug, Clone)]
-pub struct DateTime { // TODO: Eq and Ord
+///
+/// For the purposes of the [`Eq`] and [`Ord`] traits, a date without
+/// a timestamp is considered equivalent to that date at midnight UTC.
+/// Two datetimes are considered equal when they represent the same
+/// time, even if the timezone offsets are different. So `3:30pm` in
+/// UTC would compare equal to `4:30pm` in BST, but not to `3:30pm` in
+/// BST.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct DateTime {
   inner: DateTimeRepr,
 }
 
@@ -40,10 +47,40 @@ impl DateTime {
   }
 
   pub fn to_offset_date_time(&self) -> OffsetDateTime {
-    match self.inner {
-      DateTimeRepr::Date(d) => OffsetDateTime::new_in_offset(d, Self::DEFAULT_TIME, Self::DEFAULT_OFFSET),
-      DateTimeRepr::Datetime(d) => d,
+    self.inner.to_offset_date_time()
+  }
+
+  pub fn has_time(&self) -> bool {
+    matches!(&self.inner, DateTimeRepr::Datetime(_))
+  }
+}
+
+impl DateTimeRepr {
+  fn to_offset_date_time(&self) -> OffsetDateTime {
+    match self {
+      DateTimeRepr::Date(d) => OffsetDateTime::new_in_offset(*d, DateTime::DEFAULT_TIME, DateTime::DEFAULT_OFFSET),
+      DateTimeRepr::Datetime(d) => *d,
     }
+  }
+}
+
+impl PartialEq for DateTimeRepr {
+  fn eq(&self, other: &Self) -> bool {
+    self.to_offset_date_time() == other.to_offset_date_time()
+  }
+}
+
+impl Eq for DateTimeRepr {}
+
+impl PartialOrd for DateTimeRepr {
+  fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    Some(self.cmp(other))
+  }
+}
+
+impl Ord for DateTimeRepr {
+  fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    self.to_offset_date_time().cmp(&other.to_offset_date_time())
   }
 }
 
@@ -56,5 +93,120 @@ impl From<OffsetDateTime> for DateTime {
 impl From<Date> for DateTime {
   fn from(inner: Date) -> Self {
     Self { inner: DateTimeRepr::Date(inner) }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  use time::Month;
+
+  use std::time::Duration;
+
+  fn days(n: u64) -> Duration {
+    Duration::from_secs(n * 24 * 60 * 60)
+  }
+
+  #[test]
+  fn test_without_time() {
+    let date = Date::from_calendar_date(2001, Month::February, 13).unwrap();
+    let datetime = OffsetDateTime::new_utc(date, Time::from_hms(12, 13, 14).unwrap());
+    assert_eq!(DateTime::from(datetime).without_time(), date);
+    assert_eq!(DateTime::from(date).without_time(), date);
+  }
+
+  #[test]
+  fn test_to_offset_date_time() {
+    let date = Date::from_calendar_date(2001, Month::February, 13).unwrap();
+    let datetime = OffsetDateTime::new_utc(date, Time::from_hms(12, 13, 14).unwrap());
+    assert_eq!(DateTime::from(datetime).to_offset_date_time(), datetime);
+    assert_eq!(
+      DateTime::from(date).to_offset_date_time(),
+      OffsetDateTime::new_utc(date, Time::MIDNIGHT),
+    );
+  }
+
+  #[test]
+  fn test_has_time() {
+    let date = DateTime::from(Date::from_calendar_date(2001, Month::February, 13).unwrap());
+    assert!(!date.has_time());
+    let datetime = DateTime::from(OffsetDateTime::UNIX_EPOCH);
+    assert!(datetime.has_time());
+  }
+
+  #[test]
+  fn test_eq_in_utc() {
+    let epoch = DateTime::from(OffsetDateTime::UNIX_EPOCH);
+    assert_eq!(epoch, epoch);
+    assert_eq!(epoch, DateTime::from(OffsetDateTime::UNIX_EPOCH));
+    assert_eq!(epoch, DateTime::from(epoch.without_time()));
+    assert_eq!(DateTime::from(epoch.without_time()), DateTime::from(epoch.without_time()));
+    assert_eq!(DateTime::from(epoch.without_time()), epoch);
+    assert_ne!(
+      DateTime::from(epoch.without_time()),
+      DateTime::from(Date::from_calendar_date(2001, Month::February, 13).unwrap()),
+    );
+  }
+
+  #[test]
+  fn test_eq_with_timezones() {
+    let datetime1_tz1 = DateTime::from(OffsetDateTime::new_in_offset(
+      Date::from_calendar_date(2001, Month::February, 13).unwrap(),
+      Time::from_hms(12, 13, 14).unwrap(),
+      UtcOffset::from_hms(1, 0, 0).unwrap(),
+    ));
+    let datetime1_tz2 = DateTime::from(OffsetDateTime::new_in_offset(
+      Date::from_calendar_date(2001, Month::February, 13).unwrap(),
+      Time::from_hms(11, 13, 14).unwrap(),
+      UtcOffset::from_hms(0, 0, 0).unwrap(),
+    ));
+    let datetime2_tz2 = DateTime::from(OffsetDateTime::new_in_offset(
+      Date::from_calendar_date(2001, Month::February, 13).unwrap(),
+      Time::from_hms(12, 13, 14).unwrap(),
+      UtcOffset::from_hms(0, 0, 0).unwrap(),
+    ));
+    assert_eq!(datetime1_tz1, datetime1_tz1);
+    assert_eq!(datetime1_tz1, datetime1_tz2);
+    assert_ne!(datetime2_tz2, datetime1_tz2);
+    assert_ne!(datetime2_tz2, datetime1_tz1);
+  }
+
+  #[test]
+  fn test_ord_in_utc() {
+    let date1 = DateTime::from(OffsetDateTime::UNIX_EPOCH);
+    let date2 = DateTime::from(OffsetDateTime::UNIX_EPOCH + days(2));
+    assert!(date1 < date2);
+    assert!(date1 <= date1);
+  }
+
+  #[test]
+  fn test_ord_on_date() {
+    let base_date = Date::from_calendar_date(2003, Month::April, 19).unwrap();
+    let date1 = DateTime::from(base_date);
+    let date2 = DateTime::from(base_date + days(1));
+    let date3 = DateTime::from(base_date - days(1));
+    assert!(date1 < date2);
+    assert!(date1 > date3);
+  }
+
+  #[test]
+  fn test_ord_on_mixed_date_and_datetime() {
+    let base_date = Date::from_calendar_date(2003, Month::April, 19).unwrap();
+    let date1 = DateTime::from(base_date);
+    let date2 = DateTime::from(OffsetDateTime::new_utc(base_date, Time::MIDNIGHT));
+    let date3 = DateTime::from(OffsetDateTime::new_utc(base_date, Time::MIDNIGHT) + Duration::from_secs(10));
+    let date4 = DateTime::from(OffsetDateTime::new_utc(base_date, Time::MIDNIGHT) - Duration::from_secs(10));
+    assert_eq!(date1, date2);
+    assert!(date1 < date3);
+    assert!(date1 > date4);
+  }
+
+  #[test]
+  fn test_ord_on_mixed_timezones() {
+    let base_date = Date::from_calendar_date(2003, Month::April, 19).unwrap();
+    let date1 = DateTime::from(OffsetDateTime::new_utc(base_date, Time::from_hms(3, 4, 5).unwrap()));
+    let date2 = DateTime::from(OffsetDateTime::new_in_offset(base_date, Time::from_hms(3, 4, 5).unwrap(), UtcOffset::from_hms(1, 0, 0).unwrap()));
+    assert!(date1 > date2);
   }
 }
