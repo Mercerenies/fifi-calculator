@@ -81,6 +81,16 @@ impl TryFrom<DateValues> for Date {
   }
 }
 
+impl From<Date> for DateValues {
+  fn from(date: Date) -> Self {
+    DateValues {
+      year: date.year(),
+      month: date.month() as u8,
+      day: date.day(),
+    }
+  }
+}
+
 impl TryFrom<DatetimeValues> for OffsetDateTime {
   type Error = DatetimeConstructionError<DatetimeValues>;
 
@@ -93,6 +103,21 @@ impl TryFrom<DatetimeValues> for OffsetDateTime {
       Ok(OffsetDateTime::new_in_offset(date, time, offset))
     }
     parse(&datetime).map_err(|err| DatetimeConstructionError::new(datetime, err))
+  }
+}
+
+impl From<OffsetDateTime> for DatetimeValues {
+  fn from(date: OffsetDateTime) -> Self {
+    DatetimeValues {
+      year: date.year(),
+      month: date.month() as u8,
+      day: date.day(),
+      hour: date.hour(),
+      minute: date.minute(),
+      second: date.second(),
+      micro: date.microsecond(),
+      offset: date.offset().whole_seconds(),
+    }
   }
 }
 

@@ -14,17 +14,19 @@ use super::algebra::formula::{Formula, Equation};
 use super::algebra::infinity::InfiniteConstant;
 use crate::util::prism::{Prism, PrismExt, Iso, OnVec, OnTuple2, Only, Conversion,
                          LosslessConversion, VecToArray};
+use crate::util::tuple::binder::{PrismTupleList, narrow_vec};
 use crate::graphics::GRAPHICS_NAME;
 
 use num::{Zero, One};
 use either::Either;
+use tuple_list::{Tuple, TupleList};
 
 // Re-export some useful expression-adjacent prisms.
 pub use super::var::StringToVar;
 pub use super::vector::ExprToVector;
 pub use super::vector::matrix::{ExprToTypedMatrix, expr_to_matrix};
 pub use super::vector::tensor::ExprToTensor;
-pub use super::number::prisms::{number_to_usize, number_to_i64};
+pub use super::number::prisms::{number_to_usize, number_to_i64, number_to_i32, number_to_u8, number_to_u32};
 pub use super::algebra::infinity::{ExprToInfinity, UnboundedNumber,
                                    infinity_to_signed_infinity,
                                    expr_to_signed_infinity, expr_to_unbounded_number};
@@ -151,6 +153,18 @@ pub fn expr_to_i64() -> impl Prism<Expr, i64> + Clone {
   expr_to_number().composed(number_to_i64())
 }
 
+pub fn expr_to_i32() -> impl Prism<Expr, i32> + Clone {
+  expr_to_number().composed(number_to_i32())
+}
+
+pub fn expr_to_u8() -> impl Prism<Expr, u8> + Clone {
+  expr_to_number().composed(number_to_u8())
+}
+
+pub fn expr_to_u32() -> impl Prism<Expr, u32> + Clone {
+  expr_to_number().composed(number_to_u32())
+}
+
 /// Prism which accepts [`Literal`] values.
 pub fn expr_to_literal() -> Conversion<Expr, Literal> {
   Conversion::new()
@@ -226,6 +240,25 @@ pub fn expr_to_typed_array<const N: usize, T, P>(inner: P) -> impl Prism<Expr, [
 where P: Prism<Expr, T> + Clone {
   expr_to_typed_vector(inner)
     .composed(VecToArray::new())
+}
+
+/// As [`narrow_vec`] but operating on an [`Expr`]. If the expression
+/// is atomic or is a call to the wrong function, this narrowing
+/// always fails. Otherwise, the narrowing operation is applied (via
+/// `narrow_vec`) to the arguments list.
+pub fn narrow_args<Xs, Ps>(expected_head: &str, prisms: Ps, expr: Expr) -> Result<Xs::Tuple, Expr>
+where Ps: Tuple,
+      Ps::TupleList: PrismTupleList<Expr, Xs>,
+      Xs: TupleList {
+  match expr {
+    Expr::Call(head, args) if head == expected_head => {
+      match narrow_vec(prisms, args) {
+        Ok(args_tuple) => Ok(args_tuple),
+        Err(args) => Err(Expr::Call(head, args)),
+      }
+    }
+    expr => Err(expr),
+  }
 }
 
 impl PositiveNumber {

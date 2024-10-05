@@ -17,28 +17,35 @@ pub struct NumberToPrimInt<T> {
   up: fn(T) -> Option<BigInt>,
 }
 
-pub fn number_to_usize() -> impl Prism<Number, usize> + Clone {
+pub const fn number_to_usize() -> impl Prism<Number, usize> + Clone {
   NumberToPrimInt {
     down: BigInt::to_usize,
     up: BigInt::from_usize,
   }
 }
 
-pub fn number_to_i64() -> impl Prism<Number, i64> + Clone {
+pub const fn number_to_i64() -> impl Prism<Number, i64> + Clone {
   NumberToPrimInt {
     down: BigInt::to_i64,
     up: BigInt::from_i64,
   }
 }
 
-pub fn number_to_i32() -> impl Prism<Number, i32> + Clone {
+pub const fn number_to_i32() -> impl Prism<Number, i32> + Clone {
   NumberToPrimInt {
     down: BigInt::to_i32,
     up: BigInt::from_i32,
   }
 }
 
-pub fn number_to_u8() -> impl Prism<Number, u8> + Clone {
+pub const fn number_to_u32() -> impl Prism<Number, u32> + Clone {
+  NumberToPrimInt {
+    down: BigInt::to_u32,
+    up: BigInt::from_u32,
+  }
+}
+
+pub const fn number_to_u8() -> impl Prism<Number, u8> + Clone {
   NumberToPrimInt {
     down: BigInt::to_u8,
     up: BigInt::from_u8,
