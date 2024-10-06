@@ -1,22 +1,46 @@
 
 //! Prisms relating to datetime values.
 
-use super::DATETIME_FUNCTION_NAME;
+use super::{DATETIME_FUNCTION_NAME, DateTime};
 use super::structure::{DatetimeValues, DateValues};
 use crate::expr::Expr;
-use crate::expr::prisms::{self, narrow_args};
+use crate::expr::prisms::{self, narrow_args, MatcherSpec, MatchedExpr};
 use crate::util::prism::{Prism, PrismExt, Conversion};
 
 use time::{Date, OffsetDateTime};
+use either::Either;
 
+/// This prism succeeds on call expressions whose head is `"datetime"`
+/// and which has three arguments, all of them integers in the
+/// appropriate range for the [`DateValues`] struct.
 #[derive(Debug, Clone, Default)]
 pub struct ExprToDateValues {
   _priv: (),
 }
 
+/// This prism succeeds on call expressions whose head is `"datetime"`
+/// and which has eight arguments, all of them integers in the
+/// appropriate range for the [`DatetimeValues`] struct.
 #[derive(Debug, Clone, Default)]
 pub struct ExprToDatetimeValues {
   _priv: (),
+}
+
+/// A [`MatcherSpec`] for arbitrary datetimes, whose arity is
+/// insignificant.
+#[derive(Debug)]
+struct DatetimeMatcherSpec;
+
+/// Type representing an arbitrary call to the `"datetime"` function,
+/// which may or may not be a valid [`DateValues`] or
+/// [`DatetimeValues`] instance. This type is often used as a
+/// catch-all in calculator functions, to report an appropriate error
+/// to the user when they enter a valid-looking but invalid date, such
+/// as the `datetime` object which would represent the (invalid) date
+/// April 31st.
+#[derive(Debug, Clone)]
+pub struct ArbitraryDatetime {
+  original_expr: MatchedExpr<DatetimeMatcherSpec>,
 }
 
 pub fn expr_to_date() -> impl Prism<Expr, Date> + Clone {
@@ -25,6 +49,29 @@ pub fn expr_to_date() -> impl Prism<Expr, Date> + Clone {
 
 pub fn expr_to_offset_datetime() -> impl Prism<Expr, OffsetDateTime> + Clone {
   ExprToDatetimeValues::new().composed(Conversion::new())
+}
+
+pub fn expr_to_datetime() -> impl Prism<Expr, DateTime> + Clone {
+  fn down(value: Either<Date, OffsetDateTime>) -> DateTime {
+    value.either_into()
+  }
+  fn up(value: DateTime) -> Either<Date, OffsetDateTime> {
+    if value.has_time() {
+      Either::Right(value.to_offset_date_time().into())
+    } else {
+      Either::Left(value.date().into())
+    }
+  }
+  expr_to_date()
+    .or(expr_to_offset_datetime())
+    .rmap(down, up)
+}
+
+pub fn expr_to_arbitrary_datetime() -> impl Prism<Expr, ArbitraryDatetime> + Clone {
+  DatetimeMatcherSpec::prism().rmap(
+    |matched_expr| ArbitraryDatetime { original_expr: matched_expr },
+    |arbitrary_datetime| arbitrary_datetime.original_expr,
+  )
 }
 
 impl ExprToDateValues {
@@ -37,6 +84,18 @@ impl ExprToDatetimeValues {
   pub fn new() -> ExprToDatetimeValues {
     ExprToDatetimeValues { _priv: () }
   }
+}
+
+impl ArbitraryDatetime {
+  pub fn expr(&self) -> &Expr {
+    self.original_expr.as_ref()
+  }
+}
+
+impl MatcherSpec for DatetimeMatcherSpec {
+  const FUNCTION_NAME: &'static str = DATETIME_FUNCTION_NAME;
+  const MIN_ARITY: usize = 0;
+  const MAX_ARITY: usize = usize::MAX;
 }
 
 impl Prism<Expr, DateValues> for ExprToDateValues {
@@ -77,6 +136,12 @@ impl Prism<Expr, DatetimeValues> for ExprToDatetimeValues {
       Expr::from(date.micro as i64),
       Expr::from(date.offset as i64),
     ])
+  }
+}
+
+impl From<ArbitraryDatetime> for Expr {
+  fn from(date: ArbitraryDatetime) -> Expr {
+    date.original_expr.into()
   }
 }
 
