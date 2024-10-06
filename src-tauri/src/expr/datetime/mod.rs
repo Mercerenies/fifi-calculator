@@ -30,6 +30,12 @@ enum DateTimeRepr {
 
 pub const DATETIME_FUNCTION_NAME: &str = "datetime";
 
+/// The valid arities of a `datetime` call. A `datetime` call with
+/// three arguments consists of a year, month, and day. A `datetime`
+/// call with eight arguments additionally consists of hours, minutes,
+/// seconds, microseconds, and timezone offset.
+pub const DATETIME_ARITIES: [usize; 2] = [3, 8];
+
 impl DateTime {
   pub const DEFAULT_TIME: Time = Time::MIDNIGHT;
   pub const DEFAULT_OFFSET: UtcOffset = UtcOffset::UTC;
