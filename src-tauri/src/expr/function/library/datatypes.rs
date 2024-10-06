@@ -14,6 +14,7 @@ pub fn append_datatype_functions(table: &mut FunctionTable) {
   table.insert(vector_function());
   table.insert(complex_function());
   table.insert(quaternion_function());
+  table.insert(datetime_function());
   table.insert(closed_interval());
   table.insert(right_open_interval());
   table.insert(left_open_interval());
@@ -69,6 +70,11 @@ pub fn quaternion_function() -> Function {
         Ok(Expr::call("quat", args))
       }
     )
+    .build()
+}
+
+pub fn datetime_function() -> Function {
+  FunctionBuilder::new("datetime")
     .build()
 }
 
