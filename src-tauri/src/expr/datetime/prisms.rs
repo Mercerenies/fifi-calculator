@@ -176,4 +176,48 @@ mod tests {
     let expr = Expr::call("datetime", vec![Expr::from(10), Expr::from(20), Expr::from(30)]);
     assert!(ExprToDatetimeValues::new().narrow_type(expr).is_err());
   }
+
+  #[test]
+  fn test_widen_from_date_values() {
+    let values = DateValues { year: 10, month: 20, day: 30 };
+    assert_eq!(
+      ExprToDateValues::new().widen_type(values),
+      Expr::call("datetime", vec![Expr::from(10), Expr::from(20), Expr::from(30)]),
+    );
+  }
+
+  #[test]
+  fn test_widen_from_datetime_values() {
+    let values = DatetimeValues { year: 10, month: 20, day: 30, hour: 40,
+                                  minute: 50, second: 60, micro: 70, offset: 80 };
+    assert_eq!(
+      ExprToDatetimeValues::new().widen_type(values),
+      Expr::call("datetime", vec![Expr::from(10), Expr::from(20), Expr::from(30), Expr::from(40),
+                                  Expr::from(50), Expr::from(60), Expr::from(70), Expr::from(80)]),
+    );
+  }
+
+  #[test]
+  fn test_narrow_to_arbitrary_datetime() {
+    let expr = Expr::call("datetime", vec![Expr::from(10), Expr::from(20), Expr::from(30)]);
+    let time = expr_to_arbitrary_datetime().narrow_type(expr.clone()).unwrap();
+    assert_eq!(Expr::from(time), expr);
+
+    let expr = Expr::call("datetime", vec![Expr::from(10), Expr::from(20), Expr::from(30), Expr::from(40)]);
+    let time = expr_to_arbitrary_datetime().narrow_type(expr.clone()).unwrap();
+    assert_eq!(Expr::from(time), expr);
+
+    let expr = Expr::call("foo", vec![Expr::from(10)]);
+    assert!(expr_to_arbitrary_datetime().narrow_type(expr).is_err());
+
+    let expr = Expr::from("abc");
+    assert!(expr_to_arbitrary_datetime().narrow_type(expr).is_err());
+  }
+
+  #[test]
+  fn test_widen_from_arbitrary_datetime() {
+    let expr = Expr::call("datetime", vec![Expr::from(10)]);
+    let time = expr_to_arbitrary_datetime().narrow_type(expr.clone()).unwrap();
+    assert_eq!(expr_to_arbitrary_datetime().widen_type(time), expr);
+  }
 }
