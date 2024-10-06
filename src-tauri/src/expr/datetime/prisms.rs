@@ -79,3 +79,36 @@ impl Prism<Expr, DatetimeValues> for ExprToDatetimeValues {
     ])
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_narrow_to_date_values() {
+    let expr = Expr::call("datetime", vec![Expr::from(10), Expr::from(20), Expr::from(30)]);
+    let values = ExprToDateValues::new().narrow_type(expr).unwrap();
+    assert_eq!(values, DateValues { year: 10, month: 20, day: 30 });
+
+    let expr = Expr::call("datetime", vec![Expr::from(10), Expr::from(20)]);
+    assert!(ExprToDateValues::new().narrow_type(expr).is_err());
+
+    let expr = Expr::call("datetime", vec![Expr::from("some_string"), Expr::from(20), Expr::from(30)]);
+    assert!(ExprToDateValues::new().narrow_type(expr).is_err());
+
+    let expr = Expr::call("xyz", vec![Expr::from(10), Expr::from(20), Expr::from(30)]);
+    assert!(ExprToDateValues::new().narrow_type(expr).is_err());
+  }
+
+  #[test]
+  fn test_narrow_to_datetime_values() {
+    let expr = Expr::call("datetime", vec![Expr::from(10), Expr::from(20), Expr::from(30), Expr::from(40),
+                                           Expr::from(50), Expr::from(60), Expr::from(70), Expr::from(80)]);
+    let values = ExprToDatetimeValues::new().narrow_type(expr).unwrap();
+    assert_eq!(values, DatetimeValues { year: 10, month: 20, day: 30, hour: 40,
+                                        minute: 50, second: 60, micro: 70, offset: 80 });
+
+    let expr = Expr::call("datetime", vec![Expr::from(10), Expr::from(20), Expr::from(30)]);
+    assert!(ExprToDatetimeValues::new().narrow_type(expr).is_err());
+  }
+}
