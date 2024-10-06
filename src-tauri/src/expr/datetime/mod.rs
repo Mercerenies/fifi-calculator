@@ -2,7 +2,9 @@
 pub mod prisms;
 pub mod structure;
 
-use time::{OffsetDateTime, Date, Time, UtcOffset};
+use crate::util::stricteq::StrictEq;
+
+use time::{OffsetDateTime, Date, Time, UtcOffset, Month};
 
 /// A `DateTime` is a date, possibly with a time attached to it. If a
 /// time is attached, it will contain timezone offset information.
@@ -53,6 +55,45 @@ impl DateTime {
   pub fn has_time(&self) -> bool {
     matches!(&self.inner, DateTimeRepr::Datetime(_))
   }
+
+  pub fn date(&self) -> Date {
+    self.without_time()
+  }
+
+  pub fn time(&self) -> Time {
+    match self.inner {
+      DateTimeRepr::Date(_) => Time::MIDNIGHT,
+      DateTimeRepr::Datetime(d) => d.time(),
+    }
+  }
+
+  pub fn year(&self) -> i32 {
+    self.date().year()
+  }
+
+  pub fn month(&self) -> Month {
+    self.date().month()
+  }
+
+  pub fn day(&self) -> u8 {
+    self.date().day()
+  }
+
+  pub fn hour(&self) -> u8 {
+    self.time().hour()
+  }
+
+  pub fn minute(&self) -> u8 {
+    self.time().minute()
+  }
+
+  pub fn second(&self) -> u8 {
+    self.time().second()
+  }
+
+  pub fn microsecond(&self) -> u32 {
+    self.time().microsecond()
+  }
 }
 
 impl DateTimeRepr {
@@ -72,6 +113,16 @@ impl PartialEq for DateTimeRepr {
 
 impl Eq for DateTimeRepr {}
 
+impl StrictEq for DateTimeRepr {
+  fn strict_eq(&self, other: &Self) -> bool {
+    match (self, other) {
+      (DateTimeRepr::Date(a), DateTimeRepr::Date(b)) => a == b,
+      (DateTimeRepr::Datetime(a), DateTimeRepr::Datetime(b)) => a == b,
+      _ => false,
+    }
+  }
+}
+
 impl PartialOrd for DateTimeRepr {
   fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
     Some(self.cmp(other))
@@ -81,6 +132,12 @@ impl PartialOrd for DateTimeRepr {
 impl Ord for DateTimeRepr {
   fn cmp(&self, other: &Self) -> std::cmp::Ordering {
     self.to_offset_date_time().cmp(&other.to_offset_date_time())
+  }
+}
+
+impl StrictEq for DateTime {
+  fn strict_eq(&self, other: &Self) -> bool {
+    self.inner.strict_eq(&other.inner)
   }
 }
 
@@ -99,6 +156,7 @@ impl From<Date> for DateTime {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::{assert_strict_eq, assert_strict_ne};
 
   use time::Month;
 
@@ -144,6 +202,20 @@ mod tests {
     assert_eq!(DateTime::from(epoch.without_time()), DateTime::from(epoch.without_time()));
     assert_eq!(DateTime::from(epoch.without_time()), epoch);
     assert_ne!(
+      DateTime::from(epoch.without_time()),
+      DateTime::from(Date::from_calendar_date(2001, Month::February, 13).unwrap()),
+    );
+  }
+
+  #[test]
+  fn test_strict_eq() {
+    let epoch = DateTime::from(OffsetDateTime::UNIX_EPOCH);
+    assert_strict_eq!(epoch, epoch);
+    assert_strict_eq!(epoch, DateTime::from(OffsetDateTime::UNIX_EPOCH));
+    assert_strict_ne!(epoch, DateTime::from(epoch.without_time()));
+    assert_strict_eq!(DateTime::from(epoch.without_time()), DateTime::from(epoch.without_time()));
+    assert_strict_ne!(DateTime::from(epoch.without_time()), epoch);
+    assert_strict_ne!(
       DateTime::from(epoch.without_time()),
       DateTime::from(Date::from_calendar_date(2001, Month::February, 13).unwrap()),
     );
