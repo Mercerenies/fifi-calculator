@@ -75,6 +75,49 @@ pub fn quaternion_function() -> Function {
 
 pub fn datetime_function() -> Function {
   FunctionBuilder::new("datetime")
+    .add_case(
+      builder::exact_arity(1).and_then(|mut args, _| {
+        args.push(Expr::from(1)); // Month
+        args.push(Expr::from(1)); // Day
+        Ok(Expr::call("datetime", args))
+      })
+    )
+    .add_case(
+      builder::exact_arity(2).and_then(|mut args, _| {
+        args.push(Expr::from(1)); // Day
+        Ok(Expr::call("datetime", args))
+      })
+    )
+    .add_case(
+      builder::exact_arity(4).and_then(|mut args, _| {
+        args.push(Expr::from(0)); // Minute
+        args.push(Expr::from(0)); // Second
+        args.push(Expr::from(0)); // Micro
+        args.push(Expr::from(0)); // Timezone Offset
+        Ok(Expr::call("datetime", args))
+      })
+    )
+    .add_case(
+      builder::exact_arity(5).and_then(|mut args, _| {
+        args.push(Expr::from(0)); // Second
+        args.push(Expr::from(0)); // Micro
+        args.push(Expr::from(0)); // Timezone Offset
+        Ok(Expr::call("datetime", args))
+      })
+    )
+    .add_case(
+      builder::exact_arity(6).and_then(|mut args, _| {
+        args.push(Expr::from(0)); // Micro
+        args.push(Expr::from(0)); // Timezone Offset
+        Ok(Expr::call("datetime", args))
+      })
+    )
+    .add_case(
+      builder::exact_arity(7).and_then(|mut args, _| {
+        args.push(Expr::from(0)); // Timezone Offset
+        Ok(Expr::call("datetime", args))
+      })
+    )
     .build()
 }
 

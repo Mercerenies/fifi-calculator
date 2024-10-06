@@ -66,6 +66,7 @@ pub struct VecMatcher<P, Down> {
   max_length: usize,
   _phantom: PhantomData<fn() -> Down>,
 }
+
 impl<Down, P: Prism<Expr, Down>> OneArgumentMatcher<P, Down> {
   pub fn of_type<NewDown, Q>(self, arg_prism: Q) -> OneArgumentMatcher<Q, NewDown>
   where Q: Prism<Expr, NewDown> {
@@ -356,6 +357,15 @@ pub fn non_zero_arity() -> VecMatcher<Identity, Expr> {
     arg_prism: Identity,
     min_length: 1,
     max_length: usize::MAX,
+    _phantom: PhantomData,
+  }
+}
+
+pub fn exact_arity(arity: usize) -> VecMatcher<Identity, Expr> {
+  VecMatcher {
+    arg_prism: Identity,
+    min_length: arity,
+    max_length: arity,
     _phantom: PhantomData,
   }
 }
