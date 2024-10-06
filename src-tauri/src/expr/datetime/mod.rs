@@ -1,7 +1,9 @@
 
 pub mod prisms;
 pub mod structure;
+pub mod timezone;
 
+use timezone::TimezoneOffset;
 use crate::util::stricteq::StrictEq;
 
 use time::{OffsetDateTime, Date, Time, UtcOffset, Month};
@@ -65,6 +67,17 @@ impl DateTime {
       DateTimeRepr::Date(_) => Time::MIDNIGHT,
       DateTimeRepr::Datetime(d) => d.time(),
     }
+  }
+
+  pub fn offset(&self) -> UtcOffset {
+    match self.inner {
+      DateTimeRepr::Date(_) => UtcOffset::UTC,
+      DateTimeRepr::Datetime(d) => d.offset(),
+    }
+  }
+
+  pub fn timezone_offset(&self) -> TimezoneOffset {
+    TimezoneOffset(self.offset())
   }
 
   pub fn year(&self) -> i32 {
