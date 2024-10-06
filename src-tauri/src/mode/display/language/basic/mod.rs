@@ -301,7 +301,7 @@ impl LanguageMode for BasicLanguageMode {
           if f == DATETIME_FUNCTION_NAME {
             // TODO Figure out a way to avoid the clone() here by
             // rewriting write_datetime_expr and co.
-            if let Ok(_) = datetime::write_datetime_expr_fmt(out, Expr::call(DATETIME_FUNCTION_NAME, args.clone()), true) {
+            if datetime::write_datetime_expr_fmt(out, Expr::call(DATETIME_FUNCTION_NAME, args.clone()), true).is_ok() {
               return;
             }
           }

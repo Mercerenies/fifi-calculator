@@ -57,9 +57,9 @@ pub fn expr_to_datetime() -> impl Prism<Expr, DateTime> + Clone {
   }
   fn up(value: DateTime) -> Either<Date, OffsetDateTime> {
     if value.has_time() {
-      Either::Right(value.to_offset_date_time().into())
+      Either::Right(value.to_offset_date_time())
     } else {
-      Either::Left(value.date().into())
+      Either::Left(value.date())
     }
   }
   expr_to_date()
