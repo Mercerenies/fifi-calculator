@@ -8,6 +8,7 @@ pub mod matrix;
 pub mod point;
 pub mod prism;
 pub mod radix;
+pub mod regexes;
 pub mod stricteq;
 pub mod tuple;
 pub mod write;
