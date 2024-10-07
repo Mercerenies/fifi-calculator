@@ -462,20 +462,104 @@ mod tests {
     assert_eq!(m.start(), 4);
     assert_eq!(m.end(), 19);
 
-    // Note: We don't parse the "7" here. Ideally, I'd use a lookahead
-    // to fail the regex outright in that case, but the crate we're
-    // using doesn't have lookaheads. (TODO: Get an actual error
-    // message in this case)
-    let input = "xxx 04:15:00.2134567 yyy";
-    let (time, m) = search_for_time(input).unwrap().unwrap();
-    assert_eq!(time, TimeOfDay { hour: 4, minute: 15, second: 00, microsecond: 213_456 });
-    assert_eq!(m.start(), 4);
-    assert_eq!(m.end(), 19);
-
     let input = "xxx 12:00 yyy";
     let (time, m) = search_for_time(input).unwrap().unwrap();
     assert_eq!(time, TimeOfDay { hour: 12, minute: 0, second: 0, microsecond: 0 });
     assert_eq!(m.start(), 4);
     assert_eq!(m.end(), 9);
+  }
+
+  #[test]
+  fn test_search_for_time_hour_only() {
+    let input = "xxx 4pm yyy";
+    let (time, m) = search_for_time(input).unwrap().unwrap();
+    assert_eq!(time, TimeOfDay { hour: 16, minute: 0, second: 0, microsecond: 0 });
+    assert_eq!(m.start(), 4);
+    assert_eq!(m.end(), 7);
+
+    let input = "xxx 04A.M. yyy";
+    let (time, m) = search_for_time(input).unwrap().unwrap();
+    assert_eq!(time, TimeOfDay { hour: 4, minute: 0, second: 0, microsecond: 0 });
+    assert_eq!(m.start(), 4);
+    assert_eq!(m.end(), 10);
+
+    let input = "xxx 04A.m yyy";
+    let (time, m) = search_for_time(input).unwrap().unwrap();
+    assert_eq!(time, TimeOfDay { hour: 4, minute: 0, second: 0, microsecond: 0 });
+    assert_eq!(m.start(), 4);
+    assert_eq!(m.end(), 9);
+
+    let input = "xxx 11p yyy";
+    let (time, m) = search_for_time(input).unwrap().unwrap();
+    assert_eq!(time, TimeOfDay { hour: 23, minute: 0, second: 0, microsecond: 0 });
+    assert_eq!(m.start(), 4);
+    assert_eq!(m.end(), 7);
+
+    let input = "xxx 12a yyy";
+    let (time, m) = search_for_time(input).unwrap().unwrap();
+    assert_eq!(time, TimeOfDay { hour: 0, minute: 0, second: 0, microsecond: 0 });
+    assert_eq!(m.start(), 4);
+    assert_eq!(m.end(), 7);
+
+    let input = "xxx 12p yyy";
+    let (time, m) = search_for_time(input).unwrap().unwrap();
+    assert_eq!(time, TimeOfDay { hour: 12, minute: 0, second: 0, microsecond: 0 });
+    assert_eq!(m.start(), 4);
+    assert_eq!(m.end(), 7);
+
+    let input = "xxx 12noon yyy";
+    let (time, m) = search_for_time(input).unwrap().unwrap();
+    assert_eq!(time, TimeOfDay { hour: 12, minute: 0, second: 0, microsecond: 0 });
+    assert_eq!(m.start(), 4);
+    assert_eq!(m.end(), 10);
+
+    let input = "xxx 12Mid yyy";
+    let (time, m) = search_for_time(input).unwrap().unwrap();
+    assert_eq!(time, TimeOfDay { hour: 0, minute: 0, second: 0, microsecond: 0 });
+    assert_eq!(m.start(), 4);
+    assert_eq!(m.end(), 9);
+
+    let input = "xxx 12Midnight yyy";
+    let (time, m) = search_for_time(input).unwrap().unwrap();
+    assert_eq!(time, TimeOfDay { hour: 0, minute: 0, second: 0, microsecond: 0 });
+    assert_eq!(m.start(), 4);
+    assert_eq!(m.end(), 14);
+
+    let input = "xxx 12  Midnight yyy";
+    let (time, m) = search_for_time(input).unwrap().unwrap();
+    assert_eq!(time, TimeOfDay { hour: 0, minute: 0, second: 0, microsecond: 0 });
+    assert_eq!(m.start(), 4);
+    assert_eq!(m.end(), 16);
+
+    let input = "xxx 11Midnight yyy";
+    let err = search_for_time(input).unwrap_err();
+    assert_eq!(err, DatetimeParseError::MisappliedNoonOrMid);
+  }
+
+  #[test]
+  fn test_search_for_period_hour_only() {
+    let input = "xxx NOON yyy";
+    let (time, m) = search_for_time(input).unwrap().unwrap();
+    assert_eq!(time, TimeOfDay { hour: 12, minute: 0, second: 0, microsecond: 0 });
+    assert_eq!(m.start(), 4);
+    assert_eq!(m.end(), 8);
+
+    let input = "xxx midnight yyy";
+    let (time, m) = search_for_time(input).unwrap().unwrap();
+    assert_eq!(time, TimeOfDay { hour: 0, minute: 0, second: 0, microsecond: 0 });
+    assert_eq!(m.start(), 4);
+    assert_eq!(m.end(), 12);
+
+    let input = "xxx mid yyy";
+    let (time, m) = search_for_time(input).unwrap().unwrap();
+    assert_eq!(time, TimeOfDay { hour: 0, minute: 0, second: 0, microsecond: 0 });
+    assert_eq!(m.start(), 4);
+    assert_eq!(m.end(), 7);
+
+    let input = "xxx am yyy";
+    assert!(search_for_time(input).unwrap().is_none());
+
+    let input = "xxx pm yyy";
+    assert!(search_for_time(input).unwrap().is_none());
   }
 }
