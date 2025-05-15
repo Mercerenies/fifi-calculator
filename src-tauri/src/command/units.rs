@@ -451,7 +451,7 @@ mod tests {
   }
 
   #[test]
-  #[ignore]
+  #[ignore] // See Issue #138
   fn test_simple_length_conversion_down_exactness() {
     let mut output_stack = act_on_stack(
       &ConvertUnitsCommand::new(),

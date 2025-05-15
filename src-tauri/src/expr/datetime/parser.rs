@@ -34,7 +34,7 @@ pub enum DatetimeParseError {
 }
 
 /// Wrapper struct equivalent to `u32` but which parses (via
-/// [`FromStr`]) padded to length six.
+/// [`FromStr`]) right-padded to length six.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 struct Microseconds(u32);
 
@@ -339,6 +339,13 @@ mod tests {
       vec![Token { datum: "ABC" }, Token { datum: "DEF" }, Token { datum: "ghi" },
            Token { datum: "jkl" }, Token { datum: "mno" }, Token { datum: "pqrs" }],
     );
+
+    let input = "0 1 2a b3 4C4";
+    assert_eq!(
+      tokenize_datetime_str(input),
+      vec![Token { datum: "0" }, Token { datum: "1" }, Token { datum: "2a" },
+           Token { datum: "b3" }, Token { datum: "4C4" }],
+    );
   }
 
   #[test]
@@ -561,5 +568,14 @@ mod tests {
 
     let input = "xxx pm yyy";
     assert!(search_for_time(input).unwrap().is_none());
+  }
+
+  #[test]
+  fn test_microseconds_from_str() {
+    assert_eq!("19".parse::<Microseconds>().unwrap(), Microseconds(190000));
+    assert_eq!("0".parse::<Microseconds>().unwrap(), Microseconds(0));
+    assert_eq!("123456789".parse::<Microseconds>().unwrap(), Microseconds(123456789));
+    assert_eq!("09".parse::<Microseconds>().unwrap(), Microseconds(90000));
+    assert_eq!("0009".parse::<Microseconds>().unwrap(), Microseconds(900));
   }
 }
