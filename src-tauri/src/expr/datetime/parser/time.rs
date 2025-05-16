@@ -9,11 +9,11 @@ use std::str::FromStr;
 use std::num::ParseIntError;
 
 static TIME_12_HOUR_RE: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"(?i)(\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d{1,6}))?)?\s*([ap]\.?(?:m\.?)?|noon|mid(?:night)?)").unwrap());
+  Lazy::new(|| Regex::new(r"(?i)(\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d{1,6}))?)?\s*([ap]\.?(?:m\.?)|noon|mid(?:night)?)").unwrap());
 static TIME_24_HOUR_RE: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"(\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d{1,6}))?)?").unwrap());
 static TIME_HOUR_ONLY_RE: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"(?i)(\d{1,2})\s*([ap]\.?(?:m\.?)?|noon|mid(?:night)?)").unwrap());
+  Lazy::new(|| Regex::new(r"(?i)(\d{1,2})\s*([ap]\.?(?:m\.?)|noon|mid(?:night)?)").unwrap());
 static TIME_PERIOD_ONLY_RE: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"(?i)noon|mid(?:night)?").unwrap());
 
@@ -450,22 +450,16 @@ mod tests {
     assert_eq!(m.end(), 9);
 
     let input = "xxx 11p yyy";
-    let (time, m) = search_for_time(input).unwrap().unwrap();
-    assert_eq!(time, TimeOfDay { hour: 23, minute: 0, second: 0, microsecond: 0 });
-    assert_eq!(m.start(), 4);
-    assert_eq!(m.end(), 7);
+    let no_result = search_for_time(input).unwrap();
+    assert_eq!(no_result, None);
 
     let input = "xxx 12a yyy";
-    let (time, m) = search_for_time(input).unwrap().unwrap();
-    assert_eq!(time, TimeOfDay { hour: 0, minute: 0, second: 0, microsecond: 0 });
-    assert_eq!(m.start(), 4);
-    assert_eq!(m.end(), 7);
+    let no_result = search_for_time(input).unwrap();
+    assert_eq!(no_result, None);
 
     let input = "xxx 12p yyy";
-    let (time, m) = search_for_time(input).unwrap().unwrap();
-    assert_eq!(time, TimeOfDay { hour: 12, minute: 0, second: 0, microsecond: 0 });
-    assert_eq!(m.start(), 4);
-    assert_eq!(m.end(), 7);
+    let no_result = search_for_time(input).unwrap();
+    assert_eq!(no_result, None);
 
     let input = "xxx 12noon yyy";
     let (time, m) = search_for_time(input).unwrap().unwrap();
@@ -494,6 +488,10 @@ mod tests {
     let input = "xxx 11Midnight yyy";
     let err = search_for_time(input).unwrap_err();
     assert_eq!(err, DatetimeParseError::MisappliedNoonOrMid);
+
+    let input = "xxx 11april yyy";
+    let no_result = search_for_time(input).unwrap();
+    assert_eq!(no_result, None);
   }
 
   #[test]

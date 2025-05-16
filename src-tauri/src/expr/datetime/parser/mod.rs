@@ -50,6 +50,25 @@ where F: FnMut(&T) -> Option<S> {
   None
 }
 
+fn find_and_extract_month(tokens: &mut Vec<Token>) -> Option<ParsedMonth> {
+  fn starts_with_alphabetic(s: &str) -> bool {
+    s.chars().next().map_or(false, |c| c.is_alphabetic())
+  }
+
+  fn alphabetic_parse_month(t: &Token) -> Option<ParsedMonth> {
+    if starts_with_alphabetic(t.as_str()) {
+      t.as_str().parse::<ParsedMonth>().ok()
+    } else {
+      None
+    }
+  }
+
+  // Prefer alphabetic month names, if there are any.
+  find_and_extract_match(tokens, alphabetic_parse_month).or_else(|| {
+    find_and_extract_match(tokens, |t| t.as_str().parse::<ParsedMonth>().ok())
+  })
+}
+
 impl DatetimeParser {
   pub fn new(now: DateTime) -> DatetimeParser {
     DatetimeParser { now }
@@ -74,7 +93,7 @@ impl DatetimeParser {
     let mut tokens: Vec<_> = tokenize_datetime_str(&input).collect();
     let year = find_and_extract_year(&mut tokens)?
       .unwrap_or_else(|| self.now.year());
-    let month = find_and_extract_match(&mut tokens, |t| t.as_str().parse::<ParsedMonth>().ok())
+    let month = find_and_extract_month(&mut tokens)
       .unwrap_or_else(|| ParsedMonth(self.now.month()));
     let day = find_and_extract_match(&mut tokens, |t| t.as_str().parse::<u8>().ok())
       .unwrap_or_else(|| self.now.day());
@@ -274,11 +293,151 @@ mod tests {
       day: 3,
     });
 
-    let values = parser.parse_datetime_str_values("Jan").unwrap().unwrap_right();
+    let values = parser.parse_datetime_str_values("\t\tMARCh ").unwrap().unwrap_right();
     assert_eq!(values, DateValues {
       year: 2000,
+      month: 3,
+      day: 3,
+    });
+
+    let values = parser.parse_datetime_str_values("12").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 2000,
+      month: 12,
+      day: 3,
+    });
+
+    let values = parser.parse_datetime_str_values("13").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 2000,
+      month: 2,
+      day: 13,
+    });
+
+    let values = parser.parse_datetime_str_values("+12").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 12,
+      month: 2,
+      day: 3,
+    });
+
+    let values = parser.parse_datetime_str_values("+12").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 12,
+      month: 2,
+      day: 3,
+    });
+
+    let values = parser.parse_datetime_str_values("012").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 12,
+      month: 2,
+      day: 3,
+    });
+  }
+
+  #[test]
+  fn test_parse_datetime_str_values_with_two_fields() {
+    let parser = DatetimeParser::new(epoch());
+
+    let values = parser.parse_datetime_str_values("2020 9").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 2020,
+      month: 9,
+      day: 3,
+    });
+
+    let values = parser.parse_datetime_str_values("2020 1").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 2020,
       month: 1,
       day: 3,
     });
+
+    let values = parser.parse_datetime_str_values("4 2020").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 2020,
+      month: 4,
+      day: 3,
+    });
+
+    let values = parser.parse_datetime_str_values("14 2020").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 2020,
+      month: 2,
+      day: 14,
+    });
+
+    // Note: 99 is not a valid day in February, but this function is
+    // not responsible for validating that.
+    let values = parser.parse_datetime_str_values("99 2020").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 2020,
+      month: 2,
+      day: 99,
+    });
+
+    let values = parser.parse_datetime_str_values("100 202").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 100,
+      month: 2,
+      day: 202,
+    });
+
+    let values = parser.parse_datetime_str_values("Jan 2001").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 2001,
+      month: 1,
+      day: 3,
+    });
+
+    let values = parser.parse_datetime_str_values("2001 Jan").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 2001,
+      month: 1,
+      day: 3,
+    });
+  }
+
+  #[test]
+  fn test_parse_datetime_str_values_with_three_fields() {
+    let parser = DatetimeParser::new(epoch());
+
+    let values = parser.parse_datetime_str_values("2020 Jan 9").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 2020,
+      month: 1,
+      day: 9,
+    });
+
+    let values = parser.parse_datetime_str_values("2020 9 Jan").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 2020,
+      month: 1,
+      day: 9,
+    });
+
+    let values = parser.parse_datetime_str_values("4-5-2020").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 2020,
+      month: 4,
+      day: 5,
+    });
+
+    let values = parser.parse_datetime_str_values("2020 Apr, 5").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 2020,
+      month: 4,
+      day: 5,
+    });
+  }
+
+  #[test]
+  fn test_parse_datetime_str_values_day_field_out_of_range() {
+    let parser = DatetimeParser::new(epoch());
+
+    // Note: 9999 does not fit in the range for `day: u8`.
+    let err = parser.parse_datetime_str_values("2020 Jan 9999").unwrap_err();
+    assert_eq!(err, DatetimeParseError::UnexpectedToken { token: String::from("9999") });
   }
 }
