@@ -41,6 +41,7 @@ pub enum TokenData {
   RightParen,
   LeftBracket,
   RightBracket,
+  DatetimeString(String),
 }
 
 #[derive(Debug, Clone, Error, PartialEq, Eq)]
@@ -55,6 +56,8 @@ pub enum TokenizerError {
   UnexpectedEOF(SourceOffset),
   #[error("Un-terminated string literal at {0}")]
   UnterminatedString(SourceOffset),
+  #[error("Un-terminated date string literal at {0}")]
+  UnterminatedDatetimeString(SourceOffset),
   #[error("Expected token, but found '{0}' at {1}")]
   UnexpectedChar(char, SourceOffset),
   #[error("Failed to parse number")]
@@ -108,6 +111,8 @@ impl<'a> ExprTokenizer<'a> {
   pub fn read_one_token(&self, state: &mut TokenizerState<'_>) -> Result<Token, TokenizerError> {
     if let Some(tok) = self.read_char_token(state) {
       Ok(tok)
+    } else if let Some(res) = self.read_datetime_string_token(state) {
+      res
     } else if let Some(res) = self.read_string_token(state) {
       res
     } else if let Some(tok) = self.read_function_call_token(state) {
@@ -185,6 +190,35 @@ impl<'a> ExprTokenizer<'a> {
       }
     }
     Err(TokenizerError::UnterminatedString(state.current_pos()))
+  }
+
+  fn read_datetime_string_token(&self, state: &mut TokenizerState<'_>) -> Option<Result<Token, TokenizerError>> {
+    let span_start = state.current_pos();
+    state.read_literal("#<")?;
+    Some(self.read_datetime_string_token_committed(state, span_start))
+  }
+
+  fn read_datetime_string_token_committed(
+    &self,
+    state: &mut TokenizerState<'_>,
+    span_start: SourceOffset,
+  ) -> Result<Token, TokenizerError> {
+    let mut s = String::new();
+    while let Some(ch) = state.peek() {
+      state.advance(1);
+      match ch {
+        '>' => {
+          let span_end = state.current_pos();
+          let span = Span::new(span_start, span_end);
+          let token = Token::new(TokenData::DatetimeString(s), span);
+          return Ok(token);
+        }
+        ch => {
+          s.push(ch);
+        }
+      }
+    }
+    Err(TokenizerError::UnterminatedDatetimeString(state.current_pos()))
   }
 
   fn read_function_call_token(&self, state: &mut TokenizerState<'_>) -> Option<Token> {
@@ -317,6 +351,7 @@ impl Display for TokenData {
       TokenData::Number(n) => write!(f, "{n}"),
       TokenData::Var(v) => write!(f, "{v}"),
       TokenData::String(s) => write_escaped_str(f, s),
+      TokenData::DatetimeString(s) => write!(f, "#<{}>", s),
       TokenData::Operator(op) => write!(f, "{}", op.operator_name()),
       TokenData::FunctionCallStart(name) => write!(f, "{name}("),
       TokenData::LeftParen => write!(f, "("),

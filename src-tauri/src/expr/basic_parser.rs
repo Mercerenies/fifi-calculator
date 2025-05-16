@@ -6,6 +6,7 @@ use super::Expr;
 use super::number::{ComplexNumber, Quaternion};
 use super::vector::Vector;
 use super::tokenizer::{ExprTokenizer, Token, TokenData, TokenizerError};
+use super::datetime::CurrentDateTimeSource;
 use crate::parsing::shunting_yard::{self, ShuntingYardDriver, ShuntingYardError};
 use crate::parsing::operator::{Operator, OperatorTable};
 use crate::parsing::operator::table::multiplication_operator;
@@ -17,10 +18,13 @@ use crate::parsing::tokenizer::TokenizerState;
 use thiserror::Error;
 
 use std::convert::Infallible;
+use std::sync::Arc;
+use std::fmt::{self, Formatter, Debug};
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct ExprParser<'a> {
   tokenizer: ExprTokenizer<'a>,
+  time_source: Arc<dyn CurrentDateTimeSource + 'a>,
 }
 
 #[derive(Clone, Debug, Error)]
@@ -61,9 +65,10 @@ pub struct ExprShuntingYardDriver {}
 type IResult<'t, T> = Result<(T, &'t [Token]), ParseError>;
 
 impl<'a> ExprParser<'a> {
-  pub fn new(operator_table: &'a OperatorTable) -> Self {
+  pub fn new(operator_table: &'a OperatorTable, time_source: Arc<dyn CurrentDateTimeSource + 'a>) -> Self {
     Self {
       tokenizer: ExprTokenizer::new(operator_table),
+      time_source,
     }
   }
 
@@ -96,7 +101,7 @@ impl<'a> ExprParser<'a> {
       }
       TokenData::Var(_) | TokenData::Operator(_) | TokenData::FunctionCallStart(_) |
       TokenData::LeftParen | TokenData::Number(_) | TokenData::String(_) |
-      TokenData::LeftBracket => {
+      TokenData::LeftBracket | TokenData::DatetimeString(_) => {
         self.parse_operator_chain(stream)
       }
     }
@@ -115,7 +120,8 @@ impl<'a> ExprParser<'a> {
           stream = tail;
         }
         Some(TokenData::Var(_) | TokenData::FunctionCallStart(_) | TokenData::LeftParen |
-             TokenData::LeftBracket | TokenData::Number(_) | TokenData::String(_)) => {
+             TokenData::LeftBracket | TokenData::Number(_) | TokenData::String(_) |
+             TokenData::DatetimeString(_)) => {
           // Read atomic expression
           let (spanned, tail) = self.parse_atom(stream)?;
           tokens.push(spanned.map(ChainToken::Scalar));
@@ -162,6 +168,9 @@ impl<'a> ExprParser<'a> {
       }
       TokenData::String(s) => {
         Ok((Spanned::new(Expr::from(s.clone()), token.span), &stream[1..]))
+      }
+      TokenData::DatetimeString(s) => {
+        todo!() /////
       }
       TokenData::FunctionCallStart(f) => {
         let ((args, end), tail) = self.parse_function_args(&stream[1..], TokenData::RightParen)?;
@@ -283,15 +292,32 @@ impl ShuntingYardDriver<Expr> for ExprShuntingYardDriver {
   }
 }
 
+impl Debug for ExprParser<'_> {
+  fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    f.debug_struct("ExprParser")
+      .field("tokenizer", &self.tokenizer)
+      .field("time_source", &format_args!("<{}>", self.time_source.time_source_name()))
+      .finish()
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
   use crate::expr::number::Number;
+  use crate::expr::datetime::MockedDateTimeSource;
+
+  use once_cell::sync::Lazy;
+
+  fn expr_parser() -> ExprParser<'static> {
+    static COMMON_OPERATORS: Lazy<OperatorTable> = Lazy::new(OperatorTable::common_operators);
+    let time_source = MockedDateTimeSource::epoch();
+    ExprParser::new(&COMMON_OPERATORS, Arc::new(time_source))
+  }
 
   #[test]
   fn test_atom_parse() {
-    let table = OperatorTable::common_operators();
-    let parser = ExprParser::new(&table);
+    let parser = expr_parser();
 
     let expr = parser.tokenize_and_parse("1").unwrap();
     assert_eq!(expr, Expr::from(1));
@@ -305,8 +331,7 @@ mod tests {
 
   #[test]
   fn test_parenthesized_expression() {
-    let table = OperatorTable::common_operators();
-    let parser = ExprParser::new(&table);
+    let parser = expr_parser();
 
     let expr = parser.tokenize_and_parse("(1)").unwrap();
     assert_eq!(expr, Expr::from(1));
@@ -317,8 +342,7 @@ mod tests {
 
   #[test]
   fn test_complex_number_expr() {
-    let table = OperatorTable::common_operators();
-    let parser = ExprParser::new(&table);
+    let parser = expr_parser();
 
     let expr = parser.tokenize_and_parse("(1, 2)").unwrap();
     assert_eq!(
@@ -335,8 +359,7 @@ mod tests {
 
   #[test]
   fn test_quaternion_expr() {
-    let table = OperatorTable::common_operators();
-    let parser = ExprParser::new(&table);
+    let parser = expr_parser();
 
     let expr = parser.tokenize_and_parse("(1, 2, 3, 4)").unwrap();
     assert_eq!(
@@ -355,8 +378,7 @@ mod tests {
 
   #[test]
   fn test_operator_sequence() {
-    let table = OperatorTable::common_operators();
-    let parser = ExprParser::new(&table);
+    let parser = expr_parser();
 
     let expr = parser.tokenize_and_parse("1 + 2 * 3").unwrap();
     assert_eq!(expr, Expr::call("+", vec![Expr::from(1), Expr::call("*", vec![Expr::from(2), Expr::from(3)])]));
@@ -367,8 +389,7 @@ mod tests {
 
   #[test]
   fn test_operator_sequence_with_parens() {
-    let table = OperatorTable::common_operators();
-    let parser = ExprParser::new(&table);
+    let parser = expr_parser();
 
     let expr = parser.tokenize_and_parse("(1 + 2) * 3").unwrap();
     assert_eq!(expr, Expr::call("*", vec![Expr::call("+", vec![Expr::from(1), Expr::from(2)]), Expr::from(3)]));
@@ -379,8 +400,7 @@ mod tests {
 
   #[test]
   fn test_function_call() {
-    let table = OperatorTable::common_operators();
-    let parser = ExprParser::new(&table);
+    let parser = expr_parser();
 
     let expr = parser.tokenize_and_parse("foo((1 + 2) * 3)").unwrap();
     assert_eq!(expr, Expr::call("foo", vec![
@@ -390,8 +410,7 @@ mod tests {
 
   #[test]
   fn test_var() {
-    let table = OperatorTable::common_operators();
-    let parser = ExprParser::new(&table);
+    let parser = expr_parser();
 
     let expr = parser.tokenize_and_parse("a + b").unwrap();
     assert_eq!(expr, Expr::call("+", vec![
@@ -402,8 +421,7 @@ mod tests {
 
   #[test]
   fn test_function_call_and_var() {
-    let table = OperatorTable::common_operators();
-    let parser = ExprParser::new(&table);
+    let parser = expr_parser();
 
     let expr = parser.tokenize_and_parse("foo((1 + 2) * a')").unwrap();
     assert_eq!(expr, Expr::call("foo", vec![
@@ -416,8 +434,7 @@ mod tests {
 
   #[test]
   fn test_prefix_ops() {
-    let table = OperatorTable::common_operators();
-    let parser = ExprParser::new(&table);
+    let parser = expr_parser();
 
     let expr = parser.tokenize_and_parse("+ + - 3").unwrap();
     assert_eq!(expr, Expr::call(
@@ -435,8 +452,7 @@ mod tests {
 
   #[test]
   fn test_prefix_ops_with_infix() {
-    let table = OperatorTable::common_operators();
-    let parser = ExprParser::new(&table);
+    let parser = expr_parser();
 
     let expr = parser.tokenize_and_parse("2 - - 3").unwrap();
     assert_eq!(expr, Expr::call(
@@ -450,8 +466,7 @@ mod tests {
 
   #[test]
   fn test_prefix_ops_with_infix_and_at_beginning() {
-    let table = OperatorTable::common_operators();
-    let parser = ExprParser::new(&table);
+    let parser = expr_parser();
 
     let expr = parser.tokenize_and_parse("- 2 - - 3").unwrap();
     assert_eq!(expr, Expr::call(
@@ -465,8 +480,7 @@ mod tests {
 
   #[test]
   fn test_explicit_vector() {
-    let table = OperatorTable::common_operators();
-    let parser = ExprParser::new(&table);
+    let parser = expr_parser();
 
     let expr = parser.tokenize_and_parse("vector(1, 2)").unwrap();
     assert_eq!(expr, Expr::call("vector", vec![Expr::from(1), Expr::from(2)]));
@@ -474,8 +488,7 @@ mod tests {
 
   #[test]
   fn test_vector_with_syntax_sugar() {
-    let table = OperatorTable::common_operators();
-    let parser = ExprParser::new(&table);
+    let parser = expr_parser();
 
     let expr = parser.tokenize_and_parse("[1, 2]").unwrap();
     assert_eq!(expr, Expr::call("vector", vec![Expr::from(1), Expr::from(2)]));
@@ -483,8 +496,7 @@ mod tests {
 
   #[test]
   fn test_vector_with_trailing_comma() {
-    let table = OperatorTable::common_operators();
-    let parser = ExprParser::new(&table);
+    let parser = expr_parser();
 
     let expr = parser.tokenize_and_parse("[1, 2, ]").unwrap();
     assert_eq!(expr, Expr::call("vector", vec![Expr::from(1), Expr::from(2)]));
@@ -492,8 +504,7 @@ mod tests {
 
   #[test]
   fn test_vector_with_wrong_bracket() {
-    let table = OperatorTable::common_operators();
-    let parser = ExprParser::new(&table);
+    let parser = expr_parser();
 
     let err = parser.tokenize_and_parse("[1)").unwrap_err();
     let ParseError::ParsingError(err) = err else {
@@ -511,8 +522,7 @@ mod tests {
 
   #[test]
   fn test_negative_exponent_parse() {
-    let table = OperatorTable::common_operators();
-    let parser = ExprParser::new(&table);
+    let parser = expr_parser();
 
     let expr = parser.tokenize_and_parse("x y^-1").unwrap();
     assert_eq!(

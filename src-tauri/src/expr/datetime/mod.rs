@@ -29,6 +29,26 @@ enum DateTimeRepr {
   Datetime(OffsetDateTime),
 }
 
+/// Common implementation of [`CurrentDateTimeSource`] using the system time.
+#[derive(Debug, Clone)]
+pub struct SystemDateTimeSource;
+
+/// [`CurrentDateTimeSource`] that always returns a constant time.
+#[derive(Debug, Clone)]
+pub struct MockedDateTimeSource(pub DateTime);
+
+/// Struct capable of getting the current date and time (in the local
+/// timezone). For most production applications,
+/// [`SystemDateTimeSource`] will suffice. This is provided as a trait
+/// primarily for mocking purposes.
+pub trait CurrentDateTimeSource {
+  fn get_local_time(&self) -> DateTime;
+
+  /// Programmer-friendly name of the time source, for debugging
+  /// purposes.
+  fn time_source_name(&self) -> &'static str;
+}
+
 pub const DATETIME_FUNCTION_NAME: &str = "datetime";
 
 /// The valid arities of a `datetime` call. A `datetime` call with
@@ -122,6 +142,39 @@ impl DateTimeRepr {
       DateTimeRepr::Date(d) => OffsetDateTime::new_in_offset(*d, DateTime::DEFAULT_TIME, DateTime::DEFAULT_OFFSET),
       DateTimeRepr::Datetime(d) => *d,
     }
+  }
+}
+
+impl MockedDateTimeSource {
+  /// Mocked time source returning the Unix epoch.
+  pub fn epoch() -> MockedDateTimeSource {
+    MockedDateTimeSource(DateTime::from(OffsetDateTime::UNIX_EPOCH))
+  }
+}
+
+impl Default for MockedDateTimeSource {
+  fn default() -> MockedDateTimeSource {
+    MockedDateTimeSource::epoch()
+  }
+}
+
+impl CurrentDateTimeSource for SystemDateTimeSource {
+  fn get_local_time(&self) -> DateTime {
+    DateTime::now_local()
+  }
+
+  fn time_source_name(&self) -> &'static str {
+    "SystemDateTimeSource"
+  }
+}
+
+impl CurrentDateTimeSource for MockedDateTimeSource {
+  fn get_local_time(&self) -> DateTime {
+    self.0.clone()
+  }
+
+  fn time_source_name(&self) -> &'static str {
+    "MockedDateTimeSource"
   }
 }
 

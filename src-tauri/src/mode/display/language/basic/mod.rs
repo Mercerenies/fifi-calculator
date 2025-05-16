@@ -6,6 +6,7 @@ use crate::mode::display::unicode::{UnicodeAliasTable, common_unicode_aliases};
 use crate::parsing::operator::{Operator, Precedence, OperatorTable};
 use crate::parsing::operator::fixity::FixityType;
 use crate::expr::Expr;
+use crate::expr::datetime::{MockedDateTimeSource, CurrentDateTimeSource};
 use crate::expr::number::{Number, ComplexNumber, Quaternion};
 use crate::expr::atom::{Atom, write_escaped_str};
 use crate::expr::basic_parser::ExprParser;
@@ -18,13 +19,16 @@ use crate::util::brackets::{BracketConstruct, fancy_parens, fancy_square_bracket
 use html_escape::encode_safe;
 use num::Zero;
 
+use std::sync::Arc;
+
 /// The basic, and default, language mode. This language mode has
 /// minimal support for sophisticated output or pretty-printing and is
 /// designed to be mostly reversible.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone)]
 pub struct BasicLanguageMode {
   known_operators: OperatorTable,
   unicode_table: UnicodeAliasTable,
+  time_source: Arc<dyn CurrentDateTimeSource + Send + Sync + 'static>,
   uses_fancy_parens: bool,
   // Default is false. If true, the output should be readable by the
   // default parser. If false, some things may be pretty-printed (such
@@ -58,9 +62,15 @@ impl BasicLanguageMode {
     self
   }
 
+  pub fn with_time_source(mut self, time_source: Arc<dyn CurrentDateTimeSource + Send + Sync + 'static>) -> Self {
+    self.time_source = time_source;
+    self
+  }
+
   pub fn from_operators(known_operators: OperatorTable) -> Self {
     Self {
       known_operators,
+      time_source: Arc::new(MockedDateTimeSource::default()),
       unicode_table: UnicodeAliasTable::default(),
       uses_reversible_output: false,
       uses_fancy_parens: false,
@@ -272,6 +282,18 @@ impl BasicLanguageMode {
   }
 }
 
+impl Default for BasicLanguageMode {
+  fn default() -> Self {
+    Self {
+      known_operators: OperatorTable::default(),
+      unicode_table: UnicodeAliasTable::default(),
+      time_source: Arc::new(MockedDateTimeSource::epoch()),
+      uses_fancy_parens: false,
+      uses_reversible_output: false,
+    }
+  }
+}
+
 impl LanguageMode for BasicLanguageMode {
   fn write_to_html(&self, engine: &LanguageModeEngine, out: &mut String, expr: &Expr, prec: Precedence) {
     match expr {
@@ -334,7 +356,7 @@ impl LanguageMode for BasicLanguageMode {
   }
 
   fn parse(&self, text: &str) -> anyhow::Result<Expr> {
-    let parser = ExprParser::new(&self.known_operators);
+    let parser = ExprParser::new(&self.known_operators, self.time_source.clone());
     let expr = parser.tokenize_and_parse(text)?;
     Ok(expr)
   }
