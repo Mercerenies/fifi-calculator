@@ -12,45 +12,39 @@ use std::str::FromStr;
 /// 1. If a year suffix (such as "AD" or "BC") appears in the string,
 /// then the token immediately before it MUST be the year.
 ///
-/// 2. If not, then the first integer which is outside the range of
-/// `0..100` is considered the year.
+/// 2. If not, then the first integer which is "obviously" a year is
+/// considered the year. An integer is "obviously" the year is one
+/// which
 ///
-/// 3. If no such number exists, the first number is treated as the
-/// year.
+///   * is written with at least three digits (possibly including
+///   leading zeroes), or
 ///
-/// 4. Otherwise, a parse error occurs.
+///   * has an explicit `+` or `-` sign.
+///
+/// 3. Otherwise, there is no year, so `Ok(None)` is returned.
 ///
 /// On success, the token(s) related to the year are removed. On
-/// failure, the vector is unmodified.
-pub(super) fn find_and_extract_year(tokens: &mut Vec<Token>) -> Result<i32, DatetimeParseError> {
-  fn find_and_extract_year(tokens: &mut Vec<Token>) -> Option<i32> {
-    // Look for year suffix.
-    if let Some((index, suffix)) = find_year_suffix(tokens) {
-      let year_num = tokens.get(index.wrapping_sub(1)).and_then(|t| t.as_str().parse::<i32>().ok())?;
-      tokens.drain(index-1..=index);
-      return Some(suffix.apply(year_num));
-    }
-    // Look for a large number.
-    for (index, token) in tokens.iter().enumerate() {
-      if let Ok(n) = token.as_str().parse::<i32>() {
-        if !(0..100).contains(&n) {
-          tokens.remove(index);
-          return Some(n);
-        }
-      }
-    }
-    // Look for any number.
-    for (index, token) in tokens.iter().enumerate() {
-      if let Ok(n) = token.as_str().parse::<i32>() {
-        tokens.remove(index);
-        return Some(n);
-      }
-    }
-    // Parse error
-    None
+/// failure or success with no year found, the vector is unmodified.
+pub(super) fn find_and_extract_year(tokens: &mut Vec<Token>) -> Result<Option<i32>, DatetimeParseError> {
+  // Look for year suffix.
+  if let Some((index, suffix)) = find_year_suffix(tokens) {
+    let year_num = tokens.get(index.wrapping_sub(1)).and_then(|t| t.as_str().parse::<i32>().ok())
+      .ok_or(DatetimeParseError::MalformedYearField)?;
+    tokens.drain(index-1..=index);
+    return Ok(Some(suffix.apply(year_num)));
   }
-  find_and_extract_year(tokens)
-    .ok_or(DatetimeParseError::MissingYearField)
+  // Look for an obviously-year number.
+  for (index, token) in tokens.iter().enumerate() {
+    let s = token.as_str();
+    if s.starts_with(['+', '-']) || s.len() >= 3 {
+      if let Ok(n) = s.parse::<i32>() {
+        tokens.remove(index);
+        return Ok(Some(n));
+      }
+    }
+  }
+  // No year to report
+  Ok(None)
 }
 
 fn find_year_suffix(tokens: &[Token]) -> Option<(usize, YearSuffix)> {
@@ -130,32 +124,50 @@ mod tests {
   fn test_find_and_extract_year() {
     let mut tokens = vec![Token::new("aa"), Token::new("2010"), Token::new("BC")];
     let year = find_and_extract_year(&mut tokens).unwrap();
-    assert_eq!(year, -2010);
+    assert_eq!(year, Some(-2010));
     assert_eq!(tokens, [Token::new("aa")]);
 
     let mut tokens = vec![Token::new("aa"), Token::new("2009"), Token::new("ee"), Token::new("3")];
     let year = find_and_extract_year(&mut tokens).unwrap();
-    assert_eq!(year, 2009);
+    assert_eq!(year, Some(2009));
     assert_eq!(tokens, [Token::new("aa"), Token::new("ee"), Token::new("3")]);
 
     let mut tokens = vec![Token::new("12"), Token::new("2009"), Token::new("ee"), Token::new("3")];
     let year = find_and_extract_year(&mut tokens).unwrap();
-    assert_eq!(year, 2009);
+    assert_eq!(year, Some(2009));
     assert_eq!(tokens, [Token::new("12"), Token::new("ee"), Token::new("3")]);
 
     let mut tokens = vec![Token::new("12"), Token::new("-3"), Token::new("ee"), Token::new("3")];
     let year = find_and_extract_year(&mut tokens).unwrap();
-    assert_eq!(year, -3);
+    assert_eq!(year, Some(-3));
     assert_eq!(tokens, [Token::new("12"), Token::new("ee"), Token::new("3")]);
 
-    let mut tokens = vec![Token::new("12"), Token::new("9"), Token::new("ee"), Token::new("3")];
+    let mut tokens = vec![Token::new("12"), Token::new("+3"), Token::new("ee"), Token::new("3")];
     let year = find_and_extract_year(&mut tokens).unwrap();
-    assert_eq!(year, 12);
-    assert_eq!(tokens, [Token::new("9"), Token::new("ee"), Token::new("3")]);
+    assert_eq!(year, Some(3));
+    assert_eq!(tokens, [Token::new("12"), Token::new("ee"), Token::new("3")]);
+
+    let mut tokens = vec![Token::new("12"), Token::new("003"), Token::new("ee"), Token::new("3")];
+    let year = find_and_extract_year(&mut tokens).unwrap();
+    assert_eq!(year, Some(3));
+    assert_eq!(tokens, [Token::new("12"), Token::new("ee"), Token::new("3")]);
+
+    let mut tokens = vec![Token::new("12"), Token::new("w"), Token::new("ee"), Token::new("3")];
+    let year = find_and_extract_year(&mut tokens).unwrap();
+    assert_eq!(year, None);
+    assert_eq!(tokens, [Token::new("12"), Token::new("w"), Token::new("ee"), Token::new("3")]);
 
     let mut tokens = vec![Token::new("ee"), Token::new("ff")];
-    let err = find_and_extract_year(&mut tokens).unwrap_err();
-    assert_eq!(err, DatetimeParseError::MissingYearField);
+    let year = find_and_extract_year(&mut tokens).unwrap();
+    assert_eq!(year, None);
     assert_eq!(tokens, [Token::new("ee"), Token::new("ff")]);
+  }
+
+  #[test]
+  fn test_find_and_extract_year_failure() {
+    let mut tokens = vec![Token::new("a"), Token::new("AD")];
+    let err = find_and_extract_year(&mut tokens).unwrap_err();
+    assert_eq!(err, DatetimeParseError::MalformedYearField);
+    assert_eq!(tokens, [Token::new("a"), Token::new("AD")]);
   }
 }

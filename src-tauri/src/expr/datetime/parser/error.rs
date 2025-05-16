@@ -14,6 +14,8 @@ pub enum DatetimeParseError {
   PeriodOn24HourTime,
   #[error("Field '{field_name}' out of range")]
   DatetimeConstructionError { field_name: &'static str },
-  #[error("Missing year field")]
-  MissingYearField,
+  #[error("Malformed year field")]
+  MalformedYearField,
+  #[error("Unexpected token '{token}'")]
+  UnexpectedToken { token: String },
 }

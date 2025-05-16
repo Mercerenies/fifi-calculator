@@ -24,10 +24,10 @@ struct Microseconds(u32);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct TimeOfDay {
-  hour: u8,
-  minute: u8,
-  second: u8,
-  microsecond: u32,
+  pub(super) hour: u8,
+  pub(super) minute: u8,
+  pub(super) second: u8,
+  pub(super) microsecond: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

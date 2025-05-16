@@ -1,5 +1,6 @@
 
 mod error;
+mod month;
 mod time;
 mod year;
 
@@ -8,14 +9,22 @@ pub use error::DatetimeParseError;
 use super::DateTime;
 use super::structure::{DatetimeValues, DateValues, DatetimeConstructionError};
 use time::{TimeOfDay, search_for_time};
+use year::find_and_extract_year;
+use month::ParsedMonth;
 
 use regex::Regex;
 use once_cell::sync::Lazy;
 use either::Either;
 
-/// A token is a sequence of letters or numbers, but not both.
+/// A token is a sequence of letters or numbers, but not both. A
+/// single leading plus or minus sign is permitted if succeeded by a
+/// digit.
+///
+/// The tokenizer function [`tokenize_datetime_str`] additionally
+/// strips off the sign if it's preceded by a non-whitespace
+/// character.
 static TOKEN_RE: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"[a-zA-Z]+|[0-9]+").unwrap());
+  Lazy::new(|| Regex::new(r"[a-zA-Z]+|[+-]?[0-9]+").unwrap());
 
 #[derive(Debug, Clone)]
 pub struct DatetimeParser {
@@ -25,6 +34,20 @@ pub struct DatetimeParser {
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Token<'a> {
   datum: &'a str,
+}
+
+/// If any element of the vector satisfies the predicate, removes that
+/// element and returns the first match. Otherwise, returns `None`
+/// without modifying the vector.
+fn find_and_extract_match<T, S, F>(elements: &mut Vec<T>, mut pred: F) -> Option<S>
+where F: FnMut(&T) -> Option<S> {
+  for (i, elem) in elements.iter().enumerate() {
+    if let Some(m) = pred(elem) {
+      elements.remove(i);
+      return Some(m);
+    }
+  }
+  None
 }
 
 impl DatetimeParser {
@@ -44,16 +67,40 @@ impl DatetimeParser {
   }
 
   pub fn parse_datetime_str_values(&self, input: &str) -> Result<Either<DatetimeValues, DateValues>, DatetimeParseError> {
+    const OFFSET_UTC: i32 = 0;
+
     let mut input = input.to_lowercase();
     let time_of_day = search_and_remove_time(&mut input)?;
     let mut tokens: Vec<_> = tokenize_datetime_str(&input).collect();
-    
-    todo!()
-  }
-}
+    let year = find_and_extract_year(&mut tokens)?
+      .unwrap_or_else(|| self.now.year());
+    let month = find_and_extract_match(&mut tokens, |t| t.as_str().parse::<ParsedMonth>().ok())
+      .unwrap_or_else(|| ParsedMonth(self.now.month()));
+    let day = find_and_extract_match(&mut tokens, |t| t.as_str().parse::<u8>().ok())
+      .unwrap_or_else(|| self.now.day());
+    if !tokens.is_empty() {
+      return Err(DatetimeParseError::UnexpectedToken { token: tokens[0].as_str().to_owned() });
+    }
+    // TODO Parse timezone
 
-fn extract_year(tokens: &mut Vec<Token>) -> Option<i32> {
-  todo!()
+    match time_of_day {
+      None => Ok(Either::Right(DateValues {
+        year,
+        month: month.0.into(),
+        day,
+      })),
+      Some(time_of_day) => Ok(Either::Left(DatetimeValues {
+        year,
+        month: month.0.into(),
+        day,
+        hour: time_of_day.hour,
+        minute: time_of_day.minute,
+        second: time_of_day.second,
+        micro: time_of_day.microsecond,
+        offset: OFFSET_UTC,
+      }))
+    }
+  }
 }
 
 impl<'a> Token<'a> {
@@ -83,12 +130,44 @@ fn search_and_remove_time(text: &mut String) -> Result<Option<TimeOfDay>, Dateti
 
 fn tokenize_datetime_str(input: &str) -> impl Iterator<Item=Token> + '_ {
   TOKEN_RE.find_iter(input)
-    .map(|m| Token::new(m.as_str()))
+    .map(|m| {
+      let s = m.as_str();
+      if s.starts_with(['+', '-']) && !is_empty_or_whitespace(char_before(input, m.start())) {
+        // Byte-indexing is safe since we know the first char is '+'
+        // or '-'.
+        Token::new(&s[1..])
+      } else {
+        Token::new(s)
+      }
+    })
+}
+
+/// UTF-8 character before the specified index. Returns `None` if
+/// there is no character before, or if the given byte index does not
+/// fall on a UTF-8 codepoint boundary.
+fn char_before(s: &str, idx: usize) -> Option<char> {
+  s.get(..idx)?.chars().next_back()
+}
+
+fn is_empty_or_whitespace(ch: Option<char>) -> bool {
+  match ch {
+    None => true,
+    Some(ch) => ch.is_whitespace(),
+  }
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
+  use ::time::{OffsetDateTime, Date, Time, Month};
+
+  /// Arbitrary epoch for testing purposes.
+  fn epoch() -> DateTime {
+    DateTime::from(OffsetDateTime::new_utc(
+      Date::from_calendar_date(2000, Month::February, 3).unwrap(),
+      Time::from_hms(4, 5, 6).unwrap(),
+    ))
+  }
 
   #[test]
   fn test_tokenize_datetime_str() {
@@ -113,5 +192,71 @@ mod tests {
            Token { datum: "a" }, Token { datum: "b" }, Token { datum: "3" },
            Token { datum: "4" }, Token { datum: "CC" }, Token { datum: "4" }],
     );
+  }
+
+  #[test]
+  fn test_parse_datetime_str_values_empty() {
+    let parser = DatetimeParser::new(epoch());
+
+    let values = parser.parse_datetime_str_values("").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 2000,
+      month: 2,
+      day: 3,
+    });
+
+    let values = parser.parse_datetime_str_values("     ").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 2000,
+      month: 2,
+      day: 3,
+    });
+  }
+
+  #[test]
+  fn test_parse_datetime_str_values_with_single_field() {
+    let parser = DatetimeParser::new(epoch());
+
+    let values = parser.parse_datetime_str_values("2020").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 2020,
+      month: 2,
+      day: 3,
+    });
+
+    let values = parser.parse_datetime_str_values("-3").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: -3,
+      month: 2,
+      day: 3,
+    });
+
+    let values = parser.parse_datetime_str_values("3bc").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: -3,
+      month: 2,
+      day: 3,
+    });
+
+    let values = parser.parse_datetime_str_values("10 CE").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 10,
+      month: 2,
+      day: 3,
+    });
+
+    let values = parser.parse_datetime_str_values("Jan").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 2000,
+      month: 1,
+      day: 3,
+    });
+
+    let values = parser.parse_datetime_str_values("Jan").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 2000,
+      month: 1,
+      day: 3,
+    });
   }
 }
