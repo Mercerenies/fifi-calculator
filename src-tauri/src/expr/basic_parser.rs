@@ -7,6 +7,9 @@ use super::number::{ComplexNumber, Quaternion};
 use super::vector::Vector;
 use super::tokenizer::{ExprTokenizer, Token, TokenData, TokenizerError};
 use super::datetime::CurrentDateTimeSource;
+use super::datetime::parser::{DatetimeParser, DatetimeParseError};
+use super::datetime::prisms::expr_to_datetime;
+use crate::util::prism::Prism;
 use crate::parsing::shunting_yard::{self, ShuntingYardDriver, ShuntingYardError};
 use crate::parsing::operator::{Operator, OperatorTable};
 use crate::parsing::operator::table::multiplication_operator;
@@ -37,6 +40,8 @@ pub enum ParseError {
   ShuntingYardError(#[from] ShuntingYardError<Expr, Infallible>),
   #[error("Operator parsing error: {0}")]
   OperatorChainError(#[from] OperatorChainError<Expr>),
+  #[error("Error parsing datetime object: {0}")]
+  DatetimeParseError(#[from] DatetimeParseError),
 }
 
 #[derive(Clone, Debug, Error, PartialEq)]
@@ -170,7 +175,10 @@ impl<'a> ExprParser<'a> {
         Ok((Spanned::new(Expr::from(s.clone()), token.span), &stream[1..]))
       }
       TokenData::DatetimeString(s) => {
-        todo!() /////
+        let datetime_parser = DatetimeParser::new(self.time_source.get_local_time());
+        let datetime = datetime_parser.parse_datetime_str(s)?;
+        let expr = expr_to_datetime().widen_type(datetime);
+        Ok((Spanned::new(expr, token.span), &stream[1..]))
       }
       TokenData::FunctionCallStart(f) => {
         let ((args, end), tail) = self.parse_function_args(&stream[1..], TokenData::RightParen)?;

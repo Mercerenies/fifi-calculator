@@ -670,6 +670,14 @@ mod tests {
   }
 
   #[test]
+  fn test_parse_datetime_str_out_of_range() {
+    let parser = DatetimeParser::new(epoch());
+
+    let err = parser.parse_datetime_str("5:04pm 2020-09-31").unwrap_err();
+    assert_eq!(err, DatetimeParseError::DatetimeConstructionError { field_name: "day" });
+  }
+
+  #[test]
   fn test_parse_datetime_str_values_day_field_out_of_range() {
     let parser = DatetimeParser::new(epoch());
 
