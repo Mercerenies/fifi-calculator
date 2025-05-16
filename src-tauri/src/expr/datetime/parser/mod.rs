@@ -195,6 +195,28 @@ mod tests {
   }
 
   #[test]
+  fn test_tokenize_datetime_str_with_signs() {
+    let input = "a+bb+3 -2-1";
+    assert_eq!(
+      tokenize_datetime_str(input).collect::<Vec<_>>(),
+      vec![Token { datum: "a" }, Token { datum: "bb" }, Token { datum: "3" },
+           Token { datum: "-2" }, Token { datum: "1" }],
+    );
+
+    let input = "+7";
+    assert_eq!(
+      tokenize_datetime_str(input).collect::<Vec<_>>(),
+      vec![Token { datum: "+7" }],
+    );
+
+    let input = "-1-2";
+    assert_eq!(
+      tokenize_datetime_str(input).collect::<Vec<_>>(),
+      vec![Token { datum: "-1" }, Token { datum: "2" }],
+    );
+  }
+
+  #[test]
   fn test_parse_datetime_str_values_empty() {
     let parser = DatetimeParser::new(epoch());
 
