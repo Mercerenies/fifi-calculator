@@ -2,6 +2,7 @@
 mod error;
 mod month;
 mod time;
+mod timezone;
 mod year;
 
 pub use error::DatetimeParseError;
@@ -9,6 +10,7 @@ pub use error::DatetimeParseError;
 use super::DateTime;
 use super::structure::{DatetimeValues, DateValues, DatetimeConstructionError};
 use time::{TimeOfDay, search_for_time};
+use timezone::{Timezone, search_for_timezone};
 use year::find_and_extract_year;
 use month::ParsedMonth;
 
@@ -86,10 +88,13 @@ impl DatetimeParser {
   }
 
   pub fn parse_datetime_str_values(&self, input: &str) -> Result<Either<DatetimeValues, DateValues>, DatetimeParseError> {
-    const OFFSET_UTC: i32 = 0;
+    const OFFSET_UTC: Timezone = Timezone(0);
 
     let mut input = input.to_lowercase();
     let time_of_day = search_and_remove_time(&mut input)?;
+    let timezone = search_and_remove_timezone(&mut input)
+      .unwrap_or(OFFSET_UTC);
+
     let mut tokens: Vec<_> = tokenize_datetime_str(&input).collect();
     let year = find_and_extract_year(&mut tokens)?
       .unwrap_or_else(|| self.now.year());
@@ -100,7 +105,6 @@ impl DatetimeParser {
     if !tokens.is_empty() {
       return Err(DatetimeParseError::UnexpectedToken { token: tokens[0].as_str().to_owned() });
     }
-    // TODO Parse timezone
 
     match time_of_day {
       None => Ok(Either::Right(DateValues {
@@ -116,7 +120,7 @@ impl DatetimeParser {
         minute: time_of_day.minute,
         second: time_of_day.second,
         micro: time_of_day.microsecond,
-        offset: OFFSET_UTC,
+        offset: timezone.0,
       }))
     }
   }
@@ -144,6 +148,15 @@ fn search_and_remove_time(text: &mut String) -> Result<Option<TimeOfDay>, Dateti
     Ok(Some(time))
   } else {
     Ok(None)
+  }
+}
+
+fn search_and_remove_timezone(text: &mut String) -> Option<Timezone> {
+  if let Some((tz, m)) = search_for_timezone(text) {
+    text.drain(m.start()..m.end());
+    Some(tz)
+  } else {
+    None
   }
 }
 

@@ -21,6 +21,7 @@ pub struct DatetimeValues {
   pub minute: u8,
   pub second: u8,
   pub micro: u32,
+  /// Timezone offset from UTC in seconds.
   pub offset: i32,
 }
 
