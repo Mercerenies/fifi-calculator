@@ -544,4 +544,89 @@ mod tests {
       ]),
     );
   }
+
+  #[test]
+  fn test_string_parse() {
+    let parser = expr_parser();
+
+    let expr = parser.tokenize_and_parse("\"a\"").unwrap();
+    assert_eq!(
+      expr,
+      Expr::string("a"),
+    );
+  }
+
+  #[test]
+  fn test_empty_datetime_parse() {
+    let parser = expr_parser();
+
+    // The testing parser uses the Unix epoch as the "current"
+    // datetime.
+    let expr = parser.tokenize_and_parse("#<>").unwrap();
+    assert_eq!(
+      expr,
+      Expr::call("datetime", vec![
+        Expr::from(1970),
+        Expr::from(1),
+        Expr::from(1),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_datetime_time_parse() {
+    let parser = expr_parser();
+
+    let expr = parser.tokenize_and_parse("#<1:30pm>").unwrap();
+    assert_eq!(
+      expr,
+      Expr::call("datetime", vec![
+        Expr::from(1970),
+        Expr::from(1),
+        Expr::from(1),
+        Expr::from(13),
+        Expr::from(30),
+        Expr::from(0),
+        Expr::from(0),
+        Expr::from(0),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_datetime_date_parse() {
+    let parser = expr_parser();
+
+    // The testing parser uses the Unix epoch as the "current"
+    // datetime.
+    let expr = parser.tokenize_and_parse("#<2020 Feb 3>").unwrap();
+    assert_eq!(
+      expr,
+      Expr::call("datetime", vec![
+        Expr::from(2020),
+        Expr::from(2),
+        Expr::from(3),
+      ]),
+    );
+  }
+
+  #[test]
+  fn test_datetime_full_parse() {
+    let parser = expr_parser();
+
+    let expr = parser.tokenize_and_parse("#<Feb 3 1:30:10.3pm>").unwrap();
+    assert_eq!(
+      expr,
+      Expr::call("datetime", vec![
+        Expr::from(1970),
+        Expr::from(2),
+        Expr::from(3),
+        Expr::from(13),
+        Expr::from(30),
+        Expr::from(10),
+        Expr::from(300_000),
+        Expr::from(0),
+      ]),
+    );
+  }
 }

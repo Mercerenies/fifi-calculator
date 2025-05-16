@@ -665,6 +665,21 @@ mod tests {
   }
 
   #[test]
+  fn test_token_stream_on_datetime_string() {
+    let table = sample_operator_table();
+    let tokenizer = ExprTokenizer::new(&table);
+
+    let mut state = TokenizerState::new(r#" #<a \" b> "#);
+    let tokens = tokenizer.read_tokens(&mut state).unwrap();
+    assert_eq!(
+      tokens,
+      vec![
+        Token::new(TokenData::DatetimeString("a \\\" b".to_owned()), span(1, 10)),
+      ],
+    )
+  }
+
+  #[test]
   fn test_token_stream_on_string_with_bad_escape_sequence() {
     let table = sample_operator_table();
     let tokenizer = ExprTokenizer::new(&table);
@@ -692,5 +707,15 @@ mod tests {
     let mut state = TokenizerState::new(r#""a\"#);
     let err = tokenizer.read_tokens(&mut state).unwrap_err();
     assert_eq!(err, TokenizerError::UnterminatedString(SourceOffset(3)));
+  }
+
+  #[test]
+  fn test_token_stream_nonterminated_datetime_string() {
+    let table = sample_operator_table();
+    let tokenizer = ExprTokenizer::new(&table);
+
+    let mut state = TokenizerState::new(r#"#<ab"#);
+    let err = tokenizer.read_tokens(&mut state).unwrap_err();
+    assert_eq!(err, TokenizerError::UnterminatedDatetimeString(SourceOffset(4)));
   }
 }
