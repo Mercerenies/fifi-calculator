@@ -3,6 +3,7 @@ pub mod language;
 pub mod unicode;
 
 use crate::expr::Expr;
+use crate::expr::datetime::SystemDateTimeSource;
 use language::{LanguageMode, LanguageSettings};
 use language::basic::BasicLanguageMode;
 use language::graphics::GraphicsLanguageMode;
@@ -51,7 +52,8 @@ impl DisplaySettings {
 
 impl Default for DisplaySettings {
   fn default() -> Self {
-    let base_language_mode = BasicLanguageMode::from_common_operators();
+    let base_language_mode = BasicLanguageMode::from_common_operators()
+      .with_time_source(Arc::new(SystemDateTimeSource));
     DisplaySettings::new(base_language_mode, LanguageSettings::default())
   }
 }
