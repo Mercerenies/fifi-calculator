@@ -433,6 +433,243 @@ mod tests {
   }
 
   #[test]
+  fn test_parse_datetime_str_with_time() {
+    let parser = DatetimeParser::new(epoch());
+
+    let values = parser.parse_datetime_str_values("3am").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2000,
+      month: 2,
+      day: 3,
+      hour: 3,
+      minute: 0,
+      second: 0,
+      micro: 0,
+      offset: 0,
+    });
+
+    let values = parser.parse_datetime_str_values("3:01pm").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2000,
+      month: 2,
+      day: 3,
+      hour: 15,
+      minute: 1,
+      second: 0,
+      micro: 0,
+      offset: 0,
+    });
+
+    let values = parser.parse_datetime_str_values("3:01:10.4pm").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2000,
+      month: 2,
+      day: 3,
+      hour: 15,
+      minute: 1,
+      second: 10,
+      micro: 400_000,
+      offset: 0,
+    });
+
+    let values = parser.parse_datetime_str_values("3:01:10.45pm").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2000,
+      month: 2,
+      day: 3,
+      hour: 15,
+      minute: 1,
+      second: 10,
+      micro: 450_000,
+      offset: 0,
+    });
+  }
+
+  #[test]
+  fn test_parse_datetime_str_values_with_time_and_single_field() {
+    let parser = DatetimeParser::new(epoch());
+
+    let values = parser.parse_datetime_str_values("2020 3:00").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2020,
+      month: 2,
+      day: 3,
+      hour: 3,
+      minute: 0,
+      second: 0,
+      micro: 0,
+      offset: 0,
+    });
+
+    let values = parser.parse_datetime_str_values("3:00 2020").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2020,
+      month: 2,
+      day: 3,
+      hour: 3,
+      minute: 0,
+      second: 0,
+      micro: 0,
+      offset: 0,
+    });
+
+    let values = parser.parse_datetime_str_values("3:00 5bc").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: -5,
+      month: 2,
+      day: 3,
+      hour: 3,
+      minute: 0,
+      second: 0,
+      micro: 0,
+      offset: 0,
+    });
+
+    let values = parser.parse_datetime_str_values("3:00 5  bc").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: -5,
+      month: 2,
+      day: 3,
+      hour: 3,
+      minute: 0,
+      second: 0,
+      micro: 0,
+      offset: 0,
+    });
+
+
+    let values = parser.parse_datetime_str_values("3:00 Apr").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2000,
+      month: 4,
+      day: 3,
+      hour: 3,
+      minute: 0,
+      second: 0,
+      micro: 0,
+      offset: 0,
+    });
+
+    let values = parser.parse_datetime_str_values("3:50pm Apr").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2000,
+      month: 4,
+      day: 3,
+      hour: 15,
+      minute: 50,
+      second: 0,
+      micro: 0,
+      offset: 0,
+    });
+
+    let values = parser.parse_datetime_str_values("12 12noon").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2000,
+      month: 12,
+      day: 3,
+      hour: 12,
+      minute: 0,
+      second: 0,
+      micro: 0,
+      offset: 0,
+    });
+
+    let values = parser.parse_datetime_str_values("12noon 12").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2000,
+      month: 12,
+      day: 3,
+      hour: 12,
+      minute: 0,
+      second: 0,
+      micro: 0,
+      offset: 0,
+    });
+
+    let values = parser.parse_datetime_str_values("12midnight 12").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2000,
+      month: 12,
+      day: 3,
+      hour: 0,
+      minute: 0,
+      second: 0,
+      micro: 0,
+      offset: 0,
+    });
+  }
+
+  #[test]
+  fn test_parse_datetime_str_values_with_time_and_two_fields() {
+    let parser = DatetimeParser::new(epoch());
+
+    let values = parser.parse_datetime_str_values("2020 9 5:04pm").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2020,
+      month: 9,
+      day: 3,
+      hour: 17,
+      minute: 4,
+      second: 0,
+      micro: 0,
+      offset: 0,
+    });
+
+    let values = parser.parse_datetime_str_values("2020 5:04pm  \t 9").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2020,
+      month: 9,
+      day: 3,
+      hour: 17,
+      minute: 4,
+      second: 0,
+      micro: 0,
+      offset: 0,
+    });
+
+    let values = parser.parse_datetime_str_values("5:04pm2020\t9").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2020,
+      month: 9,
+      day: 3,
+      hour: 17,
+      minute: 4,
+      second: 0,
+      micro: 0,
+      offset: 0,
+    });
+  }
+
+  #[test]
+  fn test_parse_datetime_str_values_with_time_and_three_fields() {
+    let parser = DatetimeParser::new(epoch());
+
+    let values = parser.parse_datetime_str_values("5:04pm 2020-10-11").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2020,
+      month: 10,
+      day: 11,
+      hour: 17,
+      minute: 4,
+      second: 0,
+      micro: 0,
+      offset: 0,
+    });
+
+    let values = parser.parse_datetime_str_values("2020-10-5:04pm-11").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2020,
+      month: 10,
+      day: 11,
+      hour: 17,
+      minute: 4,
+      second: 0,
+      micro: 0,
+      offset: 0,
+    });
+  }
+
+  #[test]
   fn test_parse_datetime_str_values_day_field_out_of_range() {
     let parser = DatetimeParser::new(epoch());
 
