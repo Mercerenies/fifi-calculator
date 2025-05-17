@@ -698,4 +698,65 @@ mod tests {
     let err = parser.parse_datetime_str_values("2020 Jan 9999").unwrap_err();
     assert_eq!(err, DatetimeParseError::UnexpectedToken { token: String::from("9999") });
   }
+
+  #[test]
+  fn test_parse_datetime_str_with_timezone() {
+    let parser = DatetimeParser::new(epoch());
+
+    let values = parser.parse_datetime_str_values("5:04pm 2020-10-11 utc-3").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2020,
+      month: 10,
+      day: 11,
+      hour: 17,
+      minute: 4,
+      second: 0,
+      micro: 0,
+      offset: -10_800,
+    });
+
+    let values = parser.parse_datetime_str_values("5:04pm utc  +1:20:01 2020-10-11").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2020,
+      month: 10,
+      day: 11,
+      hour: 17,
+      minute: 4,
+      second: 0,
+      micro: 0,
+      offset: 4_801,
+    });
+
+    let values = parser.parse_datetime_str_values("5:04pm utc+0  2020-10-11").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2020,
+      month: 10,
+      day: 11,
+      hour: 17,
+      minute: 4,
+      second: 0,
+      micro: 0,
+      offset: 0,
+    });
+
+    let values = parser.parse_datetime_str_values("5:04pm utc-0  2020-10-11").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2020,
+      month: 10,
+      day: 11,
+      hour: 17,
+      minute: 4,
+      second: 0,
+      micro: 0,
+      offset: 0,
+    });
+
+    // Note: Timezone data is ignored if no time is specified.
+    let values = parser.parse_datetime_str_values("utc+13 2020-10-11").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 2020,
+      month: 10,
+      day: 11,
+    });
+  }
 }
