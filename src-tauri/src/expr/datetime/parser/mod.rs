@@ -17,6 +17,7 @@ use month::ParsedMonth;
 use regex::Regex;
 use once_cell::sync::Lazy;
 use either::Either;
+use phf::phf_set;
 
 /// A token is a sequence of letters or numbers, but not both. A
 /// single leading plus or minus sign is permitted if succeeded by a
@@ -27,6 +28,11 @@ use either::Either;
 /// character.
 static TOKEN_RE: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"[a-zA-Z]+|[+-]?[0-9]+").unwrap());
+
+static DAYS_OF_WEEK: phf::Set<&'static str> = phf_set! {
+  "mon", "tue", "wed", "thu", "fri", "sat", "sun",
+  "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
+};
 
 #[derive(Debug, Clone)]
 pub struct DatetimeParser {
@@ -96,6 +102,11 @@ impl DatetimeParser {
       .unwrap_or(OFFSET_UTC);
 
     let mut tokens: Vec<_> = tokenize_datetime_str(&input).collect();
+
+    // Remove any tokens that refer to days of the week, since that
+    // information (if provided) is redundant.
+    tokens.retain(|t| !DAYS_OF_WEEK.contains(&t.as_str().to_lowercase()));
+
     let year = find_and_extract_year(&mut tokens)?
       .unwrap_or_else(|| self.now.year());
     let month = find_and_extract_month(&mut tokens)
@@ -347,6 +358,13 @@ mod tests {
       month: 2,
       day: 3,
     });
+
+    let values = parser.parse_datetime_str_values("12 MON").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 2000,
+      month: 12,
+      day: 3,
+    });
   }
 
   #[test]
@@ -398,6 +416,20 @@ mod tests {
     });
 
     let values = parser.parse_datetime_str_values("Jan 2001").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 2001,
+      month: 1,
+      day: 3,
+    });
+
+    let values = parser.parse_datetime_str_values("SUN Jan 2001").unwrap().unwrap_right();
+    assert_eq!(values, DateValues {
+      year: 2001,
+      month: 1,
+      day: 3,
+    });
+
+    let values = parser.parse_datetime_str_values("MON Jan 2001").unwrap().unwrap_right();
     assert_eq!(values, DateValues {
       year: 2001,
       month: 1,
@@ -486,6 +518,18 @@ mod tests {
     });
 
     let values = parser.parse_datetime_str_values("3:01:10.45pm").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2000,
+      month: 2,
+      day: 3,
+      hour: 15,
+      minute: 1,
+      second: 10,
+      micro: 450_000,
+      offset: 0,
+    });
+
+    let values = parser.parse_datetime_str_values("3:01:10.45pm WeDnEsDaY").unwrap().unwrap_left();
     assert_eq!(values, DatetimeValues {
       year: 2000,
       month: 2,
@@ -600,6 +644,18 @@ mod tests {
     });
 
     let values = parser.parse_datetime_str_values("12midnight 12").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2000,
+      month: 12,
+      day: 3,
+      hour: 0,
+      minute: 0,
+      second: 0,
+      micro: 0,
+      offset: 0,
+    });
+
+    let values = parser.parse_datetime_str_values("12midnight 12 Tue").unwrap().unwrap_left();
     assert_eq!(values, DatetimeValues {
       year: 2000,
       month: 12,
