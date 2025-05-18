@@ -67,6 +67,20 @@ impl PrecisionDuration {
   pub fn duration(&self) -> Duration {
     self.duration
   }
+
+  pub fn checked_add(self, other: Self) -> Option<Self> {
+    let duration = self.duration.checked_add(other.duration)?;
+    Some(Self { duration, precise: self.precise || other.precise })
+  }
+
+  pub fn checked_sub(self, other: Self) -> Option<Self> {
+    self.checked_add(- other)
+  }
+
+  pub fn checked_mul(self, other: i32) -> Option<Self> {
+    let duration = self.duration.checked_mul(other)?;
+    Some(Self { duration, precise: self.precise })
+  }
 }
 
 impl PartialEq for PrecisionDuration {
@@ -101,9 +115,6 @@ impl Ord for PrecisionDuration {
     self.duration.cmp(&other.duration)
   }
 }
-
-// TODO Replace some of these with Try* traits, when there's a risk of
-// overflow. (/////)
 
 impl ops::Add for PrecisionDuration {
   type Output = Self;
@@ -196,7 +207,7 @@ mod tests {
   use super::*;
   use crate::{assert_strict_eq, assert_strict_ne};
 
-  use time::{OffsetDateTime, Date};
+  use time::{OffsetDateTime, Date, Month};
 
   use std::collections::hash_map::DefaultHasher;
 
@@ -278,6 +289,30 @@ mod tests {
   }
 
   #[test]
+  fn test_checked_add_duration() {
+    assert_strict_eq!(
+      PrecisionDuration::precise(Duration::days(3)).checked_add(PrecisionDuration::precise(Duration::days(2))),
+      Some(PrecisionDuration::precise(Duration::days(5))),
+    );
+    assert_strict_eq!(
+      PrecisionDuration::imprecise(Duration::days(3)).checked_add(PrecisionDuration::precise(Duration::days(2))),
+      Some(PrecisionDuration::precise(Duration::days(5))),
+    );
+    assert_strict_eq!(
+      PrecisionDuration::imprecise(Duration::days(3)).checked_add(PrecisionDuration::imprecise(Duration::days(2))),
+      Some(PrecisionDuration::imprecise(Duration::days(5))),
+    );
+    assert_strict_eq!(
+      PrecisionDuration::imprecise(Duration::days(1)).checked_add(PrecisionDuration::precise(Duration::seconds(100))),
+      Some(PrecisionDuration::precise(Duration::seconds(86_500))),
+    );
+    assert_strict_eq!(
+      PrecisionDuration::precise(Duration::MAX).checked_add(PrecisionDuration::precise(Duration::seconds(100))),
+      None,
+    );
+  }
+
+  #[test]
   fn test_sub_duration() {
     assert_strict_eq!(
       PrecisionDuration::precise(Duration::days(3)) - PrecisionDuration::precise(Duration::days(2)),
@@ -298,6 +333,30 @@ mod tests {
     assert_strict_eq!(
       PrecisionDuration::imprecise(Duration::days(1)) - PrecisionDuration::precise(Duration::seconds(100)),
       PrecisionDuration::precise(Duration::seconds(86_300)),
+    );
+  }
+
+  #[test]
+  fn test_checked_sub_duration() {
+    assert_strict_eq!(
+      PrecisionDuration::precise(Duration::days(3)).checked_sub(PrecisionDuration::precise(Duration::days(2))),
+      Some(PrecisionDuration::precise(Duration::days(1))),
+    );
+    assert_strict_eq!(
+      PrecisionDuration::imprecise(Duration::days(3)).checked_sub(PrecisionDuration::precise(Duration::days(2))),
+      Some(PrecisionDuration::precise(Duration::days(1))),
+    );
+    assert_strict_eq!(
+      PrecisionDuration::imprecise(Duration::days(3)).checked_sub(PrecisionDuration::imprecise(Duration::days(2))),
+      Some(PrecisionDuration::imprecise(Duration::days(1))),
+    );
+    assert_strict_eq!(
+      PrecisionDuration::imprecise(Duration::days(1)).checked_sub(PrecisionDuration::precise(Duration::seconds(100))),
+      Some(PrecisionDuration::precise(Duration::seconds(86_300))),
+    );
+    assert_strict_eq!(
+      PrecisionDuration::precise(Duration::MIN).checked_sub(PrecisionDuration::precise(Duration::seconds(100))),
+      None,
     );
   }
 
@@ -334,6 +393,22 @@ mod tests {
     assert_strict_eq!(
       (-2) * PrecisionDuration::imprecise(Duration::days(3)),
       PrecisionDuration::imprecise(Duration::days(-6)),
+    );
+  }
+
+  #[test]
+  fn test_checked_mul_duration() {
+    assert_strict_eq!(
+      PrecisionDuration::precise(Duration::days(3)).checked_mul(2),
+      Some(PrecisionDuration::precise(Duration::days(6))),
+    );
+    assert_strict_eq!(
+      PrecisionDuration::imprecise(Duration::days(3)).checked_mul(2),
+      Some(PrecisionDuration::imprecise(Duration::days(6))),
+    );
+    assert_strict_eq!(
+      PrecisionDuration::precise(Duration::MAX).checked_mul(2),
+      None,
     );
   }
 
@@ -390,5 +465,32 @@ mod tests {
     let duration = PrecisionDuration::precise(Duration::seconds(1));
     let expected = DateTime::from(OffsetDateTime::UNIX_EPOCH + Duration::seconds(1));
     assert_strict_eq!(duration + datetime, expected);
+
+    let datetime = DateTime::from(UNIX_EPOCH_DATE);
+    let duration = PrecisionDuration::precise(Duration::seconds(1));
+    let expected = DateTime::from(OffsetDateTime::UNIX_EPOCH - Duration::seconds(1));
+    assert_strict_eq!(datetime - duration, expected);
+  }
+
+
+  #[test]
+  fn test_checked_add_duration_and_datetime() {
+    let datetime = DateTime::from(OffsetDateTime::UNIX_EPOCH);
+    let duration = PrecisionDuration::precise(Duration::days(2));
+    let expected = DateTime::from(OffsetDateTime::UNIX_EPOCH + Duration::days(2));
+    assert_strict_eq!(datetime.checked_add(duration), Some(expected));
+
+    let datetime = DateTime::from(OffsetDateTime::UNIX_EPOCH);
+    let duration = PrecisionDuration::precise(Duration::days(2));
+    let expected = DateTime::from(OffsetDateTime::UNIX_EPOCH - Duration::days(2));
+    assert_strict_eq!(datetime.checked_sub(duration), Some(expected));
+
+    let datetime = DateTime::from(Date::from_calendar_date(-9999, Month::January, 1).unwrap());
+    let duration = PrecisionDuration::precise(Duration::days(2));
+    assert_strict_eq!(datetime.checked_sub(duration), None);
+
+    let datetime = DateTime::from(Date::from_calendar_date(9999, Month::December, 31).unwrap());
+    let duration = PrecisionDuration::precise(Duration::days(2));
+    assert_strict_eq!(datetime.checked_add(duration), None);
   }
 }

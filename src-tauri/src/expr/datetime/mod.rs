@@ -5,6 +5,7 @@ pub mod prisms;
 pub mod structure;
 pub mod timezone;
 
+use duration::PrecisionDuration;
 use timezone::TimezoneOffset;
 use crate::util::stricteq::StrictEq;
 
@@ -134,6 +135,20 @@ impl DateTime {
 
   pub fn microsecond(&self) -> u32 {
     self.time().microsecond()
+  }
+
+  pub fn checked_add(self, other: PrecisionDuration) -> Option<Self> {
+    if self.has_time() || other.is_precise() {
+      let new_datetime = self.to_offset_date_time().checked_add(other.duration())?;
+      Some(Self::from(new_datetime))
+    } else {
+      let new_date = self.without_time().checked_add(other.duration())?;
+      Some(Self::from(new_date))
+    }
+  }
+
+  pub fn checked_sub(self, other: PrecisionDuration) -> Option<Self> {
+    self.checked_add(- other)
   }
 }
 

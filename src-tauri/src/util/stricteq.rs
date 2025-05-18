@@ -39,6 +39,16 @@ impl<T: StrictEq> StrictEq for Vec<T> {
   }
 }
 
+impl<T: StrictEq> StrictEq for Option<T> {
+  fn strict_eq(&self, other: &Self) -> bool {
+    match (self, other) {
+      (Some(a), Some(b)) => a.strict_eq(b),
+      (None, None) => true,
+      _ => false,
+    }
+  }
+}
+
 #[macro_export]
 macro_rules! assert_strict_eq {
   ($left:expr, $right:expr $(,)?) => {
