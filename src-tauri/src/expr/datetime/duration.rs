@@ -102,6 +102,9 @@ impl Ord for PrecisionDuration {
   }
 }
 
+// TODO Replace some of these with Try* traits, when there's a risk of
+// overflow. (/////)
+
 impl ops::Add for PrecisionDuration {
   type Output = Self;
 
