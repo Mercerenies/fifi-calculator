@@ -21,6 +21,7 @@ export class DatetimeButtonGrid extends ButtonGrid {
         new DispatchButton("U", "unix_time", "U"),
       ],
       [
+        new DispatchButton("⏲", "now", "N"),
       ],
       [
       ],

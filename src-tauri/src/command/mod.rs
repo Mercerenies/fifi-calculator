@@ -191,6 +191,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("days_since_zero".to_string(), Box::new(datetime::days_since_command(datetime::ZERO_DATE)));
   map.insert("julian_day".to_string(), Box::new(datetime::days_since_command(datetime::ZERO_JULIAN_DAY)));
   map.insert("unix_time".to_string(), Box::new(datetime::secs_since_command(datetime::UNIX_EPOCH)));
+  map.insert("now".to_string(), Box::new(datetime::NowCommand));
 
   // Vector commands
   map.insert("subvector".to_string(), Box::new(dispatch_on_hyper_command(
