@@ -16,7 +16,7 @@ use std::marker::PhantomData;
 /// This value is usually constructed with [`arity_one`].
 pub struct OneArgumentMatcher<P, Down> {
   arg_prism: P,
-  _phantom: PhantomData<fn() -> Down>,
+  filter_fn: Option<Box<dyn Fn(&Down) -> bool + Send + Sync + 'static>>,
 }
 
 /// Matcher that requires exactly two arguments in order to match. The
@@ -26,7 +26,7 @@ pub struct OneArgumentMatcher<P, Down> {
 pub struct TwoArgumentMatcher<P1, P2, Down1, Down2> {
   first_arg_prism: P1,
   second_arg_prism: P2,
-  _phantom: PhantomData<fn() -> (Down1, Down2)>,
+  filter_fn: Option<Box<dyn Fn(&Down1, &Down2) -> bool + Send + Sync + 'static>>,
 }
 
 /// Matcher that requires exactly three arguments in order to match.
@@ -37,8 +37,7 @@ pub struct ThreeArgumentMatcher<P1, P2, P3, Down1, Down2, Down3> {
   first_arg_prism: P1,
   second_arg_prism: P2,
   third_arg_prism: P3,
-  #[allow(clippy::type_complexity)] // It's just a PhantomData, to get rid of unused args.
-  _phantom: PhantomData<fn() -> (Down1, Down2, Down3)>,
+  filter_fn: Option<Box<dyn Fn(&Down1, &Down2, &Down3) -> bool + Send + Sync + 'static>>,
 }
 
 /// Matcher that requires exactly four arguments in order to match.
@@ -50,8 +49,7 @@ pub struct FourArgumentMatcher<P1, P2, P3, P4, Down1, Down2, Down3, Down4> {
   second_arg_prism: P2,
   third_arg_prism: P3,
   fourth_arg_prism: P4,
-  #[allow(clippy::type_complexity)] // It's just a PhantomData, to get rid of unused args.
-  _phantom: PhantomData<fn() -> (Down1, Down2, Down3, Down4)>,
+  filter_fn: Option<Box<dyn Fn(&Down1, &Down2, &Down3, &Down4) -> bool + Send + Sync + 'static>>,
 }
 
 /// Matcher that accepts a variable number of arguments, possibly with
@@ -67,10 +65,15 @@ pub struct VecMatcher<P, Down> {
   _phantom: PhantomData<fn() -> Down>,
 }
 
-impl<Down, P: Prism<Expr, Down>> OneArgumentMatcher<P, Down> {
+impl<Down: 'static, P: Prism<Expr, Down>> OneArgumentMatcher<P, Down> {
+  /// Sets the prism for this matcher and resets the filter function.
   pub fn of_type<NewDown, Q>(self, arg_prism: Q) -> OneArgumentMatcher<Q, NewDown>
   where Q: Prism<Expr, NewDown> {
-    OneArgumentMatcher { arg_prism, _phantom: PhantomData }
+    OneArgumentMatcher { arg_prism, filter_fn: None }
+  }
+
+  pub fn filter(self, pred: impl Fn(&Down) -> bool + Send + Sync + 'static) -> OneArgumentMatcher<P, Down> {
+    OneArgumentMatcher { arg_prism: self.arg_prism, filter_fn: Some(Box::new(pred)) }
   }
 
   pub fn and_then<T, F>(self, f: F) -> Box<FunctionCase<T>>
@@ -79,17 +82,24 @@ impl<Down, P: Prism<Expr, Down>> OneArgumentMatcher<P, Down> {
     Box::new(move |args, context| {
       match narrow_vec((&self.arg_prism,), args) {
         Err(original_args) => FunctionCaseResult::NoMatch(original_args),
-        Ok((arg,)) => FunctionCaseResult::from_result(
-          f(arg, context).map_err(|arg| vec![
-            self.arg_prism.widen_type(arg),
-          ]),
-        ),
+        Ok((arg,)) => {
+          if let Some(filter_fn) = &self.filter_fn {
+            if !filter_fn(&arg) {
+              return FunctionCaseResult::NoMatch(vec![self.arg_prism.widen_type(arg)]);
+            }
+          }
+          FunctionCaseResult::from_result(
+            f(arg, context).map_err(|arg| vec![
+              self.arg_prism.widen_type(arg),
+            ]),
+          )
+        }
       }
     })
   }
 }
 
-impl<Down1, Down2, P1, P2> TwoArgumentMatcher<P1, P2, Down1, Down2>
+impl<Down1: 'static, Down2: 'static, P1, P2> TwoArgumentMatcher<P1, P2, Down1, Down2>
 where P1: Prism<Expr, Down1>,
       P2: Prism<Expr, Down2> {
   pub fn of_types<NewDown1, NewDown2, Q1, Q2>(
@@ -99,15 +109,23 @@ where P1: Prism<Expr, Down1>,
   ) -> TwoArgumentMatcher<Q1, Q2, NewDown1, NewDown2>
   where Q1: Prism<Expr, NewDown1>,
         Q2: Prism<Expr, NewDown2> {
-    TwoArgumentMatcher { first_arg_prism, second_arg_prism, _phantom: PhantomData }
+    TwoArgumentMatcher { first_arg_prism, second_arg_prism, filter_fn: None }
   }
 
   pub fn both_of_type<NewDown, Q>(self, arg_prism: Q) -> TwoArgumentMatcher<Q, Q, NewDown, NewDown>
   where Q: Prism<Expr, NewDown> + Clone {
-   TwoArgumentMatcher {
+    TwoArgumentMatcher {
       first_arg_prism: arg_prism.clone(),
       second_arg_prism: arg_prism,
-      _phantom: PhantomData,
+      filter_fn: None,
+    }
+  }
+
+  pub fn filter(self, pred: impl Fn(&Down1, &Down2) -> bool + Send + Sync + 'static) -> TwoArgumentMatcher<P1, P2, Down1, Down2> {
+    TwoArgumentMatcher {
+      first_arg_prism: self.first_arg_prism,
+      second_arg_prism: self.second_arg_prism,
+      filter_fn: Some(Box::new(pred)),
     }
   }
 
@@ -118,20 +136,30 @@ where P1: Prism<Expr, Down1>,
     Box::new(move |args, context| {
       match narrow_vec((&self.first_arg_prism, &self.second_arg_prism), args) {
         Err(original_args) => FunctionCaseResult::NoMatch(original_args),
-        Ok((arg1, arg2)) => FunctionCaseResult::from_result(
-          f(arg1, arg2, context).map_err(|(arg1, arg2)| {
-            vec![
-              self.first_arg_prism.widen_type(arg1),
-              self.second_arg_prism.widen_type(arg2),
-            ]
-          }),
-        ),
+        Ok((arg1, arg2)) => {
+          if let Some(filter_fn) = &self.filter_fn {
+            if !filter_fn(&arg1, &arg2) {
+              return FunctionCaseResult::NoMatch(vec![
+                self.first_arg_prism.widen_type(arg1),
+                self.second_arg_prism.widen_type(arg2),
+              ]);
+            }
+          }
+          FunctionCaseResult::from_result(
+            f(arg1, arg2, context).map_err(|(arg1, arg2)| {
+              vec![
+                self.first_arg_prism.widen_type(arg1),
+                self.second_arg_prism.widen_type(arg2),
+              ]
+            }),
+          )
+        }
       }
     })
   }
 }
 
-impl<Down1, Down2, Down3, P1, P2, P3> ThreeArgumentMatcher<P1, P2, P3, Down1, Down2, Down3>
+impl<Down1: 'static, Down2: 'static, Down3: 'static, P1, P2, P3> ThreeArgumentMatcher<P1, P2, P3, Down1, Down2, Down3>
 where P1: Prism<Expr, Down1>,
       P2: Prism<Expr, Down2>,
       P3: Prism<Expr, Down3> {
@@ -144,16 +172,25 @@ where P1: Prism<Expr, Down1>,
   where Q1: Prism<Expr, NewDown1>,
         Q2: Prism<Expr, NewDown2>,
         Q3: Prism<Expr, NewDown3> {
-    ThreeArgumentMatcher { first_arg_prism, second_arg_prism, third_arg_prism, _phantom: PhantomData }
+    ThreeArgumentMatcher { first_arg_prism, second_arg_prism, third_arg_prism, filter_fn: None }
   }
 
   pub fn all_of_type<NewDown, Q>(self, arg_prism: Q) -> ThreeArgumentMatcher<Q, Q, Q, NewDown, NewDown, NewDown>
   where Q: Prism<Expr, NewDown> + Clone {
-   ThreeArgumentMatcher {
+    ThreeArgumentMatcher {
       first_arg_prism: arg_prism.clone(),
       second_arg_prism: arg_prism.clone(),
       third_arg_prism: arg_prism,
-      _phantom: PhantomData,
+      filter_fn: None,
+    }
+  }
+
+  pub fn filter(self, pred: impl Fn(&Down1, &Down2, &Down3) -> bool + Send + Sync + 'static) -> ThreeArgumentMatcher<P1, P2, P3, Down1, Down2, Down3> {
+    ThreeArgumentMatcher {
+      first_arg_prism: self.first_arg_prism,
+      second_arg_prism: self.second_arg_prism,
+      third_arg_prism: self.third_arg_prism,
+      filter_fn: Some(Box::new(pred)),
     }
   }
 
@@ -165,21 +202,32 @@ where P1: Prism<Expr, Down1>,
     Box::new(move |args, context| {
       match narrow_vec((&self.first_arg_prism, &self.second_arg_prism, &self.third_arg_prism), args) {
         Err(original_args) => FunctionCaseResult::NoMatch(original_args),
-        Ok((arg1, arg2, arg3)) => FunctionCaseResult::from_result(
-          f(arg1, arg2, arg3, context).map_err(|(arg1, arg2, arg3)| {
-            vec![
-              self.first_arg_prism.widen_type(arg1),
-              self.second_arg_prism.widen_type(arg2),
-              self.third_arg_prism.widen_type(arg3),
-            ]
-          }),
-        ),
+        Ok((arg1, arg2, arg3)) => {
+          if let Some(filter_fn) = &self.filter_fn {
+            if !filter_fn(&arg1, &arg2, &arg3) {
+              return FunctionCaseResult::NoMatch(vec![
+                self.first_arg_prism.widen_type(arg1),
+                self.second_arg_prism.widen_type(arg2),
+                self.third_arg_prism.widen_type(arg3),
+              ]);
+            }
+          }
+          FunctionCaseResult::from_result(
+            f(arg1, arg2, arg3, context).map_err(|(arg1, arg2, arg3)| {
+              vec![
+                self.first_arg_prism.widen_type(arg1),
+                self.second_arg_prism.widen_type(arg2),
+                self.third_arg_prism.widen_type(arg3),
+              ]
+            }),
+          )
+        }
       }
     })
   }
 }
 
-impl<Down1, Down2, Down3, Down4, P1, P2, P3, P4> FourArgumentMatcher<P1, P2, P3, P4, Down1, Down2, Down3, Down4>
+impl<Down1: 'static, Down2: 'static, Down3: 'static, Down4: 'static, P1, P2, P3, P4> FourArgumentMatcher<P1, P2, P3, P4, Down1, Down2, Down3, Down4>
 where P1: Prism<Expr, Down1>,
       P2: Prism<Expr, Down2>,
       P3: Prism<Expr, Down3>,
@@ -200,7 +248,7 @@ where P1: Prism<Expr, Down1>,
       second_arg_prism,
       third_arg_prism,
       fourth_arg_prism,
-      _phantom: PhantomData,
+      filter_fn: None,
     }
   }
 
@@ -209,12 +257,22 @@ where P1: Prism<Expr, Down1>,
     arg_prism: Q,
   ) -> FourArgumentMatcher<Q, Q, Q, Q, NewDown, NewDown, NewDown, NewDown>
   where Q: Prism<Expr, NewDown> + Clone {
-   FourArgumentMatcher {
+    FourArgumentMatcher {
       first_arg_prism: arg_prism.clone(),
       second_arg_prism: arg_prism.clone(),
       third_arg_prism: arg_prism.clone(),
       fourth_arg_prism: arg_prism,
-      _phantom: PhantomData,
+      filter_fn: None,
+    }
+  }
+
+  pub fn filter(self, pred: impl Fn(&Down1, &Down2, &Down3, &Down4) -> bool + Send + Sync + 'static) -> FourArgumentMatcher<P1, P2, P3, P4, Down1, Down2, Down3, Down4> {
+    FourArgumentMatcher {
+      first_arg_prism: self.first_arg_prism,
+      second_arg_prism: self.second_arg_prism,
+      third_arg_prism: self.third_arg_prism,
+      fourth_arg_prism: self.fourth_arg_prism,
+      filter_fn: Some(Box::new(pred)),
     }
   }
 
@@ -228,6 +286,16 @@ where P1: Prism<Expr, Down1>,
       match narrow_vec((&self.first_arg_prism, &self.second_arg_prism, &self.third_arg_prism, &self.fourth_arg_prism), args) {
         Err(original_args) => FunctionCaseResult::NoMatch(original_args),
         Ok((arg1, arg2, arg3, arg4)) => {
+          if let Some(filter_fn) = &self.filter_fn {
+            if !filter_fn(&arg1, &arg2, &arg3, &arg4) {
+              return FunctionCaseResult::NoMatch(vec![
+                self.first_arg_prism.widen_type(arg1),
+                self.second_arg_prism.widen_type(arg2),
+                self.third_arg_prism.widen_type(arg3),
+                self.fourth_arg_prism.widen_type(arg4),
+              ]);
+            }
+          }
           FunctionCaseResult::from_result(
             f(arg1, arg2, arg3, arg4, context).map_err(|(arg1, arg2, arg3, arg4)| {
               vec![
@@ -280,7 +348,7 @@ impl<Down, P: Prism<Expr, Down>> VecMatcher<P, Down> {
 pub fn arity_one() -> OneArgumentMatcher<Identity, Expr> {
   OneArgumentMatcher {
     arg_prism: Identity,
-    _phantom: PhantomData,
+    filter_fn: None,
   }
 }
 
@@ -288,7 +356,7 @@ pub fn arity_two() -> TwoArgumentMatcher<Identity, Identity, Expr, Expr> {
   TwoArgumentMatcher {
     first_arg_prism: Identity,
     second_arg_prism: Identity,
-    _phantom: PhantomData,
+    filter_fn: None,
   }
 }
 
@@ -297,7 +365,7 @@ pub fn arity_three() -> ThreeArgumentMatcher<Identity, Identity, Identity, Expr,
     first_arg_prism: Identity,
     second_arg_prism: Identity,
     third_arg_prism: Identity,
-    _phantom: PhantomData,
+    filter_fn: None,
   }
 }
 
@@ -307,7 +375,7 @@ pub fn arity_four() -> FourArgumentMatcher<Identity, Identity, Identity, Identit
     second_arg_prism: Identity,
     third_arg_prism: Identity,
     fourth_arg_prism: Identity,
-    _phantom: PhantomData,
+    filter_fn: None,
   }
 }
 
