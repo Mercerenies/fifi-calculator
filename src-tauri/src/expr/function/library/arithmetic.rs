@@ -6,7 +6,7 @@ use crate::expr::interval::{Interval, interval_div, interval_div_inexact,
                             interval_recip, interval_recip_inexact, includes_infinity};
 use crate::expr::function::{Function, FunctionContext};
 use crate::expr::function::table::FunctionTable;
-use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
+use crate::expr::function::builder::{self, FunctionBuilder};
 use crate::expr::vector::Vector;
 use crate::expr::vector::matrix::Matrix;
 use crate::expr::vector::tensor::Tensor;
@@ -248,18 +248,15 @@ pub fn multiplication() -> Function {
     )
     .add_case(
       // Multiplication by zero
-      Box::new(|args, _context| {
-        // TODO: The manual construction of FunctionCase and explicit
-        // FunctionCaseResults here are less than ideal. Can we make a
-        // builder for this?
-        let contains_zero = args.iter().any(Expr::is_zero);
-        let contains_infinities = args.iter().any(is_infinite_constant);
-        if contains_zero && !contains_infinities {
-          FunctionCaseResult::Success(Expr::zero())
-        } else {
-          FunctionCaseResult::NoMatch(args)
-        }
-      })
+      builder::any_arity()
+        .filter(|args| {
+          let contains_zero = args.iter().any(Expr::is_zero);
+          let contains_infinities = args.iter().any(is_infinite_constant);
+          contains_zero && !contains_infinities
+        })
+        .and_then(|_args, _ctx| {
+          Ok(Expr::zero())
+        })
     )
     .add_case(
       // Real number multiplication
