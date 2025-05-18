@@ -19,10 +19,22 @@ pub const ZERO_DATE: DateTime =
 pub const ZERO_JULIAN_DAY: DateTime =
   DateTime::from_date(date!(-4713-11-24));
 
+/// The Unix epoch.
+pub const UNIX_EPOCH: DateTime =
+  DateTime::from_date(date!(1970-01-01));
+
 /// [`UnaryFunctionCommand`] which converts a datetime to a number of
 /// days relative to some constant date, or vice versa.
 pub fn days_since_command(target_date: DateTime) -> UnaryFunctionCommand {
   UnaryFunctionCommand::new(move |arg| {
     Expr::call("datetime_rel", vec![arg, target_date.clone().into()])
+  })
+}
+
+/// [`UnaryFunctionCommand`] which converts a datetime to a number of
+/// seconds relative to some constant date, or vice versa.
+pub fn secs_since_command(target_date: DateTime) -> UnaryFunctionCommand {
+  UnaryFunctionCommand::new(move |arg| {
+    Expr::call("datetime_rel_seconds", vec![arg, target_date.clone().into()])
   })
 }

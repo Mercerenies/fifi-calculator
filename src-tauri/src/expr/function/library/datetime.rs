@@ -12,12 +12,15 @@ use crate::expr::number::prisms::number_to_i64;
 use crate::expr::number::inexact::DivInexact;
 use crate::util::prism::Prism;
 
-use num::{BigInt, ToPrimitive};
+use num::{BigInt, ToPrimitive, Zero};
 
 pub const MICROSECONDS_PER_DAY: i64 = 86_400_000_000;
+pub const MICROSECONDS_PER_SECOND: i64 = 1_000_000;
+pub const SECONDS_PER_DAY: i64 = 86_400;
 
 pub fn append_datetime_functions(table: &mut FunctionTable) {
   table.insert(datetime_rel());
+  table.insert(datetime_rel_seconds());
 }
 
 // TODO Technically this is differentiable in its first argument (but
@@ -51,6 +54,44 @@ pub fn datetime_rel() -> Function {
       // addition.
       builder::arity_two().of_types(expr_to_number(), expr_to_datetime()).and_then(|arg, rel, ctx| {
         let Some(duration) = number_to_duration(arg.clone()) else {
+          ctx.errors.push(SimplifierError::datetime_arithmetic_out_of_bounds("datetime_rel"));
+          return Err((arg, rel));
+        };
+        let Some(result) = rel.clone().checked_add(duration) else {
+          ctx.errors.push(SimplifierError::datetime_arithmetic_out_of_bounds("datetime_rel"));
+          return Err((arg, rel));
+        };
+        Ok(result.into())
+      })
+    )
+    .build()
+}
+
+pub fn datetime_rel_seconds() -> Function {
+  FunctionBuilder::new("datetime_rel_seconds")
+    .add_case(
+      // If given two datetime objects, subtract and return number of
+      // seconds.
+      builder::arity_two().both_of_type(expr_to_datetime()).and_then(|arg, rel, ctx| {
+        let diff = arg - rel;
+        let diff_seconds = Number::from(diff.duration().whole_seconds());
+        let diff_microseconds = Number::from(diff.duration().subsec_microseconds());
+        if diff_microseconds.is_zero() {
+          Ok(diff_seconds.into())
+        } else {
+          let mut total_seconds = diff_seconds + diff_microseconds / Number::from(MICROSECONDS_PER_SECOND);
+          if !ctx.calculation_mode.has_fractional_flag() {
+            total_seconds = total_seconds.to_inexact();
+          }
+          Ok(total_seconds.into())
+        }
+      })
+    )
+    .add_case(
+      // If given a real number and a datetime, return number of
+      // seconds since that date.
+      builder::arity_two().of_types(expr_to_number(), expr_to_datetime()).and_then(|arg, rel, ctx| {
+        let Some(duration) = number_to_duration(arg.clone() / Number::from(SECONDS_PER_DAY)) else {
           ctx.errors.push(SimplifierError::datetime_arithmetic_out_of_bounds("datetime_rel"));
           return Err((arg, rel));
         };
