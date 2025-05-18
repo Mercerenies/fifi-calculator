@@ -189,6 +189,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
 
   // Datetime commands
   map.insert("days_since_zero".to_string(), Box::new(datetime::days_since_command(datetime::ZERO_DATE)));
+  map.insert("julian_day".to_string(), Box::new(datetime::days_since_command(datetime::ZERO_JULIAN_DAY)));
 
   // Vector commands
   map.insert("subvector".to_string(), Box::new(dispatch_on_hyper_command(
