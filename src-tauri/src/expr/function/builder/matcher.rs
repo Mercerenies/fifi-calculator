@@ -7,8 +7,6 @@ use crate::expr::simplifier::error::ArityError;
 use crate::expr::calculus::{DerivativeEngine, DifferentiationFailure, DifferentiationError};
 use crate::util::tuple::binder::narrow_vec;
 
-use std::marker::PhantomData;
-
 /// Matcher that requires exactly one argument in order to match. The
 /// argument can optionally be narrowed by a prism, which defaults to
 /// [`Identity`].
@@ -62,7 +60,7 @@ pub struct VecMatcher<P, Down> {
   arg_prism: P,
   min_length: usize,
   max_length: usize,
-  _phantom: PhantomData<fn() -> Down>,
+  filter_fn: Option<Box<dyn Fn(&[Down]) -> bool + Send + Sync + 'static>>,
 }
 
 impl<Down: 'static, P: Prism<Expr, Down>> OneArgumentMatcher<P, Down> {
@@ -102,6 +100,7 @@ impl<Down: 'static, P: Prism<Expr, Down>> OneArgumentMatcher<P, Down> {
 impl<Down1: 'static, Down2: 'static, P1, P2> TwoArgumentMatcher<P1, P2, Down1, Down2>
 where P1: Prism<Expr, Down1>,
       P2: Prism<Expr, Down2> {
+  /// Sets the prisms for this matcher and resets the filter function.
   pub fn of_types<NewDown1, NewDown2, Q1, Q2>(
     self,
     first_arg_prism: Q1,
@@ -112,6 +111,8 @@ where P1: Prism<Expr, Down1>,
     TwoArgumentMatcher { first_arg_prism, second_arg_prism, filter_fn: None }
   }
 
+  /// Sets all of the prisms for this matcher to be the same, and
+  /// resets the filter function.
   pub fn both_of_type<NewDown, Q>(self, arg_prism: Q) -> TwoArgumentMatcher<Q, Q, NewDown, NewDown>
   where Q: Prism<Expr, NewDown> + Clone {
     TwoArgumentMatcher {
@@ -163,6 +164,7 @@ impl<Down1: 'static, Down2: 'static, Down3: 'static, P1, P2, P3> ThreeArgumentMa
 where P1: Prism<Expr, Down1>,
       P2: Prism<Expr, Down2>,
       P3: Prism<Expr, Down3> {
+  /// Sets the prisms for this matcher and resets the filter function.
   pub fn of_types<NewDown1, NewDown2, NewDown3, Q1, Q2, Q3>(
     self,
     first_arg_prism: Q1,
@@ -175,6 +177,8 @@ where P1: Prism<Expr, Down1>,
     ThreeArgumentMatcher { first_arg_prism, second_arg_prism, third_arg_prism, filter_fn: None }
   }
 
+  /// Sets all of the prisms for this matcher to be the same, and
+  /// resets the filter function.
   pub fn all_of_type<NewDown, Q>(self, arg_prism: Q) -> ThreeArgumentMatcher<Q, Q, Q, NewDown, NewDown, NewDown>
   where Q: Prism<Expr, NewDown> + Clone {
     ThreeArgumentMatcher {
@@ -232,6 +236,7 @@ where P1: Prism<Expr, Down1>,
       P2: Prism<Expr, Down2>,
       P3: Prism<Expr, Down3>,
       P4: Prism<Expr, Down4> {
+  /// Sets the prisms for this matcher and resets the filter function.
   pub fn of_types<NewDown1, NewDown2, NewDown3, NewDown4, Q1, Q2, Q3, Q4>(
     self,
     first_arg_prism: Q1,
@@ -252,6 +257,8 @@ where P1: Prism<Expr, Down1>,
     }
   }
 
+  /// Sets all of the prisms for this matcher to be the same, and
+  /// resets the filter function.
   pub fn all_of_type<NewDown, Q>(
     self,
     arg_prism: Q,
@@ -312,14 +319,24 @@ where P1: Prism<Expr, Down1>,
   }
 }
 
-impl<Down, P: Prism<Expr, Down>> VecMatcher<P, Down> {
+impl<Down: 'static, P: Prism<Expr, Down>> VecMatcher<P, Down> {
+  /// Sets the prism for this matcher and resets the filter function.
   pub fn of_type<NewDown, Q>(self, arg_prism: Q) -> VecMatcher<Q, NewDown>
   where Q: Prism<Expr, NewDown> {
     VecMatcher {
       arg_prism,
       min_length: self.min_length,
       max_length: self.max_length,
-      _phantom: PhantomData,
+      filter_fn: None,
+    }
+  }
+
+  pub fn filter(self, pred: impl Fn(&[Down]) -> bool + Send + Sync + 'static) -> VecMatcher<P, Down> {
+    VecMatcher {
+      arg_prism: self.arg_prism,
+      min_length: self.min_length,
+      max_length: self.max_length,
+      filter_fn: Some(Box::new(pred)),
     }
   }
 
@@ -335,11 +352,20 @@ impl<Down, P: Prism<Expr, Down>> VecMatcher<P, Down> {
 
       match arg_prism.narrow_type(args) {
         Err(args) => FunctionCaseResult::NoMatch(args),
-        Ok(args) => FunctionCaseResult::from_result(
-          f(args, context).map_err(|args| {
-            arg_prism.widen_type(args)
-          }),
-        ),
+        Ok(args) => {
+          if let Some(filter_fn) = &self.filter_fn {
+            if !filter_fn(&args) {
+              return FunctionCaseResult::NoMatch(
+                arg_prism.widen_type(args),
+              );
+            }
+          }
+          FunctionCaseResult::from_result(
+            f(args, context).map_err(|args| {
+              arg_prism.widen_type(args)
+            }),
+          )
+        }
       }
     })
   }
@@ -384,7 +410,7 @@ pub fn any_arity() -> VecMatcher<Identity, Expr> {
     arg_prism: Identity,
     min_length: 0,
     max_length: usize::MAX,
-    _phantom: PhantomData,
+    filter_fn: None,
   }
 }
 
@@ -393,7 +419,7 @@ pub fn non_zero_arity() -> VecMatcher<Identity, Expr> {
     arg_prism: Identity,
     min_length: 1,
     max_length: usize::MAX,
-    _phantom: PhantomData,
+    filter_fn: None,
   }
 }
 
@@ -402,7 +428,7 @@ pub fn exact_arity(arity: usize) -> VecMatcher<Identity, Expr> {
     arg_prism: Identity,
     min_length: arity,
     max_length: arity,
-    _phantom: PhantomData,
+    filter_fn: None,
   }
 }
 
