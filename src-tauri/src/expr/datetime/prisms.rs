@@ -4,7 +4,8 @@
 use super::{DATETIME_FUNCTION_NAME, DateTime};
 use super::structure::{DatetimeValues, DateValues};
 use crate::expr::Expr;
-use crate::expr::prisms::{self, narrow_args, MatcherSpec, MatchedExpr};
+use crate::expr::prisms::{self, narrow_args, expr_to_number, MatcherSpec, MatchedExpr};
+use crate::expr::number::Number;
 use crate::util::prism::{Prism, PrismExt, Conversion};
 
 use time::{Date, OffsetDateTime};
@@ -65,6 +66,17 @@ pub fn expr_to_datetime() -> impl Prism<Expr, DateTime> + Clone {
   expr_to_date()
     .or(expr_to_offset_datetime())
     .rmap(down, up)
+}
+
+/// Prism which attempts to parse an expression as either a
+/// [`DateTime`] or a literal real number.
+///
+/// This prism is used as a first pass in mixed-arithmetic situations,
+/// where dates and scalar numbers are added or subtracted. For
+/// example, n-ary addition takes arguments of this type and then
+/// asserts that exactly one of the argument is a [`DateTime`].
+pub fn expr_to_datetime_or_real() -> impl Prism<Expr, Either<DateTime, Number>> + Clone {
+  expr_to_datetime().or(expr_to_number())
 }
 
 pub fn expr_to_arbitrary_datetime() -> impl Prism<Expr, ArbitraryDatetime> + Clone {
