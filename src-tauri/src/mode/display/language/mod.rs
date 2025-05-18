@@ -76,7 +76,7 @@ pub struct LanguageSettings {
   pub prefers_unicode_output: bool,
 }
 
-impl<'a, 'b> LanguageModeEngine<'a, 'b> {
+impl LanguageModeEngine<'_, '_> {
   pub fn write_to_html(&self, out: &mut String, expr: &Expr, prec: Precedence) {
     self.data.write_to_html(self, out, expr, prec);
   }

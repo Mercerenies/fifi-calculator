@@ -42,21 +42,21 @@ where P: UnitParser<Number> + ?Sized {
   }
 }
 
-impl<'a, P> Clone for UnitTermSimplifier<'a, P>
+impl<P> Clone for UnitTermSimplifier<'_, P>
 where P: ?Sized {
   fn clone(&self) -> Self {
     Self { unit_parser: self.unit_parser }
   }
 }
 
-impl<'a, P> Clone for UnitPolynomialSimplifier<'a, P>
+impl<P> Clone for UnitPolynomialSimplifier<'_, P>
 where P: ?Sized {
   fn clone(&self) -> Self {
     Self { unit_parser: self.unit_parser }
   }
 }
 
-impl<'a, P> Simplifier for UnitTermSimplifier<'a, P>
+impl<P> Simplifier for UnitTermSimplifier<'_, P>
 where P: UnitParser<Number> + ?Sized {
   fn simplify_expr_part(&self, expr: Expr, _: &mut SimplifierContext) -> Expr {
     let tagged = parse_composite_unit_expr(self.unit_parser, expr);
@@ -79,7 +79,7 @@ where P: UnitParser<Number> + ?Sized {
   }
 }
 
-impl<'a, P> Simplifier for UnitPolynomialSimplifier<'a, P>
+impl<P> Simplifier for UnitPolynomialSimplifier<'_, P>
 where P: UnitParser<Number> + ?Sized {
   fn simplify_expr_part(&self, expr: Expr, _: &mut SimplifierContext) -> Expr {
     let polynomial = parse_polynomial(expr);

@@ -19,16 +19,16 @@ use std::convert::TryFrom;
 /// * Strings are literal values.
 ///
 /// * Known infinity constants are literal values. (Note:
-/// [`InfiniteConstant::NotANumber`] is equal to itself and is NOT
-/// treated specially by this type)
+///   [`InfiniteConstant::NotANumber`] is equal to itself and is NOT
+///   treated specially by this type)
 ///
 /// * Intervals, where each bound is either a real number or a
-/// *signed* infinity, are literal values.
+///   *signed* infinity, are literal values.
 ///
 /// * Incomplete objects are literal values.
 ///
 /// * A vector (as defined by the [`Vector`] type) is a literal value
-/// iff all of its elements are literals.
+///   iff all of its elements are literals.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Literal {
   data: LiteralImpl,

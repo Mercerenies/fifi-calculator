@@ -10,14 +10,14 @@ use std::str::FromStr;
 /// string. The year is scanned using the following rules.
 ///
 /// 1. If a year suffix (such as "AD" or "BC") appears in the string,
-/// then the token immediately before it MUST be the year.
+///    then the token immediately before it MUST be the year.
 ///
 /// 2. If not, then the first integer which is "obviously" a year is
-/// considered the year. An integer is "obviously" the year is one
-/// which
+///    considered the year. An integer is "obviously" the year is one
+///    which
 ///
 ///   * is written with at least three digits (possibly including
-///   leading zeroes), or
+///     leading zeroes), or
 ///
 ///   * has an explicit `+` or `-` sign.
 ///

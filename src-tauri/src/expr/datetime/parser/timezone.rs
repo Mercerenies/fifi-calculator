@@ -14,14 +14,14 @@ pub(super) struct Timezone(pub i32);
 pub(super) fn search_for_timezone(text: &str) -> Option<(Timezone, Match)> {
   if let Some(cap) = TIMEZONE_RE.captures(text) {
     let hour: i32 = cap[1].parse().unwrap();
-    let minute: i32 = cap.get(2).map(|m| m.as_str()).unwrap_or(&"0").parse().unwrap();
-    let second: i32 = cap.get(3).map(|m| m.as_str()).unwrap_or(&"0").parse().unwrap();
+    let minute: i32 = cap.get(2).map(|m| m.as_str()).unwrap_or("0").parse().unwrap();
+    let second: i32 = cap.get(3).map(|m| m.as_str()).unwrap_or("0").parse().unwrap();
 
     let minute = match_sign(minute, hour);
     let second = match_sign(second, hour);
 
     let total_seconds = hour * 3600 + minute * 60 + second;
-    Some((Timezone(total_seconds), cap.get(0).unwrap().into()))
+    Some((Timezone(total_seconds), cap.get(0).unwrap()))
   } else {
     None
   }

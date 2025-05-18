@@ -80,19 +80,19 @@ impl DistributiveRule {
   /// if and only if all of the following are true:
   ///
   /// * `expr` is a call expression whose outermost function call
-  /// invokes the rule's outer operator;
+  ///   invokes the rule's outer operator;
   ///
   /// * `target_index` is among the [admissible argument
-  /// positions](Side::admissible_args) for this distributive rule;
+  ///   positions](Side::admissible_args) for this distributive rule;
   ///
   /// * if [`Side::required_arity`] is not `None`, then the call's
-  /// arity matches that value;
+  ///   arity matches that value;
   ///
   /// * the `target_index`th argument is a call expression whose
-  /// outermost function call is the rule's inner operator; and
+  ///   outermost function call is the rule's inner operator; and
   ///
   /// * all of the arguments that are not `target_index` satisfy the
-  /// argument rule for this distributive rule.
+  ///   argument rule for this distributive rule.
   ///
   /// If this method returns true, then [`apply`](Self::apply) will
   /// return an `Ok` value for the given expression and the given

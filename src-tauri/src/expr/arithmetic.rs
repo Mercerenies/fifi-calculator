@@ -25,14 +25,14 @@ use std::ops::{Add, Sub, Mul, Div, Neg};
 /// This structure solves two problems.
 ///
 /// 1. Performing arithmetic on `Expr` values directly can be
-/// annoying, so this structure allows us to use built-in Rust
-/// operators to do so more cleanly.
+///    annoying, so this structure allows us to use built-in Rust
+///    operators to do so more cleanly.
 ///
 /// 2. Arithmetic on simple numbers is simplified immediately, which
-/// makes this struct very useful in simplifiers. It is no longer
-/// necessary to perform intermediate
-/// [`FunctionEvaluator`](crate::expr::simplifier::FunctionEvaluator)
-/// cycles to ensure simplification.
+///    makes this struct very useful in simplifiers. It is no longer
+///    necessary to perform intermediate
+///    [`FunctionEvaluator`](crate::expr::simplifier::FunctionEvaluator)
+///    cycles to ensure simplification.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct ArithExpr {

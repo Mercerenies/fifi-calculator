@@ -38,7 +38,7 @@ struct DefaultSimplifier<'a> {
 // element is a `dyn Simplifier`), and we call these things
 // frequently. So it's more efficient to just hand-write the
 // implementation we need.
-impl<'a> Simplifier for DefaultSimplifier<'a> {
+impl Simplifier for DefaultSimplifier<'_> {
   fn simplify_expr_part(&self, mut expr: Expr, ctx: &mut SimplifierContext) -> Expr {
     expr = self.unicode_simplifier.simplify_expr_part(expr, ctx);
     expr = partial::IdentityRemover::new(self.function_table).simplify_expr_part(expr, ctx);

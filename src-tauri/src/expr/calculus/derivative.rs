@@ -48,7 +48,7 @@ pub enum DifferentiationError {
   ArityError(String, ArityError),
 }
 
-impl<'a> DerivativeEngine<'a> {
+impl DerivativeEngine<'_> {
   pub fn target_variable(&self) -> &Var {
     &self.target_variable
   }

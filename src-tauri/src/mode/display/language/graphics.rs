@@ -37,7 +37,7 @@ impl<'a, L: LanguageMode + ?Sized> GraphicsLanguageMode<'a, L> {
   }
 }
 
-impl<'a, L: LanguageMode + ?Sized> LanguageMode for GraphicsLanguageMode<'a, L> {
+impl<L: LanguageMode + ?Sized> LanguageMode for GraphicsLanguageMode<'_, L> {
   fn write_to_html(&self, engine: &LanguageModeEngine, out: &mut String, expr: &Expr, prec: Precedence) {
     let is_graphics_directive = GraphicsPayload::is_graphics_directive(expr);
     if is_graphics_directive {

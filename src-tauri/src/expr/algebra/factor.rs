@@ -62,10 +62,10 @@ impl Factor {
   /// is exactly equal to the numerical constant 0 causes the whole
   /// term to be replaced with a 1.
   pub fn simplify_trivial_powers(mut self) -> Self {
-    if self.exponent.as_ref().map_or(false, Expr::is_zero) {
+    if self.exponent.as_ref().is_some_and(Expr::is_zero) {
       self.exponent = None;
       self.base = Expr::one();
-    } else if self.exponent.as_ref().map_or(false, Expr::is_one) {
+    } else if self.exponent.as_ref().is_some_and(Expr::is_one) {
       self.exponent = None;
     }
     self

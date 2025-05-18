@@ -5,22 +5,22 @@
 //! * It is consistent with the `Eq` instance on `Expr`.
 //!
 //! * Real numbers, as well as positive and negative infinity, compare
-//! using the typical ordering. Non-signed infinities are sorted
-//! arbitrarily.
+//!   using the typical ordering. Non-signed infinities are sorted
+//!   arbitrarily.
 //!
 //! * Strings compare lexicographically.
 //!
 //! * Vectors compare lexicographically, using this same ordering on
-//! the elements.
+//!   the elements.
 //!
 //! * Like-kinded intervals of unbounded numbers compare by their
-//! lower bound first, then their upper bound.
+//!   lower bound first, then their upper bound.
 //!
 //! * Variables which do NOT represent infinity constants are sorted
-//! alphabetically.
+//!   alphabetically.
 //!
 //! * Variables which do NOT represent infinity constants are greater
-//! than any real number or infinity constant.
+//!   than any real number or infinity constant.
 
 use super::Expr;
 use super::var::Var;
@@ -106,27 +106,27 @@ impl<'a> OrderedExprSlice<'a> {
   }
 }
 
-impl<'a> PartialEq for OrderedExprSlice<'a> {
+impl PartialEq for OrderedExprSlice<'_> {
   fn eq(&self, other: &Self) -> bool {
     cmp_iter_by(self.iter(), other.iter(), |a, b| cmp_expr(a, b)) == Ordering::Equal
   }
 }
 
-impl<'a> Eq for OrderedExprSlice<'a> {}
+impl Eq for OrderedExprSlice<'_> {}
 
-impl<'a> PartialOrd for OrderedExprSlice<'a> {
+impl PartialOrd for OrderedExprSlice<'_> {
   fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
     Some(self.cmp(other))
   }
 }
 
-impl<'a> Ord for OrderedExprSlice<'a> {
+impl Ord for OrderedExprSlice<'_> {
   fn cmp(&self, other: &Self) -> Ordering {
     cmp_iter_by(self.iter(), other.iter(), |a, b| cmp_expr(a, b))
   }
 }
 
-impl<'a> From<InfiniteConstant> for OrderedExpr<'a> {
+impl From<InfiniteConstant> for OrderedExpr<'_> {
   fn from(i: InfiniteConstant) -> Self {
     match i {
       InfiniteConstant::NegInfinity => OrderedExpr { data: OrderedExprImpl::NegInfinity },

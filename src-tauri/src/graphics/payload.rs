@@ -93,7 +93,7 @@ impl GraphicsPayload {
       let Expr::Call(name, args) = expr else {
         return Err(CompileGraphicsError::ExpectedFunction(expr));
       };
-      let function = function_table.get(&name).ok_or_else(|| {
+      let function = function_table.get(&name).ok_or({
         CompileGraphicsError::UnknownFunction(name)
       })?;
       let directive = function.call_for_graphics(args, errors, simplifier, function_table, calculation_mode.clone())

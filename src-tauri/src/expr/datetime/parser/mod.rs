@@ -60,7 +60,7 @@ where F: FnMut(&T) -> Option<S> {
 
 fn find_and_extract_month(tokens: &mut Vec<Token>) -> Option<ParsedMonth> {
   fn starts_with_alphabetic(s: &str) -> bool {
-    s.chars().next().map_or(false, |c| c.is_alphabetic())
+    s.chars().next().is_some_and(|c| c.is_alphabetic())
   }
 
   fn alphabetic_parse_month(t: &Token) -> Option<ParsedMonth> {

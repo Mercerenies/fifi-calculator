@@ -30,7 +30,7 @@ impl<'a> IdentityRemover<'a> {
   }
 }
 
-impl<'a> Simplifier for IdentityRemover<'a> {
+impl Simplifier for IdentityRemover<'_> {
   fn simplify_expr_part(&self, expr: Expr, _ctx: &mut SimplifierContext) -> Expr {
     match expr {
       Expr::Call(function_name, args) => {
