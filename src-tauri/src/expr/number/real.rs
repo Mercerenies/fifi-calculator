@@ -116,7 +116,7 @@ impl Number {
   pub fn floor(&self) -> Number {
     match &self.inner {
       NumberImpl::Integer(_) => self.clone(),
-      NumberImpl::Ratio(r) => Number::from(r.to_integer()),
+      NumberImpl::Ratio(r) => Number::from(r.floor().to_integer()),
       NumberImpl::Float(f) => Number::from(BigInt::from_f64(f.floor()).expect("floor should produce integer value")),
     }
   }

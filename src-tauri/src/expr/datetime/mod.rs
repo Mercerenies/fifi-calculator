@@ -8,6 +8,8 @@ pub mod timezone;
 use duration::PrecisionDuration;
 use timezone::TimezoneOffset;
 use crate::util::stricteq::StrictEq;
+use crate::util::prism::Prism;
+use crate::expr::Expr;
 
 use time::{OffsetDateTime, Date, Time, UtcOffset, Month};
 
@@ -62,6 +64,13 @@ pub const DATETIME_ARITIES: [usize; 2] = [3, 8];
 impl DateTime {
   pub const DEFAULT_TIME: Time = Time::MIDNIGHT;
   pub const DEFAULT_OFFSET: UtcOffset = UtcOffset::UTC;
+
+  pub const MIN: DateTime = DateTime {
+    inner: DateTimeRepr::Datetime(OffsetDateTime::new_utc(Date::MIN, Time::MIDNIGHT)),
+  };
+  pub const MAX: DateTime = DateTime {
+    inner: DateTimeRepr::Datetime(OffsetDateTime::new_utc(Date::MAX, Time::MAX)),
+  };
 
   pub fn now_utc() -> Self {
     Self::from(OffsetDateTime::now_utc())
@@ -239,6 +248,12 @@ impl From<OffsetDateTime> for DateTime {
 impl From<Date> for DateTime {
   fn from(inner: Date) -> Self {
     Self { inner: DateTimeRepr::Date(inner) }
+  }
+}
+
+impl From<DateTime> for Expr {
+  fn from(dt: DateTime) -> Self {
+    prisms::expr_to_datetime().widen_type(dt)
   }
 }
 

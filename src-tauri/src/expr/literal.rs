@@ -2,12 +2,15 @@
 use super::{Expr, TryFromExprError};
 use super::number::{Number, ComplexNumber, ComplexLike, Quaternion, QuaternionLike};
 use super::algebra::infinity::{InfiniteConstant, UnboundedNumber};
+use super::datetime::DateTime;
 use super::vector::Vector;
 use super::incomplete::IncompleteObject;
 use super::interval::RawInterval;
 use super::prisms::{ExprToQuaternion, ExprToVector, ExprToInfinity,
-                    expr_to_string, expr_to_incomplete_object, expr_to_unbounded_interval};
+                    expr_to_string, expr_to_incomplete_object, expr_to_unbounded_interval,
+                    expr_to_datetime};
 use crate::util::prism::Prism;
+use crate::util::stricteq::StrictEq;
 
 use std::convert::TryFrom;
 
@@ -42,6 +45,7 @@ enum LiteralImpl {
   Interval(RawInterval<UnboundedNumber>),
   Infinity(InfiniteConstant),
   Vector(Vec<Literal>),
+  Datetime(DateTime),
 }
 
 impl Literal {
@@ -69,6 +73,10 @@ impl Literal {
     expr_to_unbounded_interval().narrow_type(expr).map(|c| Literal { data: LiteralImpl::Interval(c) })
   }
 
+  fn try_from_as_datetime(expr: Expr) -> Result<Self, Expr> {
+    expr_to_datetime().narrow_type(expr).map(|c| Literal { data: LiteralImpl::Datetime(c) })
+  }
+
   fn try_from_as_vector(expr: Expr) -> Result<Self, Expr> {
     ExprToVector.narrow_type(expr).and_then(|v| {
       v.into_iter()
@@ -77,6 +85,21 @@ impl Literal {
         .map(|v| Literal { data: LiteralImpl::Vector(v) })
         .map_err(|err| err.original_expr)
     })
+  }
+}
+
+impl StrictEq for Literal {
+  fn strict_eq(&self, other: &Self) -> bool {
+    match (&self.data, &other.data) {
+      (LiteralImpl::Numerical(a), LiteralImpl::Numerical(b)) => a.strict_eq(b),
+      (LiteralImpl::String(a), LiteralImpl::String(b)) => a == b,
+      (LiteralImpl::Infinity(a), LiteralImpl::Infinity(b)) => a == b,
+      (LiteralImpl::Vector(a), LiteralImpl::Vector(b)) => a.strict_eq(b),
+      (LiteralImpl::IncompleteObject(a), LiteralImpl::IncompleteObject(b)) => a == b,
+      (LiteralImpl::Interval(a), LiteralImpl::Interval(b)) => a == b,
+      (LiteralImpl::Datetime(a), LiteralImpl::Datetime(b)) => a.strict_eq(b),
+      _ => false
+    }
   }
 }
 
@@ -134,6 +157,12 @@ impl From<RawInterval<UnboundedNumber>> for Literal {
   }
 }
 
+impl From<DateTime> for Literal {
+  fn from(c: DateTime) -> Self {
+    Literal { data: LiteralImpl::Datetime(c) }
+  }
+}
+
 impl<T: Into<Literal>> From<Vec<T>> for Literal {
   fn from(v: Vec<T>) -> Self {
     Literal {
@@ -150,6 +179,7 @@ impl From<Literal> for Expr {
       LiteralImpl::Infinity(inf) => inf.into(),
       LiteralImpl::IncompleteObject(inc) => inc.into(),
       LiteralImpl::Interval(i) => i.into(),
+      LiteralImpl::Datetime(d) => d.into(),
       LiteralImpl::Vector(v) => {
         let v: Vector = v.into_iter().map(Expr::from).collect();
         v.into()
@@ -172,6 +202,8 @@ impl TryFrom<Expr> for Literal {
       Literal::try_from_as_incomplete_object(expr)
     }).or_else(|expr| {
       Literal::try_from_as_interval(expr)
+    }).or_else(|expr| {
+      Literal::try_from_as_datetime(expr)
     }).map_err(|expr| {
       TryFromExprError::new("Literal", expr)
     })
@@ -183,11 +215,14 @@ mod tests {
   use super::*;
   use crate::expr::incomplete::ObjectType;
   use crate::expr::interval::{Interval, IntervalType};
+  use crate::assert_strict_eq;
+
+  use time::OffsetDateTime;
 
   fn expect_roundtrip(literal: Literal) {
     let expr = Expr::from(literal.clone());
     let literal2 = Literal::try_from(expr).expect("Roundtrip through TryFrom and From failed");
-    assert_eq!(literal2, literal);
+    assert_strict_eq!(literal2, literal);
   }
 
   #[test]
@@ -200,6 +235,14 @@ mod tests {
     expect_roundtrip(Literal::from(InfiniteConstant::NegInfinity));
     expect_roundtrip(Literal::from(Interval::new(UnboundedNumber::finite(3), IntervalType::Closed, UnboundedNumber::POS_INFINITY).into_raw()));
     expect_roundtrip(Literal::from(IncompleteObject::new(ObjectType::LeftParen)));
+  }
+
+  #[test]
+  fn test_roundtrip_datetime() {
+    let dt = Literal::from(DateTime::from(OffsetDateTime::UNIX_EPOCH));
+    expect_roundtrip(dt);
+    let dt = Literal::from(DateTime::from(OffsetDateTime::UNIX_EPOCH.date()));
+    expect_roundtrip(dt);
   }
 
   #[test]
