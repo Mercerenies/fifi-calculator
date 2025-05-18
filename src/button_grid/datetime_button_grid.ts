@@ -16,6 +16,7 @@ export class DatetimeButtonGrid extends ButtonGrid {
   private initRows(): GridCell[][] {
     return [
       [
+        new DispatchButton("<span class='mathy-text'>-0</span>", "days_since_zero", "D"),
       ],
       [
       ],

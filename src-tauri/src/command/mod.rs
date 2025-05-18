@@ -4,6 +4,7 @@ pub mod algebra;
 pub mod arguments;
 mod base;
 pub mod calculus;
+pub mod datetime;
 pub mod dispatch;
 pub mod flag_dispatch;
 pub mod functional;
@@ -185,6 +186,9 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("convert_units_with_context".to_string(), Box::new(units::ContextualConvertUnitsCommand::new()));
   map.insert("convert_temp".to_string(), Box::new(units::ConvertTemperatureCommand::new()));
   map.insert("convert_temp_with_context".to_string(), Box::new(units::ContextualConvertTemperatureCommand::new()));
+
+  // Datetime commands
+  map.insert("days_since_zero".to_string(), Box::new(datetime::days_since_command(datetime::ZERO_DATE)));
 
   // Vector commands
   map.insert("subvector".to_string(), Box::new(dispatch_on_hyper_command(

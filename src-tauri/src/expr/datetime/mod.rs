@@ -96,6 +96,20 @@ impl DateTime {
     matches!(&self.inner, DateTimeRepr::Datetime(_))
   }
 
+  /// Equivalent to `From::from` but `const`.
+  pub const fn from_date(date: Date) -> Self {
+    Self {
+      inner: DateTimeRepr::Date(date),
+    }
+  }
+
+  /// Equivalent to `From::from` but `const`.
+  pub const fn from_datetime(datetime: OffsetDateTime) -> Self {
+    Self {
+      inner: DateTimeRepr::Datetime(datetime),
+    }
+  }
+
   pub fn date(&self) -> Date {
     self.without_time()
   }
