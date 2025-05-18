@@ -163,7 +163,7 @@ fn find_root_bisection(
   function: &BisectionFunction,
   interval: Interval<Number>,
 ) -> Result<Expr, BisectionError> {
-  // Since the result from Secant Method is never an exact quantity
+  // Since the result from Bisection Method is never an exact quantity
   // anyway, we don't want to misleadingly provide rational results
   // with ridiculously large numerators and denominators, so go ahead
   // and force the whole computation to be inexact.
