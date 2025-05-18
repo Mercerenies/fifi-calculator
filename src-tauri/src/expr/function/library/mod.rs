@@ -11,6 +11,7 @@ mod basic;
 mod calculus;
 mod complex;
 mod datatypes;
+mod datetime;
 mod formula;
 mod graphics;
 mod statistics;
@@ -26,6 +27,7 @@ pub fn build_function_table() -> FunctionTable {
   calculus::append_calculus_functions(&mut table);
   complex::append_complex_functions(&mut table);
   datatypes::append_datatype_functions(&mut table);
+  datetime::append_datetime_functions(&mut table);
   formula::append_formula_functions(&mut table);
   graphics::append_graphics_functions(&mut table);
   statistics::append_statistics_functions(&mut table);

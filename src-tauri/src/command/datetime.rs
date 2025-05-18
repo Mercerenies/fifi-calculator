@@ -19,10 +19,10 @@ pub const ZERO_DATE: DateTime =
 pub const ZERO_JULIAN_DAY: DateTime =
   DateTime::from_date(date!(-4713-11-24));
 
-/// [`UnaryFunctionCommand`] which subtracts the given (constant) date
-/// from its argument.
+/// [`UnaryFunctionCommand`] which converts a datetime to a number of
+/// days relative to some constant date, or vice versa.
 pub fn days_since_command(target_date: DateTime) -> UnaryFunctionCommand {
   UnaryFunctionCommand::new(move |arg| {
-    Expr::call("-", vec![arg, target_date.clone().into()])
+    Expr::call("datetime_rel", vec![arg, target_date.clone().into()])
   })
 }
