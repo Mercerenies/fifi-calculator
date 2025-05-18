@@ -60,6 +60,15 @@ impl PrecisionDuration {
       .expect("duration is not a whole number of days")
   }
 
+  pub fn days(days: i64) -> Self {
+    // Never panics: whole number of days.
+    Self::imprecise(Duration::days(days))
+  }
+
+  pub fn microseconds(us: i64) -> Self {
+    Self::precise(Duration::microseconds(us))
+  }
+
   pub fn is_precise(&self) -> bool {
     self.precise
   }

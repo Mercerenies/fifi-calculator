@@ -38,6 +38,8 @@ pub const EXPECTED_REAL: &str = "Expected real number";
 
 pub const ZERO_TO_ZERO_POWER: &str = "Indeterminate form 0^0";
 
+pub const DATETIME_ARITHMETIC_OUT_OF_BOUNDS: &str = "Out of bounds for datetime arithmetic";
+
 impl SimplifierError {
   pub fn new<E, S>(function: S, error: E) -> Self
   where S: Into<String>,
@@ -70,6 +72,10 @@ impl SimplifierError {
 
   pub fn zero_to_zero_power(function: impl Into<String>) -> SimplifierError {
     SimplifierError::new(function, DomainError { explanation: ZERO_TO_ZERO_POWER.to_owned() })
+  }
+
+  pub fn datetime_arithmetic_out_of_bounds(function: impl Into<String>) -> SimplifierError {
+    SimplifierError::new(function, DomainError { explanation: DATETIME_ARITHMETIC_OUT_OF_BOUNDS.to_owned() })
   }
 }
 

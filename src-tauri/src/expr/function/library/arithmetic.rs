@@ -15,20 +15,25 @@ use crate::expr::predicates;
 use crate::expr::number::{Number, ComplexNumber, Quaternion, QuaternionLike,
                           pow_real, pow_complex, pow_complex_to_real};
 use crate::expr::number::inexact::{DivInexact, WithInexactDiv};
+use crate::expr::number::prisms::number_to_i64;
 use crate::expr::simplifier::error::{SimplifierError, DomainError};
 use crate::expr::calculus::DifferentiationError;
 use crate::expr::algebra::infinity::{InfiniteConstant, UnboundedNumber, is_infinite_constant,
                                      multiply_infinities, infinite_pow};
+use crate::expr::datetime::DateTime;
+use crate::expr::datetime::duration::PrecisionDuration;
 use crate::graphics::GRAPHICS_NAME;
 use crate::util::{repeated, TryPow};
-use crate::util::prism::Identity;
+use crate::util::prism::{Prism, Identity};
 use crate::util::matrix::{Matrix as UtilMatrix, SingularMatrixError};
 
-use num::{Zero, One, BigInt};
+use num::{Zero, One, BigInt, ToPrimitive};
 use either::Either;
 use try_traits::ops::{TryAdd, TrySub, TryMul, TryDiv};
 
 use std::cmp::Ordering;
+
+const MICROSECONDS_PER_DAY: i64 = 86_400_000_000;
 
 pub fn append_arithmetic_functions(table: &mut FunctionTable) {
   table.insert(addition());
@@ -101,6 +106,33 @@ pub fn addition() -> Function {
         Ok(sum.into())
       })
     )
+    .add_case({
+      // Datetime arithmetic
+      fn is_datetime(arg: &Either<DateTime, Number>) -> bool {
+        arg.is_left()
+      }
+      builder::any_arity().of_type(prisms::expr_to_datetime_or_real())
+        .filter(|args| {
+          // Require that exactly one of the arguments is a datetime.
+          args.iter().filter(|arg| is_datetime(arg)).count() == 1
+        })
+        .and_then(|mut args, ctx| {
+          let args_orig = args.clone(); // For error conditions
+          // Must be exactly one datetime, per the filter above.
+          let datetime_idx = args.iter().position(is_datetime).unwrap();
+          let datetime = args.remove(datetime_idx).unwrap_left();
+          let total_duration: Number = args.into_iter().map(Either::unwrap_right).sum();
+          let Some(total_duration) = number_to_duration(total_duration) else {
+            ctx.errors.push(SimplifierError::datetime_arithmetic_out_of_bounds("+"));
+            return Err(args_orig);
+          };
+          let Some(result_datetime) = datetime.checked_add(total_duration) else {
+            ctx.errors.push(SimplifierError::datetime_arithmetic_out_of_bounds("+"));
+            return Err(args_orig);
+          };
+          Ok(prisms::expr_to_datetime().widen_type(result_datetime))
+        })
+    })
     .add_case(
       // String concatenation
       builder::any_arity().of_type(prisms::expr_to_string()).and_then(|args, _| {
@@ -185,6 +217,38 @@ pub fn subtraction() -> Function {
         // unwrap: Now that we've validated the lengths, we can safely
         // subtract.
         Ok(Expr::from(arg1.try_sub(arg2).unwrap()))
+      })
+    )
+    .add_case(
+      // Datetime minus duration
+      builder::arity_two().of_types(prisms::expr_to_datetime(), prisms::expr_to_number()).and_then(|a, b, ctx| {
+        let Some(duration) = number_to_duration(b.clone()) else {
+          ctx.errors.push(SimplifierError::datetime_arithmetic_out_of_bounds("-"));
+          return Err((a, b));
+        };
+        let Some(result_datetime) = a.clone().checked_sub(duration) else {
+          ctx.errors.push(SimplifierError::datetime_arithmetic_out_of_bounds("-"));
+          return Err((a, b));
+        };
+        Ok(prisms::expr_to_datetime().widen_type(result_datetime))
+      })
+    )
+    .add_case(
+      // Datetime minus datetime
+      builder::arity_two().both_of_type(prisms::expr_to_datetime()).and_then(|arg1, arg2, ctx| {
+        let diff = arg1 - arg2;
+        if diff.is_precise() {
+          let us = Number::from(diff.duration().whole_microseconds());
+          let days = if ctx.calculation_mode.has_fractional_flag() {
+            us / Number::from(MICROSECONDS_PER_DAY)
+          } else {
+            us.div_inexact(&Number::from(MICROSECONDS_PER_DAY))
+          };
+          Ok(days.into())
+        } else {
+          let whole_days = Number::from(diff.duration().whole_days());
+          Ok(whole_days.into())
+        }
       })
     )
     .add_case(
@@ -1106,5 +1170,20 @@ fn division_by_zero_or_nan<E>(context: &mut FunctionContext, function_name: &str
   } else {
     context.errors.push(SimplifierError::division_by_zero(function_name));
     Err(err)
+  }
+}
+
+fn number_to_duration(n: Number) -> Option<PrecisionDuration> {
+  match number_to_i64().narrow_type(n) {
+    Err(n) => {
+      // Precise (down to microseconds) duration
+      let microseconds = (Number::from(MICROSECONDS_PER_DAY) * n).floor();
+      let microseconds = BigInt::try_from(microseconds).expect("floor() always produces an integer");
+      microseconds.to_i64().map(PrecisionDuration::microseconds)
+    }
+    Ok(i) => {
+      // Imprecise (day-level) duration
+      Some(PrecisionDuration::days(i))
+    }
   }
 }

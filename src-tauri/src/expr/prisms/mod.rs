@@ -30,6 +30,7 @@ pub use super::number::prisms::{number_to_usize, number_to_i64, number_to_i32, n
 pub use super::algebra::infinity::{ExprToInfinity, UnboundedNumber,
                                    infinity_to_signed_infinity,
                                    expr_to_signed_infinity, expr_to_unbounded_number};
+pub use super::datetime::prisms::{expr_to_datetime, expr_to_datetime_or_real};
 
 /// An expression which is literally equal to the value zero.
 #[derive(Debug, Clone, PartialEq, Eq)]
