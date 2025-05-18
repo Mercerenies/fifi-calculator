@@ -15,25 +15,22 @@ use crate::expr::predicates;
 use crate::expr::number::{Number, ComplexNumber, Quaternion, QuaternionLike,
                           pow_real, pow_complex, pow_complex_to_real};
 use crate::expr::number::inexact::{DivInexact, WithInexactDiv};
-use crate::expr::number::prisms::number_to_i64;
 use crate::expr::simplifier::error::{SimplifierError, DomainError};
 use crate::expr::calculus::DifferentiationError;
 use crate::expr::algebra::infinity::{InfiniteConstant, UnboundedNumber, is_infinite_constant,
                                      multiply_infinities, infinite_pow};
 use crate::expr::datetime::DateTime;
-use crate::expr::datetime::duration::PrecisionDuration;
 use crate::graphics::GRAPHICS_NAME;
 use crate::util::{repeated, TryPow};
 use crate::util::prism::{Prism, Identity};
 use crate::util::matrix::{Matrix as UtilMatrix, SingularMatrixError};
+use super::datetime::{MICROSECONDS_PER_DAY, number_to_duration};
 
-use num::{Zero, One, BigInt, ToPrimitive};
+use num::{Zero, One, BigInt};
 use either::Either;
 use try_traits::ops::{TryAdd, TrySub, TryMul, TryDiv};
 
 use std::cmp::Ordering;
-
-const MICROSECONDS_PER_DAY: i64 = 86_400_000_000;
 
 pub fn append_arithmetic_functions(table: &mut FunctionTable) {
   table.insert(addition());
@@ -1170,20 +1167,5 @@ fn division_by_zero_or_nan<E>(context: &mut FunctionContext, function_name: &str
   } else {
     context.errors.push(SimplifierError::division_by_zero(function_name));
     Err(err)
-  }
-}
-
-fn number_to_duration(n: Number) -> Option<PrecisionDuration> {
-  match number_to_i64().narrow_type(n) {
-    Err(n) => {
-      // Precise (down to microseconds) duration
-      let microseconds = (Number::from(MICROSECONDS_PER_DAY) * n).floor();
-      let microseconds = BigInt::try_from(microseconds).expect("floor() always produces an integer");
-      microseconds.to_i64().map(PrecisionDuration::microseconds)
-    }
-    Ok(i) => {
-      // Imprecise (day-level) duration
-      Some(PrecisionDuration::days(i))
-    }
   }
 }
