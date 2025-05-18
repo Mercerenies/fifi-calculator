@@ -192,6 +192,9 @@ impl ops::Sub for DateTime {
 mod tests {
   use super::*;
   use crate::{assert_strict_eq, assert_strict_ne};
+
+  use time::{OffsetDateTime, Date};
+
   use std::collections::hash_map::DefaultHasher;
 
   #[test]
@@ -249,5 +252,140 @@ mod tests {
     assert_strict_eq!(PrecisionDuration::precise(Duration::days(2)), PrecisionDuration::precise(Duration::days(2)));
     assert_strict_ne!(PrecisionDuration::precise(Duration::days(2)), PrecisionDuration::imprecise(Duration::days(2)));
     assert_strict_ne!(PrecisionDuration::precise(Duration::days(2)), PrecisionDuration::imprecise(Duration::days(3)));
+  }
+
+  #[test]
+  fn test_add_duration() {
+    assert_strict_eq!(
+      PrecisionDuration::precise(Duration::days(3)) + PrecisionDuration::precise(Duration::days(2)),
+      PrecisionDuration::precise(Duration::days(5)),
+    );
+    assert_strict_eq!(
+      PrecisionDuration::imprecise(Duration::days(3)) + PrecisionDuration::precise(Duration::days(2)),
+      PrecisionDuration::precise(Duration::days(5)),
+    );
+    assert_strict_eq!(
+      PrecisionDuration::imprecise(Duration::days(3)) + PrecisionDuration::imprecise(Duration::days(2)),
+      PrecisionDuration::imprecise(Duration::days(5)),
+    );
+    assert_strict_eq!(
+      PrecisionDuration::imprecise(Duration::days(1)) + PrecisionDuration::precise(Duration::seconds(100)),
+      PrecisionDuration::precise(Duration::seconds(86_500)),
+    );
+  }
+
+  #[test]
+  fn test_sub_duration() {
+    assert_strict_eq!(
+      PrecisionDuration::precise(Duration::days(3)) - PrecisionDuration::precise(Duration::days(2)),
+      PrecisionDuration::precise(Duration::days(1)),
+    );
+    assert_strict_eq!(
+      PrecisionDuration::precise(Duration::days(2)) - PrecisionDuration::precise(Duration::days(3)),
+      PrecisionDuration::precise(Duration::days(-1)),
+    );
+    assert_strict_eq!(
+      PrecisionDuration::imprecise(Duration::days(2)) - PrecisionDuration::imprecise(Duration::days(3)),
+      PrecisionDuration::imprecise(Duration::days(-1)),
+    );
+    assert_strict_eq!(
+      PrecisionDuration::imprecise(Duration::days(3)) - PrecisionDuration::precise(Duration::days(2)),
+      PrecisionDuration::precise(Duration::days(1)),
+    );
+    assert_strict_eq!(
+      PrecisionDuration::imprecise(Duration::days(1)) - PrecisionDuration::precise(Duration::seconds(100)),
+      PrecisionDuration::precise(Duration::seconds(86_300)),
+    );
+  }
+
+  #[test]
+  fn test_neg_duration() {
+    assert_strict_eq!(
+      - PrecisionDuration::precise(Duration::days(2)),
+      PrecisionDuration::precise(Duration::days(-2)),
+    );
+    assert_strict_eq!(
+      - PrecisionDuration::imprecise(Duration::days(2)),
+      PrecisionDuration::imprecise(Duration::days(-2)),
+    );
+  }
+
+  #[test]
+  fn test_mul_duration() {
+    assert_strict_eq!(
+      PrecisionDuration::precise(Duration::days(3)) * 2,
+      PrecisionDuration::precise(Duration::days(6)),
+    );
+    assert_strict_eq!(
+      2 * PrecisionDuration::precise(Duration::days(3)),
+      PrecisionDuration::precise(Duration::days(6)),
+    );
+    assert_strict_eq!(
+      PrecisionDuration::imprecise(Duration::days(3)) * 2,
+      PrecisionDuration::imprecise(Duration::days(6)),
+    );
+    assert_strict_eq!(
+      2 * PrecisionDuration::imprecise(Duration::days(3)),
+      PrecisionDuration::imprecise(Duration::days(6)),
+    );
+    assert_strict_eq!(
+      (-2) * PrecisionDuration::imprecise(Duration::days(3)),
+      PrecisionDuration::imprecise(Duration::days(-6)),
+    );
+  }
+
+  #[test]
+  fn test_add_duration_and_datetime() {
+    const UNIX_EPOCH_DATE: Date = OffsetDateTime::UNIX_EPOCH.date();
+
+    let datetime = DateTime::from(OffsetDateTime::UNIX_EPOCH);
+    let duration = PrecisionDuration::precise(Duration::days(2));
+    let expected = DateTime::from(OffsetDateTime::UNIX_EPOCH + Duration::days(2));
+    assert_strict_eq!(datetime + duration, expected);
+
+    let datetime = DateTime::from(UNIX_EPOCH_DATE);
+    let duration = PrecisionDuration::precise(Duration::days(2));
+    let expected = DateTime::from(OffsetDateTime::UNIX_EPOCH + Duration::days(2));
+    assert_strict_eq!(datetime + duration, expected);
+
+    let datetime = DateTime::from(OffsetDateTime::UNIX_EPOCH);
+    let duration = PrecisionDuration::imprecise(Duration::days(2));
+    let expected = DateTime::from(OffsetDateTime::UNIX_EPOCH + Duration::days(2));
+    assert_strict_eq!(datetime + duration, expected);
+
+    let datetime = DateTime::from(UNIX_EPOCH_DATE);
+    let duration = PrecisionDuration::imprecise(Duration::days(2));
+    let expected = DateTime::from(UNIX_EPOCH_DATE + Duration::days(2));
+    assert_strict_eq!(datetime + duration, expected);
+
+    let datetime = DateTime::from(UNIX_EPOCH_DATE);
+    let duration = PrecisionDuration::precise(Duration::seconds(1));
+    let expected = DateTime::from(OffsetDateTime::UNIX_EPOCH + Duration::seconds(1));
+    assert_strict_eq!(datetime + duration, expected);
+
+    let datetime = DateTime::from(OffsetDateTime::UNIX_EPOCH);
+    let duration = PrecisionDuration::precise(Duration::days(2));
+    let expected = DateTime::from(OffsetDateTime::UNIX_EPOCH + Duration::days(2));
+    assert_strict_eq!(duration + datetime, expected);
+
+    let datetime = DateTime::from(UNIX_EPOCH_DATE);
+    let duration = PrecisionDuration::precise(Duration::days(2));
+    let expected = DateTime::from(OffsetDateTime::UNIX_EPOCH + Duration::days(2));
+    assert_strict_eq!(duration + datetime, expected);
+
+    let datetime = DateTime::from(OffsetDateTime::UNIX_EPOCH);
+    let duration = PrecisionDuration::imprecise(Duration::days(2));
+    let expected = DateTime::from(OffsetDateTime::UNIX_EPOCH + Duration::days(2));
+    assert_strict_eq!(duration + datetime, expected);
+
+    let datetime = DateTime::from(UNIX_EPOCH_DATE);
+    let duration = PrecisionDuration::imprecise(Duration::days(2));
+    let expected = DateTime::from(UNIX_EPOCH_DATE + Duration::days(2));
+    assert_strict_eq!(duration + datetime, expected);
+
+    let datetime = DateTime::from(UNIX_EPOCH_DATE);
+    let duration = PrecisionDuration::precise(Duration::seconds(1));
+    let expected = DateTime::from(OffsetDateTime::UNIX_EPOCH + Duration::seconds(1));
+    assert_strict_eq!(duration + datetime, expected);
   }
 }
