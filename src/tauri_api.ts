@@ -7,7 +7,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen, emit, EventCallback, UnlistenFn } from '@tauri-apps/api/event';
 
 class TauriApi {
-  osType(): Promise<os.OsType> {
+  osType(): os.OsType {
     return os.type()
   }
 
