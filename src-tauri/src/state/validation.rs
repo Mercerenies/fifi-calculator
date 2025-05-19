@@ -9,6 +9,7 @@ use crate::expr::number::Number;
 use crate::expr::units::parse_composite_unit_expr;
 use crate::expr::algebra::term::Term;
 use crate::expr::prisms::{StringToUsize, StringToI64};
+use crate::expr::datetime::parser::timezone::Timezone;
 use crate::units::parsing::UnitParser;
 use crate::units::{Unit, CompositeUnit};
 use crate::units::tagged::{Tagged, TemperatureTagged, try_into_basic_temperature_unit};
@@ -50,6 +51,9 @@ pub enum Validator {
   /// Validator that accepts an expression (potentially with a scalar
   /// part) whose unit is a 1-dimensional temperature unit.
   HasTemperatureUnit,
+  /// Validator that accepts a timezone string, as defined by
+  /// [`Timezone::parse`].
+  IsTimezone,
 }
 
 #[derive(Clone)]
@@ -68,6 +72,7 @@ pub fn validate(validator: Validator, context: &ValidationContext, payload: Stri
     Validator::HasUnits => validate_has_some_units(context, &payload).map(|_| ()),
     Validator::IsTemperatureUnit => validate_is_temperature_unit(context, &payload).map(|_| ()),
     Validator::HasTemperatureUnit => validate_has_temperature_unit(context, &payload).map(|_| ()),
+    Validator::IsTimezone => validate_is_timezone(&payload).map(|_| ()),
   }
 }
 
@@ -137,6 +142,14 @@ pub fn validate_has_temperature_unit(
   let tagged = validate_has_some_units(context, expr)?;
   let temperature_tagged = TemperatureTagged::try_from(tagged)?;
   Ok(temperature_tagged)
+}
+
+pub fn validate_is_timezone(
+  expr: &str,
+) -> Result<Timezone, anyhow::Error> {
+  Timezone::parse(expr).ok_or_else(|| {
+    anyhow::anyhow!("Invalid timezone '{expr}'")
+  })
 }
 
 #[cfg(test)]
@@ -330,5 +343,20 @@ mod tests {
     err.downcast::<ParseError>().unwrap();
     let err = validate_has_temperature_unit(&context, "()").unwrap_err();
     err.downcast::<ParseError>().unwrap();
+  }
+
+  #[test]
+  fn test_validate_is_timezone() {
+    validate_is_timezone("utc").unwrap();
+    validate_is_timezone("UTC").unwrap();
+    validate_is_timezone("UTC+3").unwrap();
+    validate_is_timezone("UTC-4:10").unwrap();
+    validate_is_timezone("edt").unwrap();
+    validate_is_timezone("Edt").unwrap();
+    validate_is_timezone("EDT").unwrap();
+
+    validate_is_timezone("UTC+").unwrap_err();
+    validate_is_timezone("w").unwrap_err();
+    validate_is_timezone("").unwrap_err();
   }
 }
