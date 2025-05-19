@@ -15,8 +15,10 @@ use std::fmt::{self, Display, Formatter};
 /// A variable in an equation, left intentionally un-evaluated.
 ///
 /// Variables are identified by strings. A variable's name must begin
-/// with a letter, followed by zero or more letters, digits, or
-/// apostrophes. This structure enforces these constraints.
+/// with a letter or dollar sign, followed by zero or more letters,
+/// digits, dollar signs, or apostrophes. Additionally, the special
+/// names `∞` and `⧝` are allowed as standalone variables (but not as
+/// part of a larger name). This structure enforces these constraints.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Var(String);
