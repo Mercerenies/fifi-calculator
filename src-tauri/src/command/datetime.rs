@@ -4,12 +4,16 @@
 use super::base::{Command, CommandContext, CommandOutput};
 use super::options::CommandOptions;
 use super::functional::UnaryFunctionCommand;
-use super::arguments::{NullaryArgumentSchema, validate_schema};
+use super::arguments::{NullaryArgumentSchema, UnaryArgumentSchema, validate_schema};
+use super::subcommand::Subcommand;
 use crate::expr::Expr;
 use crate::expr::datetime::DateTime;
+use crate::expr::datetime::parser::timezone::{TimezonePrism, ParsedTimezone};
+use crate::expr::datetime::prisms::expr_to_datetime;
 use crate::state::ApplicationState;
 use crate::stack::base::StackLike;
-use super::subcommand::Subcommand;
+use crate::stack::keepable::KeepableStack;
+use crate::util::prism::Prism;
 
 use time::{OffsetDateTime, UtcOffset};
 use time::macros::date;
@@ -21,6 +25,17 @@ use time::macros::date;
 /// hours offset from UTC.
 #[derive(Debug, Default, Clone)]
 pub struct NowCommand;
+
+/// Command which converts a single date on top of the stack from one
+/// timezone into another.
+///
+/// This command expects a single argument, which shall be a valid
+/// timezone string according to
+/// [`Timezone::parse`](crate::expr::datetime::parser::timezone::Timezone::parse).
+///
+/// Respects the "keep" modifier but ignores the numerical argument.
+#[derive(Debug, Default, Clone)]
+pub struct ConvertTimezoneCommand;
 
 /// The `"days_since_zero"` command is defined such that Jan 1, 0001,
 /// returns 1. This is the date we subtract to get that result.
@@ -54,6 +69,19 @@ pub fn secs_since_command(target_date: DateTime) -> UnaryFunctionCommand {
   })
 }
 
+impl ConvertTimezoneCommand {
+  pub fn new() -> Self {
+    Self
+  }
+
+  pub fn argument_schema() -> UnaryArgumentSchema<TimezonePrism, ParsedTimezone> {
+    UnaryArgumentSchema::new(
+      "valid timezone expression".to_owned(),
+      TimezonePrism,
+    )
+  }
+}
+
 impl Command for NowCommand {
   fn run_command(
     &self,
@@ -74,6 +102,47 @@ impl Command for NowCommand {
     state.undo_stack_mut().push_cut();
     let mut stack = state.main_stack_mut();
     stack.push(now.into());
+    Ok(CommandOutput::success())
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
+  }
+}
+
+impl Command for ConvertTimezoneCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    ctx: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    let target_timezone = validate_schema(&Self::argument_schema(), args)?;
+    state.undo_stack_mut().push_cut();
+    let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
+    let top = stack.pop()?;
+    let top = match expr_to_datetime().narrow_type(top) {
+      Ok(datetime) => datetime,
+      Err(top) => {
+        // Recover the stack, then bail.
+        if !ctx.opts.keep_modifier {
+          stack.push(top);
+        }
+        anyhow::bail!("Top of stack is not a datetime");
+      }
+    };
+    let offset = match UtcOffset::from_whole_seconds(target_timezone.timezone.0) {
+      Ok(tz) => tz,
+      Err(err) => {
+        // Recover the stack, then bail.
+        if !ctx.opts.keep_modifier {
+          stack.push(Expr::from(top));
+        }
+        anyhow::bail!(err)
+      }
+    };
+    let converted = top.to_offset_date_time().to_offset(offset);
+    stack.push(Expr::from(DateTime::from(converted)));
     Ok(CommandOutput::success())
   }
 

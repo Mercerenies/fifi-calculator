@@ -1,4 +1,6 @@
 
+use crate::util::prism::Prism;
+
 use regex::{Regex, RegexSet, Match, Captures};
 use once_cell::sync::Lazy;
 
@@ -215,6 +217,13 @@ pub static TIMEZONE_ABBREVIATIONS: phf::OrderedMap<&'static str, Timezone> = phf
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Timezone(pub i32);
 
+#[derive(Debug, Clone)]
+pub struct ParsedTimezone {
+  pub timezone: Timezone,
+  pub parsed_str: String,
+  _priv: (),
+}
+
 /// Start and end indices of timezone match. Similar to
 /// [`regex::Match`], the indices provided here are guaranteed to be
 /// valid UTF-8 codepoint boundaries in the source string.
@@ -224,6 +233,10 @@ pub struct TimezoneMatch<'s> {
   start: usize,
   end: usize,
 }
+
+/// Prism from [`String`] to [`ParsedTimezone`]
+#[derive(Debug, Clone, Default)]
+pub struct TimezonePrism;
 
 impl Timezone {
   /// Parses a whole string as a timezone.
@@ -263,6 +276,19 @@ impl<'s> TimezoneMatch<'s> {
 impl<'s> From<Match<'s>> for TimezoneMatch<'s> {
   fn from(m: Match<'s>) -> Self {
     Self { start: m.start(), end: m.end(), match_str: m.as_str() }
+  }
+}
+
+impl Prism<String, ParsedTimezone> for TimezonePrism {
+  fn narrow_type(&self, s: String) -> Result<ParsedTimezone, String> {
+    match Timezone::parse(&s) {
+      None => Err(s),
+      Some(tz) => Ok(ParsedTimezone { timezone: tz, parsed_str: s, _priv: () }),
+    }
+  }
+
+  fn widen_type(&self, timezone: ParsedTimezone) -> String {
+    timezone.parsed_str
   }
 }
 
