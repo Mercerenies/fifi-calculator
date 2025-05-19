@@ -7,13 +7,13 @@ use super::functional::UnaryFunctionCommand;
 use super::arguments::{NullaryArgumentSchema, UnaryArgumentSchema, validate_schema};
 use super::subcommand::Subcommand;
 use crate::expr::Expr;
+use crate::expr::number::Number;
 use crate::expr::datetime::DateTime;
 use crate::expr::datetime::parser::timezone::{TimezonePrism, ParsedTimezone};
-use crate::expr::datetime::prisms::expr_to_datetime;
 use crate::state::ApplicationState;
 use crate::stack::base::StackLike;
 use crate::stack::keepable::KeepableStack;
-use crate::util::prism::Prism;
+use crate::errorlist::ErrorList;
 
 use time::{OffsetDateTime, UtcOffset};
 use time::macros::date;
@@ -117,33 +117,18 @@ impl Command for ConvertTimezoneCommand {
     args: Vec<String>,
     ctx: &CommandContext,
   ) -> anyhow::Result<CommandOutput> {
-    let target_timezone = validate_schema(&Self::argument_schema(), args)?;
+    let calculation_mode = state.calculation_mode().clone();
+    let mut errors = ErrorList::new();
+
+    let target_timezone = validate_schema(&Self::argument_schema(), args)?.timezone;
     state.undo_stack_mut().push_cut();
     let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
     let top = stack.pop()?;
-    let top = match expr_to_datetime().narrow_type(top) {
-      Ok(datetime) => datetime,
-      Err(top) => {
-        // Recover the stack, then bail.
-        if !ctx.opts.keep_modifier {
-          stack.push(top);
-        }
-        anyhow::bail!("Top of stack is not a datetime");
-      }
-    };
-    let offset = match UtcOffset::from_whole_seconds(target_timezone.timezone.0) {
-      Ok(tz) => tz,
-      Err(err) => {
-        // Recover the stack, then bail.
-        if !ctx.opts.keep_modifier {
-          stack.push(Expr::from(top));
-        }
-        anyhow::bail!(err)
-      }
-    };
-    let converted = top.to_offset_date_time().to_offset(offset);
-    stack.push(Expr::from(DateTime::from(converted)));
-    Ok(CommandOutput::success())
+    let whole_seconds = Number::from(target_timezone.0);
+    let result = Expr::call("tzconvert", vec![top, whole_seconds.into()]);
+    let result = ctx.simplify_expr(result, calculation_mode, &mut errors);
+    stack.push(result);
+    Ok(CommandOutput::from_errors(errors))
   }
 
   fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {

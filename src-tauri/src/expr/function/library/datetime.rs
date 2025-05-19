@@ -1,7 +1,9 @@
 
 //! Evaluation rules for datetime-related functions.
 
-use crate::expr::prisms::{expr_to_number, expr_to_datetime};
+use crate::expr::Expr;
+use crate::expr::prisms::{expr_to_number, expr_to_datetime, expr_to_i32};
+use crate::expr::datetime::DateTime;
 use crate::expr::datetime::duration::PrecisionDuration;
 use crate::expr::function::Function;
 use crate::expr::function::table::FunctionTable;
@@ -13,6 +15,7 @@ use crate::expr::number::inexact::DivInexact;
 use crate::util::prism::Prism;
 
 use num::{BigInt, ToPrimitive, Zero};
+use time::UtcOffset;
 
 pub const MICROSECONDS_PER_DAY: i64 = 86_400_000_000;
 pub const MICROSECONDS_PER_SECOND: i64 = 1_000_000;
@@ -21,6 +24,7 @@ pub const SECONDS_PER_DAY: i64 = 86_400;
 pub fn append_datetime_functions(table: &mut FunctionTable) {
   table.insert(datetime_rel());
   table.insert(datetime_rel_seconds());
+  table.insert(tzconvert());
 }
 
 // TODO Technically this is differentiable in its first argument (but
@@ -100,6 +104,23 @@ pub fn datetime_rel_seconds() -> Function {
           return Err((arg, rel));
         };
         Ok(result.into())
+      })
+    )
+    .build()
+}
+
+pub fn tzconvert() -> Function {
+  FunctionBuilder::new("tzconvert")
+    .add_case(
+      // Datetime and new UTC offset in seconds
+      builder::arity_two().of_types(expr_to_datetime(), expr_to_i32()).and_then(|arg, offset_sec, ctx| {
+        let Ok(offset) = UtcOffset::from_whole_seconds(offset_sec) else {
+          ctx.errors.push(SimplifierError::custom_error("tzconvert", "Invalid UTC offset"));
+          return Err((arg, offset_sec));
+        };
+        let new_datetime = arg.to_offset_date_time().to_offset(offset);
+        let new_datetime = DateTime::from(new_datetime);
+        Ok(Expr::from(new_datetime))
       })
     )
     .build()

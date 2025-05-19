@@ -192,7 +192,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("julian_day".to_string(), Box::new(datetime::days_since_command(datetime::ZERO_JULIAN_DAY)));
   map.insert("unix_time".to_string(), Box::new(datetime::secs_since_command(datetime::UNIX_EPOCH)));
   map.insert("now".to_string(), Box::new(datetime::NowCommand));
-  map.insert("convert_tz".to_string(), Box::new(datetime::ConvertTimezoneCommand));
+  map.insert("tzconvert".to_string(), Box::new(datetime::ConvertTimezoneCommand));
 
   // Vector commands
   map.insert("subvector".to_string(), Box::new(dispatch_on_hyper_command(

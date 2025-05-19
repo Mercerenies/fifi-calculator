@@ -11,6 +11,8 @@ use crate::util::prism::{Prism, PrismExt, Conversion};
 use time::{Date, OffsetDateTime};
 use either::Either;
 
+pub use super::parser::timezone::TimezonePrism;
+
 /// This prism succeeds on call expressions whose head is `"datetime"`
 /// and which has three arguments, all of them integers in the
 /// appropriate range for the [`DateValues`] struct.
