@@ -1,9 +1,12 @@
 
-use regex::{Regex, RegexSet, Match};
+use regex::{Regex, RegexSet, Match, Captures};
 use once_cell::sync::Lazy;
 
 static TIMEZONE_RE: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"(?i)\butc\s*(?:([+-]\d{1,2})(?::(\d{2})(?::(\d{2}))?)?)").unwrap());
+
+static TIMEZONE_WHOLE_STRING_RE: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"(?i)^\butc\s*(?:([+-]\d{1,2})(?::(\d{2})(?::(\d{2}))?)?)$").unwrap());
 
 static TIMEZONE_NAME_RE: Lazy<RegexSet> = Lazy::new(|| {
   RegexSet::new(TIMEZONE_ABBREVIATIONS.keys().map(|abbr| format!("(?i)\\b{abbr}\\b"))).unwrap()
@@ -222,6 +225,27 @@ pub struct TimezoneMatch<'s> {
   end: usize,
 }
 
+impl Timezone {
+  /// Parses a whole string as a timezone.
+  ///
+  /// Note that [`Timezone`] does *not* implement
+  /// [`std::str::FromStr`]. In the future, this method may be
+  /// modified to add a context argument (so the list of named
+  /// timezones comes from a data file rather than being hardcoded
+  /// into the source code), and I do not want to be tied to the API
+  /// of `FromStr` in that event.
+  pub fn parse(text: &str) -> Option<Self> {
+    let text = text.trim();
+    if let Some(cap) = TIMEZONE_WHOLE_STRING_RE.captures(text) {
+      Some(process_captures(&cap))
+    } else if let Some(tz) = TIMEZONE_ABBREVIATIONS.get(text.to_uppercase().as_str()) {
+      Some(*tz)
+    } else {
+      None
+    }
+  }
+}
+
 impl<'s> TimezoneMatch<'s> {
   pub fn start(&self) -> usize {
     self.start
@@ -245,15 +269,8 @@ impl<'s> From<Match<'s>> for TimezoneMatch<'s> {
 /// Attempts to interpret a substring of `text` as a timezone string.
 pub fn search_for_timezone(text: &str) -> Option<(Timezone, TimezoneMatch)> {
   if let Some(cap) = TIMEZONE_RE.captures(text) {
-    let hour: i32 = cap[1].parse().unwrap();
-    let minute: i32 = cap.get(2).map(|m| m.as_str()).unwrap_or("0").parse().unwrap();
-    let second: i32 = cap.get(3).map(|m| m.as_str()).unwrap_or("0").parse().unwrap();
-
-    let minute = match_sign(minute, hour);
-    let second = match_sign(second, hour);
-
-    let total_seconds = hour * 3600 + minute * 60 + second;
-    Some((Timezone(total_seconds), cap.get(0).unwrap().into()))
+    let tz = process_captures(&cap);
+    Some((tz, cap.get(0).unwrap().into()))
   } else if let Some(match_idx) = TIMEZONE_NAME_RE.matches(text).into_iter().next() {
     let (tz_name, tz) = TIMEZONE_ABBREVIATIONS.index(match_idx).expect("Match index in RegexSet");
     let match_start = text.to_uppercase().find(tz_name).expect("Already matched in RegexSet");
@@ -263,6 +280,23 @@ pub fn search_for_timezone(text: &str) -> Option<(Timezone, TimezoneMatch)> {
   } else {
     None
   }
+}
+
+/// Processes the captures from either [`TIMEZONE_RE`] or
+/// [`TIMEZONE_WHOLE_STRING_RE`] into a [`Timezone`] object.
+///
+/// Precondition: `cap` is the result of matching against one of the
+/// aforementioned regexes.
+fn process_captures(cap: &Captures) -> Timezone {
+  let hour: i32 = cap[1].parse().unwrap();
+  let minute: i32 = cap.get(2).map(|m| m.as_str()).unwrap_or("0").parse().unwrap();
+  let second: i32 = cap.get(3).map(|m| m.as_str()).unwrap_or("0").parse().unwrap();
+
+  let minute = match_sign(minute, hour);
+  let second = match_sign(second, hour);
+
+  let total_seconds = hour * 3600 + minute * 60 + second;
+  Timezone(total_seconds)
 }
 
 fn match_sign(n: i32, exemplar: i32) -> i32 {
@@ -324,6 +358,30 @@ mod tests {
     let (tz, m) = search_for_timezone("xx UTC+W").unwrap();
     assert_eq!(tz.0, 0);
     assert_eq!(m.as_str(), "UTC");
+  }
 
+  #[test]
+  fn test_parse_timezone() {
+    assert_eq!(Timezone::parse("UTC+3"), Some(Timezone(10_800)));
+    assert_eq!(Timezone::parse("UTC +3"), Some(Timezone(10_800)));
+    assert_eq!(Timezone::parse("   UTC +3"), Some(Timezone(10_800)));
+    assert_eq!(Timezone::parse("   UTC-3 "), Some(Timezone(-10_800)));
+    assert_eq!(Timezone::parse("   UTC- 3"), None);
+    assert_eq!(Timezone::parse("   UTC+3 x"), None);
+    assert_eq!(Timezone::parse("UTC+2:30"), Some(Timezone(9_000)));
+    assert_eq!(Timezone::parse("UTC+2:30:01"), Some(Timezone(9_001)));
+    assert_eq!(Timezone::parse("\t\tUTC-2:30:01"), Some(Timezone(-9_001)));
+    assert_eq!(Timezone::parse("\t\tutc-2:30:01"), Some(Timezone(-9_001)));
+    assert_eq!(Timezone::parse("bst"), Some(Timezone(3_600)));
+    assert_eq!(Timezone::parse("bsT"), Some(Timezone(3_600)));
+    assert_eq!(Timezone::parse("BST"), Some(Timezone(3_600)));
+    assert_eq!(Timezone::parse("WAKT"), Some(Timezone(43_200)));
+    assert_eq!(Timezone::parse("e"), None);
+    assert_eq!(Timezone::parse(""), None);
+    assert_eq!(Timezone::parse("ececdtt"), None);
+    assert_eq!(Timezone::parse("ESTT"), None);
+    assert_eq!(Timezone::parse("3"), None);
+    assert_eq!(Timezone::parse("-1"), None);
+    assert_eq!(Timezone::parse("-"), None);
   }
 }
