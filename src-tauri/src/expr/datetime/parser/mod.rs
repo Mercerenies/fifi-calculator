@@ -2,7 +2,7 @@
 mod error;
 mod month;
 mod time;
-mod timezone;
+pub mod timezone;
 mod year;
 
 pub use error::DatetimeParseError;
@@ -813,6 +813,30 @@ mod tests {
       year: 2020,
       month: 10,
       day: 11,
+    });
+
+    let values = parser.parse_datetime_str_values("5:04pm edt  2020-10-11").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2020,
+      month: 10,
+      day: 11,
+      hour: 17,
+      minute: 4,
+      second: 0,
+      micro: 0,
+      offset: -14_400,
+    });
+
+    let values = parser.parse_datetime_str_values("5:04pm EDT  2020-10-11").unwrap().unwrap_left();
+    assert_eq!(values, DatetimeValues {
+      year: 2020,
+      month: 10,
+      day: 11,
+      hour: 17,
+      minute: 4,
+      second: 0,
+      micro: 0,
+      offset: -14_400,
     });
   }
 }
