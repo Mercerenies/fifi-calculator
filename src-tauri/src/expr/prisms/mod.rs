@@ -4,6 +4,7 @@ mod matcher;
 pub use matcher::{MatcherSpec, MatchedExpr};
 
 use super::Expr;
+use super::call::CallExpr;
 use super::var::Var;
 use super::atom::Atom;
 use super::number::{Number, ComplexNumber, Quaternion, ComplexLike, QuaternionLike};
@@ -134,6 +135,11 @@ pub fn expr_to_incomplete_object() -> impl Prism<Expr, IncompleteObject> + Clone
 
 /// Prism which only accepts variables.
 pub fn expr_to_var() -> impl Prism<Expr, Var> + Clone {
+  Conversion::new()
+}
+
+/// Prism which only call expressions.
+pub fn expr_to_functor_call() -> impl Prism<Expr, CallExpr> + Clone {
   Conversion::new()
 }
 
