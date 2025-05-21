@@ -6,8 +6,8 @@ use super::{Expr, TryFromExprError};
 /// built-in function library.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CallExpr {
-  name: String,
-  args: Vec<Expr>,
+  pub name: String,
+  pub args: Vec<Expr>,
 }
 
 impl From<CallExpr> for Expr {

@@ -13,6 +13,7 @@ mod complex;
 mod datatypes;
 mod datetime;
 mod formula;
+mod functor;
 mod graphics;
 mod statistics;
 mod string;
@@ -29,6 +30,7 @@ pub fn build_function_table() -> FunctionTable {
   datatypes::append_datatype_functions(&mut table);
   datetime::append_datetime_functions(&mut table);
   formula::append_formula_functions(&mut table);
+  functor::append_functor_functions(&mut table);
   graphics::append_graphics_functions(&mut table);
   statistics::append_statistics_functions(&mut table);
   string::append_string_functions(&mut table);

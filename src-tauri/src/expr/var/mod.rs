@@ -3,7 +3,7 @@ pub mod constants;
 pub mod dollar_sign;
 pub mod table;
 
-use crate::util::prism::Prism;
+use crate::util::prism::{Prism, ErrorWithPayload};
 
 use regex::Regex;
 use once_cell::sync::Lazy;
@@ -97,6 +97,12 @@ impl Display for TryFromStringError {
 }
 
 impl StdError for TryFromStringError {}
+
+impl ErrorWithPayload<String> for TryFromStringError {
+  fn recover_payload(self) -> String {
+    self.original_string
+  }
+}
 
 #[cfg(test)]
 mod test {
