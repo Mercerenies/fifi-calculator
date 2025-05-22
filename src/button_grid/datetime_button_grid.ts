@@ -29,6 +29,7 @@ export class DatetimeButtonGrid extends ButtonGrid {
         new ConvertTimezoneButton(),
       ],
       [
+        new DispatchButton("M", "newmonth", "M"),
       ],
       [
       ],

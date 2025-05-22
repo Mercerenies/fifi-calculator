@@ -14,8 +14,8 @@ use crate::expr::number::prisms::number_to_i64;
 use crate::expr::number::inexact::DivInexact;
 use crate::util::prism::Prism;
 
-use num::{BigInt, ToPrimitive, Zero};
-use time::UtcOffset;
+use num::{BigInt, ToPrimitive, Zero, clamp};
+use time::{UtcOffset, Date};
 
 pub const MICROSECONDS_PER_DAY: i64 = 86_400_000_000;
 pub const MICROSECONDS_PER_SECOND: i64 = 1_000_000;
@@ -25,6 +25,7 @@ pub fn append_datetime_functions(table: &mut FunctionTable) {
   table.insert(datetime_rel());
   table.insert(datetime_rel_seconds());
   table.insert(tzconvert());
+  table.insert(new_month());
 }
 
 // TODO Technically this is differentiable in its first argument (but
@@ -121,6 +122,37 @@ pub fn tzconvert() -> Function {
         let new_datetime = arg.to_offset_date_time().to_offset(offset);
         let new_datetime = DateTime::from(new_datetime);
         Ok(Expr::from(new_datetime))
+      })
+    )
+    .build()
+}
+
+pub fn new_month() -> Function {
+  fn day_of_month(datetime: DateTime, mut day_index: i32) -> DateTime {
+    let datetime = datetime.without_time();
+    let days_in_month = datetime.month().length(datetime.year()) as i32;
+
+    if day_index <= 0 {
+      // Use the last day of the month
+      day_index += days_in_month + 1;
+    }
+    let day_index = clamp(day_index, 1, days_in_month) as u8; // safety: clamp is between 1 and a u8.
+    let result_date = Date::from_calendar_date(datetime.year(), datetime.month(), day_index)
+      .expect("day_index is between 1 and days_in_month");
+    result_date.into()
+  }
+
+  FunctionBuilder::new("newmonth")
+    .add_case(
+      // Single datetime argument returns first day of month.
+      builder::arity_one().of_type(expr_to_datetime()).and_then(|arg, _| {
+        Ok(Expr::from(day_of_month(arg, 1)))
+      })
+    )
+    .add_case(
+      // datetime + i32 = nth day of month.
+      builder::arity_two().of_types(expr_to_datetime(), expr_to_i32()).and_then(|arg, idx, _| {
+        Ok(Expr::from(day_of_month(arg, idx)))
       })
     )
     .build()

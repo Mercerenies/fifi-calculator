@@ -37,6 +37,17 @@ pub struct NowCommand;
 #[derive(Debug, Default, Clone)]
 pub struct ConvertTimezoneCommand;
 
+/// Command which pops a single element off the stack and invokes its
+/// function with that element as the sole argument. With an explicit
+/// numeric argument, that argument is passed as a second argument to
+/// the invoked function.
+///
+/// Respects the "keep" modifier.
+#[derive(Debug, Clone)]
+pub struct DatetimeConstructorCommand {
+  function_name: String,
+}
+
 /// The `"days_since_zero"` command is defined such that Jan 1, 0001,
 /// returns 1. This is the date we subtract to get that result.
 pub const ZERO_DATE: DateTime =
@@ -79,6 +90,14 @@ impl ConvertTimezoneCommand {
       "valid timezone expression".to_owned(),
       TimezonePrism,
     )
+  }
+}
+
+impl DatetimeConstructorCommand {
+  pub fn new(function_name: impl Into<String>) -> Self {
+    Self {
+      function_name: function_name.into(),
+    }
   }
 }
 
@@ -126,6 +145,36 @@ impl Command for ConvertTimezoneCommand {
     let top = stack.pop()?;
     let whole_seconds = Number::from(target_timezone.0);
     let result = Expr::call("tzconvert", vec![top, whole_seconds.into()]);
+    let result = ctx.simplify_expr(result, calculation_mode, &mut errors);
+    stack.push(result);
+    Ok(CommandOutput::from_errors(errors))
+  }
+
+  fn as_subcommand(&self, _opts: &CommandOptions) -> Option<Subcommand> {
+    None
+  }
+}
+
+impl Command for DatetimeConstructorCommand {
+  fn run_command(
+    &self,
+    state: &mut ApplicationState,
+    args: Vec<String>,
+    ctx: &CommandContext,
+  ) -> anyhow::Result<CommandOutput> {
+    validate_schema(&NullaryArgumentSchema::new(), args)?;
+
+    let calculation_mode = state.calculation_mode().clone();
+    let mut errors = ErrorList::new();
+
+    state.undo_stack_mut().push_cut();
+    let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
+    let top = stack.pop()?;
+    let result = if let Some(arg) = ctx.opts.argument {
+      Expr::call(self.function_name.clone(), vec![top, arg.into()])
+    } else {
+      Expr::call(self.function_name.clone(), vec![top])
+    };
     let result = ctx.simplify_expr(result, calculation_mode, &mut errors);
     stack.push(result);
     Ok(CommandOutput::from_errors(errors))

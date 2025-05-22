@@ -194,6 +194,7 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("unix_time".to_string(), Box::new(datetime::secs_since_command(datetime::UNIX_EPOCH)));
   map.insert("now".to_string(), Box::new(datetime::NowCommand));
   map.insert("tzconvert".to_string(), Box::new(datetime::ConvertTimezoneCommand));
+  map.insert("newmonth".to_string(), Box::new(datetime::DatetimeConstructorCommand::new("newmonth")));
 
   // Vector commands
   map.insert("subvector".to_string(), Box::new(dispatch_on_hyper_command(
