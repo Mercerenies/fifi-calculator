@@ -81,19 +81,15 @@ pub fn secs_since_command(target_date: DateTime) -> UnaryFunctionCommand {
   })
 }
 
-/// [`DatetimeIndexCommand`] which invokes `incmonth`.
-pub fn incmonth_command() -> DatetimeIndexCommand {
-  DatetimeIndexCommand::new(|datetime, delta| {
-    let delta = delta.unwrap_or(1);
-    Expr::call("incmonth", vec![datetime, delta.into()])
-  })
-}
-
-/// [`DatetimeIndexCommand`] which invokes `incmonth` with its
-/// optional numerical argument multiplied by 12.
-pub fn incyear_command() -> DatetimeIndexCommand {
-  DatetimeIndexCommand::new(|datetime, delta| {
-    let delta = delta.unwrap_or(1).saturating_mul(12);
+/// [`DatetimeIndexCommand`] which invokes `incmonth`. `incmonth` is
+/// called with two arguments: the first is the top element of the
+/// stack, and the second is the numerical argument times
+/// `multiplicand`. If no numerical argument is supplied, the
+/// numerical argument is treated as `1` (before multiplying by
+/// `multiplicand`).
+pub fn incmonth_command(multiplicand: i64) -> DatetimeIndexCommand {
+  DatetimeIndexCommand::new(move |datetime, delta| {
+    let delta = delta.unwrap_or(1).saturating_mul(multiplicand);
     Expr::call("incmonth", vec![datetime, delta.into()])
   })
 }

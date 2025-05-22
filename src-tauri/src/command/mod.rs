@@ -197,10 +197,12 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("newmonth".to_string(), Box::new(datetime::DatetimeIndexCommand::named("newmonth")));
   map.insert("newyear".to_string(), Box::new(datetime::DatetimeIndexCommand::named("newyear")));
   map.insert("newweek".to_string(), Box::new(datetime::DatetimeIndexCommand::named("newweek")));
-  map.insert("incmonth".to_string(), Box::new(dispatch_on_hyper_command(
-    datetime::incmonth_command(),
-    datetime::incyear_command(),
-  )));
+  map.insert("incmonth".to_string(), Box::new(dispatch_on_flags_command(FlagDispatchArgs {
+    no_flags: datetime::incmonth_command(1),
+    hyper_flag: datetime::incmonth_command(12),
+    inv_flag: datetime::incmonth_command(-1),
+    inv_hyper_flag: datetime::incmonth_command(-12),
+  })));
 
   // Vector commands
   map.insert("subvector".to_string(), Box::new(dispatch_on_hyper_command(
