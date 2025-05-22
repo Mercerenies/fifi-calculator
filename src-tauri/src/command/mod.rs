@@ -271,6 +271,13 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("@".to_string(), Box::new(BinaryFunctionCommand::named("@")));
   map.insert("kron".to_string(), Box::new(BinaryFunctionCommand::named("kron")));
 
+  // Functor commands
+  map.insert("fhead".to_string(), Box::new(UnaryFunctionCommand::named("fhead")));
+  map.insert("fargs".to_string(), Box::new(dispatch_on_hyper_command(
+    vector::IndexedVectorCommand::for_function("farg"),
+    UnaryFunctionCommand::named("fargs"),
+  )));
+
   // Commands which accept a single string.
   map.insert("push_number".to_string(), Box::new(input::push_number_command()));
   map.insert("push_expr".to_string(), Box::new(input::push_expr_command()));

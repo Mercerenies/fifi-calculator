@@ -61,17 +61,29 @@ pub fn functor_nth_arg() -> Function {
       // Argument of functor (as a vector)
       builder::arity_two().of_types(prisms::expr_to_functor_call(), prisms::expr_to_i64())
         .and_then(|mut call, idx, ctx| {
-          let Ok(idx) = usize::try_from(idx) else {
+          let Ok(idx) = get_actual_index(call.args.len(), idx) else {
             ctx.errors.push(SimplifierError::new("farg", FunctorIndexOutOfBounds));
             return Err((call, idx));
           };
-          if !(0..call.args.len()).contains(&idx) {
-            ctx.errors.push(SimplifierError::new("farg", FunctorIndexOutOfBounds));
-            return Err((call, idx as i64)); // `as i64` is safe because we just came from `i64`.
-          }
           let arg = call.args.swap_remove(idx);
           Ok(arg)
         })
     )
     .build()
+}
+
+/// Adjusts index to refer to an actual unsigned position in the
+/// functor. If the index is negative, the length is added to it. If
+/// the index is out of bounds of the functor (on either side) then an
+/// error is returned.
+fn get_actual_index(len: usize, mut signed_idx: i64) -> Result<usize, FunctorIndexOutOfBounds> {
+  if signed_idx < 0 {
+    signed_idx += len as i64;
+  }
+  let unsigned_idx = usize::try_from(signed_idx).map_err(|_| FunctorIndexOutOfBounds)?;
+  if unsigned_idx < len {
+    Ok(unsigned_idx)
+  } else {
+    Err(FunctorIndexOutOfBounds)
+  }
 }
