@@ -57,7 +57,7 @@ export class UiManager {
   }
 
   static async create(): Promise<UiManager> {
-    const osType = TAURI.osType();
+    const osType = await TAURI.osType();
     return new UiManager(osType);
   }
 
