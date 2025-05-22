@@ -8,6 +8,7 @@ pub mod datetime;
 pub mod dispatch;
 pub mod flag_dispatch;
 pub mod functional;
+pub mod functor;
 pub mod general;
 pub mod graphics;
 pub mod input;
@@ -276,6 +277,10 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("fargs".to_string(), Box::new(dispatch_on_hyper_command(
     vector::IndexedVectorCommand::for_function("farg"),
     UnaryFunctionCommand::named("fargs"),
+  )));
+  map.insert("fcompile".to_string(), Box::new(dispatch_on_inverse_command(
+    BinaryFunctionCommand::named("fcompile"),
+    functor::FunctorUncompileCommand,
   )));
 
   // Commands which accept a single string.

@@ -26,6 +26,7 @@ export class FormulaButtonGrid extends ButtonGrid {
       [
         new DispatchButton("<", "<", ","),
         new DispatchButton("≤", "<=", "<"),
+        new DispatchButton("f()", "fcompile", null),
       ],
       [
         new DispatchButton(">", ">", "."),

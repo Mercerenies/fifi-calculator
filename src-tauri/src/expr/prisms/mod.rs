@@ -113,6 +113,13 @@ pub struct ParsedI64 {
   input: String,
 }
 
+/// A "loose variable" is either a proper [`Var`] or a string.
+#[derive(Debug, Clone)]
+pub enum LooseVar {
+  Var(Var),
+  String(String),
+}
+
 /// Prism which accepts only a specific variable as the expression.
 pub fn must_be_var(var: Var) -> Only<Expr> {
   let expr = Expr::Atom(Atom::Var(var));
@@ -230,6 +237,24 @@ pub fn expr_to_quaternion_or_inf() -> impl Prism<Expr, Either<QuaternionLike, In
   ExprToQuaternion.or(ExprToInfinity)
 }
 
+/// Prism which accepts either a variable or a string.
+pub fn expr_to_loose_var() -> impl Prism<Expr, LooseVar> + Clone {
+  fn down(parsed: Either<Var, String>) -> LooseVar {
+    match parsed {
+      Either::Left(var) => LooseVar::Var(var),
+      Either::Right(string) => LooseVar::String(string),
+    }
+  }
+  fn up(loose_var: LooseVar) -> Either<Var, String> {
+    match loose_var {
+      LooseVar::Var(var) => Either::Left(var),
+      LooseVar::String(string) => Either::Right(string),
+    }
+  }
+  expr_to_var().or(expr_to_string())
+    .rmap(down, up)
+}
+
 /// Prism which parses an [`Expr`] as a vector (in the expression
 /// language) whose constituents each pass the specified prism
 /// `inner`.
@@ -285,6 +310,22 @@ impl PositiveNumber {
 
   pub fn is_one(&self) -> bool {
     self.data.is_one()
+  }
+}
+
+impl LooseVar {
+  pub fn name(&self) -> &str {
+    match self {
+      LooseVar::Var(var) => var.as_str(),
+      LooseVar::String(s) => s,
+    }
+  }
+
+  pub fn into_name(self) -> String {
+    match self {
+      LooseVar::Var(var) => var.into(),
+      LooseVar::String(s) => s,
+    }
   }
 }
 

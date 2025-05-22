@@ -22,6 +22,7 @@ pub fn append_functor_functions(table: &mut FunctionTable) {
   table.insert(functor_head());
   table.insert(functor_args());
   table.insert(functor_nth_arg());
+  table.insert(functor_compile());
 }
 
 pub fn functor_head() -> Function {
@@ -67,6 +68,18 @@ pub fn functor_nth_arg() -> Function {
           };
           let arg = call.args.swap_remove(idx);
           Ok(arg)
+        })
+    )
+    .build()
+}
+
+pub fn functor_compile() -> Function {
+  FunctionBuilder::new("fcompile")
+    .add_case(
+      // Head and vector of args
+      builder::arity_two().of_types(prisms::expr_to_loose_var(), prisms::ExprToVector)
+        .and_then(|head, args, _| {
+          Ok(Expr::Call(head.into_name(), args.into()))
         })
     )
     .build()
