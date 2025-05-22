@@ -64,7 +64,7 @@ impl<'a, T: MatrixElement> ReducibleMatrix<'a, T> {
   }
 }
 
-impl<'a, T: MatrixFieldElement> ReducibleMatrix<'a, T> {
+impl<T: MatrixFieldElement> ReducibleMatrix<'_, T> {
   /// Reduces the matrix to row echelon form. That is, this function
   /// applies elementary row operations to the matrix such that the
   /// resulting matrix
@@ -74,7 +74,7 @@ impl<'a, T: MatrixFieldElement> ReducibleMatrix<'a, T> {
   /// * has all of its zero rows at the bottom, and
   ///
   /// * the pivot of each row is strictly to the right of the pivot of
-  /// the row above it.
+  ///   the row above it.
   pub fn reduce_to_row_form(&mut self) {
     fn find_pivot<T: MatrixFieldElement>(matrix: &Matrix<T>, column_index: usize) -> Option<usize> {
       (column_index..matrix.height()).find(|i| !matrix[MatrixIndex { y: column_index, x: *i }].is_zero())

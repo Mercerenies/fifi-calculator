@@ -19,7 +19,7 @@ pub struct ColumnMut<'a, T> {
   pub(super) column_index: usize,
 }
 
-impl<'a, T> Column<'a, T> {
+impl<T> Column<'_, T> {
   pub fn get(&self, index: usize) -> Option<&T> {
     self.matrix.get(MatrixIndex { y: index, x: self.column_index })
   }
@@ -42,7 +42,7 @@ impl<'a, T> Column<'a, T> {
   }
 }
 
-impl<'a, T> ColumnMut<'a, T> {
+impl<T> ColumnMut<'_, T> {
   pub fn get(&self, index: usize) -> Option<&T> {
     self.matrix.get(MatrixIndex { y: index, x: self.column_index })
   }
@@ -73,7 +73,7 @@ impl<'a, T> ColumnMut<'a, T> {
   }
 }
 
-impl<'a, T> Index<usize> for Column<'a, T> {
+impl<T> Index<usize> for Column<'_, T> {
   type Output = T;
 
   fn index(&self, index: usize) -> &Self::Output {
@@ -81,7 +81,7 @@ impl<'a, T> Index<usize> for Column<'a, T> {
   }
 }
 
-impl<'a, T> Index<usize> for ColumnMut<'a, T> {
+impl<T> Index<usize> for ColumnMut<'_, T> {
   type Output = T;
 
   fn index(&self, index: usize) -> &Self::Output {
@@ -89,7 +89,7 @@ impl<'a, T> Index<usize> for ColumnMut<'a, T> {
   }
 }
 
-impl<'a, T> IndexMut<usize> for ColumnMut<'a, T> {
+impl<T> IndexMut<usize> for ColumnMut<'_, T> {
   fn index_mut(&mut self, index: usize) -> &mut Self::Output {
     &mut self.matrix[MatrixIndex { y: index, x: self.column_index }]
   }

@@ -19,7 +19,7 @@ impl<'a> UndoingDelegate<'a> {
   }
 }
 
-impl<'a> StackDelegate<Expr> for UndoingDelegate<'a> {
+impl StackDelegate<Expr> for UndoingDelegate<'_> {
   fn on_push(&mut self, index: usize, new_value: &Expr) {
     self.undo_stack.push_change(PushExprChange::new(index, new_value.clone()));
   }

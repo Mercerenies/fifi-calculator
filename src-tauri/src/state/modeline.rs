@@ -98,7 +98,7 @@ where B: 'a + ToOwned + ModelineValue + ?Sized {
   }
 }
 
-impl<'a, V: ModelineValue + ?Sized> ModelineValue for &'a V {
+impl<V: ModelineValue + ?Sized> ModelineValue for &V {
   fn contribute(&self, buf: &mut String) {
     (**self).contribute(buf);
   }
@@ -117,7 +117,7 @@ impl ModelineValue for Radix {
   }
 }
 
-impl<'a> ModelineValue for LanguageModeValue<'a> {
+impl ModelineValue for LanguageModeValue<'_> {
   fn contribute(&self, buf: &mut String) {
     let name = self.language_mode.language_mode_name();
     let name = pad_or_trunc_str(&name, self.desired_length);
