@@ -15,8 +15,8 @@ use crate::expr::number::inexact::DivInexact;
 use crate::util::prism::Prism;
 
 use num::{BigInt, ToPrimitive, Zero, clamp};
-use time::{UtcOffset, Date, Duration};
-use time::util::days_in_year;
+use time::{UtcOffset, Date, Duration, Month};
+use time::util::{days_in_year, days_in_month};
 
 pub const MICROSECONDS_PER_DAY: i64 = 86_400_000_000;
 pub const MICROSECONDS_PER_SECOND: i64 = 1_000_000;
@@ -29,6 +29,7 @@ pub fn append_datetime_functions(table: &mut FunctionTable) {
   table.insert(new_month());
   table.insert(new_year());
   table.insert(new_week());
+  table.insert(inc_month());
 }
 
 // TODO Technically this is differentiable in its first argument (but
@@ -249,6 +250,37 @@ pub fn new_week() -> Function {
     .build()
 }
 
+pub fn inc_month() -> Function {
+  const DATETIME_OUT_OF_BOUNDS: &'static str = "Datetime out of bounds";
+
+  FunctionBuilder::new("incmonth")
+    .add_case(
+      // Datetime plus integer number of months
+      builder::arity_two().of_types(expr_to_datetime(), expr_to_i32()).and_then(|datetime, delta_months, ctx| {
+        let arg_date = datetime.without_time();
+
+        let year = arg_date.year();
+        let month = i32::from(u8::from(arg_date.month()));
+        let Some(month) = month.checked_add(delta_months) else {
+          ctx.errors.push(SimplifierError::custom_error("incmonth", DATETIME_OUT_OF_BOUNDS));
+          return Err((datetime, delta_months));
+        };
+
+        let (year, month) = simplify_year_month(year, month + delta_months);
+        let month = Month::try_from(month as u8).expect("month is between 1 and 12");
+
+        let day = clamp(arg_date.day(), 1, days_in_month(month, year));
+        let Ok(result_date) = Date::from_calendar_date(year, month, day) else {
+          ctx.errors.push(SimplifierError::custom_error("incmonth", DATETIME_OUT_OF_BOUNDS));
+          return Err((datetime, delta_months));
+        };
+        let result_datetime = datetime.replace_date(result_date);
+        Ok(Expr::from(result_datetime))
+      })
+    )
+    .build()
+}
+
 pub(super) fn number_to_duration(n: Number) -> Option<PrecisionDuration> {
   match number_to_i64().narrow_type(n) {
     Err(n) => {
@@ -261,5 +293,44 @@ pub(super) fn number_to_duration(n: Number) -> Option<PrecisionDuration> {
       // Imprecise (day-level) duration
       Some(PrecisionDuration::days(i))
     }
+  }
+}
+
+/// If `month` is outside the range `1..=12`, adjusts the year by an
+/// appropriate number of years to make the month fit within that
+/// range.
+fn simplify_year_month(year: i32, month: i32) -> (i32, i32) {
+  if month < 1 {
+    (year - ((-month + 12) / 12), (month % 12 + 11) % 12 + 1)
+  } else if month > 12 {
+    (year + (month - 1) / 12, (month - 1) % 12 + 1)
+  } else {
+    (year, month)
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_simplify_year_month() {
+    assert_eq!(simplify_year_month(2000, 1), (2000, 1));
+    assert_eq!(simplify_year_month(2000, 4), (2000, 4));
+    assert_eq!(simplify_year_month(2000, 12), (2000, 12));
+
+    assert_eq!(simplify_year_month(2000, 0), (1999, 12));
+    assert_eq!(simplify_year_month(2000, -1), (1999, 11));
+    assert_eq!(simplify_year_month(2000, -10), (1999, 2));
+    assert_eq!(simplify_year_month(2000, -11), (1999, 1));
+    assert_eq!(simplify_year_month(2000, -12), (1998, 12));
+
+    assert_eq!(simplify_year_month(2000, 13), (2001, 1));
+    assert_eq!(simplify_year_month(2000, 20), (2001, 8));
+    assert_eq!(simplify_year_month(2000, 23), (2001, 11));
+    assert_eq!(simplify_year_month(2000, 24), (2001, 12));
+    assert_eq!(simplify_year_month(2000, 25), (2002, 1));
+    assert_eq!(simplify_year_month(2000, 27), (2002, 3));
+    assert_eq!(simplify_year_month(2000, 87), (2007, 3));
   }
 }

@@ -96,6 +96,14 @@ impl DateTime {
     matches!(&self.inner, DateTimeRepr::Datetime(_))
   }
 
+  pub const fn replace_date(self, date: Date) -> Self {
+    let inner = match self.inner {
+      DateTimeRepr::Date(_) => DateTimeRepr::Date(date),
+      DateTimeRepr::Datetime(d) => DateTimeRepr::Datetime(d.replace_date(date)),
+    };
+    Self { inner }
+  }
+
   /// Equivalent to `From::from` but `const`.
   pub const fn from_date(date: Date) -> Self {
     Self {
