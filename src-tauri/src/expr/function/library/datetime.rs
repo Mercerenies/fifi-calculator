@@ -266,7 +266,7 @@ pub fn inc_month() -> Function {
           return Err((datetime, delta_months));
         };
 
-        let (year, month) = simplify_year_month(year, month + delta_months);
+        let (year, month) = simplify_year_month(year, month);
         let month = Month::try_from(month as u8).expect("month is between 1 and 12");
 
         let day = clamp(arg_date.day(), 1, days_in_month(month, year));

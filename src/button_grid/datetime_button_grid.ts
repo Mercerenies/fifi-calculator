@@ -34,6 +34,7 @@ export class DatetimeButtonGrid extends ButtonGrid {
         new DispatchButton("W", "newweek", "W"),
       ],
       [
+        new DispatchButton("Δ<sub>M</sub>", "incmonth", "I"),
       ],
       [
       ],

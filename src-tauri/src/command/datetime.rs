@@ -43,10 +43,11 @@ pub struct ConvertTimezoneCommand;
 /// the invoked function.
 ///
 /// Respects the "keep" modifier.
-#[derive(Debug, Clone)]
-pub struct DatetimeConstructorCommand {
-  function_name: String,
+pub struct DatetimeIndexCommand {
+  function: Box<DatetimeIndexFunction>,
 }
+
+pub type DatetimeIndexFunction = dyn Fn(Expr, Option<i64>) -> Expr + Send + Sync;
 
 /// The `"days_since_zero"` command is defined such that Jan 1, 0001,
 /// returns 1. This is the date we subtract to get that result.
@@ -80,6 +81,23 @@ pub fn secs_since_command(target_date: DateTime) -> UnaryFunctionCommand {
   })
 }
 
+/// [`DatetimeIndexCommand`] which invokes `incmonth`.
+pub fn incmonth_command() -> DatetimeIndexCommand {
+  DatetimeIndexCommand::new(|datetime, delta| {
+    let delta = delta.unwrap_or(1);
+    Expr::call("incmonth", vec![datetime, delta.into()])
+  })
+}
+
+/// [`DatetimeIndexCommand`] which invokes `incmonth` with its
+/// optional numerical argument multiplied by 12.
+pub fn incyear_command() -> DatetimeIndexCommand {
+  DatetimeIndexCommand::new(|datetime, delta| {
+    let delta = delta.unwrap_or(1).saturating_mul(12);
+    Expr::call("incmonth", vec![datetime, delta.into()])
+  })
+}
+
 impl ConvertTimezoneCommand {
   pub fn new() -> Self {
     Self
@@ -93,11 +111,34 @@ impl ConvertTimezoneCommand {
   }
 }
 
-impl DatetimeConstructorCommand {
-  pub fn new(function_name: impl Into<String>) -> Self {
+impl DatetimeIndexCommand {
+  /// Delegates the top stack element and the optional numeric
+  /// argument to the given pure Rust function.
+  pub fn new(function: impl Fn(Expr, Option<i64>) -> Expr + Send + Sync + 'static) -> Self {
     Self {
-      function_name: function_name.into(),
+      function: Box::new(function),
     }
+  }
+
+  /// Delegates the top stack element and the optional numeric
+  /// argument to the given calculator function. The function should
+  /// be callable with one or two arguments. It will be invoked with a
+  /// single argument if the user did not supply an explicit numeric
+  /// argument, or two if they did.
+  pub fn named(function_name: impl Into<String>) -> Self {
+    let function_name = function_name.into();
+    Self::new(move |top, arg| {
+      let args = if let Some(arg) = arg {
+        vec![top, arg.into()]
+      } else {
+        vec![top]
+      };
+      Expr::call(function_name.clone(), args)
+    })
+  }
+
+  fn wrap_expr(&self, top: Expr, arg: Option<i64>) -> Expr {
+    (self.function)(top, arg)
   }
 }
 
@@ -155,7 +196,7 @@ impl Command for ConvertTimezoneCommand {
   }
 }
 
-impl Command for DatetimeConstructorCommand {
+impl Command for DatetimeIndexCommand {
   fn run_command(
     &self,
     state: &mut ApplicationState,
@@ -170,11 +211,7 @@ impl Command for DatetimeConstructorCommand {
     state.undo_stack_mut().push_cut();
     let mut stack = KeepableStack::new(state.main_stack_mut(), ctx.opts.keep_modifier);
     let top = stack.pop()?;
-    let result = if let Some(arg) = ctx.opts.argument {
-      Expr::call(self.function_name.clone(), vec![top, arg.into()])
-    } else {
-      Expr::call(self.function_name.clone(), vec![top])
-    };
+    let result = self.wrap_expr(top, ctx.opts.argument);
     let result = ctx.simplify_expr(result, calculation_mode, &mut errors);
     stack.push(result);
     Ok(CommandOutput::from_errors(errors))
