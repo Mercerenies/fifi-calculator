@@ -15,7 +15,7 @@ use crate::expr::number::inexact::DivInexact;
 use crate::util::prism::Prism;
 
 use num::{BigInt, ToPrimitive, Zero, clamp};
-use time::{UtcOffset, Date};
+use time::{UtcOffset, Date, Duration};
 use time::util::days_in_year;
 
 pub const MICROSECONDS_PER_DAY: i64 = 86_400_000_000;
@@ -28,6 +28,7 @@ pub fn append_datetime_functions(table: &mut FunctionTable) {
   table.insert(tzconvert());
   table.insert(new_month());
   table.insert(new_year());
+  table.insert(new_week());
 }
 
 // TODO Technically this is differentiable in its first argument (but
@@ -211,6 +212,38 @@ pub fn new_year() -> Function {
           return Err((arg, idx));
         }
         Ok(Expr::from(day_of_year(arg, idx)))
+      })
+    )
+    .build()
+}
+
+pub fn new_week() -> Function {
+  const DAYS_IN_WEEK: i32 = 7;
+
+  fn day_of_week(datetime: DateTime, mut day_index: i32) -> DateTime {
+    let datetime = datetime.without_time();
+
+    if day_index <= 0 {
+      // Count from the last day of the month
+      day_index += DAYS_IN_WEEK + 1;
+    }
+    let day_index = clamp(day_index, 1, DAYS_IN_WEEK) as u8; // safety: clamp is between 1 and 7.
+    let beginning_of_week = datetime - Duration::days((datetime.weekday().number_days_from_sunday()).into());
+    let result_date = beginning_of_week + Duration::days((day_index - 1).into());
+    result_date.into()
+  }
+
+  FunctionBuilder::new("newweek")
+    .add_case(
+      // Single datetime argument returns first day of week.
+      builder::arity_one().of_type(expr_to_datetime()).and_then(|arg, _| {
+        Ok(Expr::from(day_of_week(arg, 1)))
+      })
+    )
+    .add_case(
+      // datetime + i32 = nth day of week.
+      builder::arity_two().of_types(expr_to_datetime(), expr_to_i32()).and_then(|arg, idx, _| {
+        Ok(Expr::from(day_of_week(arg, idx)))
       })
     )
     .build()
