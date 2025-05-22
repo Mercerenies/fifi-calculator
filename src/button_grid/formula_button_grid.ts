@@ -1,6 +1,8 @@
 
-import { ButtonGrid, GridCell } from "../button_grid.js";
-import { backButton, DispatchButton } from './button.js';
+import { AbstractButtonManager, ButtonGrid, GridCell } from "../button_grid.js";
+import { Button, backButton, DispatchButton } from './button.js';
+import { SignedNumberedButton } from './button/numbered.js';
+import { SubcommandBehavior } from './subcommand.js';
 
 export class FormulaButtonGrid extends ButtonGrid {
   readonly rows: readonly (readonly GridCell[])[];
@@ -18,10 +20,13 @@ export class FormulaButtonGrid extends ButtonGrid {
       [
         new DispatchButton("=", "=", "="),
         new DispatchButton("≠", "!=", "+"),
+        new DispatchButton("1<sup>st</sup>", "fhead", "h"),
+        new FunctorArgsButton(),
       ],
       [
         new DispatchButton("<", "<", ","),
         new DispatchButton("≤", "<=", "<"),
+        new DispatchButton("f()", "fcompile", null),
       ],
       [
         new DispatchButton(">", ">", "."),
@@ -47,5 +52,30 @@ export class FormulaButtonGrid extends ButtonGrid {
         new DispatchButton("ϕ", "phi", null),
       ],
     ];
+  }
+}
+
+// Delegates to SignedNumberedButton without the hyper flag, or simple
+// DispatchButton with the hyper flag.
+class FunctorArgsButton extends Button {
+  private defaultButton: Button;
+  private hyperButton: Button;
+
+  constructor() {
+    super("y<sup>th</sup>", "r");
+    this.defaultButton = new SignedNumberedButton(this.label, "fargs", this.keyboardShortcut, "Index:");
+    this.hyperButton = new DispatchButton(this.label, "fargs", this.keyboardShortcut);
+  }
+
+  async fire(manager: AbstractButtonManager) {
+    if (manager.getModifiers().hyperbolicModifier) {
+      await this.hyperButton.fire(manager);
+    } else {
+      await this.defaultButton.fire(manager);
+    }
+  }
+
+  asSubcommand(): SubcommandBehavior {
+    return "invalid";
   }
 }

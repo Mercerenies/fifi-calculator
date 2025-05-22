@@ -147,14 +147,14 @@ pub struct VectorFromIncompleteObjectCommand {
 /// behavior from there depends on how many elements were popped.
 ///
 /// * If one element was popped, that element is pushed back onto the
-/// stack.
+///   stack.
 ///
 /// * If two elements were popped, they are treated as the real and
-/// imaginary parts of a new complex number, which is pushed onto the
-/// stack.
+///   imaginary parts of a new complex number, which is pushed onto
+///   the stack.
 ///
 /// * If four elements were popped, they are treated as the four
-/// components of a quaternion, which is pushed onto the stack.
+///   components of a quaternion, which is pushed onto the stack.
 ///
 /// * If any other number of elements is popped, an error is produced.
 ///

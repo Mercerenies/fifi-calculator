@@ -24,7 +24,7 @@ impl<'a> IdempotenceSimplifier<'a> {
   }
 }
 
-impl<'a> Simplifier for IdempotenceSimplifier<'a> {
+impl Simplifier for IdempotenceSimplifier<'_> {
   fn simplify_expr_part(&self, expr: Expr, _ctx: &mut SimplifierContext) -> Expr {
     match expr {
       Expr::Call(function_name, mut args) => {

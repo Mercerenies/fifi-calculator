@@ -1,28 +1,34 @@
 
+mod datetime;
+
 use super::{LanguageMode, LanguageModeEngine, output_sep_by};
 use crate::mode::display::unicode::{UnicodeAliasTable, common_unicode_aliases};
 use crate::parsing::operator::{Operator, Precedence, OperatorTable};
 use crate::parsing::operator::fixity::FixityType;
 use crate::expr::Expr;
+use crate::expr::datetime::{MockedDateTimeSource, CurrentDateTimeSource};
 use crate::expr::number::{Number, ComplexNumber, Quaternion};
 use crate::expr::atom::{Atom, write_escaped_str};
 use crate::expr::basic_parser::ExprParser;
 use crate::expr::vector::Vector;
 use crate::expr::incomplete::{IncompleteObject, ObjectType};
+use crate::expr::datetime::DATETIME_FUNCTION_NAME;
 use crate::util::cow_dyn::CowDyn;
 use crate::util::brackets::{BracketConstruct, fancy_parens, fancy_square_brackets};
 
 use html_escape::encode_safe;
-
 use num::Zero;
+
+use std::sync::Arc;
 
 /// The basic, and default, language mode. This language mode has
 /// minimal support for sophisticated output or pretty-printing and is
 /// designed to be mostly reversible.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone)]
 pub struct BasicLanguageMode {
   known_operators: OperatorTable,
   unicode_table: UnicodeAliasTable,
+  time_source: Arc<dyn CurrentDateTimeSource + Send + Sync + 'static>,
   uses_fancy_parens: bool,
   // Default is false. If true, the output should be readable by the
   // default parser. If false, some things may be pretty-printed (such
@@ -56,9 +62,15 @@ impl BasicLanguageMode {
     self
   }
 
+  pub fn with_time_source(mut self, time_source: Arc<dyn CurrentDateTimeSource + Send + Sync + 'static>) -> Self {
+    self.time_source = time_source;
+    self
+  }
+
   pub fn from_operators(known_operators: OperatorTable) -> Self {
     Self {
       known_operators,
+      time_source: Arc::new(MockedDateTimeSource::default()),
       unicode_table: UnicodeAliasTable::default(),
       uses_reversible_output: false,
       uses_fancy_parens: false,
@@ -270,6 +282,18 @@ impl BasicLanguageMode {
   }
 }
 
+impl Default for BasicLanguageMode {
+  fn default() -> Self {
+    Self {
+      known_operators: OperatorTable::default(),
+      unicode_table: UnicodeAliasTable::default(),
+      time_source: Arc::new(MockedDateTimeSource::epoch()),
+      uses_fancy_parens: false,
+      uses_reversible_output: false,
+    }
+  }
+}
+
 impl LanguageMode for BasicLanguageMode {
   fn write_to_html(&self, engine: &LanguageModeEngine, out: &mut String, expr: &Expr, prec: Precedence) {
     match expr {
@@ -295,6 +319,15 @@ impl LanguageMode for BasicLanguageMode {
         } else if f == Vector::FUNCTION_NAME {
           self.vector_to_html(engine, out, args);
         } else {
+          // Try printing as a datetime.
+          if f == DATETIME_FUNCTION_NAME {
+            // TODO Figure out a way to avoid the clone() here by
+            // rewriting write_datetime_expr and co.
+            if datetime::write_datetime_expr_fmt(out, Expr::call(DATETIME_FUNCTION_NAME, args.clone()), true).is_ok() {
+              return;
+            }
+          }
+          // Else, print as operator or function call.
           let as_op =
             self.try_infix_op_to_html(engine, out, f, args, prec) ||
             self.try_prefix_op_to_html(engine, out, f, args, prec) ||
@@ -323,7 +356,7 @@ impl LanguageMode for BasicLanguageMode {
   }
 
   fn parse(&self, text: &str) -> anyhow::Result<Expr> {
-    let parser = ExprParser::new(&self.known_operators);
+    let parser = ExprParser::new(&self.known_operators, self.time_source.clone());
     let expr = parser.tokenize_and_parse(text)?;
     Ok(expr)
   }
@@ -661,6 +694,66 @@ mod tests {
       vec![Expr::string("[")],
     );
     assert_eq!(mode.to_html(&expr, &LanguageSettings::default()), r#"incomplete("[")"#);
+  }
+
+  #[test]
+  fn test_datetime_with_simple_date() {
+    let mode = BasicLanguageMode::default();
+
+    let expr = Expr::call("datetime", vec![Expr::from(2001), Expr::from(10), Expr::from(31)]);
+    assert_eq!(mode.to_html(&expr, &LanguageSettings::default()), "#&lt;Wed Oct 31, 2001&gt;");
+
+    let expr = Expr::call("datetime", vec![Expr::from(2001), Expr::from(10), Expr::from(2)]);
+    assert_eq!(mode.to_html(&expr, &LanguageSettings::default()), "#&lt;Tue Oct 2, 2001&gt;");
+  }
+
+  #[test]
+  fn test_datetime_with_date_out_of_bounds() {
+    let mode = BasicLanguageMode::default();
+
+    let expr = Expr::call("datetime", vec![Expr::from(2001), Expr::from(11), Expr::from(31)]);
+    assert_eq!(mode.to_html(&expr, &LanguageSettings::default()), "datetime(2001, 11, 31)");
+  }
+
+  #[test]
+  fn test_datetime_with_simple_datetime() {
+    let mode = BasicLanguageMode::default();
+
+    let expr = Expr::call("datetime", vec![Expr::from(2001), Expr::from(10), Expr::from(2),
+                                           Expr::from(3), Expr::from(4), Expr::from(5), Expr::from(0),
+                                           Expr::from(3600)]);
+    assert_eq!(
+      mode.to_html(&expr, &LanguageSettings::default()),
+      "#&lt;3:04:05am Tue Oct 2, 2001 UTC +1&gt;",
+    );
+    let expr = Expr::call("datetime", vec![Expr::from(2001), Expr::from(10), Expr::from(2),
+                                           Expr::from(3), Expr::from(4), Expr::from(5), Expr::from(0),
+                                           Expr::from(0)]);
+    assert_eq!(
+      mode.to_html(&expr, &LanguageSettings::default()),
+      "#&lt;3:04:05am Tue Oct 2, 2001 UTC +0&gt;",
+    );
+    let expr = Expr::call("datetime", vec![Expr::from(2001), Expr::from(10), Expr::from(2),
+                                           Expr::from(15), Expr::from(4), Expr::from(0), Expr::from(1),
+                                           Expr::from(3600)]);
+    assert_eq!(
+      mode.to_html(&expr, &LanguageSettings::default()),
+      "#&lt;3:04:00.000001pm Tue Oct 2, 2001 UTC +1&gt;",
+    );
+    let expr = Expr::call("datetime", vec![Expr::from(2001), Expr::from(10), Expr::from(2),
+                                           Expr::from(15), Expr::from(4), Expr::from(0), Expr::from(0),
+                                           Expr::from(-3660)]);
+    assert_eq!(
+      mode.to_html(&expr, &LanguageSettings::default()),
+      "#&lt;3:04pm Tue Oct 2, 2001 UTC -1:01&gt;",
+    );
+    let expr = Expr::call("datetime", vec![Expr::from(2001), Expr::from(10), Expr::from(2),
+                                           Expr::from(15), Expr::from(4), Expr::from(0), Expr::from(0),
+                                           Expr::from(-3662)]);
+    assert_eq!(
+      mode.to_html(&expr, &LanguageSettings::default()),
+      "#&lt;3:04pm Tue Oct 2, 2001 UTC -1:01:02&gt;",
+    );
   }
 
   // TODO Common operators doesn't have any postfix ops right now,

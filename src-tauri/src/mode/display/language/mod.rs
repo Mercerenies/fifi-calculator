@@ -76,7 +76,7 @@ pub struct LanguageSettings {
   pub prefers_unicode_output: bool,
 }
 
-impl<'a, 'b> LanguageModeEngine<'a, 'b> {
+impl LanguageModeEngine<'_, '_> {
   pub fn write_to_html(&self, out: &mut String, expr: &Expr, prec: Precedence) {
     self.data.write_to_html(self, out, expr, prec);
   }
@@ -96,7 +96,7 @@ impl Default for LanguageSettings {
 }
 
 /// Implementation of `LanguageMode` lifted to a reference type.
-impl<'a, T: LanguageMode + ?Sized> LanguageMode for &'a T {
+impl<T: LanguageMode + ?Sized> LanguageMode for &T {
   fn write_to_html(&self, engine: &LanguageModeEngine, out: &mut String, expr: &Expr, prec: Precedence) {
     (**self).write_to_html(engine, out, expr, prec);
   }

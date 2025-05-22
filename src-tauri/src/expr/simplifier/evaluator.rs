@@ -18,7 +18,7 @@ impl<'a> FunctionEvaluator<'a> {
   }
 }
 
-impl<'a> Simplifier for FunctionEvaluator<'a> {
+impl Simplifier for FunctionEvaluator<'_> {
   fn simplify_expr_part(&self, expr: Expr, ctx: &mut SimplifierContext) -> Expr {
     match expr {
       Expr::Call(function_name, args) => {

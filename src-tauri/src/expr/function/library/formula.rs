@@ -7,6 +7,7 @@ use crate::expr::function::Function;
 use crate::expr::function::builder::{self, FunctionBuilder};
 use crate::expr::function::table::FunctionTable;
 use crate::expr::algebra::infinity::UnboundedNumber;
+use crate::expr::datetime::DateTime;
 use crate::expr::predicates;
 use crate::expr::prisms;
 
@@ -66,6 +67,12 @@ pub fn less_than() -> Function {
       })
     )
     .add_case(
+      // Datetime comparison
+      builder::arity_two().both_of_type(prisms::expr_to_datetime()).and_then(|left, right, _| {
+        Ok(Expr::from(left < right))
+      })
+    )
+    .add_case(
       // String comparison
       builder::arity_two().both_of_type(prisms::expr_to_string()).and_then(|left, right, _| {
         Ok(Expr::from(left < right))
@@ -86,6 +93,12 @@ pub fn less_than_or_equal() -> Function {
     .add_case(
       // Real number (possibly infinite) comparison
       builder::arity_two().both_of_type(prisms::expr_to_unbounded_number()).and_then(|left, right, _| {
+        Ok(Expr::from(left <= right))
+      })
+    )
+    .add_case(
+      // Datetime comparison
+      builder::arity_two().both_of_type(prisms::expr_to_datetime()).and_then(|left, right, _| {
         Ok(Expr::from(left <= right))
       })
     )
@@ -114,6 +127,12 @@ pub fn greater_than() -> Function {
       })
     )
     .add_case(
+      // Datetime comparison
+      builder::arity_two().both_of_type(prisms::expr_to_datetime()).and_then(|left, right, _| {
+        Ok(Expr::from(left > right))
+      })
+    )
+    .add_case(
       // String comparison
       builder::arity_two().both_of_type(prisms::expr_to_string()).and_then(|left, right, _| {
         Ok(Expr::from(left > right))
@@ -134,6 +153,12 @@ pub fn greater_than_or_equal() -> Function {
     .add_case(
       // Real number (possibly infinite) comparison
       builder::arity_two().both_of_type(prisms::expr_to_unbounded_number()).and_then(|left, right, _| {
+        Ok(Expr::from(left >= right))
+      })
+    )
+    .add_case(
+      // Datetime comparison
+      builder::arity_two().both_of_type(prisms::expr_to_datetime()).and_then(|left, right, _| {
         Ok(Expr::from(left >= right))
       })
     )
@@ -166,6 +191,13 @@ pub fn min_function() -> Function {
       })
     )
     .add_case(
+      // Datetime comparison
+      builder::any_arity().of_type(prisms::expr_to_datetime()).and_then(|args, _| {
+        let result = args.into_iter().fold(DateTime::MAX, DateTime::min);
+        Ok(Expr::from(result))
+      })
+    )
+    .add_case(
       // String comparison
       builder::any_arity().of_type(prisms::expr_to_string()).and_then(|args, _| {
         // unwrap: The first case would've triggered on an empty
@@ -186,6 +218,13 @@ pub fn max_function() -> Function {
       // Unbounded real number comparison
       builder::any_arity().of_type(prisms::expr_to_unbounded_number()).and_then(|args, _| {
         let result = args.into_iter().fold(UnboundedNumber::NEG_INFINITY, UnboundedNumber::max);
+        Ok(Expr::from(result))
+      })
+    )
+    .add_case(
+      // Datetime comparison
+      builder::any_arity().of_type(prisms::expr_to_datetime()).and_then(|args, _| {
+        let result = args.into_iter().fold(DateTime::MIN, DateTime::max);
         Ok(Expr::from(result))
       })
     )

@@ -4,6 +4,7 @@ mod matcher;
 pub use matcher::{MatcherSpec, MatchedExpr};
 
 use super::Expr;
+use super::call::CallExpr;
 use super::var::Var;
 use super::atom::Atom;
 use super::number::{Number, ComplexNumber, Quaternion, ComplexLike, QuaternionLike};
@@ -14,20 +15,23 @@ use super::algebra::formula::{Formula, Equation};
 use super::algebra::infinity::InfiniteConstant;
 use crate::util::prism::{Prism, PrismExt, Iso, OnVec, OnTuple2, Only, Conversion,
                          LosslessConversion, VecToArray};
+use crate::util::tuple::binder::{PrismTupleList, narrow_vec};
 use crate::graphics::GRAPHICS_NAME;
 
 use num::{Zero, One};
 use either::Either;
+use tuple_list::{Tuple, TupleList};
 
 // Re-export some useful expression-adjacent prisms.
 pub use super::var::StringToVar;
 pub use super::vector::ExprToVector;
 pub use super::vector::matrix::{ExprToTypedMatrix, expr_to_matrix};
 pub use super::vector::tensor::ExprToTensor;
-pub use super::number::prisms::{NumberToUsize, NumberToI64};
+pub use super::number::prisms::{number_to_usize, number_to_i64, number_to_i32, number_to_u8, number_to_u32};
 pub use super::algebra::infinity::{ExprToInfinity, UnboundedNumber,
                                    infinity_to_signed_infinity,
                                    expr_to_signed_infinity, expr_to_unbounded_number};
+pub use super::datetime::prisms::{expr_to_datetime, expr_to_datetime_or_real};
 
 /// An expression which is literally equal to the value zero.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -109,6 +113,13 @@ pub struct ParsedI64 {
   input: String,
 }
 
+/// A "loose variable" is either a proper [`Var`] or a string.
+#[derive(Debug, Clone)]
+pub enum LooseVar {
+  Var(Var),
+  String(String),
+}
+
 /// Prism which accepts only a specific variable as the expression.
 pub fn must_be_var(var: Var) -> Only<Expr> {
   let expr = Expr::Atom(Atom::Var(var));
@@ -134,6 +145,11 @@ pub fn expr_to_var() -> impl Prism<Expr, Var> + Clone {
   Conversion::new()
 }
 
+/// Prism which only call expressions.
+pub fn expr_to_functor_call() -> impl Prism<Expr, CallExpr> + Clone {
+  Conversion::new()
+}
+
 /// Prism which accepts only positive real numbers.
 pub fn expr_to_positive_number() -> impl Prism<Expr, PositiveNumber> + Clone {
   expr_to_number().composed(NumberToPositiveNumber)
@@ -142,13 +158,25 @@ pub fn expr_to_positive_number() -> impl Prism<Expr, PositiveNumber> + Clone {
 /// Prism which only accepts expressions containing [`Number`] values
 /// representable by a `usize`.
 pub fn expr_to_usize() -> impl Prism<Expr, usize> + Clone {
-  expr_to_number().composed(NumberToUsize)
+  expr_to_number().composed(number_to_usize())
 }
 
 /// Prism which only accepts expressions containing [`Number`] values
 /// representable by an `i64`.
 pub fn expr_to_i64() -> impl Prism<Expr, i64> + Clone {
-  expr_to_number().composed(NumberToI64)
+  expr_to_number().composed(number_to_i64())
+}
+
+pub fn expr_to_i32() -> impl Prism<Expr, i32> + Clone {
+  expr_to_number().composed(number_to_i32())
+}
+
+pub fn expr_to_u8() -> impl Prism<Expr, u8> + Clone {
+  expr_to_number().composed(number_to_u8())
+}
+
+pub fn expr_to_u32() -> impl Prism<Expr, u32> + Clone {
+  expr_to_number().composed(number_to_u32())
 }
 
 /// Prism which accepts [`Literal`] values.
@@ -209,6 +237,24 @@ pub fn expr_to_quaternion_or_inf() -> impl Prism<Expr, Either<QuaternionLike, In
   ExprToQuaternion.or(ExprToInfinity)
 }
 
+/// Prism which accepts either a variable or a string.
+pub fn expr_to_loose_var() -> impl Prism<Expr, LooseVar> + Clone {
+  fn down(parsed: Either<Var, String>) -> LooseVar {
+    match parsed {
+      Either::Left(var) => LooseVar::Var(var),
+      Either::Right(string) => LooseVar::String(string),
+    }
+  }
+  fn up(loose_var: LooseVar) -> Either<Var, String> {
+    match loose_var {
+      LooseVar::Var(var) => Either::Left(var),
+      LooseVar::String(string) => Either::Right(string),
+    }
+  }
+  expr_to_var().or(expr_to_string())
+    .rmap(down, up)
+}
+
 /// Prism which parses an [`Expr`] as a vector (in the expression
 /// language) whose constituents each pass the specified prism
 /// `inner`.
@@ -228,6 +274,25 @@ where P: Prism<Expr, T> + Clone {
     .composed(VecToArray::new())
 }
 
+/// As [`narrow_vec`] but operating on an [`Expr`]. If the expression
+/// is atomic or is a call to the wrong function, this narrowing
+/// always fails. Otherwise, the narrowing operation is applied (via
+/// `narrow_vec`) to the arguments list.
+pub fn narrow_args<Xs, Ps>(expected_head: &str, prisms: Ps, expr: Expr) -> Result<Xs::Tuple, Expr>
+where Ps: Tuple,
+      Ps::TupleList: PrismTupleList<Expr, Xs>,
+      Xs: TupleList {
+  match expr {
+    Expr::Call(head, args) if head == expected_head => {
+      match narrow_vec(prisms, args) {
+        Ok(args_tuple) => Ok(args_tuple),
+        Err(args) => Err(Expr::Call(head, args)),
+      }
+    }
+    expr => Err(expr),
+  }
+}
+
 impl PositiveNumber {
   /// Creates a `PositiveNumber`, or returns the input number
   /// unmodified if the value is not positive.
@@ -245,6 +310,22 @@ impl PositiveNumber {
 
   pub fn is_one(&self) -> bool {
     self.data.is_one()
+  }
+}
+
+impl LooseVar {
+  pub fn name(&self) -> &str {
+    match self {
+      LooseVar::Var(var) => var.as_str(),
+      LooseVar::String(s) => s,
+    }
+  }
+
+  pub fn into_name(self) -> String {
+    match self {
+      LooseVar::Var(var) => var.into(),
+      LooseVar::String(s) => s,
+    }
   }
 }
 
@@ -371,6 +452,7 @@ impl Prism<Expr, ComplexLike> for ExprToComplex {
 
 impl Prism<Expr, QuaternionLike> for ExprToQuaternion {
   fn narrow_type(&self, input: Expr) -> Result<QuaternionLike, Expr> {
+    #[allow(clippy::type_complexity)] // Internal-only type used for juggling tuples
     fn quaternion_prism() -> impl Prism<(((Expr, Expr), Expr), Expr), (((Number, Number), Number), Number)> {
       expr_to_number()
         .and(expr_to_number())

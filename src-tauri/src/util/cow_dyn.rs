@@ -14,7 +14,7 @@ pub enum CowDyn<'a, T: ?Sized> {
   Owned(Box<T>),
 }
 
-impl<'a, T: ?Sized> CowDyn<'a, T> {
+impl<T: ?Sized> CowDyn<'_, T> {
   pub fn is_borrowed(&self) -> bool {
     matches!(self, CowDyn::Borrowed(_))
   }
@@ -24,7 +24,7 @@ impl<'a, T: ?Sized> CowDyn<'a, T> {
   }
 }
 
-impl<'a, T: ?Sized> AsRef<T> for CowDyn<'a, T> {
+impl<T: ?Sized> AsRef<T> for CowDyn<'_, T> {
   fn as_ref(&self) -> &T {
     match self {
       CowDyn::Borrowed(b) => b,
@@ -33,7 +33,7 @@ impl<'a, T: ?Sized> AsRef<T> for CowDyn<'a, T> {
   }
 }
 
-impl<'a, T: ?Sized> Borrow<T> for CowDyn<'a, T> {
+impl<T: ?Sized> Borrow<T> for CowDyn<'_, T> {
   fn borrow(&self) -> &T {
     match self {
       CowDyn::Borrowed(b) => b,
@@ -42,13 +42,13 @@ impl<'a, T: ?Sized> Borrow<T> for CowDyn<'a, T> {
   }
 }
 
-impl<'a, T: Default> Default for CowDyn<'a, T> {
+impl<T: Default> Default for CowDyn<'_, T> {
   fn default() -> Self {
     CowDyn::Owned(Box::default())
   }
 }
 
-impl<'a, T: ?Sized> Deref for CowDyn<'a, T> {
+impl<T: ?Sized> Deref for CowDyn<'_, T> {
   type Target = T;
 
   fn deref(&self) -> &Self::Target {
@@ -56,27 +56,27 @@ impl<'a, T: ?Sized> Deref for CowDyn<'a, T> {
   }
 }
 
-impl<'a, T: Display + ?Sized> Display for CowDyn<'a, T> {
+impl<T: Display + ?Sized> Display for CowDyn<'_, T> {
   fn fmt(&self, f: &mut Formatter) -> fmt::Result {
     Display::fmt(self.as_ref(), f)
   }
 }
 
-impl<'a, T: PartialEq + ?Sized> PartialEq for CowDyn<'a, T> {
+impl<T: PartialEq + ?Sized> PartialEq for CowDyn<'_, T> {
   fn eq(&self, other: &Self) -> bool {
     self.as_ref() == other.as_ref()
   }
 }
 
-impl<'a, T: PartialEq + ?Sized> PartialEq<T> for CowDyn<'a, T> {
+impl<T: PartialEq + ?Sized> PartialEq<T> for CowDyn<'_, T> {
   fn eq(&self, other: &T) -> bool {
     self.as_ref() == other
   }
 }
 
-impl<'a, T: Eq + ?Sized> Eq for CowDyn<'a, T> {}
+impl<T: Eq + ?Sized> Eq for CowDyn<'_, T> {}
 
-impl<'a, T: Hash + ?Sized> Hash for CowDyn<'a, T> {
+impl<T: Hash + ?Sized> Hash for CowDyn<'_, T> {
   fn hash<H: Hasher>(&self, state: &mut H) {
     Hash::hash(self.as_ref(), state)
   }

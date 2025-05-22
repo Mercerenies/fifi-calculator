@@ -111,6 +111,16 @@ impl Number {
     }
   }
 
+  /// Truncate toward negative infinity. Result is always an integer
+  /// representation.
+  pub fn floor(&self) -> Number {
+    match &self.inner {
+      NumberImpl::Integer(_) => self.clone(),
+      NumberImpl::Ratio(r) => Number::from(r.floor().to_integer()),
+      NumberImpl::Float(f) => Number::from(BigInt::from_f64(f.floor()).expect("floor should produce integer value")),
+    }
+  }
+
   pub fn recip(&self) -> Number {
     &Number::one() / self
   }
@@ -414,6 +424,12 @@ impl From<i32> for Number {
 /// Constructs an integer number from an `i64`.
 impl From<i64> for Number {
   fn from(i: i64) -> Number {
+    Number { inner: NumberImpl::Integer(Box::new(i.into())) }
+  }
+}
+
+impl From<i128> for Number {
+  fn from(i: i128) -> Number {
     Number { inner: NumberImpl::Integer(Box::new(i.into())) }
   }
 }
@@ -1136,6 +1152,20 @@ mod tests {
     assert_strict_eq!(Number::from(-3).div_floor(&Number::from(-2)), Number::from(1));
     assert_strict_eq!(Number::from(-3).div_floor(&Number::from(-2.0)), Number::from(1));
     assert_strict_eq!(Number::ratio(3, -1).div_floor(&Number::from(-2.0)), Number::from(1));
+  }
+
+  #[test]
+  fn test_floor() {
+    assert_strict_eq!(Number::from(3).floor(), Number::from(3));
+    assert_strict_eq!(Number::from(0).floor(), Number::from(0));
+    assert_strict_eq!(Number::ratio(6, 4).floor(), Number::from(1));
+    assert_strict_eq!(Number::from(3.5).floor(), Number::from(3));
+    assert_strict_eq!(Number::from(3.2).floor(), Number::from(3));
+    assert_strict_eq!(Number::from(-3).floor(), Number::from(-3));
+    assert_strict_eq!(Number::ratio(-6, 4).floor(), Number::from(-2));
+    assert_strict_eq!(Number::ratio(-12, 4).floor(), Number::from(-3));
+    assert_strict_eq!(Number::from(-3.5).floor(), Number::from(-4));
+    assert_strict_eq!(Number::from(-3.2).floor(), Number::from(-4));
   }
 
   #[test]

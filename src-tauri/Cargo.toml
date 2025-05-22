@@ -37,6 +37,9 @@ either = { version = "1.12.0", features = ["serde"] }
 itertools = "0.13.0"
 try-traits = "0.1.1"
 html-escape = "0.2.13"
+time = { version = "0.3.41", features = ["local-offset", "formatting", "macros"] }
+tuple_list = "0.1.3"
+phf = { version = "0.11.3", features = ["macros"] }
 
 [features]
 # This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!

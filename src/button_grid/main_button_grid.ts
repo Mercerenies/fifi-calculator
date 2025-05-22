@@ -7,6 +7,7 @@ import { VectorStatsButtonGrid } from "./vector_stats_button_grid.js";
 import { MatrixButtonGrid } from "./matrix_button_grid.js";
 import { FormulaButtonGrid } from "./formula_button_grid.js";
 import { TranscendentalButtonGrid } from "./transcendental_button_grid.js";
+import { DatetimeButtonGrid } from "./datetime_button_grid.js";
 import { GraphingButtonGrid } from "./graphing_button_grid.js";
 import { StringButtonGrid } from "./string_button_grid.js";
 import { DisplayButtonGrid } from "./display_button_grid.js";
@@ -88,6 +89,7 @@ export class MainButtonGrid extends ButtonGrid {
         new DispatchButton(swapSvg(), "swap", "Tab"),
         new DispatchButton(dupSvg(), "dup", "Enter"),
         new GotoButton("<math><mi>ξ</mi></math>", "f", this.subgrids.transcendental),
+        new GotoButton("⏲", "t", this.subgrids.datetime),
       ],
       [
         new GotoButton("<math><mi>x</mi></math>", "a", this.subgrids.algebra),
@@ -136,6 +138,7 @@ export class MainButtonGrid extends ButtonGrid {
 
 class Subgrids {
   readonly algebra: AlgebraButtonGrid;
+  readonly datetime: DatetimeButtonGrid;
   readonly display: DisplayButtonGrid;
   readonly formula: FormulaButtonGrid;
   readonly graphing: GraphingButtonGrid;
@@ -155,6 +158,7 @@ class Subgrids {
 
     // Primary button grids
     this.algebra = new AlgebraButtonGrid(mainGrid);
+    this.datetime = new DatetimeButtonGrid(mainGrid);
     this.display = new DisplayButtonGrid(mainGrid);
     this.formula = new FormulaButtonGrid(mainGrid);
     this.graphing = new GraphingButtonGrid(mainGrid);

@@ -28,9 +28,9 @@ pub fn append_symbolic_functions(table: &mut FunctionTable) {
 /// It is NOT an error for the variable to be absent from the target
 /// stack expression. In that case, the stack value is unchanged. This
 /// command is also inherently single-pass, so a substitution can be
-/// self-referencing. That is, it's meaningful to replace `x` with `x
-/// + 1` using this function, since the `x` on the right-hand side
-/// will not get recursively substituted.
+/// self-referencing. That is, it is meaningful and well-defined to
+/// replace `x` with `x + 1` using this function, since the `x` on the
+/// right-hand side will not get recursively substituted.
 pub fn substitute_function() -> Function {
   FunctionBuilder::new("substitute")
     .add_case(
@@ -163,7 +163,7 @@ fn find_root_bisection(
   function: &BisectionFunction,
   interval: Interval<Number>,
 ) -> Result<Expr, BisectionError> {
-  // Since the result from Secant Method is never an exact quantity
+  // Since the result from Bisection Method is never an exact quantity
   // anyway, we don't want to misleadingly provide rational results
   // with ridiculously large numerators and denominators, so go ahead
   // and force the whole computation to be inexact.

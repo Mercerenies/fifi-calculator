@@ -160,7 +160,7 @@ impl<B1, B2> ChoiceBrackets<B1, B2> {
   }
 }
 
-impl<'a, W: SafeWrite> BracketConstruct<W> for ConstBrackets<'a> {
+impl<W: SafeWrite> BracketConstruct<W> for ConstBrackets<'_> {
   fn write_open(&self, w: &mut W) -> Result<(), W::Error> {
     w.write_str(self.start_bracket)
   }

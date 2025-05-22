@@ -3,7 +3,7 @@
 
 pub mod matcher;
 
-pub use matcher::{arity_one, arity_two, arity_three, arity_four, any_arity,
+pub use matcher::{arity_one, arity_two, arity_three, arity_four, any_arity, non_zero_arity, exact_arity,
                   arity_one_deriv, arity_two_deriv};
 
 use super::{Function, FunctionContext, FunctionDeriv, FunctionImpl, no_identity_value};

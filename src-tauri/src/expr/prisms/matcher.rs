@@ -23,7 +23,7 @@ pub trait MatcherSpec {
   const MIN_ARITY: usize;
 
   /// The maximum arity of the expected function, inclusive. For
-  /// functions with no maximum arity, this function should return
+  /// functions with no maximum arity, this value should be
   /// `usize::MAX`.
   const MAX_ARITY: usize;
 

@@ -25,7 +25,7 @@ impl ChainedSimplifier<'static, 'static> {
   }
 }
 
-impl<'a, 'b> Simplifier for ChainedSimplifier<'a, 'b> {
+impl Simplifier for ChainedSimplifier<'_, '_> {
   fn simplify_expr(&self, expr: Expr, ctx: &mut SimplifierContext) -> Expr {
     let expr = self.left.simplify_expr(expr, ctx);
     self.right.simplify_expr(expr, ctx)

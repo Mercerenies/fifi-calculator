@@ -14,6 +14,7 @@ use crate::undo::UndoableChange;
 use crate::state::{ApplicationState, UndoableState};
 use crate::state::undo::ToggleFlagChange;
 use crate::util::radix::{Radix, StringToRadix};
+use crate::expr::datetime::SystemDateTimeSource;
 use crate::mode::display::language::LanguageMode;
 use crate::mode::display::language::basic::BasicLanguageMode;
 use crate::mode::display::language::fancy::FancyLanguageMode;
@@ -70,7 +71,8 @@ impl SetLanguageModeCommand {
   }
 
   pub fn basic_language_mode() -> Self {
-    let mode = Arc::new(BasicLanguageMode::from_common_operators());
+    let mode = Arc::new(BasicLanguageMode::from_common_operators()
+                        .with_time_source(Arc::new(SystemDateTimeSource)));
     Self::new(mode)
   }
 

@@ -12,10 +12,8 @@ use std::cmp::Ordering;
 
 #[derive(Clone, Debug, Error)]
 pub enum OperatorChainError<T> {
-  #[error("{0}")]
   ChainParseError(#[from] ChainParseError),
-  #[error("Adjacent terms not permitted: {0} and {1}")]
-  AdjacentTermsNotPermitted(Spanned<T>, Spanned<T>),
+  AdjacentTermsNotPermitted(Box<(Spanned<T>, Spanned<T>)>),
 }
 
 #[derive(Clone, Debug)]
@@ -115,7 +113,7 @@ fn parse_chain_sequence<T>(
   if let Some(problem_index) = find_consecutive_terms(&chain_elements) {
     let right_term = chain_elements.swap_remove(problem_index).term;
     let left_term = chain_elements.swap_remove(problem_index - 1).term;
-    return Err(OperatorChainError::AdjacentTermsNotPermitted(left_term, right_term));
+    return Err(OperatorChainError::AdjacentTermsNotPermitted(Box::new((left_term, right_term))));
   }
 
   Ok(AlternatingChainSeq { chain_elements, operators_after: current_seq })
@@ -274,6 +272,19 @@ impl<T> From<TaggedOperator> for TaggedToken<T> {
 impl<T> From<Operator> for Token<T> {
   fn from(op: Operator) -> Self {
     Token::Operator(op)
+  }
+}
+
+impl<T: Display> Display for OperatorChainError<T> {
+  fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    match self {
+      OperatorChainError::ChainParseError(e) => {
+        write!(f, "{}", e)
+      }
+      OperatorChainError::AdjacentTermsNotPermitted(inner) => {
+        write!(f, "Adjacent terms not permitted: {} and {}", inner.0, inner.1)
+      }
+    }
   }
 }
 

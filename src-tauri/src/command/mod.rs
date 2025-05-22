@@ -4,9 +4,11 @@ pub mod algebra;
 pub mod arguments;
 mod base;
 pub mod calculus;
+pub mod datetime;
 pub mod dispatch;
 pub mod flag_dispatch;
 pub mod functional;
+pub mod functor;
 pub mod general;
 pub mod graphics;
 pub mod input;
@@ -186,6 +188,22 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("convert_temp".to_string(), Box::new(units::ConvertTemperatureCommand::new()));
   map.insert("convert_temp_with_context".to_string(), Box::new(units::ContextualConvertTemperatureCommand::new()));
 
+  // Datetime commands
+  map.insert("days_since_zero".to_string(), Box::new(datetime::days_since_command(datetime::ZERO_DATE)));
+  map.insert("julian_day".to_string(), Box::new(datetime::days_since_command(datetime::ZERO_JULIAN_DAY)));
+  map.insert("unix_time".to_string(), Box::new(datetime::secs_since_command(datetime::UNIX_EPOCH)));
+  map.insert("now".to_string(), Box::new(datetime::NowCommand));
+  map.insert("tzconvert".to_string(), Box::new(datetime::ConvertTimezoneCommand));
+  map.insert("newmonth".to_string(), Box::new(datetime::DatetimeIndexCommand::named("newmonth")));
+  map.insert("newyear".to_string(), Box::new(datetime::DatetimeIndexCommand::named("newyear")));
+  map.insert("newweek".to_string(), Box::new(datetime::DatetimeIndexCommand::named("newweek")));
+  map.insert("incmonth".to_string(), Box::new(dispatch_on_flags_command(FlagDispatchArgs {
+    no_flags: datetime::incmonth_command(1),
+    hyper_flag: datetime::incmonth_command(12),
+    inv_flag: datetime::incmonth_command(-1),
+    inv_hyper_flag: datetime::incmonth_command(-12),
+  })));
+
   // Vector commands
   map.insert("subvector".to_string(), Box::new(dispatch_on_hyper_command(
     vector::subvector_command(),
@@ -262,6 +280,17 @@ pub fn default_dispatch_table() -> CommandDispatchTable {
   map.insert("trace".to_string(), Box::new(UnaryFunctionCommand::named("trace")));
   map.insert("@".to_string(), Box::new(BinaryFunctionCommand::named("@")));
   map.insert("kron".to_string(), Box::new(BinaryFunctionCommand::named("kron")));
+
+  // Functor commands
+  map.insert("fhead".to_string(), Box::new(UnaryFunctionCommand::named("fhead")));
+  map.insert("fargs".to_string(), Box::new(dispatch_on_hyper_command(
+    vector::IndexedVectorCommand::for_function("farg"),
+    UnaryFunctionCommand::named("fargs"),
+  )));
+  map.insert("fcompile".to_string(), Box::new(dispatch_on_inverse_command(
+    BinaryFunctionCommand::named("fcompile"),
+    functor::FunctorUncompileCommand,
+  )));
 
   // Commands which accept a single string.
   map.insert("push_number".to_string(), Box::new(input::push_number_command()));

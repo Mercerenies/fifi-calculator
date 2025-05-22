@@ -6,7 +6,7 @@ use crate::expr::interval::{Interval, interval_div, interval_div_inexact,
                             interval_recip, interval_recip_inexact, includes_infinity};
 use crate::expr::function::{Function, FunctionContext};
 use crate::expr::function::table::FunctionTable;
-use crate::expr::function::builder::{self, FunctionBuilder, FunctionCaseResult};
+use crate::expr::function::builder::{self, FunctionBuilder};
 use crate::expr::vector::Vector;
 use crate::expr::vector::matrix::Matrix;
 use crate::expr::vector::tensor::Tensor;
@@ -19,10 +19,12 @@ use crate::expr::simplifier::error::{SimplifierError, DomainError};
 use crate::expr::calculus::DifferentiationError;
 use crate::expr::algebra::infinity::{InfiniteConstant, UnboundedNumber, is_infinite_constant,
                                      multiply_infinities, infinite_pow};
+use crate::expr::datetime::DateTime;
 use crate::graphics::GRAPHICS_NAME;
 use crate::util::{repeated, TryPow};
-use crate::util::prism::Identity;
+use crate::util::prism::{Prism, Identity};
 use crate::util::matrix::{Matrix as UtilMatrix, SingularMatrixError};
+use super::datetime::{MICROSECONDS_PER_DAY, number_to_duration};
 
 use num::{Zero, One, BigInt};
 use either::Either;
@@ -101,6 +103,33 @@ pub fn addition() -> Function {
         Ok(sum.into())
       })
     )
+    .add_case({
+      // Datetime arithmetic
+      fn is_datetime(arg: &Either<DateTime, Number>) -> bool {
+        arg.is_left()
+      }
+      builder::any_arity().of_type(prisms::expr_to_datetime_or_real())
+        .filter(|args| {
+          // Require that exactly one of the arguments is a datetime.
+          args.iter().filter(|arg| is_datetime(arg)).count() == 1
+        })
+        .and_then(|mut args, ctx| {
+          let args_orig = args.clone(); // For error conditions
+          // Must be exactly one datetime, per the filter above.
+          let datetime_idx = args.iter().position(is_datetime).unwrap();
+          let datetime = args.remove(datetime_idx).unwrap_left();
+          let total_duration: Number = args.into_iter().map(Either::unwrap_right).sum();
+          let Some(total_duration) = number_to_duration(total_duration) else {
+            ctx.errors.push(SimplifierError::datetime_arithmetic_out_of_bounds("+"));
+            return Err(args_orig);
+          };
+          let Some(result_datetime) = datetime.checked_add(total_duration) else {
+            ctx.errors.push(SimplifierError::datetime_arithmetic_out_of_bounds("+"));
+            return Err(args_orig);
+          };
+          Ok(prisms::expr_to_datetime().widen_type(result_datetime))
+        })
+    })
     .add_case(
       // String concatenation
       builder::any_arity().of_type(prisms::expr_to_string()).and_then(|args, _| {
@@ -188,6 +217,38 @@ pub fn subtraction() -> Function {
       })
     )
     .add_case(
+      // Datetime minus duration
+      builder::arity_two().of_types(prisms::expr_to_datetime(), prisms::expr_to_number()).and_then(|a, b, ctx| {
+        let Some(duration) = number_to_duration(b.clone()) else {
+          ctx.errors.push(SimplifierError::datetime_arithmetic_out_of_bounds("-"));
+          return Err((a, b));
+        };
+        let Some(result_datetime) = a.clone().checked_sub(duration) else {
+          ctx.errors.push(SimplifierError::datetime_arithmetic_out_of_bounds("-"));
+          return Err((a, b));
+        };
+        Ok(prisms::expr_to_datetime().widen_type(result_datetime))
+      })
+    )
+    .add_case(
+      // Datetime minus datetime
+      builder::arity_two().both_of_type(prisms::expr_to_datetime()).and_then(|arg1, arg2, ctx| {
+        let diff = arg1 - arg2;
+        if diff.is_precise() {
+          let us = Number::from(diff.duration().whole_microseconds());
+          let days = if ctx.calculation_mode.has_fractional_flag() {
+            us / Number::from(MICROSECONDS_PER_DAY)
+          } else {
+            us.div_inexact(&Number::from(MICROSECONDS_PER_DAY))
+          };
+          Ok(days.into())
+        } else {
+          let whole_days = Number::from(diff.duration().whole_days());
+          Ok(whole_days.into())
+        }
+      })
+    )
+    .add_case(
       // Pure infinity subtraction
       builder::arity_two().both_of_type(prisms::ExprToInfinity).and_then(|arg1, arg2, _| {
         Ok(Expr::from(arg1 - arg2))
@@ -248,18 +309,15 @@ pub fn multiplication() -> Function {
     )
     .add_case(
       // Multiplication by zero
-      Box::new(|args, _context| {
-        // TODO: The manual construction of FunctionCase and explicit
-        // FunctionCaseResults here are less than ideal. Can we make a
-        // builder for this?
-        let contains_zero = args.iter().any(Expr::is_zero);
-        let contains_infinities = args.iter().any(is_infinite_constant);
-        if contains_zero && !contains_infinities {
-          FunctionCaseResult::Success(Expr::zero())
-        } else {
-          FunctionCaseResult::NoMatch(args)
-        }
-      })
+      builder::any_arity()
+        .filter(|args| {
+          let contains_zero = args.iter().any(Expr::is_zero);
+          let contains_infinities = args.iter().any(is_infinite_constant);
+          contains_zero && !contains_infinities
+        })
+        .and_then(|_args, _ctx| {
+          Ok(Expr::zero())
+        })
     )
     .add_case(
       // Real number multiplication

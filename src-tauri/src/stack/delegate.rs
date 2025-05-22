@@ -58,7 +58,7 @@ where S: StackLike,
 
 // TODO: Eventually, I'd like to abstract out these methods in some
 // form as well, rather than special-casing them to Stack<T>.
-impl<'a, T, D> DelegatingStack<'a, Stack<T>, D>
+impl<T, D> DelegatingStack<'_, Stack<T>, D>
 where D: StackDelegate<T> {
   /// Iterates from the bottom of the stack.
   pub fn iter(&self) -> impl DoubleEndedIterator<Item = &T> {
@@ -77,7 +77,7 @@ where D: StackDelegate<T> {
   }
 }
 
-impl<'a, S, D> StackLike for DelegatingStack<'a, S, D>
+impl<S, D> StackLike for DelegatingStack<'_, S, D>
 where S: StackLike,
       D: StackDelegate<S::Elem> {
   type Elem = S::Elem;
@@ -117,7 +117,7 @@ where S: StackLike,
 /// The `RandomAccessStackLike` impl for `DelegatingStack` requires
 /// `T: Clone` to be able to properly audit elements of the stack
 /// after-the-fact.
-impl<'a, S, D> RandomAccessStackLike for DelegatingStack<'a, S, D>
+impl<S, D> RandomAccessStackLike for DelegatingStack<'_, S, D>
 where S: RandomAccessStackLike,
       D: StackDelegate<S::Elem>,
       S::Elem: Clone {
@@ -153,7 +153,7 @@ where S: RandomAccessStackLike,
   }
 }
 
-impl<'a, T, R: DerefMut<Target = T>, D: StackDelegate<T>> Deref for RefMut<'a, T, R, D> {
+impl<T, R: DerefMut<Target = T>, D: StackDelegate<T>> Deref for RefMut<'_, T, R, D> {
   type Target = T;
 
   fn deref(&self) -> &T {
@@ -161,13 +161,13 @@ impl<'a, T, R: DerefMut<Target = T>, D: StackDelegate<T>> Deref for RefMut<'a, T
   }
 }
 
-impl<'a, T, R: DerefMut<Target = T>, D: StackDelegate<T>> DerefMut for RefMut<'a, T, R, D> {
+impl<T, R: DerefMut<Target = T>, D: StackDelegate<T>> DerefMut for RefMut<'_, T, R, D> {
   fn deref_mut(&mut self) -> &mut T {
     self.value.deref_mut()
   }
 }
 
-impl<'a, T, R: DerefMut<Target = T>, D: StackDelegate<T>> Drop for RefMut<'a, T, R, D> {
+impl<T, R: DerefMut<Target = T>, D: StackDelegate<T>> Drop for RefMut<'_, T, R, D> {
   fn drop(&mut self) {
     self.delegate.on_mutate(self.index, &self.original_value, self.value.deref());
   }
@@ -175,15 +175,15 @@ impl<'a, T, R: DerefMut<Target = T>, D: StackDelegate<T>> Drop for RefMut<'a, T,
 
 /// Comparisons on a `DelegatingStack` simply compare the stacks and
 /// ignore the delegates.
-impl<'a, S: PartialEq, D> PartialEq for DelegatingStack<'a, S, D> {
+impl<S: PartialEq, D> PartialEq for DelegatingStack<'_, S, D> {
   fn eq(&self, other: &Self) -> bool {
     self.stack == other.stack
   }
 }
 
-impl<'a, S: Eq, D> Eq for DelegatingStack<'a, S, D> {}
+impl<S: Eq, D> Eq for DelegatingStack<'_, S, D> {}
 
-impl<'a, S: Hash, D> Hash for DelegatingStack<'a, S, D> {
+impl<S: Hash, D> Hash for DelegatingStack<'_, S, D> {
   fn hash<H: Hasher>(&self, state: &mut H) {
     self.stack.hash(state);
   }

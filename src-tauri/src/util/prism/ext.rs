@@ -41,7 +41,7 @@ pub trait PrismExt<Up, Down>: Prism<Up, Down> {
     self.composed(Iso::new(narrow, widen))
   }
 
-  /// Prism which maps its preimage to a new result type in a
+  /// Prism which maps its preimage to a new input type in a
   /// bidirectional way.
   fn lmap<F, G, Up1>(self, narrow: F, widen: G) -> Composed<Iso<Up1, Up, F, G>, Self, Up>
   where F: Fn(Up1) -> Up,

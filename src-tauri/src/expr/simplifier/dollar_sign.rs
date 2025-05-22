@@ -62,7 +62,7 @@ where S: RandomAccessStackLike<Elem = Expr> {
   }
 }
 
-impl<'a, S> Simplifier for DollarSignRefSimplifier<'a, S>
+impl<S> Simplifier for DollarSignRefSimplifier<'_, S>
 where S: RandomAccessStackLike<Elem = Expr> {
   fn simplify_expr_part(&self, expr: Expr, ctx: &mut SimplifierContext) -> Expr {
     let Some(var) = try_into_dollar_sign_var(&expr) else {

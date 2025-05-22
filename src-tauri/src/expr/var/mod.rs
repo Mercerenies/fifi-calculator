@@ -3,7 +3,7 @@ pub mod constants;
 pub mod dollar_sign;
 pub mod table;
 
-use crate::util::prism::Prism;
+use crate::util::prism::{Prism, ErrorWithPayload};
 
 use regex::Regex;
 use once_cell::sync::Lazy;
@@ -15,8 +15,10 @@ use std::fmt::{self, Display, Formatter};
 /// A variable in an equation, left intentionally un-evaluated.
 ///
 /// Variables are identified by strings. A variable's name must begin
-/// with a letter, followed by zero or more letters, digits, or
-/// apostrophes. This structure enforces these constraints.
+/// with a letter or dollar sign, followed by zero or more letters,
+/// digits, dollar signs, or apostrophes. Additionally, the special
+/// names `∞` and `⧝` are allowed as standalone variables (but not as
+/// part of a larger name). This structure enforces these constraints.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Var(String);
@@ -95,6 +97,12 @@ impl Display for TryFromStringError {
 }
 
 impl StdError for TryFromStringError {}
+
+impl ErrorWithPayload<String> for TryFromStringError {
+  fn recover_payload(self) -> String {
+    self.original_string
+  }
+}
 
 #[cfg(test)]
 mod test {

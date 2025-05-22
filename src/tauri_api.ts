@@ -70,6 +70,7 @@ export enum Validator {
   HAS_UNITS = "has_units",
   IS_TEMPERATURE_UNIT = "is_temperature_unit",
   HAS_TEMPERATURE_UNIT = "has_temperature_unit",
+  IS_TIMEZONE = "is_timezone",
 }
 
 export interface SubcommandId {

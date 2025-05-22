@@ -4,6 +4,8 @@ pub mod arithmetic;
 pub mod atom;
 pub mod basic_parser;
 pub mod calculus;
+pub mod call;
+pub mod datetime;
 pub mod function;
 pub mod incomplete;
 pub mod interval;
