@@ -18,13 +18,13 @@ pub trait StrictEq: PartialEq {
 /// simple `T`, to make debug output prettier.
 pub struct Strictly<'a, T>(pub &'a T);
 
-impl<'a, T: StrictEq> PartialEq for Strictly<'a, T> {
+impl<T: StrictEq> PartialEq for Strictly<'_, T> {
   fn eq(&self, other: &Self) -> bool {
     self.0.strict_eq(other.0)
   }
 }
 
-impl<'a, T: Debug> Debug for Strictly<'a, T> {
+impl<T: Debug> Debug for Strictly<'_, T> {
   fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
     write!(f, "{:?}", self.0)
   }

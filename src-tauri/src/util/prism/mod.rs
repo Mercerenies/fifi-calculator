@@ -22,15 +22,17 @@ use std::convert::Infallible;
 /// and prisms implementing this trait should satisfy similar laws.
 ///
 /// * A widen followed by a narrow should reproduce the original
-/// value. That is, for all `d: Down`,
-/// `prism.narrow_type(prism.widen_type(d)) === Some(d)`.
+///   value. That is, for all `d: Down`,
+///   `prism.narrow_type(prism.widen_type(d)) === Some(d)`.
 ///
 /// * A successful narrow, followed by a widen, should reproduce the
-/// original value completely. That is, for all `u: Up`, if
-/// `prism.narrow_type(u) = Ok(d)`, then `prism.widen_type(d) === u`.
+///   original value completely. That is, for all `u: Up`, if
+///   `prism.narrow_type(u) = Ok(d)`, then `prism.widen_type(d) ===
+///   u`.
 ///
 /// * A failed narrow shall return the original value. That is, for
-/// all `u: Up`, if `prism.narrow_type(u) = Err(u1)`, then `u === u1`.
+///   all `u: Up`, if `prism.narrow_type(u) = Err(u1)`, then `u ===
+///   u1`.
 ///
 /// where `===` is taken to mean "conceptually equal". You can think
 /// of this as `==` for types that implement `PartialEq`.

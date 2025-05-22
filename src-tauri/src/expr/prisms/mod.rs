@@ -452,6 +452,7 @@ impl Prism<Expr, ComplexLike> for ExprToComplex {
 
 impl Prism<Expr, QuaternionLike> for ExprToQuaternion {
   fn narrow_type(&self, input: Expr) -> Result<QuaternionLike, Expr> {
+    #[allow(clippy::type_complexity)] // Internal-only type used for juggling tuples
     fn quaternion_prism() -> impl Prism<(((Expr, Expr), Expr), Expr), (((Number, Number), Number), Number)> {
       expr_to_number()
         .and(expr_to_number())

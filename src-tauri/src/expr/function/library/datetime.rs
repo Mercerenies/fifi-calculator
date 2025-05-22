@@ -251,7 +251,7 @@ pub fn new_week() -> Function {
 }
 
 pub fn inc_month() -> Function {
-  const DATETIME_OUT_OF_BOUNDS: &'static str = "Datetime out of bounds";
+  const DATETIME_OUT_OF_BOUNDS: &str = "Datetime out of bounds";
 
   FunctionBuilder::new("incmonth")
     .add_case(

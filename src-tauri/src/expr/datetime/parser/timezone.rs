@@ -249,6 +249,7 @@ impl Timezone {
   /// of `FromStr` in that event.
   pub fn parse(text: &str) -> Option<Self> {
     let text = text.trim();
+    #[allow(clippy::manual_map)] // Cleaner in the 'if' chain
     if let Some(cap) = TIMEZONE_WHOLE_STRING_RE.captures(text) {
       Some(process_captures(&cap))
     } else if let Some(tz) = TIMEZONE_ABBREVIATIONS.get(text.to_uppercase().as_str()) {

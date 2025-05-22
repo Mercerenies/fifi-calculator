@@ -14,8 +14,10 @@ use crate::util::tuple::binder::narrow_vec;
 /// This value is usually constructed with [`arity_one`].
 pub struct OneArgumentMatcher<P, Down> {
   arg_prism: P,
-  filter_fn: Option<Box<dyn Fn(&Down) -> bool + Send + Sync + 'static>>,
+  filter_fn: Option<Box<OneArgumentFilter<Down>>>,
 }
+
+type OneArgumentFilter<A> = dyn Fn(&A) -> bool + Send + Sync + 'static;
 
 /// Matcher that requires exactly two arguments in order to match. The
 /// arguments can each be narrowed by prisms.
@@ -24,8 +26,10 @@ pub struct OneArgumentMatcher<P, Down> {
 pub struct TwoArgumentMatcher<P1, P2, Down1, Down2> {
   first_arg_prism: P1,
   second_arg_prism: P2,
-  filter_fn: Option<Box<dyn Fn(&Down1, &Down2) -> bool + Send + Sync + 'static>>,
+  filter_fn: Option<Box<TwoArgumentFilter<Down1, Down2>>>,
 }
+
+type TwoArgumentFilter<A, B> = dyn Fn(&A, &B) -> bool + Send + Sync + 'static;
 
 /// Matcher that requires exactly three arguments in order to match.
 /// The arguments can each be narrowed by prisms.
@@ -35,8 +39,10 @@ pub struct ThreeArgumentMatcher<P1, P2, P3, Down1, Down2, Down3> {
   first_arg_prism: P1,
   second_arg_prism: P2,
   third_arg_prism: P3,
-  filter_fn: Option<Box<dyn Fn(&Down1, &Down2, &Down3) -> bool + Send + Sync + 'static>>,
+  filter_fn: Option<Box<ThreeArgumentFilter<Down1, Down2, Down3>>>,
 }
+
+type ThreeArgumentFilter<A, B, C> = dyn Fn(&A, &B, &C) -> bool + Send + Sync + 'static;
 
 /// Matcher that requires exactly four arguments in order to match.
 /// The arguments can each be narrowed by prisms.
@@ -47,8 +53,10 @@ pub struct FourArgumentMatcher<P1, P2, P3, P4, Down1, Down2, Down3, Down4> {
   second_arg_prism: P2,
   third_arg_prism: P3,
   fourth_arg_prism: P4,
-  filter_fn: Option<Box<dyn Fn(&Down1, &Down2, &Down3, &Down4) -> bool + Send + Sync + 'static>>,
+  filter_fn: Option<Box<FourArgumentFilter<Down1, Down2, Down3, Down4>>>,
 }
+
+type FourArgumentFilter<A, B, C, D> = dyn Fn(&A, &B, &C, &D) -> bool + Send + Sync + 'static;
 
 /// Matcher that accepts a variable number of arguments, possibly with
 /// some arbitrary interval restriction on the number of arguments.
@@ -60,8 +68,10 @@ pub struct VecMatcher<P, Down> {
   arg_prism: P,
   min_length: usize,
   max_length: usize,
-  filter_fn: Option<Box<dyn Fn(&[Down]) -> bool + Send + Sync + 'static>>,
+  filter_fn: Option<Box<VecFilter<Down>>>,
 }
+
+type VecFilter<A> = dyn Fn(&[A]) -> bool + Send + Sync + 'static;
 
 impl<Down: 'static, P: Prism<Expr, Down>> OneArgumentMatcher<P, Down> {
   /// Sets the prism for this matcher and resets the filter function.

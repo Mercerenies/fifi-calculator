@@ -24,7 +24,7 @@ impl<'a> InvolutionSimplifier<'a> {
   }
 }
 
-impl<'a> Simplifier for InvolutionSimplifier<'a> {
+impl Simplifier for InvolutionSimplifier<'_> {
   fn simplify_expr_part(&self, expr: Expr, _ctx: &mut SimplifierContext) -> Expr {
     match expr {
       Expr::Call(function_name, mut args) => {

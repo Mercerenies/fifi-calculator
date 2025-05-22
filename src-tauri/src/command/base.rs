@@ -73,7 +73,7 @@ pub struct CommandOutput {
   force_scroll_down: bool,
 }
 
-impl<'a, 'b, 'c> CommandContext<'a, 'b, 'c> {
+impl<'a> CommandContext<'a, '_, '_> {
   pub fn simplify_expr(
     &self,
     expr: Expr,

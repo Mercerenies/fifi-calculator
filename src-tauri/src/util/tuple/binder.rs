@@ -50,7 +50,7 @@ impl<A> PrismTupleList<A, ()> for () {
   }
 }
 
-impl<'p, A, X, Xs, P, Ps> PrismTupleList<A, (X, Xs)> for (&'p P, Ps)
+impl<A, X, Xs, P, Ps> PrismTupleList<A, (X, Xs)> for (&P, Ps)
 where P: Prism<A, X>,
       Ps: PrismTupleList<A, Xs> {
   fn narrow_iter<I>(&self, iter: I) -> Result<(X, Xs), Vec<A>>
