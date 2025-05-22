@@ -30,6 +30,7 @@ export class DatetimeButtonGrid extends ButtonGrid {
       ],
       [
         new DispatchButton("M", "newmonth", "M"),
+        new DispatchButton("Y", "newyear", "Y"),
       ],
       [
       ],

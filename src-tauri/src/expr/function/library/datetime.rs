@@ -16,6 +16,7 @@ use crate::util::prism::Prism;
 
 use num::{BigInt, ToPrimitive, Zero, clamp};
 use time::{UtcOffset, Date};
+use time::util::days_in_year;
 
 pub const MICROSECONDS_PER_DAY: i64 = 86_400_000_000;
 pub const MICROSECONDS_PER_SECOND: i64 = 1_000_000;
@@ -26,6 +27,7 @@ pub fn append_datetime_functions(table: &mut FunctionTable) {
   table.insert(datetime_rel_seconds());
   table.insert(tzconvert());
   table.insert(new_month());
+  table.insert(new_year());
 }
 
 // TODO Technically this is differentiable in its first argument (but
@@ -133,7 +135,7 @@ pub fn new_month() -> Function {
     let days_in_month = datetime.month().length(datetime.year()) as i32;
 
     if day_index <= 0 {
-      // Use the last day of the month
+      // Count from the last day of the month
       day_index += days_in_month + 1;
     }
     let day_index = clamp(day_index, 1, days_in_month) as u8; // safety: clamp is between 1 and a u8.
@@ -153,6 +155,62 @@ pub fn new_month() -> Function {
       // datetime + i32 = nth day of month.
       builder::arity_two().of_types(expr_to_datetime(), expr_to_i32()).and_then(|arg, idx, _| {
         Ok(Expr::from(day_of_month(arg, idx)))
+      })
+    )
+    .build()
+}
+
+pub fn new_year() -> Function {
+  const MIN_YEAR: i32 = Date::MIN.year();
+  const MAX_YEAR: i32 = Date::MAX.year();
+
+  // Precondition: `year` is in the range `MIN_YEAR..=MAX_YEAR`
+  fn day_of_year(year: i32, mut day_index: i32) -> DateTime {
+    assert!((MIN_YEAR..=MAX_YEAR).contains(&year));
+
+    let days_in_year = i32::from(days_in_year(year));
+
+    if day_index <= 0 {
+      // Count from the last day of the year
+      day_index += days_in_year + 1;
+    }
+    let day_index = clamp(day_index, 1, days_in_year) as u16; // safety: clamp is between 1 and a u16.
+    let result_date = Date::from_ordinal_date(year, day_index)
+      .expect("day_index is between 1 and days_in_year");
+    result_date.into()
+  }
+
+  FunctionBuilder::new("newyear")
+    .add_case(
+      // Single datetime argument returns first day of year.
+      builder::arity_one().of_type(expr_to_datetime()).and_then(|arg, _| {
+        Ok(Expr::from(day_of_year(arg.year(), 1)))
+      })
+    )
+    .add_case(
+      // datetime + i32 = nth day of year.
+      builder::arity_two().of_types(expr_to_datetime(), expr_to_i32()).and_then(|arg, idx, _| {
+        Ok(Expr::from(day_of_year(arg.year(), idx)))
+      })
+    )
+    .add_case(
+      // Single integer argument returns first day of integer year.
+      builder::arity_one().of_type(expr_to_i32()).and_then(|arg, ctx| {
+        if !(MIN_YEAR..=MAX_YEAR).contains(&arg) {
+          ctx.errors.push(SimplifierError::custom_error("newyear", "Year out of range"));
+          return Err(arg);
+        }
+        Ok(Expr::from(day_of_year(arg, 1)))
+      })
+    )
+    .add_case(
+      // Two integer arguments returns nth day of integer year.
+      builder::arity_two().both_of_type(expr_to_i32()).and_then(|arg, idx, ctx| {
+        if !(MIN_YEAR..=MAX_YEAR).contains(&arg) {
+          ctx.errors.push(SimplifierError::custom_error("newyear", "Year out of range"));
+          return Err((arg, idx));
+        }
+        Ok(Expr::from(day_of_year(arg, idx)))
       })
     )
     .build()
