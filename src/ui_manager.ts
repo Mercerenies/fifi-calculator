@@ -5,6 +5,7 @@ import { MainButtonGrid } from './button_grid/main_button_grid.js';
 import { KeyInput, isHardBlock } from './keyboard.js';
 import * as KeyDispatcher from './keyboard/dispatcher.js';
 import { RightPanelManager } from './right_panel.js';
+import { HelpManager } from './help_manager.js';
 import * as Page from './page.js';
 import { TAURI } from './tauri_api.js';
 import { showPopup, PopupDisplayArgs, PopupDisplayHtml } from './popup_display.js';
@@ -15,6 +16,7 @@ export class UiManager {
   readonly inputManager: InputBoxManager;
   readonly notificationManager: NotificationManager;
   readonly rightPanelManager: RightPanelManager;
+  readonly helpManager: HelpManager;
   readonly osType: OsType;
 
   private keyHandler: KeyDispatcher.KeyEventHandler;
@@ -38,7 +40,10 @@ export class UiManager {
       valueStackDiv: Page.getValueStack(),
       uiManager: this,
       onEscapeDismissable: this.notificationManager,
-      buttonGridLabel: Page.getButtonGridTopLabel(),
+      buttonGridLabel: Page.getButtonGridTopLabelContents(),
+    });
+    this.helpManager = new HelpManager({
+      helpButton: Page.getHelpButton(),
     });
     this.osType = osType;
 
@@ -65,6 +70,7 @@ export class UiManager {
     this.inputManager.initListeners();
     this.notificationManager.initListeners();
     this.rightPanelManager.initListeners();
+    this.helpManager.initListeners();
     document.body.addEventListener("keydown", this.keyEventListener);
   }
 

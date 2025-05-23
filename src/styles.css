@@ -159,13 +159,25 @@ input.prefix-arg-value {
 }
 
 .button-grid-top-label {
-    height: 16px;
+    height: 32px;
     margin-top: 0.6em;
     margin-bottom: 0.6em;
 }
 
 .button-panel-below-grid {
     padding-top: 1em;
+}
+
+button.help-button {
+    height: 28px;
+    padding-top: 0.1em;
+    padding-bottom: 0.1em;
+    vertical-align: middle;
+    float: right;
+}
+
+button.help-button > img {
+    vertical-align: middle;
 }
 
 .svg-icon {

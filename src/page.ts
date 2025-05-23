@@ -11,6 +11,7 @@ export const ElementIds = {
   NOTIFICATION_BOX_TEXT: 'notification-box-text',
   BUTTON_GRID_CONTAINER: 'button-grid-container',
   BUTTON_GRID_TOP_LABEL: 'button-grid-top-label',
+  BUTTON_GRID_TOP_LABEL_CONTENTS: 'button-grid-top-label-contents',
   PREFIX_ARG_PANEL: 'prefix-arg-panel',
   MODIFIER_ARG_PANEL: 'modifier-arg-panel',
   MODIFIER_ARG_KEEP_ARG_CHECKBOX: 'modifier-arg-keep-arg',
@@ -18,6 +19,7 @@ export const ElementIds = {
   UNDO_BUTTON: 'undo-button',
   REDO_BUTTON: 'redo-button',
   MODELINE_BAR: 'modeline-bar',
+  HELP_BUTTON: 'help-button',
 };
 
 function getElement(id: string): HTMLElement {
@@ -65,6 +67,10 @@ export function getButtonGridTopLabel(): HTMLElement {
   return getElement(ElementIds.BUTTON_GRID_TOP_LABEL);
 }
 
+export function getButtonGridTopLabelContents(): HTMLElement {
+  return getElement(ElementIds.BUTTON_GRID_TOP_LABEL_CONTENTS);
+}
+
 export function getPrefixArgPanel(): HTMLElement {
   return getElement(ElementIds.PREFIX_ARG_PANEL);
 }
@@ -91,4 +97,8 @@ export function getRedoButton(): HTMLButtonElement {
 
 export function getModelineBar(): HTMLElement {
   return getElement(ElementIds.MODELINE_BAR);
+}
+
+export function getHelpButton(): HTMLButtonElement {
+  return getElement(ElementIds.HELP_BUTTON) as HTMLButtonElement;
 }
