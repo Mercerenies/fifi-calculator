@@ -2,7 +2,7 @@
 import { InputBoxManager } from './input_box.js';
 import { NotificationManager } from './notifications.js';
 import { MainButtonGrid } from './button_grid/main_button_grid.js';
-import { KeyInput } from './keyboard.js';
+import { KeyInput, KeyResponse } from './keyboard.js';
 import * as KeyDispatcher from './keyboard/dispatcher.js';
 import { RightPanelManager } from './right_panel.js';
 import * as Page from './page.js';
@@ -76,7 +76,10 @@ export class UiManager {
       return;
     }
 
-    this.keyHandler.onKeyDown(input);
+    const response = await this.keyHandler.onKeyDown(input);
+    if (response == KeyResponse.BLOCK) {
+      event.preventDefault();
+    }
   }
 
   showPopup(newHtml: PopupDisplayHtml, backButtonQuerySelector?: string): void {
