@@ -18,6 +18,11 @@
   -ms-text-size-adjust: 100%;
 }
 
+.string-block {
+    margin: 0;
+    display: inline-block;
+}
+
 .container {
     display: flex;
     flex-wrap: wrap;

@@ -307,7 +307,13 @@ impl LanguageMode for BasicLanguageMode {
         out.push_str(encode_safe(var).as_ref());
       }
       Expr::Atom(Atom::String(s)) => {
+        if !self.uses_reversible_output {
+          out.push_str(r#"<pre class="string-block">"#);
+        }
         write_escaped_str(out, s).unwrap(); // unwrap: impl Write for String doesn't fail.
+        if !self.uses_reversible_output {
+          out.push_str("</pre>");
+        }
       }
       Expr::Call(f, args) => {
         if !self.uses_reversible_output && f == IncompleteObject::FUNCTION_NAME && args.len() == 1 {
