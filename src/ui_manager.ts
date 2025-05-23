@@ -2,7 +2,7 @@
 import { InputBoxManager } from './input_box.js';
 import { NotificationManager } from './notifications.js';
 import { MainButtonGrid } from './button_grid/main_button_grid.js';
-import { KeyInput, KeyResponse, isHardBlock } from './keyboard.js';
+import { KeyInput, isHardBlock } from './keyboard.js';
 import * as KeyDispatcher from './keyboard/dispatcher.js';
 import { RightPanelManager } from './right_panel.js';
 import * as Page from './page.js';
