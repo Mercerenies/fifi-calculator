@@ -2,7 +2,7 @@
 // Manager class for the button grid that shows up on-screen and for
 // keyboard shortcuts to said grid.
 
-import { KeyEventInput, KeyResponse } from './keyboard.js';
+import { KeyEventInput, KeyResponse, isBlocking } from './keyboard.js';
 import { ModifierDelegate, ButtonModifiers, modifiersToRustArgs } from './button_grid/modifier_delegate.js';
 import { SubcommandBehavior } from './button_grid/subcommand.js';
 import { TAURI } from './tauri_api.js';
@@ -98,7 +98,7 @@ export class ButtonGridManager implements AbstractButtonManager {
   async onKeyDown(input: KeyEventInput): Promise<KeyResponse> {
     if (this.isRootGrid()) {
       const responseFromDelegate = await this.modifierDelegate.onKeyDown(input);
-      if (KeyResponse.isBlocking(responseFromDelegate)) {
+      if (isBlocking(responseFromDelegate)) {
         // Delegate handled the event, so don't propagate to the
         // buttons.
         return responseFromDelegate;

@@ -136,12 +136,10 @@ export enum KeyResponse {
   SOFT_BLOCK,
 }
 
-export namespace KeyResponse {
-  export function isBlocking(response: KeyResponse): boolean {
-    return response == KeyResponse.BLOCK || response == KeyResponse.SOFT_BLOCK;
-  }
+export function isBlocking(response: KeyResponse): boolean {
+  return response == KeyResponse.BLOCK || response == KeyResponse.SOFT_BLOCK;
+}
 
-  export function isHardBlock(response: KeyResponse): boolean {
-    return response == KeyResponse.BLOCK;
-  }
+export function isHardBlock(response: KeyResponse): boolean {
+  return response == KeyResponse.BLOCK;
 }

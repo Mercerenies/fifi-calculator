@@ -1,7 +1,7 @@
 
 // Keyboard key event dispatcher.
 
-import { KeyEventInput, KeyResponse } from '../keyboard.js';
+import { KeyEventInput, KeyResponse, isBlocking } from '../keyboard.js';
 
 export interface KeyEventHandler {
   onKeyDown(input: KeyEventInput): Promise<KeyResponse>;
@@ -12,7 +12,7 @@ export function sequential(handlers: readonly KeyEventHandler[]): KeyEventHandle
     async onKeyDown(input: KeyEventInput): Promise<KeyResponse> {
       for (const handler of handlers) {
         const response = await handler.onKeyDown(input);
-        if (KeyResponse.isBlocking(response)) {
+        if (isBlocking(response)) {
           return response;
         }
       }
