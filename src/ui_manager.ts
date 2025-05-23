@@ -77,7 +77,7 @@ export class UiManager {
     }
 
     const response = await this.keyHandler.onKeyDown(input);
-    if (response == KeyResponse.BLOCK) {
+    if (KeyResponse.isHardBlock(response)) {
       event.preventDefault();
     }
   }

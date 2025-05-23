@@ -98,10 +98,10 @@ export class ButtonGridManager implements AbstractButtonManager {
   async onKeyDown(input: KeyEventInput): Promise<KeyResponse> {
     if (this.isRootGrid()) {
       const responseFromDelegate = await this.modifierDelegate.onKeyDown(input);
-      if (responseFromDelegate == KeyResponse.BLOCK) {
+      if (KeyResponse.isBlocking(responseFromDelegate)) {
         // Delegate handled the event, so don't propagate to the
         // buttons.
-        return KeyResponse.BLOCK;
+        return responseFromDelegate;
       }
     }
     const button = this.activeGrid.getKeyMappingTable()[input.toEmacsSyntax()];

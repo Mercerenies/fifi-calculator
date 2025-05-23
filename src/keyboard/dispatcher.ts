@@ -12,7 +12,7 @@ export function sequential(handlers: readonly KeyEventHandler[]): KeyEventHandle
     async onKeyDown(input: KeyEventInput): Promise<KeyResponse> {
       for (const handler of handlers) {
         const response = await handler.onKeyDown(input);
-        if (response === KeyResponse.BLOCK) {
+        if (KeyResponse.isBlocking(response)) {
           return response;
         }
       }

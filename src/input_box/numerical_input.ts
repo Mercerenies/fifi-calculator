@@ -28,7 +28,7 @@ export class NumericalInputMethod implements InputMethod {
       return KeyResponse.PASS;
     } else {
       // Absorb the input into the textbox.
-      return KeyResponse.BLOCK;
+      return KeyResponse.SOFT_BLOCK;
     }
   }
 

@@ -131,4 +131,17 @@ export enum KeyResponse {
   PASS,
   // Suppress the input and do not allow parent containers to see it.
   BLOCK,
+  // Suppress the input from the rest of the frontend system but DO
+  // NOT suppress default JavaScript behavior.
+  SOFT_BLOCK,
+}
+
+export namespace KeyResponse {
+  export function isBlocking(response: KeyResponse): boolean {
+    return response == KeyResponse.BLOCK || response == KeyResponse.SOFT_BLOCK;
+  }
+
+  export function isHardBlock(response: KeyResponse): boolean {
+    return response == KeyResponse.BLOCK;
+  }
 }

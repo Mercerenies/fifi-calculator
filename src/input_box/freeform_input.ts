@@ -18,10 +18,12 @@ export class FreeformInputMethod implements InputMethod {
       // Abort the input.
       input.event.preventDefault();
       session.cancel();
+      return KeyResponse.BLOCK;
     } else if (key === "Enter") {
       input.event.preventDefault();
       session.submit();
+      return KeyResponse.BLOCK;
     }
-    return KeyResponse.BLOCK;
+    return KeyResponse.SOFT_BLOCK;
   }
 }
