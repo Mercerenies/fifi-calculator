@@ -351,7 +351,15 @@ mod tests {
   fn test_atoms() {
     let mode = sample_language_mode();
     assert_eq!(to_html(&mode, &Expr::from(9)), "9");
-    assert_eq!(to_html(&mode, &Expr::from(r#"abc"def\"#)), r#""abc\"def\\""#);
+    assert_eq!(to_html(&mode, &Expr::from(r#"abc"def\"#)), r#"<pre class="string-block">"abc\"def\\"</pre>"#);
+  }
+
+  #[test]
+  fn test_atoms_in_reversible_mode() {
+    let mode = sample_language_mode();
+    let mode = mode.to_reversible_language_mode();
+    assert_eq!(to_html(mode.as_ref(), &Expr::from(9)), "9");
+    assert_eq!(to_html(mode.as_ref(), &Expr::from(r#"abc"def\"#)), r#""abc\"def\\""#);
   }
 
   #[test]
