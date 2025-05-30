@@ -12,14 +12,14 @@ import { ButtonModifiers } from './modifier_delegate.js';
 // of executing.
 export class HelpModeButtonManager implements AbstractButtonManager {
   private parent: AbstractButtonManager;
-  private callback: (cell: GridCell) => Promise<void>;
+  private callback: (cell: GridCell) => Promise<HelpModeResponse>;
   private cancelCallback: () => Promise<void>;
 
   readonly labelHTML: string = "Help Mode";
 
   constructor(
     parent: AbstractButtonManager,
-    callback: (cell: GridCell) => Promise<void>,
+    callback: (cell: GridCell) => Promise<HelpModeResponse>,
     opts: Partial<HelpModeButtonManagerOpts> = {},
   ) {
     this.parent = parent;
@@ -71,3 +71,5 @@ export class HelpModeButtonManager implements AbstractButtonManager {
 export interface HelpModeButtonManagerOpts {
   cancelCallback: () => Promise<void>,
 }
+
+export type HelpModeResponse = "success" | "pass";

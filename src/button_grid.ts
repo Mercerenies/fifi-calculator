@@ -7,6 +7,7 @@ import { ModifierDelegate, ButtonModifiers, modifiersToRustArgs } from './button
 import { SubcommandBehavior } from './button_grid/subcommand.js';
 import { TAURI } from './tauri_api.js';
 import { InputBoxManager } from './input_box.js';
+import { Fragment } from './jsx.js';
 
 // NOTE: This should be kept up to date with the .button-grid class in
 // styles.css. If that value gets updated, update this as well!
@@ -269,6 +270,7 @@ export interface GridCell {
   getHTML(manager: AbstractButtonManager): HTMLElement;
   fire(manager: AbstractButtonManager): Promise<void>;
   asSubcommand(manager: AbstractButtonManager): SubcommandBehavior;
+  getHelpPage(): Fragment | undefined;
 }
 
 // Empty grid cell.
@@ -287,5 +289,10 @@ export class Spacer implements GridCell {
   asSubcommand(): SubcommandBehavior {
     // No action.
     return "pass";
+  }
+
+  getHelpPage(): undefined {
+    // No help page.
+    return undefined;
   }
 }

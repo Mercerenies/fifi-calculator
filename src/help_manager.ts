@@ -1,5 +1,5 @@
 
-import { HelpModeButtonManager } from './button_grid/help_text.js';
+import { HelpModeButtonManager, HelpModeResponse } from './button_grid/help_text.js';
 import { AbstractButtonManager, GridCell } from './button_grid.js';
 import { HtmlText } from './jsx.js';
 import { PopupManager, generateViewPopupHtml, BACK_BUTTON_SELECTOR } from './popup_display.js';
@@ -24,10 +24,14 @@ export class HelpManager {
     this.buttonGridManager.setCurrentManager(helpMgr);
   }
 
-  private showHelpFor(cell: GridCell): Promise<void> {
-    const helpHtml = "<b>Sample text</b>"; // TODO
-    this.popupManager.showPopup(generateViewPopupHtml(HtmlText(helpHtml)), BACK_BUTTON_SELECTOR);
-    return Promise.resolve();
+  private showHelpFor(cell: GridCell): Promise<HelpModeResponse> {
+    const helpHtml = cell.getHelpPage();
+    if (helpHtml === undefined) {
+      // Nothing to show
+      return Promise.resolve("pass");
+    }
+    this.popupManager.showPopup(generateViewPopupHtml(helpHtml), BACK_BUTTON_SELECTOR);
+    return Promise.resolve("success");
   }
 }
 
