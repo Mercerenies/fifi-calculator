@@ -1,7 +1,8 @@
 
 import { HelpModeButtonManager } from './button_grid/help_text.js';
 import { AbstractButtonManager, GridCell } from './button_grid.js';
-import { PopupManager } from './popup_display.js';
+import { HtmlText } from './jsx.js';
+import { PopupManager, generateViewPopupHtml, BACK_BUTTON_SELECTOR } from './popup_display.js';
 
 export class HelpManager {
   private helpButton: HTMLButtonElement;
@@ -25,7 +26,7 @@ export class HelpManager {
 
   private showHelpFor(cell: GridCell): Promise<void> {
     const helpHtml = "<b>Sample text</b>"; // TODO
-    this.popupManager.showPopup(helpHtml); // TODO Back button and a wrapper API
+    this.popupManager.showPopup(generateViewPopupHtml(HtmlText(helpHtml)), BACK_BUTTON_SELECTOR);
     return Promise.resolve();
   }
 }
