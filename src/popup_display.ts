@@ -3,6 +3,11 @@ import { Fragment, isFragment } from './jsx.js';
 
 let POPUP_NESTING_COUNTER = 0;
 
+// A type capable of showing popups.
+export interface PopupManager {
+  showPopup(newHtml: PopupDisplayHtml, backButtonQuerySelector?: string): void;
+}
+
 export function showPopup(args: PopupDisplayArgs): void {
   const oldHtml = [...document.body.children];
   if (args.newHtml instanceof HTMLElement) {

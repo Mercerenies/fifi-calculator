@@ -4,19 +4,22 @@ import { TAURI, SubcommandId } from '../tauri_api.js';
 import { InputBoxManager } from '../input_box.js';
 import { ButtonModifiers } from './modifier_delegate.js';
 
+// TODO Visual indicator when this mode is active (some translucent
+// gray texture over the screen or something?)
+
 // Button manager for the mode in which the user has clicked the
 // "help" button. The next button clicked will show help text instead
 // of executing.
 export class HelpModeButtonManager implements AbstractButtonManager {
   private parent: AbstractButtonManager;
-  private callback: (subcommand: SubcommandId) => Promise<void>;
+  private callback: (cell: GridCell) => Promise<void>;
   private cancelCallback: () => Promise<void>;
 
   readonly labelHTML: string = "Help Mode";
 
   constructor(
     parent: AbstractButtonManager,
-    callback: (subcommand: SubcommandId) => Promise<void>,
+    callback: (cell: GridCell) => Promise<void>,
     opts: Partial<HelpModeButtonManagerOpts> = {},
   ) {
     this.parent = parent;
@@ -52,7 +55,8 @@ export class HelpModeButtonManager implements AbstractButtonManager {
 
   async onClick(cell: GridCell): Promise<void> {
     try {
-      // TODO
+      await this.callback(cell);
+      this.setCurrentManager(this.parent);
     } finally {
       this.resetState();
     }

@@ -8,11 +8,11 @@ import { RightPanelManager } from './right_panel.js';
 import { HelpManager } from './help_manager.js';
 import * as Page from './page.js';
 import { TAURI } from './tauri_api.js';
-import { showPopup, PopupDisplayArgs, PopupDisplayHtml } from './popup_display.js';
+import { showPopup, PopupDisplayArgs, PopupDisplayHtml, PopupManager } from './popup_display.js';
 
 import { OsType } from '@tauri-apps/plugin-os';
 
-export class UiManager {
+export class UiManager implements PopupManager {
   readonly inputManager: InputBoxManager;
   readonly notificationManager: NotificationManager;
   readonly rightPanelManager: RightPanelManager;
@@ -44,6 +44,8 @@ export class UiManager {
     });
     this.helpManager = new HelpManager({
       helpButton: Page.getHelpButton(),
+      buttonGridManager: this.rightPanelManager.buttonGrid,
+      popupManager: this,
     });
     this.osType = osType;
 
