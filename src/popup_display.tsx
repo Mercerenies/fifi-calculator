@@ -1,5 +1,8 @@
 
-import { Fragment, isFragment } from './jsx.js';
+import { jsx, HtmlText, Fragment, toNodes, isFragment } from './jsx.js';
+
+export const BACK_BUTTON_ID = "viewable-button-bar-back-button";
+export const BACK_BUTTON_SELECTOR = `#${BACK_BUTTON_ID}`;
 
 let POPUP_NESTING_COUNTER = 0;
 
@@ -65,3 +68,18 @@ export interface PopupDisplayArgs {
 }
 
 export type PopupDisplayHtml = string | HTMLElement | Fragment;
+
+export function generateViewPopupHtml(innerHTML: JSX.Element): JSX.Element {
+  return <>
+    <header>
+      <div class="viewable-button-bar">
+        <button id={BACK_BUTTON_ID}>Back</button>
+      </div>
+    </header>
+    <main class="viewable-display-main">
+      <span class="viewable-display-content-area">
+        {innerHTML}
+      </span>
+    </main>
+  </>;
+}

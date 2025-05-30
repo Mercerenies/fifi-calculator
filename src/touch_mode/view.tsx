@@ -2,8 +2,8 @@
 import { UiManager } from '../ui_manager.js';
 import { TouchModeFactoryContext } from '../touch_mode.js';
 import { ClickableTouchMode } from './clickable.js';
-import { jsx, HtmlText, Fragment, toNodes } from '../jsx.js';
 import { DirectRenderTarget, getGraphicsElements, getGraphicsPayload, renderPlotTo } from '../graphics.js';
+import { generateViewPopupHtml, BACK_BUTTON_SELECTOR } from '../popup_display.js';
 
 export class ViewTouchMode extends ClickableTouchMode {
   private uiManager: UiManager;
@@ -20,11 +20,9 @@ export class ViewTouchMode extends ClickableTouchMode {
       return;
     }
     const htmlToDisplay = getHtmlToDisplay(contentElem as HTMLElement, this.uiManager);
-    this.uiManager.showPopup(generateViewPageHtml(htmlToDisplay), `#${BACK_BUTTON_ID}`);
+    this.uiManager.showPopup(generateViewPopupHtml(htmlToDisplay), BACK_BUTTON_SELECTOR);
   }
 }
-
-const BACK_BUTTON_ID = "viewable-button-bar-back-button";
 
 function isSoleGraphicsElement(contentElem: HTMLElement): boolean {
   if (contentElem.children.length !== 1) {
@@ -52,7 +50,7 @@ function getHtmlToDisplay(contentElem: HTMLElement, uiManager: UiManager): JSX.E
       const button = insertButton(graphicsElement as HTMLElement);
       button.addEventListener('click', () => {
         const htmlToDisplay = getHtmlToDisplay(graphicsElement as HTMLElement, uiManager);
-        uiManager.showPopup(generateViewPageHtml(htmlToDisplay), `#${BACK_BUTTON_ID}`);
+        uiManager.showPopup(generateViewPopupHtml(htmlToDisplay), BACK_BUTTON_SELECTOR);
       });
     }
     return newSpan;
@@ -82,19 +80,4 @@ function insertButton(element: HTMLElement): HTMLButtonElement {
   button.appendChild(element);
   parent.insertBefore(button, parent.childNodes[elementIndex] ?? null);
   return button;
-}
-
-function generateViewPageHtml(innerHTML: JSX.Element): JSX.Element {
-  return <>
-    <header>
-      <div class="viewable-button-bar">
-        <button id={BACK_BUTTON_ID}>Back</button>
-      </div>
-    </header>
-    <main class="viewable-display-main">
-      <span class="viewable-display-content-area">
-        {innerHTML}
-      </span>
-    </main>
-  </>;
 }
