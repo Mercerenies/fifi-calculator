@@ -19,6 +19,7 @@ import { NumericalInputButton, AlgebraicInputButton } from './button/input.js';
 import { numericalInputToStack } from '../input_box/numerical_input.js';
 import { KeyEventInput, KeyResponse } from '../keyboard.js';
 import { svg } from '../util.js';
+import * as HelpLibrary from "../help_library.js";
 
 function discardSvg(): HTMLElement {
   return svg('assets/discard.svg', {alt: "pop"});
@@ -61,42 +62,42 @@ export class MainButtonGrid extends ButtonGrid {
         new DispatchButton("+", "+", "+"),
         new NumericalInputButton(),
         new AlgebraicInputButton(),
-        new GotoButton("&quot;", null, this.subgrids.input),
+        new GotoButton("&quot;", null, this.subgrids.input, HelpLibrary.subgridInput),
       ],
       [
         new DispatchButton("-", "-", "-"),
         new DispatchButton("<math><mo fence='true'>|</mo><mo>·</mo><mo fence='true'>|</mo></math>", "abs", "A"),
-        new GotoButton("mo", "m", this.subgrids.modes),
-        new GotoButton("out", "d", this.subgrids.display),
-        new GotoButton(graphSvg(), "g", this.subgrids.graphing),
+        new GotoButton("mo", "m", this.subgrids.modes, HelpLibrary.subgridModes),
+        new GotoButton("out", "d", this.subgrids.display, HelpLibrary.subgridDisplay),
+        new GotoButton(graphSvg(), "g", this.subgrids.graphing, HelpLibrary.subgridGraphing),
       ],
       [
         new DispatchButton("<math><mo>&times;</mo></math>", "*", "*"),
         new DispatchButton("<math><mo>&times;</mo><mi>i</mi></math>", "*i", null),
         new DispatchButton("<math><mo>&plusmn;</mo></math>", "negate", "n"),
         new DispatchButton("<math><msup><mi>x</mi><mi>y</mi></msup></math>", "^", "^"),
-        new GotoButton(rulerSvg(), "u", this.subgrids.units),
+        new GotoButton(rulerSvg(), "u", this.subgrids.units, HelpLibrary.subgridUnits),
       ],
       [
         new DispatchButton("&divide;", "/", "/"),
         new DispatchButton("%", "%", "%"),
         new DispatchButton("&lfloor;&divide;&rfloor;", "div", "\\"),
         new DispatchButton("<span class='mathy-text'>x=</span>", "substitute_vars", "="),
-        new GotoButton("str", null, this.subgrids.strings),
+        new GotoButton("str", null, this.subgrids.strings, HelpLibrary.subgridStrings),
       ],
       [
         new DispatchButton(discardSvg(), "pop", "Backspace"),
         new DispatchButton(swapSvg(), "swap", "Tab"),
         new DispatchButton(dupSvg(), "dup", "Enter"),
-        new GotoButton("<math><mi>ξ</mi></math>", "f", this.subgrids.transcendental),
-        new GotoButton("⏲", "t", this.subgrids.datetime),
+        new GotoButton("<math><mi>ξ</mi></math>", "f", this.subgrids.transcendental, HelpLibrary.subgridTranscendental),
+        new GotoButton("⏲", "t", this.subgrids.datetime, HelpLibrary.subgridDatetime),
       ],
       [
-        new GotoButton("<math><mi>x</mi></math>", "a", this.subgrids.algebra),
-        new GotoButton(":=", "s", this.subgrids.storage),
-        new GotoButton("[v]", "v", this.subgrids.vector),
-        new GotoButton("[m]", "M", this.subgrids.matrix),
-        new GotoButton("≤", null, this.subgrids.formula),
+        new GotoButton("<math><mi>x</mi></math>", "a", this.subgrids.algebra, HelpLibrary.subgridAlgebra),
+        new GotoButton(":=", "s", this.subgrids.storage, HelpLibrary.subgridStorage),
+        new GotoButton("[v]", "v", this.subgrids.vector, HelpLibrary.subgridVector),
+        new GotoButton("[m]", "M", this.subgrids.matrix, HelpLibrary.subgridMatrix),
+        new GotoButton("≤", null, this.subgrids.formula, HelpLibrary.subgridFormula),
       ],
     ];
   }

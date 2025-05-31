@@ -4,6 +4,7 @@ import { backButton, DispatchButton,
          SubcommandDispatchButton, DoubleSubcommandDispatchButton, GotoButton } from './button.js';
 import { UnsignedNumberedButton } from './button/numbered.js';
 import { svg } from '../util.js';
+import * as HelpLibrary from "../help_library.js";
 
 function magnifyingLensSvg(): HTMLElement {
   return svg('assets/magnifying.svg', {alt: "search"});
@@ -60,7 +61,7 @@ export class VectorButtonGrid extends ButtonGrid {
       ],
       [
         backButton(this.rootGrid),
-        new GotoButton(barGraphSvg(), "V", subgrids.vectorStats),
+        new GotoButton(barGraphSvg(), "V", subgrids.vectorStats, HelpLibrary.subgridVectorStats),
       ],
     ];
   }
