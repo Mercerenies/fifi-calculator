@@ -40,7 +40,7 @@ export class NumericalInputMethod implements InputMethod {
     // unless we're currently entering a number in scientific notation
     // (in which case, they're valid inputs in the text box).
     if ((key == '+') || (key == '-')) {
-      return !session.getText().endsWith("e");
+      return (!session.getText().endsWith("e")) && (session.getText() != "");
     }
     return false;
   }

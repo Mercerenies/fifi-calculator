@@ -7,6 +7,8 @@ import { numericalInputToStack } from '../../input_box/numerical_input.js';
 import { algebraicInputToStack, editStackFrame } from '../../input_box/algebraic_input.js';
 import { stringInputToStack } from '../../input_box/string_input.js';
 import { svg } from '../../util.js';
+import { HelpPage } from '../../help_manager.js';
+import * as HelpLibrary from "../../help_library.js";
 
 function pencilSvg(): HTMLElement {
   return svg('assets/pencil.svg', {alt: 'edit'});
@@ -34,6 +36,10 @@ export class NumericalInputButton extends InputButton {
   runInputFlow(manager: AbstractButtonManager): Promise<void> {
     return numericalInputToStack(manager.inputManager, "");
   }
+
+  getHelpPage(): HelpPage {
+    return HelpLibrary.inputNumerical();
+  }
 }
 
 export class AlgebraicInputButton extends InputButton {
@@ -44,6 +50,10 @@ export class AlgebraicInputButton extends InputButton {
   runInputFlow(manager: AbstractButtonManager): Promise<void> {
     return algebraicInputToStack(manager.inputManager, "");
   }
+
+  getHelpPage(): HelpPage {
+    return HelpLibrary.inputAlgebraic();
+  }
 }
 
 export class StringInputButton extends InputButton {
@@ -53,6 +63,10 @@ export class StringInputButton extends InputButton {
 
   runInputFlow(manager: AbstractButtonManager): Promise<void> {
     return stringInputToStack(manager.inputManager, "");
+  }
+
+  getHelpPage(): HelpPage {
+    return HelpLibrary.inputString();
   }
 }
 
@@ -73,5 +87,9 @@ export class AlgebraicEditButton extends InputButton {
       isMouseInteraction: false,
       commandOptionsOverride: modifiersToRustArgs(modifiers),
     });
+  }
+
+  getHelpPage(): HelpPage {
+    return HelpLibrary.inputAlgebraicEdit();
   }
 }

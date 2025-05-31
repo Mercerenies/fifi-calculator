@@ -183,3 +183,56 @@ export function subgridVectorStats(): HelpPage {
     body,
   };
 }
+
+export function inputNumerical(): HelpPage {
+  const body = <>
+    <p>
+      Input a literal number to push onto the stack. A leading minus sign
+      can be entered using the <code>_</code> hotkey. Scientific notation
+      is supported using programmer notation, e.g. <code>1.0e3</code>.
+    </p>
+  </>;
+  return {
+    headerText: 'Numerical Input',
+    body,
+  };
+}
+
+export function inputAlgebraic(): HelpPage {
+  const body = <>
+    <p>
+      Input an arbitrary mathematical expression to push onto the stack.
+    </p>
+  </>;
+  return {
+    headerText: 'Algebraic Input',
+    body,
+  };
+}
+
+export function inputString(): HelpPage {
+  const body = <>
+    <p>
+      Input literal text to push onto the stack as a string literal.
+    </p>
+  </>;
+  return {
+    headerText: 'String Input',
+    body,
+  };
+}
+
+export function inputAlgebraicEdit(): HelpPage {
+  const body = <>
+    <p>
+      Edit the top of the stack, as an algebraic expression.
+    </p>
+    <p>
+      With a numerical argument, the nth stack element is edited.
+    </p>
+  </>;
+  return {
+    headerText: 'Algebraic Edit',
+    body,
+  };
+}

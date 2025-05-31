@@ -148,6 +148,8 @@ declare global {
       footer: Partial<HtmlAttrs & DataAttrs>,
       h1: Partial<HtmlAttrs & DataAttrs>,
       p: Partial<HtmlAttrs & DataAttrs>,
+      pre: Partial<HtmlAttrs & DataAttrs>,
+      code: Partial<HtmlAttrs & DataAttrs>,
     }
     type Element = HTMLElement | Fragment;
   }
