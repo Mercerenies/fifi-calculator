@@ -2,6 +2,7 @@
 import { HelpModeButtonManager, HelpModeResponse } from './button_grid/help_text.js';
 import { AbstractButtonManager, GridCell } from './button_grid.js';
 import { PopupManager, generateViewPopupHtml, BACK_BUTTON_SELECTOR } from './popup_display.js';
+import { jsx, Fragment } from './jsx.js';
 
 export class HelpManager {
   private helpButton: HTMLButtonElement;
@@ -33,7 +34,7 @@ export class HelpManager {
       // Nothing to show
       return Promise.resolve("pass");
     }
-    this.popupManager.showPopup(generateViewPopupHtml(helpHtml), BACK_BUTTON_SELECTOR);
+    this.popupManager.showPopup(generateViewPopupHtml(helpPageToJsx(cell, helpHtml)), BACK_BUTTON_SELECTOR);
     return Promise.resolve("success");
   }
 }
@@ -42,4 +43,16 @@ export interface HelpManagerConstructorArgs {
   readonly helpButton: HTMLButtonElement;
   readonly buttonGridManager: AbstractButtonManager;
   readonly popupManager: PopupManager;
+}
+
+export interface HelpPage {
+  readonly headerText: string;
+  readonly body: JSX.Element;
+}
+
+export function helpPageToJsx(cell: GridCell, page: HelpPage): JSX.Element {
+  return <>
+    <h1>{page.headerText}</h1>
+    <div>{page.body}</div>
+  </>;
 }

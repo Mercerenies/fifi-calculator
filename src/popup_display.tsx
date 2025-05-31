@@ -1,5 +1,5 @@
 
-import { jsx, HtmlText, Fragment, toNodes, isFragment } from './jsx.js';
+import { jsx, Fragment, isFragment } from './jsx.js';
 
 export const BACK_BUTTON_ID = "viewable-button-bar-back-button";
 export const BACK_BUTTON_SELECTOR = `#${BACK_BUTTON_ID}`;

@@ -5,6 +5,8 @@ import { modifiersToRustArgs } from './modifier_delegate.js';
 import { SubcommandBehavior, SubcommandButtonManager,
          SubcommandButtonManagerOpts, IsSubcommand } from './subcommand.js';
 import { svg } from '../util.js';
+import { HelpPage } from '../help_manager.js';
+import * as HelpLibrary from "../help_library.js";
 
 export abstract class Button implements GridCell {
   readonly label: string | HTMLElement;
@@ -29,6 +31,8 @@ export abstract class Button implements GridCell {
   abstract fire(manager: AbstractButtonManager): Promise<void>;
 
   abstract asSubcommand(manager: AbstractButtonManager): SubcommandBehavior;
+
+  abstract getHelpPage(): HelpPage;
 }
 
 export class DispatchButton extends Button {
@@ -54,13 +58,22 @@ export class DispatchButton extends Button {
 
 export class GotoButton extends Button {
   private gridFactory: () => ButtonGrid;
+  private helpFactory: () => HelpPage;
 
-  constructor(label: string | HTMLElement, keyboardShortcut: string | null, gridFactory: ButtonGrid | (() => ButtonGrid)) {
+  constructor(label: string | HTMLElement,
+              keyboardShortcut: string | null,
+              gridFactory: ButtonGrid | (() => ButtonGrid),
+              helpFactory: HelpPage | (() => HelpPage)) {
     super(label, keyboardShortcut);
     if (typeof gridFactory === 'function') {
       this.gridFactory = gridFactory;
     } else {
       this.gridFactory = () => gridFactory;
+    }
+    if (typeof helpFactory === 'function') {
+      this.helpFactory = helpFactory;
+    } else {
+      this.helpFactory = () => helpFactory;
     }
   }
 
@@ -72,11 +85,15 @@ export class GotoButton extends Button {
   asSubcommand(): SubcommandBehavior {
     return "pass";
   }
+
+  getHelpPage(): HelpPage {
+    return this.helpFactory();
+  }
 }
 
 export function backButton(gridFactory: ButtonGrid | (() => ButtonGrid)): GotoButton {
   const image = svg('assets/back.svg', {alt: 'back'});
-  return new GotoButton(image, "Escape", gridFactory);
+  return new GotoButton(image, "Escape", gridFactory, HelpLibrary.backButton);
 }
 
 export class SubcommandDispatchButton extends Button {
