@@ -278,6 +278,7 @@ export interface GridCell {
   readonly keyboardShortcut: string | null;
 
   getHTML(manager: AbstractButtonManager): HTMLElement;
+  getInnerHTML(): HTMLElement | string;
   fire(manager: AbstractButtonManager): Promise<void>;
   asSubcommand(manager: AbstractButtonManager): SubcommandBehavior;
   getHelpPage(): HelpPage | undefined;
@@ -289,6 +290,10 @@ export class Spacer implements GridCell {
 
   getHTML(): HTMLElement {
     return document.createElement("div");
+  }
+
+  getInnerHTML(): string {
+    return "";
   }
 
   fire(): Promise<void> {

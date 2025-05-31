@@ -2,7 +2,7 @@
 import { HelpModeButtonManager, HelpModeResponse } from './button_grid/help_text.js';
 import { AbstractButtonManager, GridCell } from './button_grid.js';
 import { PopupManager, generateViewPopupHtml, BACK_BUTTON_SELECTOR } from './popup_display.js';
-import { jsx, Fragment } from './jsx.js';
+import { jsx, Fragment, HtmlText } from './jsx.js';
 
 export class HelpManager {
   private helpButton: HTMLButtonElement;
@@ -51,8 +51,10 @@ export interface HelpPage {
 }
 
 export function helpPageToJsx(cell: GridCell, page: HelpPage): JSX.Element {
+  const cellHtml = cell.getInnerHTML();
+  const cellIcon = (typeof cellHtml === 'string' ? HtmlText(cellHtml) : new Fragment([cellHtml]));
   return <>
-    <h1>{page.headerText}</h1>
+    <h1><span class="helptext-icon">{cellIcon}</span> {page.headerText}</h1>
     <div>{page.body}</div>
   </>;
 }

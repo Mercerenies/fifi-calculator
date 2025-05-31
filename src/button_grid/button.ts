@@ -28,6 +28,10 @@ export abstract class Button implements GridCell {
     return button;
   }
 
+  getInnerHTML(): string | HTMLElement {
+    return this.label;
+  }
+
   abstract fire(manager: AbstractButtonManager): Promise<void>;
 
   abstract asSubcommand(manager: AbstractButtonManager): SubcommandBehavior;
