@@ -59,6 +59,10 @@ export class ButtonGridManager implements AbstractButtonManager {
     this.buttonGridLabel.innerHTML = manager.labelHTML;
   }
 
+  getCurrentManager(): AbstractButtonManager {
+    return this.managerFacade.getCurrentManager();
+  }
+
   resetModifiers(): void {
     this.modifierDelegate.resetModifiers();
   }
@@ -172,6 +176,10 @@ class ManagerFacade implements AbstractButtonManager {
     return this.currentManager.onEscape();
   }
 
+  getCurrentManager(): AbstractButtonManager {
+    return this.currentManager;
+  }
+
   setCurrentManager(manager: AbstractButtonManager): void {
     this.currentManager = manager;
   }
@@ -206,6 +214,8 @@ export interface AbstractButtonManager {
   onClick(cell: GridCell): Promise<void>;
   onEscape(): Promise<void>;
   setCurrentManager(manager: AbstractButtonManager): void;
+  // Returns the current "leaf" manager, NOT the facade.
+  getCurrentManager(): AbstractButtonManager;
 }
 
 export abstract class ButtonGrid {

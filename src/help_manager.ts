@@ -1,7 +1,6 @@
 
 import { HelpModeButtonManager, HelpModeResponse } from './button_grid/help_text.js';
 import { AbstractButtonManager, GridCell } from './button_grid.js';
-import { HtmlText } from './jsx.js';
 import { PopupManager, generateViewPopupHtml, BACK_BUTTON_SELECTOR } from './popup_display.js';
 
 export class HelpManager {
@@ -20,8 +19,12 @@ export class HelpManager {
   }
 
   private onHelpButtonClicked(): void {
-    const helpMgr = new HelpModeButtonManager(this.buttonGridManager, (cell) => this.showHelpFor(cell));
-    this.buttonGridManager.setCurrentManager(helpMgr);
+    if (this.buttonGridManager.getCurrentManager() instanceof HelpModeButtonManager) {
+      this.buttonGridManager.getCurrentManager().onEscape(); // Fire and forget; simulate a cancel action.
+    } else {
+      const helpMgr = new HelpModeButtonManager(this.buttonGridManager, (cell) => this.showHelpFor(cell));
+      this.buttonGridManager.setCurrentManager(helpMgr);
+    }
   }
 
   private showHelpFor(cell: GridCell): Promise<HelpModeResponse> {

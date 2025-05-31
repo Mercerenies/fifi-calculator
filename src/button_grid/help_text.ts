@@ -49,6 +49,10 @@ export class HelpModeButtonManager implements AbstractButtonManager {
     throw new Error("Attempted to invoke regular command during subcommand input!");
   }
 
+  getCurrentManager(): AbstractButtonManager {
+    return this.parent.getCurrentManager();
+  }
+
   setCurrentManager(manager: AbstractButtonManager): void {
     this.parent.setCurrentManager(manager);
   }

@@ -67,6 +67,10 @@ export class SubcommandButtonManager implements AbstractButtonManager {
     this.parent.setCurrentManager(manager);
   }
 
+  getCurrentManager(): AbstractButtonManager {
+    return this.parent.getCurrentManager();
+  }
+
   async onClick(cell: GridCell): Promise<void> {
     try {
       this.setCurrentManager(this.parent);
