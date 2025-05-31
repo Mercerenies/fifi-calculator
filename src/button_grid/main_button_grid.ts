@@ -59,7 +59,7 @@ export class MainButtonGrid extends ButtonGrid {
   private initRows(): GridCell[][] {
     return [
       [
-        new DispatchButton("+", "+", "+"),
+        new DispatchButton("+", "+", "+", HelpLibrary.plus),
         new NumericalInputButton(),
         new AlgebraicInputButton(),
         new GotoButton("&quot;", null, this.subgrids.input, HelpLibrary.subgridInput),

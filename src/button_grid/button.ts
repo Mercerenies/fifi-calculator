@@ -41,10 +41,19 @@ export abstract class Button implements GridCell {
 
 export class DispatchButton extends Button {
   readonly commandName: string;
+  private helpFactory: () => HelpPage;
 
-  constructor(label: string | HTMLElement, commandName: string, keyboardShortcut: string | null) {
+  constructor(label: string | HTMLElement,
+              commandName: string,
+              keyboardShortcut: string | null,
+              helpFactory: HelpPage | (() => HelpPage)) {
     super(label, keyboardShortcut);
     this.commandName = commandName;
+    if (typeof helpFactory === 'function') {
+      this.helpFactory = helpFactory;
+    } else {
+      this.helpFactory = () => helpFactory;
+    }
   }
 
   async fire(manager: AbstractButtonManager): Promise<void> {
@@ -57,6 +66,10 @@ export class DispatchButton extends Button {
       name: this.commandName,
       options: modifiersToRustArgs(manager.getModifiers()),
     });
+  }
+
+  getHelpPage(): HelpPage {
+    return this.helpFactory();
   }
 }
 
@@ -102,6 +115,7 @@ export function backButton(gridFactory: ButtonGrid | (() => ButtonGrid)): GotoBu
 
 export class SubcommandDispatchButton extends Button {
   private opts: Partial<SubcommandDispatchButtonOpts>;
+  private helpFactory: () => HelpPage;
 
   readonly commandName: string;
 
@@ -109,11 +123,17 @@ export class SubcommandDispatchButton extends Button {
     label: string | HTMLElement,
     commandName: string,
     keyboardShortcut: string | null,
+    helpFactory: HelpPage | (() => HelpPage),
     opts: Partial<SubcommandDispatchButtonOpts> = {},
   ) {
     super(label, keyboardShortcut);
     this.commandName = commandName;
     this.opts = opts;
+    if (typeof helpFactory === 'function') {
+      this.helpFactory = helpFactory;
+    } else {
+      this.helpFactory = () => helpFactory;
+    }
   }
 
   async fire(manager: AbstractButtonManager): Promise<void> {
@@ -126,10 +146,15 @@ export class SubcommandDispatchButton extends Button {
   asSubcommand(): SubcommandBehavior {
     return "invalid";
   }
+
+  getHelpPage(): HelpPage {
+    return this.helpFactory();
+  }
 }
 
 export class DoubleSubcommandDispatchButton extends Button {
   private opts: Partial<DoubleSubcommandDispatchButtonOpts>;
+  private helpFactory: () => HelpPage;
 
   readonly commandName: string;
 
@@ -137,11 +162,17 @@ export class DoubleSubcommandDispatchButton extends Button {
     label: string | HTMLElement,
     commandName: string,
     keyboardShortcut: string | null,
+    helpFactory: HelpPage | (() => HelpPage),
     opts: Partial<DoubleSubcommandDispatchButtonOpts> = {},
   ) {
     super(label, keyboardShortcut);
     this.commandName = commandName;
     this.opts = opts;
+    if (typeof helpFactory === 'function') {
+      this.helpFactory = helpFactory;
+    } else {
+      this.helpFactory = () => helpFactory;
+    }
   }
 
   async fire(manager: AbstractButtonManager): Promise<void> {
@@ -175,6 +206,10 @@ export class DoubleSubcommandDispatchButton extends Button {
 
   asSubcommand(): SubcommandBehavior {
     return "invalid";
+  }
+
+  getHelpPage(): HelpPage {
+    return this.helpFactory();
   }
 }
 

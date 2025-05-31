@@ -4,6 +4,21 @@
 import { jsx, Fragment } from './jsx.js';
 import { HelpPage } from './help_manager.js';
 
+function BinaryFunctionExplanation(): JSX.Element {
+  return <span>
+    <p>
+      This function takes two arguments from the top of the stack by default. With
+      a positive argument N, this function takes N values off the stack and reduces
+      them (associating to the left) using the binary function. A numerical argument
+      of zero reduces the <em>whole</em> stack.
+    </p>
+    <p>
+      If given a negative prefix argument, the top stack element is <em>distributed</em> to
+      the next N stack elements as the right-hand argument to this function.
+    </p>
+  </span>;
+}
+
 export function backButton(): HelpPage {
   const body = <>
     <p>
@@ -233,6 +248,33 @@ export function inputAlgebraicEdit(): HelpPage {
   </>;
   return {
     headerText: 'Algebraic Edit',
+    body,
+  };
+}
+
+///// TODO Fix horizontal alignment of <ul> here.
+export function plus(): HelpPage {
+  const body = <>
+    <p>
+      Adds the top two stack elements together, pushing a single result.
+    </p>
+    <p>
+      Many of the built-in datatypes support some form of addition.
+    </p>
+    <ul>
+      <li>Numbers (real, complex, or quaternion) are added together using the usual mathematical rules.</li>
+      <li>Datetimes can be added to numbers, which are interpreted as a delta in days.</li>
+      <li>Strings are concatenated.</li>
+      <li>Intervals are added together as sets of real numbers.</li>
+      <li>Graphics objects are concatenated into a single graphics object.</li>
+    </ul>
+    <p>
+      Addition is broadcasted across vector arguments automatically.
+    </p>
+    <BinaryFunctionExplanation />
+  </>;
+  return {
+    headerText: 'Plus',
     body,
   };
 }

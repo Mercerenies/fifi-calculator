@@ -5,6 +5,8 @@ import { InputBoxManager } from '../../input_box.js';
 import { FreeformInputMethod } from '../../input_box/freeform_input.js';
 import { Button } from '../button.js';
 import { TAURI, Validator } from '../../tauri_api.js';
+import { HelpPage } from '../../help_manager.js';
+import * as HelpLibrary from "../../help_library.js";
 
 // A NumberedButton is a button which uses the numerical argument (if
 // provided), or prompts the user for one if not provided. Invokes the
@@ -45,10 +47,20 @@ export abstract class NumberedButton extends Button {
 
 export class UnsignedNumberedButton extends NumberedButton {
   private prompt: string;
+  private helpFactory: () => HelpPage;
 
-  constructor(label: string | HTMLElement, commandName: string, keyboardShortcut: string | null, prompt: string) {
+  constructor(label: string | HTMLElement,
+              commandName: string,
+              keyboardShortcut: string | null,
+              prompt: string,
+              helpFactory: HelpPage | (() => HelpPage)) {
     super(label, commandName, keyboardShortcut);
     this.prompt = prompt;
+    if (typeof helpFactory === 'function') {
+      this.helpFactory = helpFactory;
+    } else {
+      this.helpFactory = () => helpFactory;
+    }
   }
 
   normalizeNumber(n: number) {
@@ -65,15 +77,29 @@ export class UnsignedNumberedButton extends NumberedButton {
     }
     return Number(value);
   }
+
+  getHelpPage(): HelpPage {
+    return this.helpFactory();
+  }
 }
 
 
 export class SignedNumberedButton extends NumberedButton {
   private prompt: string;
+  private helpFactory: () => HelpPage;
 
-  constructor(label: string | HTMLElement, commandName: string, keyboardShortcut: string | null, prompt: string) {
+  constructor(label: string | HTMLElement,
+              commandName: string,
+              keyboardShortcut: string | null,
+              prompt: string,
+              helpFactory: HelpPage | (() => HelpPage)) {
     super(label, commandName, keyboardShortcut);
     this.prompt = prompt;
+    if (typeof helpFactory === 'function') {
+      this.helpFactory = helpFactory;
+    } else {
+      this.helpFactory = () => helpFactory;
+    }
   }
 
   normalizeNumber(n: number) {
@@ -89,5 +115,9 @@ export class SignedNumberedButton extends NumberedButton {
       return null;
     }
     return Number(value);
+  }
+
+  getHelpPage(): HelpPage {
+    return this.helpFactory();
   }
 }

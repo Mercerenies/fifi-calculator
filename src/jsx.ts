@@ -139,6 +139,7 @@ declare global {
   namespace JSX {
     interface IntrinsicElements {
       ol: Partial<HtmlAttrs & DataAttrs>,
+      ul: Partial<HtmlAttrs & DataAttrs>,
       li: Partial<HtmlAttrs & DataAttrs & { value: Stringy }>,
       span: Partial<HtmlAttrs & DataAttrs>,
       div: Partial<HtmlAttrs & DataAttrs>,
@@ -150,6 +151,7 @@ declare global {
       p: Partial<HtmlAttrs & DataAttrs>,
       pre: Partial<HtmlAttrs & DataAttrs>,
       code: Partial<HtmlAttrs & DataAttrs>,
+      em: Partial<HtmlAttrs & DataAttrs>,
     }
     type Element = HTMLElement | Fragment;
   }
