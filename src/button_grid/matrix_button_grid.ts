@@ -2,6 +2,7 @@
 import { ButtonGrid, GridCell } from "../button_grid.js";
 import { backButton, DispatchButton } from './button.js';
 import { SignedNumberedButton, UnsignedNumberedButton } from './button/numbered.js';
+import * as HelpLibrary from "../help_library.js";
 
 export class MatrixButtonGrid extends ButtonGrid {
   readonly rows: readonly (readonly GridCell[])[];
@@ -32,7 +33,7 @@ export class MatrixButtonGrid extends ButtonGrid {
         new DispatchButton("tr", "trace", "T"),
       ],
       [
-        new DispatchButton("<math><mo>&times;</mo></math>", "@", "@"),
+        new DispatchButton("<math><mo>&times;</mo></math>", "@", "@", HelpLibrary.timesFull),
         new DispatchButton("<math><mo>&otimes;</mo></math>", "kron", "K"),
       ],
       [],

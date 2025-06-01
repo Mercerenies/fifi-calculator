@@ -633,6 +633,7 @@ pub fn trace() -> Function {
     .build()
 }
 
+// TODO For consistency with "normal" multiplication, support string repetition and interval arithmetic here.
 pub fn matrix_multiplication() -> Function {
   FunctionBuilder::new("@")
     .add_case(

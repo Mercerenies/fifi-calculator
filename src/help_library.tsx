@@ -252,7 +252,6 @@ export function inputAlgebraicEdit(): HelpPage {
   };
 }
 
-///// TODO Fix horizontal alignment of <ul> here.
 export function plus(): HelpPage {
   const body = <>
     <p>
@@ -261,9 +260,9 @@ export function plus(): HelpPage {
     <p>
       Many of the built-in datatypes support some form of addition.
     </p>
-    <ul>
+    <ul class="help-ul">
       <li>Numbers (real, complex, or quaternion) are added together using the usual mathematical rules.</li>
-      <li>Datetimes can be added to numbers, which are interpreted as a delta in days.</li>
+      <li>Real numbers can be added to datetimes, in which case they are interpreted as a delta in days.</li>
       <li>Strings are concatenated.</li>
       <li>Intervals are added together as sets of real numbers.</li>
       <li>Graphics objects are concatenated into a single graphics object.</li>
@@ -275,6 +274,116 @@ export function plus(): HelpPage {
   </>;
   return {
     headerText: 'Plus',
+    body,
+  };
+}
+
+export function minus(): HelpPage {
+  const body = <>
+    <p>
+      Subtracts the top stack element from the next stack element down, pushing a single result.
+    </p>
+    <p>
+      Many of the built-in datatypes support some form of subtraction.
+    </p>
+    <ul class="help-ul">
+      <li>Numbers (real, complex, or quaternion) are subtracted using the usual mathematical rules.</li>
+      <li>Real numbers can be subtracted from datetimes, in which case they are interpreted as a delta in days.</li>
+      <li>Two datetimes can be subtracted, producing a delta in days.</li>
+      <li>Intervals are subtracted together as sets of real numbers.</li>
+    </ul>
+    <p>
+      Subtraction is broadcasted across vector arguments automatically.
+    </p>
+    <BinaryFunctionExplanation />
+  </>;
+  return {
+    headerText: 'Minus',
+    body,
+  };
+}
+
+export function times(): HelpPage {
+  const body = <>
+    <p>
+      Multiplies the top two stack elements together, producing a single result.
+    </p>
+    <p>
+      <strong>Note:</strong> This multiplication operator is always treated as
+      commutative and broadcasts across vectors. For non-commutative multiplication
+      operations such as those over matrices or quaternions, you must use the
+      <code>@</code> operator (in the Matrix Commands grid).
+    </p>
+    <p>
+      Many of the built-in datatypes support some form of commutative multiplication.
+    </p>
+    <ul class="help-ul">
+      <li>Numbers (real or complex) are multiplied using the usual mathematical rules.</li>
+      <li>Multiplying a string and a nonnegative integer repeats that string, similar to Python semantics.</li>
+      <li>Intervals are multiplied together as sets of real numbers.</li>
+    </ul>
+    <p>
+      Multiplication is broadcasted across vector arguments automatically.
+    </p>
+    <BinaryFunctionExplanation />
+  </>;
+  return {
+    headerText: 'Times (Commutative)',
+    body,
+  };
+}
+
+export function timesFull(): HelpPage {
+  const body = <>
+    <p>
+      Multiplies the top two stack elements together, producing a single result. Unlike
+      the "default" multiplication operation, this operator is <em>not</em> treated
+      as commutative by the algebra engine.
+    </p>
+    <p>
+      The following datatypes are supported.
+    </p>
+    <ul class="help-ul">
+      <li>Numbers (real, complex, or quaternion) are multiplied using the usual mathematical rules.</li>
+      <li>Multiplication is broadcasted over vectors if and only if one of the arguments is a scalar.</li>
+      <li>Vector-matrix and matrix-vector multiplication is performed using the usual
+          rules of mathematics. In the first case, the vector is treated as a row vector, and
+          in the latter case, the vector is treated as a column vector.</li>
+      <li>Matrix-matrix multiplication is performed according to the usual rules of arithmetic.</li>
+    </ul>
+    <BinaryFunctionExplanation />
+  </>;
+  return {
+    headerText: 'Times (Non-commutative)',
+    body,
+  };
+}
+
+export function divide(): HelpPage {
+  const body = <>
+    <p>
+      Divides the top stack element from the next stack element down, producing a single result.
+    </p>
+    <p>
+      In the event of division by zero, an appropriate infinite constant is returned.
+      Specifically, a directional infinity is returned if the direction can be determined,
+      or NaN if not.
+    </p>
+    <p>
+      The following datatypes are supported.
+    </p>
+    <ul class="help-ul">
+      <li>Numbers (real or complex) are multiplied using the usual mathematical rules.</li>
+      <li>Intervals are divided as sets of real numbers. If the result of division would be a
+          union of intervals, then the result is the smallest single interval containing that union.</li>
+    </ul>
+    <p>
+      Division is broadcasted across vector arguments automatically.
+    </p>
+    <BinaryFunctionExplanation />
+  </>;
+  return {
+    headerText: 'Divide',
     body,
   };
 }

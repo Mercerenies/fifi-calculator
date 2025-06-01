@@ -308,6 +308,13 @@ pub fn multiplication() -> Function {
       })
     )
     .add_case(
+      // String repetition (reversed)
+      builder::arity_two().of_types(prisms::expr_to_usize(), prisms::expr_to_string()).and_then(|n, s, _| {
+        let repeated_str: String = repeated(s, n);
+        Ok(Expr::from(repeated_str))
+      })
+    )
+    .add_case(
       // Multiplication by zero
       builder::any_arity()
         .filter(|args| {

@@ -152,6 +152,7 @@ declare global {
       pre: Partial<HtmlAttrs & DataAttrs>,
       code: Partial<HtmlAttrs & DataAttrs>,
       em: Partial<HtmlAttrs & DataAttrs>,
+      strong: Partial<HtmlAttrs & DataAttrs>,
     }
     type Element = HTMLElement | Fragment;
   }

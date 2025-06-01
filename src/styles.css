@@ -522,6 +522,10 @@ input, button {
     margin-right: 0.5em;
 }
 
+.help-ul {
+    text-align: left;
+}
+
 /* "Small screen" mode for mobile devices */
 @media (max-width: 840px) {
     .value-stack {
