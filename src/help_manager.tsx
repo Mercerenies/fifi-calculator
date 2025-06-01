@@ -1,12 +1,14 @@
 
 import { HelpModeButtonManager, HelpModeResponse } from './button_grid/help_text.js';
-import { AbstractButtonManager, GridCell } from './button_grid.js';
+import { ButtonGridManager, GridCell } from './button_grid.js';
 import { PopupManager, generateViewPopupHtml, BACK_BUTTON_SELECTOR } from './popup_display.js';
 import { jsx, Fragment, HtmlText } from './jsx.js';
+import { KeyEventHandler } from './keyboard/dispatcher.js';
+import { KeyEventInput, KeyResponse } from './keyboard.js';
 
-export class HelpManager {
+export class HelpManager implements KeyEventHandler {
   private helpButton: HTMLButtonElement;
-  private buttonGridManager: AbstractButtonManager;
+  private buttonGridManager: ButtonGridManager;
   private popupManager: PopupManager;
 
   constructor(args: HelpManagerConstructorArgs) {
@@ -17,6 +19,15 @@ export class HelpManager {
 
   initListeners(): void {
     this.helpButton.addEventListener("click", () => this.onHelpButtonClicked());
+  }
+
+  onKeyDown(input: KeyEventInput): Promise<KeyResponse> {
+    console.log(input.key);
+    if (input.key != "?") {
+      return Promise.resolve(KeyResponse.PASS);
+    }
+    this.onHelpButtonClicked();
+    return Promise.resolve(KeyResponse.BLOCK);
   }
 
   private onHelpButtonClicked(): void {
@@ -41,7 +52,7 @@ export class HelpManager {
 
 export interface HelpManagerConstructorArgs {
   readonly helpButton: HTMLButtonElement;
-  readonly buttonGridManager: AbstractButtonManager;
+  readonly buttonGridManager: ButtonGridManager;
   readonly popupManager: PopupManager;
 }
 

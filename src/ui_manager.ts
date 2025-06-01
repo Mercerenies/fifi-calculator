@@ -58,6 +58,7 @@ export class UiManager implements PopupManager {
         this.rightPanelManager.undoManager,
         () => this.rightPanelManager.buttonGrid.isRootGrid(),
       ),
+      this.helpManager,
       this.rightPanelManager.buttonGrid,
     ]);
     this.keyEventListener = (event) => this.dispatchOnKey(event);
