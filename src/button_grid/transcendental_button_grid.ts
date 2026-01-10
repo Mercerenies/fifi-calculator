@@ -1,6 +1,7 @@
 
 import { ButtonGrid, GridCell } from "../button_grid.js";
 import { backButton, DispatchButton } from './button.js';
+import * as HelpLibrary from "../help_library.js";
 
 export class TranscendentalButtonGrid extends ButtonGrid {
   readonly rows: readonly (readonly GridCell[])[];
@@ -16,8 +17,8 @@ export class TranscendentalButtonGrid extends ButtonGrid {
   private initRows(): GridCell[][] {
     return [
       [
-        new DispatchButton("ln", "ln", "L"),
-        new DispatchButton("log", "log", "B"),
+        new DispatchButton("ln", "ln", "L", HelpLibrary.ln),
+        new DispatchButton("log", "log", "B", HelpLibrary.log),
       ],
       [
         new DispatchButton("<math><msup><mi>e</mi><mi>x</mi></msup></math>", "e^", "E"),
@@ -36,9 +37,9 @@ export class TranscendentalButtonGrid extends ButtonGrid {
         new DispatchButton("<small><math><mrow><mo>⌈</mo><mi>·</mi><mo>⌉</mo></mrow></math></small>", "max", "x"),
       ],
       [
-        new DispatchButton("sin", "sin", "S"),
-        new DispatchButton("cos", "cos", "C"),
-        new DispatchButton("tan", "tan", "T"),
+        new DispatchButton("sin", "sin", "S", HelpLibrary.sine),
+        new DispatchButton("cos", "cos", "C", HelpLibrary.cosine),
+        new DispatchButton("tan", "tan", "T", HelpLibrary.tangent),
       ],
       [
         backButton(this.rootGrid),

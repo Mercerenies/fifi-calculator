@@ -4,6 +4,21 @@
 import { jsx, Fragment } from './jsx.js';
 import { HelpPage } from './help_manager.js';
 
+function UnaryFunctionExplanation(): JSX.Element {
+  return <span>
+    <p>
+      This function takes one argument from the top of the stack by default. With
+      a positive prefix argument <code>u</code>, this function is applied (independently) to the top <code>u</code>
+      stack elements. A prefix argument of zero applies the function to the <em>whole</em> stack.
+    </p>
+    <p>
+      If given a negative prefix argument, the function is applied to a single stack element <code>u</code> down
+      on the stack. That is, a prefix argument of <code>-1</code> is equivalent to no prefix argument at all, while
+      a prefix argument of <code>-2</code> applies to the second stack element down, ignoring the first stack element.
+    </p>
+  </span>;
+}
+
 function BinaryFunctionExplanation(): JSX.Element {
   return <span>
     <p>
@@ -368,9 +383,9 @@ export function divide(): HelpPage {
       Divides the top stack element from the next stack element down, producing a single result.
     </p>
     <p>
-      In the event of division by zero, an appropriate infinite constant is returned.
+      In the event of division by zero, if infinity mode is on, an appropriate infinite constant is returned.
       Specifically, a directional infinity is returned if the direction can be determined,
-      or NaN if not.
+      or NaN if not. If infinity mode is not on, then an error is returned.
     </p>
     <p>
       The following datatypes are supported.
@@ -385,6 +400,100 @@ export function divide(): HelpPage {
   </>;
   return {
     headerText: 'Divide',
+    body,
+  };
+}
+
+export function sine(): HelpPage {
+  const body = <>
+    <p>
+      Applies the trigonometric <code>sin</code> function to the top stack element, which may be a
+      real or complex number.
+    </p>
+    <p>
+      With the HYPER flag, applies the <code>sinh</code> hyperbolic function. With the INVERSE flag, applies
+      the <code>asin</code> inverse trigonometric function. With both flags, applies the <code>asinh</code> function.
+    </p>
+    <UnaryFunctionExplanation />
+  </>;
+  return {
+    headerText: 'Sine',
+    body,
+  };
+}
+
+export function cosine(): HelpPage {
+  const body = <>
+    <p>
+      Applies the trigonometric <code>cos</code> function to the top stack element, which may be a
+      real or complex number.
+    </p>
+    <p>
+      With the HYPER flag, applies the <code>cosh</code> hyperbolic function. With the INVERSE flag, applies
+      the <code>acos</code> inverse trigonometric function. With both flags, applies the <code>acosh</code> function.
+    </p>
+    <UnaryFunctionExplanation />
+  </>;
+  return {
+    headerText: 'Cosine',
+    body,
+  };
+}
+
+export function tangent(): HelpPage {
+  const body = <>
+    <p>
+      Applies the trigonometric <code>tan</code> function to the top stack element, which may be a
+      real or complex number.
+    </p>
+    <p>
+      With the HYPER flag, applies the <code>tanh</code> hyperbolic function. With the INVERSE flag, applies
+      the <code>atan</code> inverse trigonometric function. With both flags, applies the <code>atanh</code> function.
+    </p>
+    <UnaryFunctionExplanation />
+  </>;
+  return {
+    headerText: 'Tangent',
+    body,
+  };
+}
+
+export function ln(): HelpPage {
+  const body = <>
+    <p>
+      Applies the natural log function (log base <code>e</code>) to the top stack element, which may be any nonzero
+      complex number. The natural log of zero is considered to be negative infinity if infinity mode is enabled, or
+      an error otherwise.
+    </p>
+    <p>
+      This function can be applied to intervals of positive real numbers and will return an interval in that case.
+    </p>
+    <p>
+      With the HYPER flag, uses log base 10 instead. With the INVERSE flag, raises <code>e</code> to the argument
+      instead of taking a logarithm. With both flags, raises 10 to the argument.
+    </p>
+    <UnaryFunctionExplanation />
+  </>;
+  return {
+    headerText: 'Natural Log',
+    body,
+  };
+}
+
+export function log(): HelpPage {
+  const body = <>
+    <p>
+      Takes the log of the top stack element, with respect to the second stack element down. With the INVERSE flag,
+      raises the second stack element to the power of the first instead.
+    </p>
+    <p>
+      The log value and the base can both be arbitrary nonzero real or complex numbers. Alternatively, the
+      value (but not the base) may be an interval of positive real numbers.
+    </p>
+    <BinaryFunctionExplanation />
+  </>;
+  return {
+    headerText: 'Natural Log',
     body,
   };
 }
