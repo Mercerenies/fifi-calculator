@@ -5,6 +5,11 @@ import { SubcommandBehavior } from './subcommand.js';
 import { InputBoxManager } from '../input_box.js';
 import { TAURI, Validator } from '../tauri_api.js';
 import { FreeformInputMethod } from '../input_box/freeform_input.js';
+import { svg } from '../util.js';
+
+function clockSvg(): HTMLElement {
+  return svg('assets/clock.svg', {alt: "clock"});
+}
 
 export class DatetimeButtonGrid extends ButtonGrid {
   readonly rows: readonly (readonly GridCell[])[];
@@ -25,7 +30,7 @@ export class DatetimeButtonGrid extends ButtonGrid {
         new DispatchButton("U", "unix_time", "U"),
       ],
       [
-        new DispatchButton("⏲", "now", "N"),
+        new DispatchButton(clockSvg(), "now", "N"),
         new ConvertTimezoneButton(),
       ],
       [

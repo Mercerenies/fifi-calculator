@@ -18,3 +18,4 @@ Simple stack-based calculator app written in Rust using Tauri.
 * "Magnifying Lens" SVG Vector: https://www.svgrepo.com/svg/479646/magnifying-glass-9
 * "Bar Graph" SVG Vector: https://www.svgrepo.com/svg/266979/bar-graph-statistics
 * "Help" SVG Vector: https://www.svgrepo.com/svg/521701/help
+* "Clock" SVG Vector: https://www.svgrepo.com/svg/532125/clock-two

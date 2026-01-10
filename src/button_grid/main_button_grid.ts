@@ -41,6 +41,10 @@ function rulerSvg(): HTMLElement {
   return svg('assets/ruler.svg', {alt: "units"});
 }
 
+function clockSvg(): HTMLElement {
+  return svg('assets/clock.svg', {alt: "clock"});
+}
+
 export class MainButtonGrid extends ButtonGrid {
   private static NUMERICAL_INPUT_START_KEYS = new Set([
     "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "e", "_",
@@ -90,7 +94,7 @@ export class MainButtonGrid extends ButtonGrid {
         new DispatchButton(swapSvg(), "swap", "Tab"),
         new DispatchButton(dupSvg(), "dup", "Enter"),
         new GotoButton("<math><mi>ξ</mi></math>", "f", this.subgrids.transcendental, HelpLibrary.subgridTranscendental),
-        new GotoButton("⏲", "t", this.subgrids.datetime, HelpLibrary.subgridDatetime),
+        new GotoButton(clockSvg(), "t", this.subgrids.datetime, HelpLibrary.subgridDatetime),
       ],
       [
         new GotoButton("<math><mi>x</mi></math>", "a", this.subgrids.algebra, HelpLibrary.subgridAlgebra),
