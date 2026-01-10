@@ -834,3 +834,56 @@ export function nan(): HelpPage {
     body,
   };
 }
+
+export function daysSinceZero(): HelpPage {
+  const body = <>
+    <p>
+      Takes a datetime as argument and returns the number of days elapsed since Jan 1, 0001.
+    </p>
+    <p>
+      If applied to a real number, this function works in reverse and returns the appropriate
+      datetime on the proleptic Gregorian calendar.
+    </p>
+    <UnaryFunctionExplanation />
+  </>;
+  return {
+    headerText: "Days Since Zero",
+    body,
+  };
+}
+
+export function daysSinceJulian(): HelpPage {
+  const body = <>
+    <p>
+      Takes a datetime as argument and returns the number of days elapsed since Nov 24, -4714, on
+      the proleptic Gregorian calendar (equivalently, Jan 1, -4713, on the Julian calendar).
+    </p>
+    <p>
+      If applied to a real number, this function works in reverse and returns the appropriate
+      datetime on the proleptic Gregorian calendar.
+    </p>
+    <UnaryFunctionExplanation />
+  </>;
+  return {
+    headerText: "Julian Days",
+    body,
+  };
+}
+
+export function secsSinceUnix(): HelpPage {
+  const body = <>
+    <p>
+      Takes a datetime as argument and returns the number of seconds elapsed since the Unix
+      epoch (Jan 1, 1970).
+    </p>
+    <p>
+      If applied to a real number, this function works in reverse and returns the appropriate
+      datetime.
+    </p>
+    <UnaryFunctionExplanation />
+  </>;
+  return {
+    headerText: "Unix Epoch",
+    body,
+  };
+}

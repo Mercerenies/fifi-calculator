@@ -6,6 +6,7 @@ import { InputBoxManager } from '../input_box.js';
 import { TAURI, Validator } from '../tauri_api.js';
 import { FreeformInputMethod } from '../input_box/freeform_input.js';
 import { svg } from '../util.js';
+import * as HelpLibrary from '../help_library.js';
 
 function clockSvg(): HTMLElement {
   return svg('assets/clock.svg', {alt: "clock"});
@@ -25,9 +26,9 @@ export class DatetimeButtonGrid extends ButtonGrid {
   private initRows(): GridCell[][] {
     return [
       [
-        new DispatchButton("<span class='mathy-text'>-0</span>", "days_since_zero", "D"),
-        new DispatchButton("J", "julian_day", "J"),
-        new DispatchButton("U", "unix_time", "U"),
+        new DispatchButton("<span class='mathy-text'>-0</span>", "days_since_zero", "D", HelpLibrary.daysSinceZero),
+        new DispatchButton("J", "julian_day", "J", HelpLibrary.daysSinceJulian),
+        new DispatchButton("U", "unix_time", "U", HelpLibrary.secsSinceUnix),
       ],
       [
         new DispatchButton(clockSvg(), "now", "N"),
