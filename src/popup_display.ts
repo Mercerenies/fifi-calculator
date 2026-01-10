@@ -5,7 +5,10 @@ let POPUP_NESTING_COUNTER = 0;
 
 export function showPopup(args: PopupDisplayArgs): void {
   const oldHtml = [...document.body.children];
-  if (args.newHtml instanceof HTMLElement || args.newHtml instanceof SVGElement) {
+  if (args.newHtml instanceof DocumentFragment) {
+    document.body.innerHTML = "";
+    document.body.append(...args.newHtml.children);
+  } else if (args.newHtml instanceof HTMLElement || args.newHtml instanceof SVGElement) {
     document.body.innerHTML = "";
     document.body.appendChild(args.newHtml);
   } else {
