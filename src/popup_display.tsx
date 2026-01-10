@@ -12,7 +12,6 @@ export interface PopupManager {
 }
 
 export function showPopup(args: PopupDisplayArgs): void {
-  console.log(args);
   const oldHtml = [...document.body.children];
   if (args.newHtml instanceof DocumentFragment) {
     document.body.innerHTML = "";

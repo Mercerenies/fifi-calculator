@@ -4,6 +4,7 @@ import { ButtonGridManager, GridCell } from './button_grid.js';
 import { PopupManager, generateViewPopupHtml, BACK_BUTTON_SELECTOR } from './popup_display.js';
 import { KeyEventHandler } from './keyboard/dispatcher.js';
 import { KeyEventInput, KeyResponse } from './keyboard.js';
+import { HtmlText } from './jsx.js';
 
 import { ReactElement } from "jsx-dom";
 
@@ -65,7 +66,7 @@ export interface HelpPage {
 export function helpPageToJsx(cell: GridCell, page: HelpPage): ReactElement {
   const cellHtml = cell.getInnerHTML();
   return <>
-    <h1><span class="helptext-icon">{cellHtml}</span> {page.headerText}</h1>
+    <h1><span class="helptext-icon"><HtmlText>{cellHtml}</HtmlText></span> {page.headerText}</h1>
     <div>{page.body}</div>
   </>;
 }
