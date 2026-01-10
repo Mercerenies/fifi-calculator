@@ -999,3 +999,29 @@ export function timezoneConvert(): HelpPage {
     body,
   };
 }
+
+export function uppercase(): HelpPage {
+  const body = <>
+    <p>
+      Returns the input string, converted to all uppercase.
+    </p>
+    <UnaryFunctionExplanation />
+  </>;
+  return {
+    headerText: "Uppercase",
+    body,
+  };
+}
+
+export function lowercase(): HelpPage {
+  const body = <>
+    <p>
+      Returns the input string, converted to all lowercase.
+    </p>
+    <UnaryFunctionExplanation />
+  </>;
+  return {
+    headerText: "Lowercase",
+    body,
+  };
+}

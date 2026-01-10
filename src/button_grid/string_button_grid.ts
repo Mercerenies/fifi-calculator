@@ -1,6 +1,7 @@
 
 import { ButtonGrid, GridCell } from "../button_grid.js";
 import { backButton, DispatchButton } from './button.js';
+import * as HelpLibrary from '../help_library.js';
 
 export class StringButtonGrid extends ButtonGrid {
   readonly rows: readonly (readonly GridCell[])[];
@@ -16,8 +17,8 @@ export class StringButtonGrid extends ButtonGrid {
   private initRows(): GridCell[][] {
     return [
       [
-        new DispatchButton("AZ", "uppercase", "M-u"),
-        new DispatchButton("az", "lowercase", "M-l"),
+        new DispatchButton("AZ", "uppercase", "M-u", HelpLibrary.uppercase),
+        new DispatchButton("az", "lowercase", "M-l", HelpLibrary.lowercase),
       ],
       [],
       [],
