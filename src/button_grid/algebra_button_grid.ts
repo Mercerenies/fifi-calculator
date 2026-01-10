@@ -5,6 +5,8 @@ import { backButton, Button } from './button.js';
 import { variableNameInput } from '../input_box/algebraic_input.js';
 import { FreeformInputMethod } from '../input_box/freeform_input.js';
 import { TAURI } from '../tauri_api.js';
+import { HelpPage } from '../help_manager.js';
+import * as HelpLibrary from '../help_library.js';
 
 export class AlgebraButtonGrid extends ButtonGrid {
   readonly rows: readonly (readonly GridCell[])[];
@@ -69,6 +71,10 @@ export class VariableSubstituteButton extends Button {
 
   asSubcommand(): SubcommandBehavior {
     return "invalid";
+  }
+
+  override getHelpPage(): HelpPage {
+    return HelpLibrary.variableSubstitute();
   }
 }
 

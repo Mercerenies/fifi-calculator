@@ -40,17 +40,17 @@ export class FormulaButtonGrid extends ButtonGrid {
         new DispatchButton("^..^", "^..^", null),
       ],
       [
-        new DispatchButton("<math><mi>∞</mi></math>", "infinity", null),
-        new DispatchButton("<small><math><mo>-</mo><mi>∞</mi></math></small>", "neg_infinity", null),
-        new DispatchButton("<math><mover><mrow><mi>∞</mi></mrow><mo>~</mo></mover></math>", "undir_infinity", null),
-        new DispatchButton("nan", "nan_infinity", null),
+        new DispatchButton("<math><mi>∞</mi></math>", "infinity", null, HelpLibrary.infinity),
+        new DispatchButton("<small><math><mo>-</mo><mi>∞</mi></math></small>", "neg_infinity", null, HelpLibrary.negInfinity),
+        new DispatchButton("<math><mover><mrow><mi>∞</mi></mrow><mo>~</mo></mover></math>", "undir_infinity", null, HelpLibrary.undirInfinity),
+        new DispatchButton("nan", "nan_infinity", null, HelpLibrary.nan),
       ],
       [
         backButton(this.rootGrid),
         new DispatchButton("π", "pi", null, HelpLibrary.pi),
-        new DispatchButton("e", "e", null),
-        new DispatchButton("γ", "gamma", null),
-        new DispatchButton("ϕ", "phi", null),
+        new DispatchButton("e", "e", null, HelpLibrary.expConstant),
+        new DispatchButton("γ", "gamma", null, HelpLibrary.gamma),
+        new DispatchButton("ϕ", "phi", null, HelpLibrary.goldenRatio),
       ],
     ];
   }

@@ -5,7 +5,7 @@ import { HelpPage } from './help_manager.js';
 
 import { ReactElement } from 'jsx-dom';
 
-function ConstantExplanation(opts: { children: (ReactElement | string)[] }): ReactElement {
+function ConstantExplanation(opts: { children: ReactElement | string | (ReactElement | string)[] }): ReactElement {
   return <span>
     <p>
       Pushes the constant value <span>{opts.children}</span> onto the stack.
@@ -13,6 +13,15 @@ function ConstantExplanation(opts: { children: (ReactElement | string)[] }): Rea
     <p>
       This function pushes a single constant value onto the stack. With a nonnegative prefix argument <code>u</code>,
       the constant is pushed onto the stack <code>u</code> times. A negative prefix argument is treated as zero.
+    </p>
+  </span>;
+}
+
+function InfinityExplanation(): ReactElement {
+  return <span>
+    <p>
+      Note that infinity constants are handled symbolically. The symbolic name <code>∞</code> will be
+      understood by many of the functions in this library.
     </p>
   </span>;
 }
@@ -514,7 +523,7 @@ export function log(): HelpPage {
 export function exp(): HelpPage {
   const body = <>
     <p>
-      Raises Euler's constant <code>e</code> to the argument, which may be any complex number, power.
+      Raises Euler's number <code>e</code> to the argument, which may be any complex number, power.
     </p>
     <p>
       This function can alternatively be applied to an interval of real numbers.
@@ -704,6 +713,19 @@ export function maxFunction(): HelpPage {
   };
 }
 
+export function variableSubstitute(): HelpPage {
+  const body = <>
+    <p>
+      Prompts for a variable name and a replacement expression. Substitutes all instances of the variable in
+      the top stack element with the replacement expression.
+    </p>
+  </>;
+  return {
+    headerText: 'Variable Substitute',
+    body,
+  };
+}
+
 export function pi(): HelpPage {
   const body = <>
     <ConstantExplanation>
@@ -712,6 +734,103 @@ export function pi(): HelpPage {
   </>;
   return {
     headerText: 'Pi',
+    body,
+  };
+}
+
+export function expConstant(): HelpPage {
+  const body = <>
+    <ConstantExplanation>
+      Euler's number <code>e</code>
+    </ConstantExplanation>
+  </>;
+  return {
+    headerText: "Euler's Number",
+    body,
+  };
+}
+
+export function gamma(): HelpPage {
+  const body = <>
+    <ConstantExplanation>
+      Euler's constant <code>γ</code>
+    </ConstantExplanation>
+  </>;
+  return {
+    headerText: "Euler's Constant",
+    body,
+  };
+}
+
+export function goldenRatio(): HelpPage {
+  const body = <>
+    <ConstantExplanation>
+      the Golden Ratio <code>ϕ</code>
+    </ConstantExplanation>
+  </>;
+  return {
+    headerText: "Golden Ratio",
+    body,
+  };
+}
+
+export function infinity(): HelpPage {
+  const body = <>
+    <ConstantExplanation>
+      infinity
+    </ConstantExplanation>
+    <InfinityExplanation />
+  </>;
+  return {
+    headerText: "Positive Infinity",
+    body,
+  };
+}
+
+export function negInfinity(): HelpPage {
+  const body = <>
+    <ConstantExplanation>
+      negative infinity
+    </ConstantExplanation>
+    <InfinityExplanation />
+  </>;
+  return {
+    headerText: "Negative Infinity",
+    body,
+  };
+}
+
+export function undirInfinity(): HelpPage {
+  const body = <>
+    <ConstantExplanation>
+      undirected infinity
+    </ConstantExplanation>
+    <InfinityExplanation />
+    <p>
+      Undirected infinity is an abstract representation of a quantity with infinite magnitude whose direction in the
+      complex plane is unknown. It corresponds to the name <code>ComplexInfinity</code> in the Wolfram Language.
+    </p>
+  </>;
+  return {
+    headerText: "Undirected Infinity",
+    body,
+  };
+}
+
+export function nan(): HelpPage {
+  const body = <>
+    <ConstantExplanation>
+      the NaN (not-a-number) constant
+    </ConstantExplanation>
+    <InfinityExplanation />
+    <p>
+      NaN is a value about which we know effectively nothing. All infinity-aware functions will return NaN if any arguments are
+      NaN. For the most part, this NaN constant conforms to the IEEE 754 specification, with one important exception: NaN
+      as defined by this library is considered equal to itself.
+    </p>
+  </>;
+  return {
+    headerText: "Not a Number",
     body,
   };
 }
