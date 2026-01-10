@@ -20,8 +20,7 @@ export class StackView {
           <span class='value-stack-element-ordinal'>
             {index}.&nbsp;
           </span>
-          <span class='value-stack-element-value'>
-            {elem}
+          <span class='value-stack-element-value' innerHTML={elem}>
           </span>
         </li>
       );
