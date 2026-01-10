@@ -6,6 +6,7 @@ import { InputBoxManager } from '../input_box.js';
 import { TAURI, Validator } from '../tauri_api.js';
 import { FreeformInputMethod } from '../input_box/freeform_input.js';
 import { svg } from '../util.js';
+import { HelpPage } from '../help_manager.js';
 import * as HelpLibrary from '../help_library.js';
 
 function clockSvg(): HTMLElement {
@@ -31,16 +32,16 @@ export class DatetimeButtonGrid extends ButtonGrid {
         new DispatchButton("U", "unix_time", "U", HelpLibrary.secsSinceUnix),
       ],
       [
-        new DispatchButton(clockSvg(), "now", "N"),
+        new DispatchButton(clockSvg(), "now", "N", HelpLibrary.datetimeNow),
         new ConvertTimezoneButton(),
       ],
       [
-        new DispatchButton("M", "newmonth", "M"),
-        new DispatchButton("Y", "newyear", "Y"),
-        new DispatchButton("W", "newweek", "W"),
+        new DispatchButton("M", "newmonth", "M", HelpLibrary.datetimeNewMonth),
+        new DispatchButton("Y", "newyear", "Y", HelpLibrary.datetimeNewYear),
+        new DispatchButton("W", "newweek", "W", HelpLibrary.datetimeNewWeek),
       ],
       [
-        new DispatchButton("Δ<sub>M</sub>", "incmonth", "I"),
+        new DispatchButton("Δ<sub>M</sub>", "incmonth", "I", HelpLibrary.incMonth),
       ],
       [
       ],
@@ -80,6 +81,10 @@ export class ConvertTimezoneButton extends Button {
     } finally {
       manager.resetState();
     }
+  }
+
+  override getHelpPage(): HelpPage {
+    return HelpLibrary.timezoneConvert();
   }
 }
 

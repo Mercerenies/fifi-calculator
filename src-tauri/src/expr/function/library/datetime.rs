@@ -225,7 +225,7 @@ pub fn new_week() -> Function {
     let datetime = datetime.without_time();
 
     if day_index <= 0 {
-      // Count from the last day of the month
+      // Count from the last day of the week
       day_index += DAYS_IN_WEEK + 1;
     }
     let day_index = clamp(day_index, 1, DAYS_IN_WEEK) as u8; // safety: clamp is between 1 and 7.

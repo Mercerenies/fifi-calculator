@@ -887,3 +887,115 @@ export function secsSinceUnix(): HelpPage {
     body,
   };
 }
+
+export function datetimeNow(): HelpPage {
+  const body = <>
+    <p>
+      Pushes the current time in the current system local timezone.
+    </p>
+    <p>
+      If given a numerical argument, that argument is treated as an offset (in hours)
+      from UTC, which will be used as the timezone instead.
+    </p>
+  </>;
+  return {
+    headerText: "Current Datetime",
+    body,
+  };
+}
+
+export function datetimeNewMonth(): HelpPage {
+  const body = <>
+    <p>
+      Takes a datetime and returns the first day of the month of that datetime.
+    </p>
+    <p>
+      If given a numerical argument <code>u</code>, returns the <code>u</code>th day of the
+      month. This is permitted to overflow before or after the target month.
+    </p>
+  </>;
+  return {
+    headerText: "New in Month",
+    body,
+  };
+}
+
+export function datetimeNewYear(): HelpPage {
+  const body = <>
+    <p>
+      Takes a datetime and returns the first day of the year of that datetime.
+    </p>
+    <p>
+      If given a numerical argument <code>u</code>, returns the <code>u</code>th day of the
+      year. This is permitted to overflow before or after the target year.
+    </p>
+  </>;
+  return {
+    headerText: "New in Year",
+    body,
+  };
+}
+
+export function datetimeNewWeek(): HelpPage {
+  const body = <>
+    <p>
+      Takes a datetime and returns the first day of the calendar week of that datetime, where a calendar
+      week is defined to start on Sunday.
+    </p>
+    <p>
+      If given a numerical argument <code>u</code>, returns the <code>u</code>th day of the
+      calendar week. This is permitted to overflow before or after the target week.
+    </p>
+  </>;
+  return {
+    headerText: "New in Week",
+    body,
+  };
+}
+
+export function incMonth(): HelpPage {
+  const body = <>
+    <p>
+      Takes a datetime and returns the same datetime in the following month. The day of the datetime is clamped if the target month is
+      shorter than the current.
+    </p>
+    <p>
+      If given a numerical argument <code>u</code>, returns <code>u</code> months in the future (or past, if the argument is negative).
+    </p>
+    <p>
+      The HYPER flag multiplies the numerical argument by 12. Without a numerical argument, the HYPER flag advances the datetime forward
+      12 months, or one full year. The INVERSE flag reverses the direction of the datetime advancement.
+    </p>
+  </>;
+  return {
+    headerText: "New in Week",
+    body,
+  };
+}
+
+export function timezoneConvert(): HelpPage {
+  const body = <>
+    <p>
+      Prompts for a timezone and converts the datetime on the top of the stack to the
+      given timezone.
+    </p>
+    <p>
+      A valid timezone string can either be a case-insensitive string of the
+      form <code>UTC±XX:XX:XX</code> (where the minute and second portions are
+      optional), or one of a variety of well-known timezone names.
+    </p>
+    <p>
+      A datetime which currently only consists of a date is treated as being
+      midnight in UTC.
+    </p>
+    <p>
+      This library makes no effort to handle local daylight savings time. For example, EST
+      (US Eastern Time) is defined as UTC-5, while EDT (US Eastern Daylight Time) is defined
+      as UTC-4. There is no abbreviation which represents "UTC-5 on some days but UTC-4 on others".
+    </p>
+  </>;
+  return {
+    headerText: "New in Week",
+    body,
+  };
+}
