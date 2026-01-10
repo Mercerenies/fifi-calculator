@@ -497,3 +497,196 @@ export function log(): HelpPage {
     body,
   };
 }
+
+export function exp(): HelpPage {
+  const body = <>
+    <p>
+      Raises Euler's constant <code>e</code> to the argument, which may be any complex number, power.
+    </p>
+    <p>
+      This function can alternatively be applied to an interval of real numbers.
+    </p>
+    <p>
+      With the HYPER flag, uses exponential base 10 instead. With the INVERSE flag, takes the
+      natural logarithm. With both flags, takes the common (base 10) logarithm.
+    </p>
+    <UnaryFunctionExplanation />
+  </>;
+  return {
+    headerText: 'Exponential Function',
+    body,
+  };
+}
+
+export function sqrt(): HelpPage {
+  const body = <>
+    <p>
+      Takes the square root of the argument, which may be an arbitrary complex number.
+    </p>
+    <p>
+      This function can alternatively be applied to an interval of nonnegative real numbers.
+    </p>
+    <p>
+      With the HYPER flag, takes the binary logarithm (log base 2). With the INVERSE flag
+      (regardless of the HYPER flag's value), raises 2 to the power of the argument.
+    </p>
+    <UnaryFunctionExplanation />
+  </>;
+  return {
+    headerText: 'Square Root',
+    body,
+  };
+}
+
+export function substituteNumerically(): HelpPage {
+  const body = <>
+    <p>
+      Substitutes in numerical constants and known variables to the top stack
+      element and then simplifies to numerical (inexact) values. Well-known constants
+      such as <code>pi</code> and <code>e</code> are substituted for their values, and
+      rational numbers are replaced with their nearest floating-point equivalent, regardless
+      of the current fractional mode.
+    </p>
+    <UnaryFunctionExplanation />
+  </>;
+  return {
+    headerText: 'Numerical Substitute',
+    body,
+  };
+}
+
+export function substituteVars(): HelpPage {
+  const body = <>
+    <p>
+      Substitutes in numerical constants and known variables to the top stack
+      element. Well-known constants such as <code>pi</code> and <code>e</code> are substituted
+      for their values.
+    </p>
+    <UnaryFunctionExplanation />
+  </>;
+  return {
+    headerText: 'Auto Substitute',
+    body,
+  };
+}
+
+export function conjugate(): HelpPage {
+  const body = <>
+    <p>
+      Computes the conjugate of the top stack element, which may be a real number, complex
+      number, or quaternion. Note that this function is the identity on real numbers.
+    </p>
+    <BroadcastedExplanation opName="Conjugation" />
+    <UnaryFunctionExplanation />
+  </>;
+  return {
+    headerText: 'Divide',
+    body,
+  };
+}
+
+export function signum(): HelpPage {
+  const body = <>
+    <p>
+      Returns the signum, or sign, of the top stack element. The signum of a real number, complex number, or
+      quaternion is a number of magnitude 1 in the same direction as the original. For convenience, the signum
+      of zero is treated as zero. Infinity constants are handled similarly. Unsigned infinities (such as NaN)
+      result in an error.
+    </p>
+    <p>
+      If applied to a vector, returns the normalized vector. If given a zero vector, returns the same zero vector.
+    </p>
+    <UnaryFunctionExplanation />
+  </>;
+  return {
+    headerText: 'Signum',
+    body,
+  };
+}
+
+export function complexArg(): HelpPage {
+  const body = <>
+    <p>
+      Returns the argument, or phase, of a complex number, in radians.
+    </p>
+    <p>
+      The argument of a signed infinity is the direction of that infinity in radians. The argument of
+      an unsigned infinity is NaN.
+    </p>
+    <BroadcastedExplanation opName="Complex argument" />
+    <UnaryFunctionExplanation />
+  </>;
+  return {
+    headerText: 'Complex Argument',
+    body,
+  };
+}
+
+export function realPart(): HelpPage {
+  const body = <>
+    <p>
+      Returns the real part of a number, which may be a complex number or a quaternion.
+    </p>
+    <BroadcastedExplanation opName="Real part" />
+    <UnaryFunctionExplanation />
+  </>;
+  return {
+    headerText: 'Real Part',
+    body,
+  };
+}
+
+export function imagPart(): HelpPage {
+  const body = <>
+    <p>
+      Returns the imaginary part of a number, which may be a complex number
+      or a quaternion. In the case of a quaternion, the imaginary part is defined
+      to be the real coefficient of the <code>i</code>, or second, term of the
+      quaternion.
+    </p>
+    <BroadcastedExplanation opName="Imaginary part" />
+    <UnaryFunctionExplanation />
+  </>;
+  return {
+    headerText: 'Imaginary Part',
+    body,
+  };
+}
+
+export function minFunction(): HelpPage {
+  const body = <>
+    <p>
+      Returns the smaller of the top two stack elements. Both arguments must be of the same
+      type. Supported types include:
+    </p>
+    <ul class="help-ul">
+      <li>Real numbers, including positive and negative infinity</li>
+      <li>Datetime values</li>
+      <li>Strings</li>
+    </ul>
+    <BinaryFunctionExplanation />
+  </>;
+  return {
+    headerText: 'Minimum',
+    body,
+  };
+}
+
+export function maxFunction(): HelpPage {
+  const body = <>
+    <p>
+      Returns the larger of the top two stack elements. Both arguments must be of the same
+      type. Supported types include:
+    </p>
+    <ul class="help-ul">
+      <li>Real numbers, including positive and negative infinity</li>
+      <li>Datetime values</li>
+      <li>Strings</li>
+    </ul>
+    <BinaryFunctionExplanation />
+  </>;
+  return {
+    headerText: 'Maximum',
+    body,
+  };
+}
