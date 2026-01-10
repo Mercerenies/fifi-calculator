@@ -1,5 +1,5 @@
 
-import { jsx, Fragment, isFragment } from './jsx.js';
+import { ReactElement } from 'jsx-dom';
 
 export const BACK_BUTTON_ID = "viewable-button-bar-back-button";
 export const BACK_BUTTON_SELECTOR = `#${BACK_BUTTON_ID}`;
@@ -13,12 +13,9 @@ export interface PopupManager {
 
 export function showPopup(args: PopupDisplayArgs): void {
   const oldHtml = [...document.body.children];
-  if (args.newHtml instanceof HTMLElement) {
+  if (args.newHtml instanceof HTMLElement || args.newHtml instanceof SVGElement) {
     document.body.innerHTML = "";
     document.body.appendChild(args.newHtml);
-  } else if (isFragment(args.newHtml)) {
-    document.body.innerHTML = "";
-    document.body.append(...args.newHtml.elements);
   } else {
     document.body.innerHTML = args.newHtml;
   }
@@ -67,7 +64,7 @@ export interface PopupDisplayArgs {
   onReturn(): void;
 }
 
-export type PopupDisplayHtml = string | HTMLElement | Fragment;
+export type PopupDisplayHtml = string | ReactElement;
 
 export function generateViewPopupHtml(innerHTML: JSX.Element): JSX.Element {
   return <>

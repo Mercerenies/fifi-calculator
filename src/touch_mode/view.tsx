@@ -5,6 +5,8 @@ import { ClickableTouchMode } from './clickable.js';
 import { DirectRenderTarget, getGraphicsElements, getGraphicsPayload, renderPlotTo } from '../graphics.js';
 import { generateViewPopupHtml, BACK_BUTTON_SELECTOR } from '../popup_display.js';
 
+import { ReactElement } from 'jsx-dom';
+
 export class ViewTouchMode extends ClickableTouchMode {
   private uiManager: UiManager;
 
@@ -32,7 +34,7 @@ function isSoleGraphicsElement(contentElem: HTMLElement): boolean {
   return (getGraphicsPayload(child) !== undefined);
 }
 
-function getHtmlToDisplay(contentElem: HTMLElement, uiManager: UiManager): JSX.Element {
+function getHtmlToDisplay(contentElem: HTMLElement, uiManager: UiManager): HTMLElement {
   if (getGraphicsPayload(contentElem) != undefined) {
     return showInteractiveGraph(contentElem);
   } else if (isSoleGraphicsElement(contentElem)) {
@@ -57,7 +59,7 @@ function getHtmlToDisplay(contentElem: HTMLElement, uiManager: UiManager): JSX.E
   }
 }
 
-function showInteractiveGraph(graphicsElement: HTMLElement): JSX.Element {
+function showInteractiveGraph(graphicsElement: HTMLElement): HTMLElement {
   const payload = getGraphicsPayload(graphicsElement);
   if (payload == undefined) {
     throw "Graphics element is missing data-graphics-payload attr";
@@ -80,4 +82,19 @@ function insertButton(element: HTMLElement): HTMLButtonElement {
   button.appendChild(element);
   parent.insertBefore(button, parent.childNodes[elementIndex] ?? null);
   return button;
+}
+
+function generateViewPageHtml(innerHTML: ReactElement): ReactElement {
+  return <>
+    <header>
+      <div class="viewable-button-bar">
+        <button id={BACK_BUTTON_ID}>Back</button>
+      </div>
+    </header>
+    <main class="viewable-display-main">
+      <span class="viewable-display-content-area">
+        {innerHTML}
+      </span>
+    </main>
+  </>;
 }

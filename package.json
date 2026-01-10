@@ -25,6 +25,7 @@
     "@tauri-apps/api": "^2.0.0-beta.12",
     "@tauri-apps/plugin-os": "^2.0.0-beta.5",
     "@tauri-apps/plugin-shell": "^2.0.0-beta.6",
+    "jsx-dom": "^8.1.6",
     "plotly.js-dist-min": "^2.33.0"
   }
 }
