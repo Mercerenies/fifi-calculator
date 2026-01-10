@@ -2,8 +2,9 @@
 import { UiManager } from '../ui_manager.js';
 import { TouchModeFactoryContext } from '../touch_mode.js';
 import { ClickableTouchMode } from './clickable.js';
-import { jsx, HtmlText, Fragment, toNodes } from '../jsx.js';
 import { DirectRenderTarget, getGraphicsElements, getGraphicsPayload, renderPlotTo } from '../graphics.js';
+
+import { ReactElement } from 'jsx-dom';
 
 export class ViewTouchMode extends ClickableTouchMode {
   private uiManager: UiManager;
@@ -34,7 +35,7 @@ function isSoleGraphicsElement(contentElem: HTMLElement): boolean {
   return (getGraphicsPayload(child) !== undefined);
 }
 
-function getHtmlToDisplay(contentElem: HTMLElement, uiManager: UiManager): JSX.Element {
+function getHtmlToDisplay(contentElem: HTMLElement, uiManager: UiManager): HTMLElement {
   if (getGraphicsPayload(contentElem) != undefined) {
     return showInteractiveGraph(contentElem);
   } else if (isSoleGraphicsElement(contentElem)) {
@@ -59,7 +60,7 @@ function getHtmlToDisplay(contentElem: HTMLElement, uiManager: UiManager): JSX.E
   }
 }
 
-function showInteractiveGraph(graphicsElement: HTMLElement): JSX.Element {
+function showInteractiveGraph(graphicsElement: HTMLElement): HTMLElement {
   const payload = getGraphicsPayload(graphicsElement);
   if (payload == undefined) {
     throw "Graphics element is missing data-graphics-payload attr";
@@ -84,7 +85,7 @@ function insertButton(element: HTMLElement): HTMLButtonElement {
   return button;
 }
 
-function generateViewPageHtml(innerHTML: JSX.Element): JSX.Element {
+function generateViewPageHtml(innerHTML: ReactElement): ReactElement {
   return <>
     <header>
       <div class="viewable-button-bar">

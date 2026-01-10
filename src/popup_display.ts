@@ -1,16 +1,13 @@
 
-import { Fragment, isFragment } from './jsx.js';
+import { ReactElement } from 'jsx-dom';
 
 let POPUP_NESTING_COUNTER = 0;
 
 export function showPopup(args: PopupDisplayArgs): void {
   const oldHtml = [...document.body.children];
-  if (args.newHtml instanceof HTMLElement) {
+  if (args.newHtml instanceof HTMLElement || args.newHtml instanceof SVGElement) {
     document.body.innerHTML = "";
     document.body.appendChild(args.newHtml);
-  } else if (isFragment(args.newHtml)) {
-    document.body.innerHTML = "";
-    document.body.append(...args.newHtml.elements);
   } else {
     document.body.innerHTML = args.newHtml;
   }
@@ -59,4 +56,4 @@ export interface PopupDisplayArgs {
   onReturn(): void;
 }
 
-export type PopupDisplayHtml = string | HTMLElement | Fragment;
+export type PopupDisplayHtml = string | ReactElement;
