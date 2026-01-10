@@ -261,11 +261,11 @@ export function plus(): HelpPage {
       Many of the built-in datatypes support some form of addition.
     </p>
     <ul class="help-ul">
-      <li>Numbers (real, complex, or quaternion) are added together using the usual mathematical rules.</li>
-      <li>Real numbers can be added to datetimes, in which case they are interpreted as a delta in days.</li>
-      <li>Strings are concatenated.</li>
-      <li>Intervals are added together as sets of real numbers.</li>
-      <li>Graphics objects are concatenated into a single graphics object.</li>
+      <li><strong>Numbers</strong> (real, complex, or quaternion) are added together using the usual mathematical rules.</li>
+      <li><strong>Datetimes</strong> can be added to real numbers, in which case the latter is interpreted as a delta in days.</li>
+      <li><strong>Strings</strong> are concatenated.</li>
+      <li><strong>Intervals</strong> are added together as sets of real numbers.</li>
+      <li><strong>Graphics objects</strong> are concatenated into a single graphics object.</li>
     </ul>
     <p>
       Addition is broadcasted across vector arguments automatically.
@@ -287,10 +287,10 @@ export function minus(): HelpPage {
       Many of the built-in datatypes support some form of subtraction.
     </p>
     <ul class="help-ul">
-      <li>Numbers (real, complex, or quaternion) are subtracted using the usual mathematical rules.</li>
-      <li>Real numbers can be subtracted from datetimes, in which case they are interpreted as a delta in days.</li>
-      <li>Two datetimes can be subtracted, producing a delta in days.</li>
-      <li>Intervals are subtracted together as sets of real numbers.</li>
+      <li><strong>Numbers</strong> (real, complex, or quaternion) are subtracted using the usual mathematical rules.</li>
+      <li>Real numbers can be subtracted from <strong>datetimes</strong>, in which case they are interpreted as a delta in days.</li>
+      <li>Two <strong>datetimes</strong> can be subtracted, producing a delta in days.</li>
+      <li><strong>Intervals</strong> are subtracted together as sets of real numbers.</li>
     </ul>
     <p>
       Subtraction is broadcasted across vector arguments automatically.
@@ -318,9 +318,9 @@ export function times(): HelpPage {
       Many of the built-in datatypes support some form of commutative multiplication.
     </p>
     <ul class="help-ul">
-      <li>Numbers (real or complex) are multiplied using the usual mathematical rules.</li>
-      <li>Multiplying a string and a nonnegative integer repeats that string, similar to Python semantics.</li>
-      <li>Intervals are multiplied together as sets of real numbers.</li>
+      <li><strong>Numbers</strong> (real or complex) are multiplied using the usual mathematical rules.</li>
+      <li>Multiplying a <strong>string</strong> and a nonnegative integer repeats that string, similar to Python semantics.</li>
+      <li><strong>Intervals</strong> are multiplied together as sets of real numbers.</li>
     </ul>
     <p>
       Multiplication is broadcasted across vector arguments automatically.
@@ -344,12 +344,13 @@ export function timesFull(): HelpPage {
       The following datatypes are supported.
     </p>
     <ul class="help-ul">
-      <li>Numbers (real, complex, or quaternion) are multiplied using the usual mathematical rules.</li>
-      <li>Multiplication is broadcasted over vectors if and only if one of the arguments is a scalar.</li>
-      <li>Vector-matrix and matrix-vector multiplication is performed using the usual
-          rules of mathematics. In the first case, the vector is treated as a row vector, and
-          in the latter case, the vector is treated as a column vector.</li>
-      <li>Matrix-matrix multiplication is performed according to the usual rules of arithmetic.</li>
+      <li><strong>Numbers</strong> (real, complex, or quaternion) are multiplied using the usual mathematical rules.</li>
+      <li>Multiplication is broadcasted over <strong>vectors</strong> if and only if one of the arguments is a scalar.</li>
+      <li><strong>Vector-matrix</strong> and <strong>matrix-vector</strong> multiplication is
+          performed using the usual rules of mathematics. In the first case, the vector is
+          treated as a row vector, and in the latter case, the vector is treated as a column
+          vector.</li>
+      <li><strong>Matrix-matrix</strong> multiplication is performed according to the usual rules of arithmetic.</li>
     </ul>
     <BinaryFunctionExplanation />
   </>;
@@ -373,8 +374,8 @@ export function divide(): HelpPage {
       The following datatypes are supported.
     </p>
     <ul class="help-ul">
-      <li>Numbers (real or complex) are multiplied using the usual mathematical rules.</li>
-      <li>Intervals are divided as sets of real numbers. If the result of division would be a
+      <li><strong>Numbers</strong> (real or complex) are multiplied using the usual mathematical rules.</li>
+      <li><strong>Intervals</strong> are divided as sets of real numbers. If the result of division would be a
           union of intervals, then the result is the smallest single interval containing that union.</li>
     </ul>
     <p>
