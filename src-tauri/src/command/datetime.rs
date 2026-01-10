@@ -57,9 +57,9 @@ pub const ZERO_DATE: DateTime =
 /// Day "zero" for the purposes of Julian day calculations. The Julian
 /// day of a date is defined as the number of days since Jan 1, 4713
 /// BC on the Julian calendar. Using the proleptic Julian calendar,
-/// this is Nov 24, 4713 BC.
+/// this is Nov 24, 4714 BC.
 pub const ZERO_JULIAN_DAY: DateTime =
-  DateTime::from_date(date!(-4713-11-24));
+  DateTime::from_date(date!(-4714-11-24));
 
 /// The Unix epoch.
 pub const UNIX_EPOCH: DateTime =
