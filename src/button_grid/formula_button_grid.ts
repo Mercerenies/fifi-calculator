@@ -3,6 +3,7 @@ import { AbstractButtonManager, ButtonGrid, GridCell } from "../button_grid.js";
 import { Button, backButton, DispatchButton } from './button.js';
 import { SignedNumberedButton } from './button/numbered.js';
 import { SubcommandBehavior } from './subcommand.js';
+import * as HelpLibrary from "../help_library.js";
 
 export class FormulaButtonGrid extends ButtonGrid {
   readonly rows: readonly (readonly GridCell[])[];
@@ -46,7 +47,7 @@ export class FormulaButtonGrid extends ButtonGrid {
       ],
       [
         backButton(this.rootGrid),
-        new DispatchButton("π", "pi", null),
+        new DispatchButton("π", "pi", null, HelpLibrary.pi),
         new DispatchButton("e", "e", null),
         new DispatchButton("γ", "gamma", null),
         new DispatchButton("ϕ", "phi", null),

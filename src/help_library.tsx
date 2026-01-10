@@ -4,6 +4,18 @@
 import { jsx, Fragment } from './jsx.js';
 import { HelpPage } from './help_manager.js';
 
+function ConstantExplanation(opts: { children: any[] }): JSX.Element {
+  return <span>
+    <p>
+      Pushes the constant value <span>{opts.children}</span> onto the stack.
+    </p>
+    <p>
+      This function pushes a single constant value onto the stack. With a nonnegative prefix argument <code>u</code>,
+      the constant is pushed onto the stack <code>u</code> times. A negative prefix argument is treated as zero.
+    </p>
+  </span>;
+}
+
 function UnaryFunctionExplanation(): JSX.Element {
   return <span>
     <p>
@@ -687,6 +699,18 @@ export function maxFunction(): HelpPage {
   </>;
   return {
     headerText: 'Maximum',
+    body,
+  };
+}
+
+export function pi(): HelpPage {
+  const body = <>
+    <ConstantExplanation>
+      <code>π</code> (the mathematical constant pi)
+    </ConstantExplanation>
+  </>;
+  return {
+    headerText: 'Pi',
     body,
   };
 }
