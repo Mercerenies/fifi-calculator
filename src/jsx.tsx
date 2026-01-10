@@ -10,7 +10,8 @@ export function HtmlText(opts: { children: ReactElement | string }): ReactElemen
   } else if (opts.children instanceof DocumentFragment) {
     return opts.children; // Weird but probably okay to not clone in this case.
   } else {
-    return opts.children.cloneNode(true);
+    // typing: cloneNode returns a node of the same type.
+    return opts.children.cloneNode(true) as ReactElement;
   }
 }
 
