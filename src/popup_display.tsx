@@ -12,8 +12,12 @@ export interface PopupManager {
 }
 
 export function showPopup(args: PopupDisplayArgs): void {
+  console.log(args);
   const oldHtml = [...document.body.children];
-  if (args.newHtml instanceof HTMLElement || args.newHtml instanceof SVGElement) {
+  if (args.newHtml instanceof DocumentFragment) {
+    document.body.innerHTML = "";
+    document.body.append(...args.newHtml.children);
+  } else if (args.newHtml instanceof HTMLElement || args.newHtml instanceof SVGElement) {
     document.body.innerHTML = "";
     document.body.appendChild(args.newHtml);
   } else {
@@ -66,7 +70,7 @@ export interface PopupDisplayArgs {
 
 export type PopupDisplayHtml = string | ReactElement;
 
-export function generateViewPopupHtml(innerHTML: JSX.Element): JSX.Element {
+export function generateViewPopupHtml(innerHTML: ReactElement): ReactElement {
   return <>
     <header>
       <div class="viewable-button-bar">

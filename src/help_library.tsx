@@ -1,10 +1,11 @@
 
 // All manual pages.
 
-import { jsx, Fragment } from './jsx.js';
 import { HelpPage } from './help_manager.js';
 
-function ConstantExplanation(opts: { children: any[] }): JSX.Element {
+import { ReactElement } from 'jsx-dom';
+
+function ConstantExplanation(opts: { children: (ReactElement | string)[] }): ReactElement {
   return <span>
     <p>
       Pushes the constant value <span>{opts.children}</span> onto the stack.
@@ -16,7 +17,7 @@ function ConstantExplanation(opts: { children: any[] }): JSX.Element {
   </span>;
 }
 
-function UnaryFunctionExplanation(): JSX.Element {
+function UnaryFunctionExplanation(): ReactElement {
   return <span>
     <p>
       This function takes one argument from the top of the stack by default. With
@@ -31,7 +32,7 @@ function UnaryFunctionExplanation(): JSX.Element {
   </span>;
 }
 
-function BinaryFunctionExplanation(): JSX.Element {
+function BinaryFunctionExplanation(): ReactElement {
   return <span>
     <p>
       This function takes two arguments from the top of the stack by default. With
@@ -46,7 +47,7 @@ function BinaryFunctionExplanation(): JSX.Element {
   </span>;
 }
 
-function BroadcastedExplanation(opts: { opName: string }): JSX.Element {
+function BroadcastedExplanation(opts: { opName: string }): ReactElement {
   return <span>
     <p>
       <span>{opts.opName}</span> is broadcasted across vector arguments automatically.

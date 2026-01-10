@@ -72,7 +72,7 @@ export interface VectorButtonGridSubgrids {
 }
 
 function innerProductButton(): DoubleSubcommandDispatchButton {
-  return new DoubleSubcommandDispatchButton("<math><mi>·</mi></math>", "innerprod", "I", {
+  return new DoubleSubcommandDispatchButton("<math><mi>·</mi></math>", "innerprod", "I", null, {
     firstLabelHTML: "Entering <tt>&lt;×&gt;</tt> subcommand...",
     secondLabelHTML: "Entering <tt>&lt;+&gt;</tt> subcommand...",
   });

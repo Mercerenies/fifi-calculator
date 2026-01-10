@@ -3,7 +3,7 @@ import { UiManager } from '../ui_manager.js';
 import { TouchModeFactoryContext } from '../touch_mode.js';
 import { ClickableTouchMode } from './clickable.js';
 import { DirectRenderTarget, getGraphicsElements, getGraphicsPayload, renderPlotTo } from '../graphics.js';
-import { generateViewPopupHtml, BACK_BUTTON_SELECTOR } from '../popup_display.js';
+import { generateViewPopupHtml, BACK_BUTTON_ID, BACK_BUTTON_SELECTOR } from '../popup_display.js';
 
 import { ReactElement } from 'jsx-dom';
 

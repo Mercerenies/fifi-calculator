@@ -2,9 +2,10 @@
 import { HelpModeButtonManager, HelpModeResponse } from './button_grid/help_text.js';
 import { ButtonGridManager, GridCell } from './button_grid.js';
 import { PopupManager, generateViewPopupHtml, BACK_BUTTON_SELECTOR } from './popup_display.js';
-import { jsx, Fragment, HtmlText } from './jsx.js';
 import { KeyEventHandler } from './keyboard/dispatcher.js';
 import { KeyEventInput, KeyResponse } from './keyboard.js';
+
+import { ReactElement } from "jsx-dom";
 
 export class HelpManager implements KeyEventHandler {
   private helpButton: HTMLButtonElement;
@@ -58,14 +59,13 @@ export interface HelpManagerConstructorArgs {
 
 export interface HelpPage {
   readonly headerText: string;
-  readonly body: JSX.Element;
+  readonly body: ReactElement;
 }
 
-export function helpPageToJsx(cell: GridCell, page: HelpPage): JSX.Element {
+export function helpPageToJsx(cell: GridCell, page: HelpPage): ReactElement {
   const cellHtml = cell.getInnerHTML();
-  const cellIcon = (typeof cellHtml === 'string' ? HtmlText(cellHtml) : new Fragment([cellHtml]));
   return <>
-    <h1><span class="helptext-icon">{cellIcon}</span> {page.headerText}</h1>
+    <h1><span class="helptext-icon">{cellHtml}</span> {page.headerText}</h1>
     <div>{page.body}</div>
   </>;
 }
