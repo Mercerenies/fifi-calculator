@@ -8,13 +8,13 @@ function BinaryFunctionExplanation(): JSX.Element {
   return <span>
     <p>
       This function takes two arguments from the top of the stack by default. With
-      a positive argument N, this function takes N values off the stack and reduces
-      them (associating to the left) using the binary function. A numerical argument
+      a positive prefix argument <code>u</code>, this function takes <code>u</code> values off the stack and reduces
+      them (associating to the left) using the binary function. A prefix argument
       of zero reduces the <em>whole</em> stack.
     </p>
     <p>
       If given a negative prefix argument, the top stack element is <em>distributed</em> to
-      the next N stack elements as the right-hand argument to this function.
+      the next <code>u</code> stack elements as the right-hand argument to this function.
     </p>
   </span>;
 }
