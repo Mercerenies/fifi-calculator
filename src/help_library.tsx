@@ -19,6 +19,14 @@ function BinaryFunctionExplanation(): JSX.Element {
   </span>;
 }
 
+function BroadcastedExplanation(opts: { opName: string }): JSX.Element {
+  return <span>
+    <p>
+      <span>{opts.opName}</span> is broadcasted across vector arguments automatically.
+    </p>
+  </span>;
+}
+
 export function backButton(): HelpPage {
   const body = <>
     <p>
@@ -267,9 +275,7 @@ export function plus(): HelpPage {
       <li><strong>Intervals</strong> are added together as sets of real numbers.</li>
       <li><strong>Graphics objects</strong> are concatenated into a single graphics object.</li>
     </ul>
-    <p>
-      Addition is broadcasted across vector arguments automatically.
-    </p>
+    <BroadcastedExplanation opName="Addition" />
     <BinaryFunctionExplanation />
   </>;
   return {
@@ -292,9 +298,7 @@ export function minus(): HelpPage {
       <li>Two <strong>datetimes</strong> can be subtracted, producing a delta in days.</li>
       <li><strong>Intervals</strong> are subtracted together as sets of real numbers.</li>
     </ul>
-    <p>
-      Subtraction is broadcasted across vector arguments automatically.
-    </p>
+    <BroadcastedExplanation opName="Subtraction" />
     <BinaryFunctionExplanation />
   </>;
   return {
@@ -322,9 +326,7 @@ export function times(): HelpPage {
       <li>Multiplying a <strong>string</strong> and a nonnegative integer repeats that string, similar to Python semantics.</li>
       <li><strong>Intervals</strong> are multiplied together as sets of real numbers.</li>
     </ul>
-    <p>
-      Multiplication is broadcasted across vector arguments automatically.
-    </p>
+    <BroadcastedExplanation opName="Multiplication" />
     <BinaryFunctionExplanation />
   </>;
   return {
@@ -378,9 +380,7 @@ export function divide(): HelpPage {
       <li><strong>Intervals</strong> are divided as sets of real numbers. If the result of division would be a
           union of intervals, then the result is the smallest single interval containing that union.</li>
     </ul>
-    <p>
-      Division is broadcasted across vector arguments automatically.
-    </p>
+    <BroadcastedExplanation opName="Division" />
     <BinaryFunctionExplanation />
   </>;
   return {
