@@ -81,7 +81,6 @@ export class VariableSubstituteButton extends Button {
 // TODO: Common superclass for buttons which expect one variable as
 // input and call a command with it.
 export class FindRootButton extends Button {
-
   constructor() {
     super("=0", "R");
   }
@@ -111,10 +110,13 @@ export class FindRootButton extends Button {
   asSubcommand(): SubcommandBehavior {
     return "invalid";
   }
+
+  override getHelpPage(): HelpPage {
+    return HelpLibrary.findRoot();
+  }
 }
 
 export class DerivativeButton extends Button {
-
   constructor() {
     super("<span class='mathy-text'>dx</span>", "d");
   }
@@ -143,5 +145,9 @@ export class DerivativeButton extends Button {
 
   asSubcommand(): SubcommandBehavior {
     return "invalid";
+  }
+
+  override getHelpPage(): HelpPage {
+    return HelpLibrary.derivative();
   }
 }

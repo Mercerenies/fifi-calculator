@@ -49,7 +49,7 @@ impl Command for DerivativeCommand {
     let variable_name = validate_schema(&DerivativeCommand::argument_schema(), args)?;
 
     let times = context.opts.argument.unwrap_or(1);
-    anyhow::ensure!(times > 0, "deriv() requires a positive numerical argument, got {times}");
+    anyhow::ensure!(times >= 0, "deriv() requires a positive numerical argument, got {times}");
 
     let mut errors = ErrorList::new();
     state.undo_stack_mut().push_cut();

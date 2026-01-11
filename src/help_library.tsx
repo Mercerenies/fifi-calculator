@@ -1025,3 +1025,57 @@ export function lowercase(): HelpPage {
     body,
   };
 }
+
+export function findRoot(): HelpPage {
+  const body = <>
+    <p>
+      Attempts to find a root of the expression or equation. Prompts for a variable to solve for, then pops two
+      values off the stack. The top value shall be the initial "guess" input, and the next is the expression or
+      equation. In the case of an equation, this function attempts to find a value which makes the two sides
+      equal. In the case of an expression, this function attempts to find a value which evaluates to zero.
+    </p>
+    <p>
+      The initial guess can be a real number, a complex number, a pair of real numbers, or an interval
+      of real numbers. The function dynamically chooses a method to use based on the inputs.
+    </p>
+    <ul class="help-ul">
+      <li>
+        If the initial guess is a complex number with nontrivial imaginary part, then the Newton-Raphson
+        method is used. If no derivative can be found, then the root finding algorithm fails.
+      </li>
+      <li>
+        If the initial guess is a real number, then the Newton-Raphson method is used if a derivative can
+        be calculated. If not, the algorithm falls back to the secant method with the second initial input
+        chosen near the first.
+      </li>
+      <li>
+        If the initial guess is a pair of real numbers, then the secant method is used unconditionally.
+      </li>
+      <li>
+        Finally, in the case of an interval, the bisection method is used.
+      </li>
+    </ul>
+  </>;
+  return {
+    headerText: "Find Root",
+    body,
+  };
+}
+
+export function derivative(): HelpPage {
+  const body = <>
+    <p>
+      Differentiates the top stack expression with respect to the variable prompted. If the expression
+      cannot be differentiated or this calculator is not sophisticated enough to do so, an error is
+      produced.
+    </p>
+    <p>
+      With a numerical prefix argument <code>u</code>, the <code>u</code>th derivative is given. It is an
+      error to supply <code>u &lt; 0</code>.
+    </p>
+  </>;
+  return {
+    headerText: "Derivative",
+    body,
+  };
+}
