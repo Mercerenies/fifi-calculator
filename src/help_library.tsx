@@ -1079,3 +1079,59 @@ export function derivative(): HelpPage {
     body,
   };
 }
+
+export function setBasicLang(): HelpPage {
+  const body = <>
+    <p>
+      Sets the language mode to basic language mode, the default. In basic language mode, stack values
+      are shown as a Unicode string.
+    </p>
+  </>;
+  return {
+    headerText: "Set Basic Language",
+    body,
+  };
+}
+
+export function setFancyLang(): HelpPage {
+  const body = <>
+    <p>
+      Sets the language mode to fancy language mode. In fancy language mode, stack values will
+      utilize advanced formatting options. These options include, but are not limited to:
+    </p>
+    <ul class="help-ul">
+      <li>
+        Fractions are written with the numerator atop the denominator.
+      </li>
+      <li>
+        Exponents are written in superscript. Logarithmic bases are written in subscript.
+      </li>
+      <li>
+        Functions such as <code>sin</code> and <code>cos</code> are shown without parentheses when
+        applied to simple arguments.
+      </li>
+    </ul>
+  </>;
+  return {
+    headerText: "Set Fancy Language",
+    body,
+  };
+}
+
+export interface SetDisplayRadixArgs {
+  base: number;
+  abbreviation?: string;
+};
+
+export function setDisplayRadixFunc(args: SetDisplayRadixArgs): HelpPage {
+  const radixAbbr = args.abbreviation && <span>({args.abbreviation})</span>;
+  const body = <>
+    <p>
+      Sets the display radix for all numerical quantities to base {args.base} {radixAbbr}.
+    </p>
+  </>;
+  return {
+    headerText: `Set Radix (Base ${args.base})`,
+    body,
+  };
+}

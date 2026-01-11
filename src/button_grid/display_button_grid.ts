@@ -6,6 +6,9 @@ import { InputBoxManager } from '../input_box.js';
 import { FreeformInputMethod } from '../input_box/freeform_input.js';
 import { svg } from '../util.js';
 import { TAURI, Validator } from "../tauri_api.js";
+import { HelpPage } from '../help_manager.js';
+import * as HelpLibrary from "../help_library.js";
+import { SetDisplayRadixArgs as SetDisplayRadixHelpArgs } from '../help_library.js';
 
 function imageSvg(): HTMLElement {
   return svg('assets/image.svg', {alt: "graphics"});
@@ -25,14 +28,14 @@ export class DisplayButtonGrid extends ButtonGrid {
   private initRows(): GridCell[][] {
     return [
       [
-        new DispatchButton("N", "set_basic_language_mode", "N"),
-        new DispatchButton("ℬ", "set_fancy_language_mode", "B"),
+        new DispatchButton("N", "set_basic_language_mode", "N", HelpLibrary.setBasicLang),
+        new DispatchButton("ℬ", "set_fancy_language_mode", "B", HelpLibrary.setFancyLang),
       ],
       [
-        new SetDisplayRadixButton("0", "0", 10),
-        new SetDisplayRadixButton("0x", "6", 16),
-        new SetDisplayRadixButton("0b", "2", 2),
-        new SetDisplayRadixButton("0o", "8", 8),
+        new SetDisplayRadixButton("0", "0", 10, "decimal"),
+        new SetDisplayRadixButton("0x", "6", 16, "hexadecimald"),
+        new SetDisplayRadixButton("0b", "2", 2, "binary"),
+        new SetDisplayRadixButton("0o", "8", 8, "octal"),
         new SetDisplayRadixToInputButton(),
       ],
       [],
@@ -52,13 +55,15 @@ export class DisplayButtonGrid extends ButtonGrid {
 export class SetDisplayRadixButton extends Button {
   readonly commandName: string = "set_display_radix";
   readonly targetRadix: number;
+  readonly abbreviation: string | undefined;
 
-  constructor(label: string | HTMLElement, keyboardShortcut: string | null, targetRadix: number) {
+  constructor(label: string | HTMLElement, keyboardShortcut: string | null, targetRadix: number, abbreviation?: string) {
     super(label, keyboardShortcut);
     if (!isValidRadix(targetRadix)) {
       throw new Error("Invalid radix for display radix button: " + targetRadix);
     }
     this.targetRadix = targetRadix;
+    this.abbreviation = abbreviation;
   }
 
   async fire(manager: AbstractButtonManager): Promise<void> {
@@ -68,6 +73,13 @@ export class SetDisplayRadixButton extends Button {
 
   asSubcommand(): SubcommandBehavior {
     return "invalid";
+  }
+
+  override getHelpPage(): HelpPage {
+    return HelpLibrary.setDisplayRadixFunc({
+      base: this.targetRadix,
+      abbreviation: this.abbreviation,
+    });
   }
 }
 
